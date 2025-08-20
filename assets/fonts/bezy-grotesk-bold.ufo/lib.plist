@@ -4,14 +4,6 @@
   <dict>
     <key>com.schriftgestaltung.DisplayStrings</key>
     <array>
-      <string> a 
-Font.Garden</string>
-      <string>/E008  </string>
-      <string>/E004  Font.Garden
-U+0061 Bezy Grotesk Regular Alpha</string>
-      <string>0x7ca26</string>
-      <string>U+0061 </string>
-      <string>nobelieve in sonm/F004 ing</string>
       <string>World Computer 0xd4e56740f876aef8c"</string>
     </array>
     <key>com.schriftgestaltung.appVersion</key>
