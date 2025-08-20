@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="alefHamzaabove-ar.fina" format="2">
+  <advance width="256"/>
+  <outline>
+    <component base="alef-ar.fina"/>
+    <component base="hamzaabove-ar"/>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.schriftgestaltung.Glyphs.lastChange</key>
+      <string>2025-06-13 05:52:28 +0000</string>
+    </dict>
+  </lib>
+</glyph>

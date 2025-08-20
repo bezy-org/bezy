@@ -1,0 +1,7 @@
+# Claude Code directory
+.claude/
+# macOS system files
+.DS_Store
+# Rust build artifacts and compiled output
+target/
+
