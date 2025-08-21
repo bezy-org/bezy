@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<glyph name="twodotshorizontalabove-ar" format="2">
+	<advance width="300"/>
+	<outline>
+		<contour>
+			<point x="24" y="688" type="curve" smooth="yes"/>
+			<point x="68" y="688"/>
+			<point x="104" y="724"/>
+			<point x="104" y="768" type="curve" smooth="yes"/>
+			<point x="104" y="812"/>
+			<point x="68" y="848"/>
+			<point x="24" y="848" type="curve" smooth="yes"/>
+			<point x="-20" y="848"/>
+			<point x="-56" y="812"/>
+			<point x="-56" y="768" type="curve" smooth="yes"/>
+			<point x="-56" y="724"/>
+			<point x="-20" y="688"/>
+		</contour>
+		<contour>
+			<point x="280" y="688" type="curve" smooth="yes"/>
+			<point x="324" y="688"/>
+			<point x="360" y="724"/>
+			<point x="360" y="768" type="curve" smooth="yes"/>
+			<point x="360" y="812"/>
+			<point x="324" y="848"/>
+			<point x="280" y="848" type="curve" smooth="yes"/>
+			<point x="236" y="848"/>
+			<point x="200" y="812"/>
+			<point x="200" y="768" type="curve" smooth="yes"/>
+			<point x="200" y="724"/>
+			<point x="236" y="688"/>
+		</contour>
+	</outline>
+	<anchor name="top" x="152" y="800"/>
+	<anchor name="_topDots" x="152" y="576"/>
+	<lib>
+		<dict>
+			<key>com.schriftgestaltung.Glyphs.lastChange</key>
+			<string>2025-06-22 06:02:46 +0000</string>
+		</dict>
+	</lib>
+</glyph>

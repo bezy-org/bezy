@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<glyph name="lam_alef-ar.fina" format="2">
+	<advance width="672"/>
+	<outline>
+		<component base="lam-ar.medi" xOffset="256"/>
+		<component base="alef-ar.fina"/>
+	</outline>
+	<lib>
+		<dict>
+			<key>com.schriftgestaltung.Glyphs.lastChange</key>
+			<string>2025-02-13 22:25:55 +0000</string>
+			<key>com.schriftgestaltung.Glyphs.leftMetricsKey</key>
+			<string>alef-ar.fina</string>
+			<key>com.schriftgestaltung.Glyphs.rightMetricsKey</key>
+			<string>lam-ar.medi</string>
+		</dict>
+	</lib>
+</glyph>

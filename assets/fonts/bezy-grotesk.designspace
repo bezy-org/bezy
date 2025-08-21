@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<designspace format="5.0">
+  <axes>
+    <axis tag="wght" name="Weight" minimum="400" default="400" maximum="700"/>
+  </axes>
+  <sources>
+    <source filename="bezy-grotesk-regular.ufo" familyname="Bezy Grotesk" stylename="Regular">
+      <location>
+        <dimension name="Weight" xvalue="400"/>
+      </location>
+    </source>
+    <source filename="bezy-grotesk-bold.ufo" familyname="Bezy Grotesk" stylename="Bold">
+      <location>
+        <dimension name="Weight" xvalue="700"/>
+      </location>
+    </source>
+  </sources>
+  <instances>
+    <instance familyname="Bezy Grotesk" stylename="Regular" filename="instance_ufo/BezyGrotesk-Regular.ufo">
+      <location>
+        <dimension name="Weight" xvalue="400"/>
+      </location>
+      <kerning/>
+      <info/>
+    </instance>
+    <instance familyname="Bezy Grotesk" stylename="Medium" filename="instance_ufo/BezyGrotesk-Medium.ufo">
+      <location>
+        <dimension name="Weight" xvalue="500"/>
+      </location>
+      <kerning/>
+      <info/>
+    </instance>
+    <instance familyname="Bezy Grotesk" stylename="SemiBold" filename="instance_ufo/BezyGrotesk-SemiBold.ufo">
+      <location>
+        <dimension name="Weight" xvalue="600"/>
+      </location>
+      <kerning/>
+      <info/>
+    </instance>
+    <instance familyname="Bezy Grotesk" stylename="Bold" filename="instance_ufo/BezyGrotesk-Bold.ufo">
+      <location>
+        <dimension name="Weight" xvalue="700"/>
+      </location>
+      <kerning/>
+      <info/>
+    </instance>
+  </instances>
+</designspace>

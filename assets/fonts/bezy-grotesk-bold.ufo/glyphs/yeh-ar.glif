@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="yeh-ar" format="2">
+  <advance width="600"/>
+  <unicode hex="064A"/>
+  <outline>
+    <component base="alefMaksura-ar"/>
+    <component base="twodotshorizontalbelow-ar"/>
+  </outline>
+</glyph>
