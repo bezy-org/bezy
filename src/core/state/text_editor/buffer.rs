@@ -75,6 +75,12 @@ pub struct SortBuffer {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct BufferId(pub u32);
 
+impl Default for BufferId {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BufferId {
     /// Create a new unique buffer ID
     pub fn new() -> Self {

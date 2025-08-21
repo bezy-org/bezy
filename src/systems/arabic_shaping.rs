@@ -166,7 +166,7 @@ fn get_contextual_glyph_name(
         }
     } else {
         // Try with suffix for other positions
-        let contextual_name = format!("{}{}", base_name, suffix);
+        let contextual_name = format!("{base_name}{suffix}");
         if fontir_state.get_glyph_names().contains(&contextual_name) {
             return Ok(contextual_name);
         }

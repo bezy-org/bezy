@@ -447,7 +447,7 @@ fn get_contextual_arabic_glyph_name(
     let contextual_name = match position {
         ArabicPosition::Isolated => base_name.clone(),
         ArabicPosition::Initial => {
-            let contextual = format!("{}.init", base_name);
+            let contextual = format!("{base_name}.init");
             // Check if this form exists in the font
             if fontir_state.get_glyph_names().contains(&contextual) {
                 contextual
@@ -456,7 +456,7 @@ fn get_contextual_arabic_glyph_name(
             }
         },
         ArabicPosition::Medial => {
-            let contextual = format!("{}.medi", base_name);
+            let contextual = format!("{base_name}.medi");
             if fontir_state.get_glyph_names().contains(&contextual) {
                 contextual
             } else {
@@ -464,7 +464,7 @@ fn get_contextual_arabic_glyph_name(
             }
         },
         ArabicPosition::Final => {
-            let contextual = format!("{}.fina", base_name);
+            let contextual = format!("{base_name}.fina");
             if fontir_state.get_glyph_names().contains(&contextual) {
                 contextual
             } else {

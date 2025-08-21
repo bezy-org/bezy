@@ -280,6 +280,7 @@ pub struct KnifeCalculationCache {
 }
 
 /// Render the knife tool preview
+#[allow(clippy::too_many_arguments)]
 pub fn render_knife_preview(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -614,9 +615,9 @@ fn perform_fontir_cut(
         
         // Ensure we have a working copy
         if !fontir_state.working_copies.contains_key(&key) {
-            if let Some(original_paths) = fontir_state.get_glyph_paths(&current_glyph) {
+            if let Some(original_paths) = fontir_state.get_glyph_paths(current_glyph) {
                 let working_copy = crate::core::state::fontir_app_state::EditableGlyphInstance {
-                    width: fontir_state.get_glyph_advance_width(&current_glyph) as f64,
+                    width: fontir_state.get_glyph_advance_width(current_glyph) as f64,
                     height: None,
                     vertical_origin: None,
                     contours: original_paths,
@@ -672,6 +673,7 @@ fn perform_fontir_cut(
 }
 
 /// Spawn a batched dashed line mesh for better performance
+#[allow(clippy::too_many_arguments)]
 fn spawn_dashed_line_batched(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
@@ -741,6 +743,7 @@ fn spawn_dashed_line_batched(
 }
 
 /// Spawn a line mesh for the knife tool
+#[allow(clippy::too_many_arguments)]
 fn spawn_knife_line_mesh(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
@@ -882,7 +885,7 @@ struct Hit {
 }
 
 /// Slice a path with a cutting line, returning new path segments
-fn slice_path_with_line_simple(path: &BezPath, cutting_line: &kurbo::Line) -> Vec<BezPath> {
+fn _slice_path_with_line_simple(path: &BezPath, cutting_line: &kurbo::Line) -> Vec<BezPath> {
     let hits = find_path_intersections_with_parameters(path, cutting_line);
     
     if hits.is_empty() {
@@ -991,12 +994,12 @@ fn slice_path_at_hits(path: &BezPath, hits: &[Hit]) -> Vec<BezPath> {
     let mut path1 = BezPath::new(); // Path from first hit to second hit
     let mut path2 = BezPath::new(); // Path from second hit back to first hit
     
-    let mut path1_started = false;
-    let mut path2_started = false;
+    let mut _path1_started = false;
+    let mut _path2_started = false;
     
     // Build path1: from first intersection to second intersection
     path1.move_to(first_hit.point);
-    path1_started = true;
+    _path1_started = true;
     
     for (seg_idx, segment) in segments.iter().enumerate() {
         if seg_idx < first_hit.segment_idx {
@@ -1007,19 +1010,19 @@ fn slice_path_at_hits(path: &BezPath, hits: &[Hit]) -> Vec<BezPath> {
             if seg_idx == second_hit.segment_idx {
                 // Both intersections in same segment
                 let subseg = extract_subsegment(segment, first_hit.t, second_hit.t);
-                add_segment_to_path(&mut path1, &subseg, &mut path1_started);
+                add_segment_to_path(&mut path1, &subseg, &mut _path1_started);
             } else {
                 // Start from first intersection to end of segment
                 let subseg = extract_subsegment(segment, first_hit.t, 1.0);
-                add_segment_to_path(&mut path1, &subseg, &mut path1_started);
+                add_segment_to_path(&mut path1, &subseg, &mut _path1_started);
             }
         } else if seg_idx > first_hit.segment_idx && seg_idx < second_hit.segment_idx {
             // Between intersections - add entire segment
-            add_segment_to_path(&mut path1, segment, &mut path1_started);
+            add_segment_to_path(&mut path1, segment, &mut _path1_started);
         } else if seg_idx == second_hit.segment_idx {
             // Segment containing second intersection - end here
             let subseg = extract_subsegment(segment, 0.0, second_hit.t);
-            add_segment_to_path(&mut path1, &subseg, &mut path1_started);
+            add_segment_to_path(&mut path1, &subseg, &mut _path1_started);
             break;
         }
     }
@@ -1032,26 +1035,26 @@ fn slice_path_at_hits(path: &BezPath, hits: &[Hit]) -> Vec<BezPath> {
     // Build path2: from second intersection, around the rest, back to first intersection
     // This path takes the "long way around" the original contour
     path2.move_to(second_hit.point);
-    path2_started = true;
+    _path2_started = true;
     
     // Start from the second intersection and go to the end of that segment
     if second_hit.segment_idx < segments.len() && first_hit.segment_idx != second_hit.segment_idx {
         let segment = &segments[second_hit.segment_idx];
         let subseg = extract_subsegment(segment, second_hit.t, 1.0);
-        add_segment_to_path(&mut path2, &subseg, &mut path2_started);
+        add_segment_to_path(&mut path2, &subseg, &mut _path2_started);
     }
     
     // Add all segments after the second intersection
     for (seg_idx, segment) in segments.iter().enumerate() {
         if seg_idx > second_hit.segment_idx {
-            add_segment_to_path(&mut path2, segment, &mut path2_started);
+            add_segment_to_path(&mut path2, segment, &mut _path2_started);
         }
     }
     
     // Add all segments before the first intersection (completing the loop around)
     for (seg_idx, segment) in segments.iter().enumerate() {
         if seg_idx < first_hit.segment_idx {
-            add_segment_to_path(&mut path2, segment, &mut path2_started);
+            add_segment_to_path(&mut path2, segment, &mut _path2_started);
         }
     }
     
@@ -1059,7 +1062,7 @@ fn slice_path_at_hits(path: &BezPath, hits: &[Hit]) -> Vec<BezPath> {
     if first_hit.segment_idx < segments.len() && first_hit.segment_idx != second_hit.segment_idx {
         let segment = &segments[first_hit.segment_idx];
         let subseg = extract_subsegment(segment, 0.0, first_hit.t);
-        add_segment_to_path(&mut path2, &subseg, &mut path2_started);
+        add_segment_to_path(&mut path2, &subseg, &mut _path2_started);
     }
     
     // Close path2 - the cutting line is implicit in the close_path() operation  
@@ -1081,7 +1084,7 @@ fn slice_path_at_hits(path: &BezPath, hits: &[Hit]) -> Vec<BezPath> {
 
 /// DEPRECATED: We no longer create connecting bridges
 /// Instead, we create proper closed contours with the cutting line integrated
-fn create_connecting_bridges(_sorted_hits: &[Hit]) -> Vec<BezPath> {
+fn _create_connecting_bridges(_sorted_hits: &[Hit]) -> Vec<BezPath> {
     // No longer needed - we create proper closed contours instead
     vec![]
 }
@@ -1194,7 +1197,7 @@ fn line_line_intersection_with_parameter(line1: &kurbo::Line, line2: &kurbo::Lin
     let t = ((p1.x - p3.x) * (p3.y - p4.y) - (p1.y - p3.y) * (p3.x - p4.x)) / denom;
     let u = -((p1.x - p2.x) * (p1.y - p3.y) - (p1.y - p2.y) * (p1.x - p3.x)) / denom;
     
-    if u >= 0.0 && u <= 1.0 && t >= 0.0 && t <= 1.0 {
+    if (0.0..=1.0).contains(&u) && (0.0..=1.0).contains(&t) {
         let point = Point::new(
             p1.x + t * (p2.x - p1.x),
             p1.y + t * (p2.y - p1.y),
@@ -1258,7 +1261,7 @@ fn line_line_intersection_simple(line1: &kurbo::Line, line2: &kurbo::Line) -> Op
     let t = ((p1.x - p3.x) * (p3.y - p4.y) - (p1.y - p3.y) * (p3.x - p4.x)) / denom;
     let u = -((p1.x - p2.x) * (p1.y - p3.y) - (p1.y - p2.y) * (p1.x - p3.x)) / denom;
     
-    if u >= 0.0 && u <= 1.0 {
+    if (0.0..=1.0).contains(&u) {
         Some(Point::new(
             p1.x + t * (p2.x - p1.x),
             p1.y + t * (p2.y - p1.y),
@@ -1320,12 +1323,12 @@ fn get_path_start_point_inline(path: &BezPath) -> Option<Point> {
 }
 
 /// Calculate the distance from a point to a line
-fn calculate_line_point_distance(line: &kurbo::Line, point: Point) -> f64 {
+fn _calculate_line_point_distance(line: &kurbo::Line, point: Point) -> f64 {
     let a = line.p1.y - line.p0.y;
     let b = line.p0.x - line.p1.x;
     let c = line.p1.x * line.p0.y - line.p0.x * line.p1.y;
     
-    let distance = (a * point.x + b * point.y + c).abs() / (a * a + b * b).sqrt();
-    distance
+    
+    (a * point.x + b * point.y + c).abs() / (a * a + b * b).sqrt()
 }
 

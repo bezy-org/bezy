@@ -439,6 +439,8 @@ fn update_button_text_color(
 
 /// Updates hover text visibility based on button interaction states
 /// This works for any button with the Button component, not just main toolbar buttons
+#[allow(clippy::type_complexity)]
+#[allow(clippy::too_many_arguments)]
 pub fn update_hover_text_visibility(
     mut commands: Commands,
     // Main toolbar buttons

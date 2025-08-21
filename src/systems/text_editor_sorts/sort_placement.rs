@@ -154,7 +154,7 @@ fn create_independent_sort_with_fontir(
     let (placeholder_glyph, placeholder_codepoint) = 
         crate::core::state::text_editor::editor::get_default_glyph_for_direction(&layout_mode);
     
-    let advance_width = if let Some(fontir_state) = fontir_app_state {
+    let _advance_width = if let Some(fontir_state) = fontir_app_state {
         fontir_state.get_glyph_advance_width(&placeholder_glyph)
     } else {
         // Fallback to reasonable default if FontIR not available

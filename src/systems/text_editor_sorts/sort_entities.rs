@@ -171,7 +171,7 @@ pub fn spawn_missing_sort_entities(
     for &index in &respawn_queue.indices {
         if let Some(entity) = buffer_entities.entities.remove(&index) {
             info!("🔄 Respawning entity for buffer index {} due to content change", index);
-            commands.entity(entity).despawn_recursive();
+            commands.entity(entity).despawn();
         }
     }
     respawn_queue.indices.clear(); // Clear the queue after processing
@@ -481,7 +481,7 @@ pub fn sync_buffer_sort_activation_state(
     buffer_entities: Res<BufferSortEntities>,
     active_sort_query: Query<Entity, With<ActiveSort>>,
     inactive_sort_query: Query<Entity, With<InactiveSort>>,
-    buffer_index_query: Query<&BufferSortIndex>,
+    _buffer_index_query: Query<&BufferSortIndex>,
 ) {
     // Only run when text editor state has changed to avoid unnecessary work
     if !text_editor_state.is_changed() {

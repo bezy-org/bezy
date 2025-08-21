@@ -478,12 +478,10 @@ fn render_filled_outline(
                 )).id();
                 
                 element_entities.push(entity);
+            } else if tessellation_result.is_err() {
+                warn!("🎨 Tessellation FAILED for glyph '{}': {:?}", glyph_name, tessellation_result.err());
             } else {
-                if tessellation_result.is_err() {
-                    warn!("🎨 Tessellation FAILED for glyph '{}': {:?}", glyph_name, tessellation_result.err());
-                } else {
-                    warn!("🎨 Tessellation produced EMPTY geometry for glyph '{}'", glyph_name);
-                }
+                warn!("🎨 Tessellation produced EMPTY geometry for glyph '{}'", glyph_name);
             }
         }
     }
@@ -1470,7 +1468,7 @@ fn glyph_has_components(glyph_name: &str, fontir_state: Option<&crate::core::sta
     if let Some(fontir_state) = fontir_state {
         // Check if the source is a UFO file
         let source_path = &fontir_state.source_path;
-        if source_path.extension().map_or(false, |ext| ext == "ufo") {
+        if source_path.extension().is_some_and(|ext| ext == "ufo") {
             // Load UFO directly to check for components
             if let Ok(font) = norad::Font::load(source_path) {
                 let layer = font.default_layer();

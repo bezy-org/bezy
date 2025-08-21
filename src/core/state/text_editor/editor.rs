@@ -150,12 +150,12 @@ impl TextEditorState {
 
                 // Calculate position using same logic as cursor positioning
                 let mut x_offset = 0.0;
-                let mut y_offset = 0.0;
+                let y_offset = 0.0;
 
                 // Get font metrics for line height calculation
-                let upm = font_metrics.units_per_em as f32;
-                let descender = font_metrics.descender.unwrap_or(-256.0) as f32;
-                let line_height = upm - descender;
+                let _upm = font_metrics.units_per_em as f32;
+                let _descender = font_metrics.descender.unwrap_or(-256.0) as f32;
+                let _line_height = _upm - _descender;
 
                 // Determine text direction from target sort's layout mode
                 let target_sort = self.buffer.get(buffer_position);
@@ -180,8 +180,7 @@ impl TextEditorState {
                     // RTL: Position characters to flow LEFT from the root
                     // CRITICAL: In RTL, each character's RIGHT edge should be at the positioning point
                     // So we need to offset by the character's own width first
-                    println!("🔍 RTL CALC: Calculating offset for buffer[{}] from root at buffer[{}]", 
-                             buffer_position, root_index);
+                    println!("🔍 RTL CALC: Calculating offset for buffer[{buffer_position}] from root at buffer[{root_index}]");
                     
                     // RTL edge-to-edge positioning: Each character's RIGHT edge touches previous character's LEFT edge
                     // Step 1: Position current character so its RIGHT edge is at the correct position
@@ -190,8 +189,7 @@ impl TextEditorState {
                             if buffer_position == root_index + 1 {
                                 // First character: RIGHT edge at root position
                                 x_offset = -current_advance;
-                                println!("🔍 RTL CALC: First character '{}' advance={:.1}, RIGHT edge at root, offset={:.1}", 
-                                         current_glyph, current_advance, x_offset);
+                                println!("🔍 RTL CALC: First character '{current_glyph}' advance={current_advance:.1}, RIGHT edge at root, offset={x_offset:.1}");
                             } else {
                                 // Subsequent characters: RIGHT edge at previous character's LEFT edge
                                 // Calculate where the previous character's left edge is
@@ -205,8 +203,7 @@ impl TextEditorState {
                                 }
                                 // Position current character so its RIGHT edge is at previous LEFT edge
                                 x_offset = previous_left_edge - current_advance;
-                                println!("🔍 RTL CALC: Character '{}' advance={:.1}, RIGHT edge at previous LEFT edge {:.1}, offset={:.1}", 
-                                         current_glyph, current_advance, previous_left_edge, x_offset);
+                                println!("🔍 RTL CALC: Character '{current_glyph}' advance={current_advance:.1}, RIGHT edge at previous LEFT edge {previous_left_edge:.1}, offset={x_offset:.1}");
                             }
                         }
                     }
@@ -555,7 +552,7 @@ impl TextEditorState {
         glyph_name: String,
         advance_width: f32,
         codepoint: Option<char>,
-        respawn_queue: Option<&mut crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
+        _respawn_queue: Option<&mut crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
     ) {
         debug!("Insert at cursor: Starting insertion of '{}'", glyph_name);
         info!(
@@ -578,7 +575,7 @@ impl TextEditorState {
                   glyph_name, cursor_pos_in_buffer, root_index, self.buffer.len());
 
             // Check if this is the first character being typed into an empty text root
-            let is_empty_root = if let Some(root_sort) = self.buffer.get(root_index) {
+            let _is_empty_root = if let Some(root_sort) = self.buffer.get(root_index) {
                 match &root_sort.kind {
                     SortKind::Glyph { glyph_name: root_glyph, .. } => {
                         // Check if root is still a placeholder glyph
@@ -1187,7 +1184,7 @@ fn is_rtl_layout_mode(layout_mode: &SortLayoutMode) -> bool {
 }
 
 /// Helper function to calculate cursor position based on text direction
-fn calculate_cursor_position_for_direction(
+fn _calculate_cursor_position_for_direction(
     layout_mode: &SortLayoutMode, 
     text_sort_count: usize
 ) -> usize {
@@ -1205,7 +1202,7 @@ fn calculate_cursor_position_for_direction(
 }
 
 /// Helper function to calculate insertion position based on text direction
-fn calculate_insertion_position_for_direction(
+fn _calculate_insertion_position_for_direction(
     layout_mode: &SortLayoutMode,
     root_index: usize,
     buffer_len: usize

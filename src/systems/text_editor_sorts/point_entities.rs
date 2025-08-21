@@ -425,6 +425,7 @@ pub fn despawn_inactive_sort_points_optimized(
 }
 
 /// Detect when active sorts change glyph and force point regeneration
+#[allow(clippy::type_complexity)]
 pub fn detect_sort_glyph_changes(
     mut commands: Commands,
     changed_sorts: Query<(Entity, &Sort), (With<ActiveSort>, Changed<Sort>)>,
@@ -437,8 +438,7 @@ pub fn detect_sort_glyph_changes(
         
         // Check if the glyph name actually changed
         let glyph_changed = local_previous_glyphs
-            .get(&sort_entity)
-            .map_or(true, |prev_name| prev_name != current_glyph_name);
+            .get(&sort_entity) != Some(current_glyph_name);
             
         if glyph_changed {
             debug!(

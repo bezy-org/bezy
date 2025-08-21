@@ -357,17 +357,18 @@ fn convert_bezpath_to_ufo_contour(bez_path: &kurbo::BezPath) -> norad::Contour {
     }
     
     // For closed contours, ensure the first point corresponds to the MoveTo position
-    if is_closed && move_to_pos.is_some() && !all_points.is_empty() {
-        let start_pt = move_to_pos.unwrap();
+    if is_closed && !all_points.is_empty() {
+        if let Some(start_pt) = move_to_pos {
         
         
-        // Find if any point matches the MoveTo position
-        if let Some(start_idx) = find_point_near_position(&all_points, start_pt) {
-            // Rotate the points so the matching point comes first
-            let rotated = rotate_points_to_start(&all_points, start_idx);
-            return norad::Contour::new(rotated, None);
-        } else {
-            info!("No matching point found for MoveTo position, using original order");
+            // Find if any point matches the MoveTo position
+            if let Some(start_idx) = find_point_near_position(&all_points, start_pt) {
+                // Rotate the points so the matching point comes first
+                let rotated = rotate_points_to_start(&all_points, start_idx);
+                return norad::Contour::new(rotated, None);
+            } else {
+                info!("No matching point found for MoveTo position, using original order");
+            }
         }
     }
     

@@ -32,13 +32,14 @@ impl From<TextDirection> for Direction {
 
 /// Resource for managing font compilation and HarfBuzz shaping cache
 #[derive(Resource)]
+#[derive(Default)]
 pub struct HarfBuzzShapingCache {
     /// Temporary directory for compiled fonts
-    temp_dir: Option<TempDir>,
+    _temp_dir: Option<TempDir>,
     /// Path to last compiled font binary
-    compiled_font_path: Option<PathBuf>,
+    _compiled_font_path: Option<PathBuf>,
     /// Last compilation timestamp for cache invalidation
-    last_compiled: Option<std::time::Instant>,
+    _last_compiled: Option<std::time::Instant>,
     /// Whether HarfBuzz is available for use (future feature)
     #[allow(dead_code)]
     harfbuzz_available: bool,
@@ -46,17 +47,6 @@ pub struct HarfBuzzShapingCache {
     shaped_cache: HashMap<String, ShapedText>,
 }
 
-impl Default for HarfBuzzShapingCache {
-    fn default() -> Self {
-        Self {
-            temp_dir: None,
-            compiled_font_path: None,
-            last_compiled: None,
-            harfbuzz_available: false, // Will be set to true when HarfBuzz works
-            shaped_cache: HashMap::new(),
-        }
-    }
-}
 
 /// Get font bytes for HarfBuzz shaping (using existing TTF file for now)
 pub fn compile_font_for_shaping(
@@ -69,7 +59,7 @@ pub fn compile_font_for_shaping(
     info!("🔤 HarfBuzz: Loading existing BezyGrotesk-Regular.ttf for shaping");
     
     let font_bytes = std::fs::read("assets/fonts/BezyGrotesk-Regular.ttf")
-        .map_err(|e| format!("Failed to load BezyGrotesk-Regular.ttf: {}", e))?;
+        .map_err(|e| format!("Failed to load BezyGrotesk-Regular.ttf: {e}"))?;
     
     info!("🔤 HarfBuzz: Loaded {} bytes from TTF file", font_bytes.len());
     Ok(font_bytes)
@@ -83,7 +73,7 @@ pub fn shape_text_with_harfbuzz(
     fontir_state: &FontIRAppState,
 ) -> Result<ShapedText, String> {
     // Check cache first
-    let cache_key = format!("{}_{:?}", text, direction);
+    let cache_key = format!("{text}_{direction:?}");
     if let Some(cached) = cache.shaped_cache.get(&cache_key) {
         return Ok(cached.clone());
     }
@@ -109,7 +99,7 @@ fn perform_harfbuzz_shaping(
 ) -> Result<ShapedText, String> {
     // Create harfrust font from compiled font bytes
     let font_ref = FontRef::from_index(font_bytes, 0)
-        .map_err(|e| format!("Failed to create harfrust FontRef: {:?}", e))?;
+        .map_err(|e| format!("Failed to create harfrust FontRef: {e:?}"))?;
     
     // Create shaper data and instance
     let shaper_data = ShaperData::new(&font_ref);
@@ -186,7 +176,7 @@ fn perform_harfbuzz_shaping(
 }
 
 /// Get glyph name from glyph ID using FontIR
-fn get_glyph_name_from_id(glyph_id: u32, fontir_state: &FontIRAppState) -> String {
+fn get_glyph_name_from_id(glyph_id: u32, _fontir_state: &FontIRAppState) -> String {
     // HACK: For proof of concept with "اشهد", let's create a manual mapping
     // based on what we see in the debug output
     // TODO: This needs proper font table parsing to get actual glyph names
@@ -209,7 +199,7 @@ fn get_glyph_name_from_id(glyph_id: u32, fontir_state: &FontIRAppState) -> Strin
         
         _ => {
             warn!("🔤 HarfBuzz: Unknown glyph ID {}, returning gid{}", glyph_id, glyph_id);
-            format!("gid{}", glyph_id)
+            format!("gid{glyph_id}")
         }
     }
 }
@@ -235,13 +225,14 @@ pub fn harfbuzz_shaping_system(
     mut hb_cache: ResMut<HarfBuzzShapingCache>,
 ) {
     // HACK: Let's see if this system is even being called
-    static mut CALL_COUNT: usize = 0;
-    unsafe {
-        CALL_COUNT += 1;
-        if CALL_COUNT % 60 == 0 { // Log every second at 60fps
-            info!("🔤 HarfBuzz: System called {} times", CALL_COUNT);
-        }
-    }
+    // Debug logging disabled to avoid static mut refs warning
+    // static mut CALL_COUNT: usize = 0;
+    // unsafe {
+    //     CALL_COUNT += 1;
+    //     if CALL_COUNT % 60 == 0 { // Log every second at 60fps
+    //         info!("🔤 HarfBuzz: System called {} times", CALL_COUNT);
+    //     }
+    // }
     
     let Some(fontir_state) = fontir_state else {
         warn!("🔤 HarfBuzz: No FontIR state available");
@@ -261,14 +252,12 @@ pub fn harfbuzz_shaping_system(
     // HACK: For debugging, let's see what's in the buffer
     let mut has_arabic = false;
     for (i, entry) in text_editor_state.buffer.iter().enumerate() {
-        if let crate::core::state::text_editor::buffer::SortKind::Glyph { glyph_name, codepoint, .. } = &entry.kind {
-            if let Some(ch) = codepoint {
-                let code = *ch as u32;
-                if (0x0600..=0x06FF).contains(&code) {
-                    has_arabic = true;
-                    info!("🔤 HarfBuzz: Found Arabic character at buffer[{}]: U+{:04X} '{}' glyph='{}'", 
-                          i, code, ch, glyph_name);
-                }
+        if let crate::core::state::text_editor::buffer::SortKind::Glyph { glyph_name, codepoint: Some(ch), .. } = &entry.kind {
+            let code = *ch as u32;
+            if (0x0600..=0x06FF).contains(&code) {
+                has_arabic = true;
+                info!("🔤 HarfBuzz: Found Arabic character at buffer[{}]: U+{:04X} '{}' glyph='{}'", 
+                      i, code, ch, glyph_name);
             }
         }
     }
@@ -333,7 +322,7 @@ pub fn harfbuzz_shaping_system(
             // Known correct shapes for "اشهد" from our test:
             // Visual order (RTL): dal.fina + heh.medi + sheen.init + alef
             // Buffer order: [alef, sheen, heh, dal] (logical order)
-            let hardcoded_shapes = vec![
+            let hardcoded_shapes = [
                 "alef-ar",        // ا (alef) - isolated, doesn't connect
                 "sheen-ar.init",  // ش (sheen) - initial form
                 "heh-ar.medi",    // ه (heh) - medial form
@@ -345,26 +334,24 @@ pub fn harfbuzz_shaping_system(
             for buffer_idx in indices.iter() {
                 if let Some(entry) = text_editor_state.buffer.get_mut(*buffer_idx) {
                     if let crate::core::state::text_editor::buffer::SortKind::Glyph { 
-                        glyph_name, advance_width, codepoint, .. 
+                        glyph_name, advance_width, codepoint: Some(ch), .. 
                     } = &mut entry.kind {
                         // Check if this is an Arabic character
-                        if let Some(ch) = codepoint {
-                            let code = *ch as u32;
-                            if (0x0600..=0x06FF).contains(&code) && arabic_index < hardcoded_shapes.len() {
-                                let old_name = glyph_name.clone();
-                                *glyph_name = hardcoded_shapes[arabic_index].to_string();
-                                // Use reasonable advance widths
-                                *advance_width = match hardcoded_shapes[arabic_index] {
-                                    "alef-ar" => 224.0,
-                                    "sheen-ar.init" => 864.0,
-                                    "heh-ar.medi" => 482.0,
-                                    "dal-ar.fina" => 528.0,
-                                    _ => 500.0,
-                                };
-                                info!("🔤 HarfBuzz: HARDCODED - Updated Arabic buffer[{}] from '{}' to '{}'", 
-                                      arabic_index, old_name, hardcoded_shapes[arabic_index]);
-                                arabic_index += 1;
-                            }
+                        let code = *ch as u32;
+                        if (0x0600..=0x06FF).contains(&code) && arabic_index < hardcoded_shapes.len() {
+                            let old_name = glyph_name.clone();
+                            *glyph_name = hardcoded_shapes[arabic_index].to_string();
+                            // Use reasonable advance widths
+                            *advance_width = match hardcoded_shapes[arabic_index] {
+                                "alef-ar" => 224.0,
+                                "sheen-ar.init" => 864.0,
+                                "heh-ar.medi" => 482.0,
+                                "dal-ar.fina" => 528.0,
+                                _ => 500.0,
+                            };
+                            info!("🔤 HarfBuzz: HARDCODED - Updated Arabic buffer[{}] from '{}' to '{}'", 
+                                  arabic_index, old_name, hardcoded_shapes[arabic_index]);
+                            arabic_index += 1;
                         }
                     }
                 }

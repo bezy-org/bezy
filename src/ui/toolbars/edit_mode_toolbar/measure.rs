@@ -255,7 +255,7 @@ pub fn render_measure_preview(
             let midpoint = (intersections[0] + intersections[1]) * 0.5;
             
             // Format distance value appropriately
-            let distance_text = format!("{:.1}", distance);
+            let distance_text = format!("{distance:.1}");
             
             // Spawn pill-shaped background for text with higher z-orders
             let pill_entities = spawn_measure_text_with_pill_background(
@@ -374,7 +374,7 @@ fn line_line_intersection_simple(line1: &kurbo::Line, line2: &kurbo::Line) -> Op
     let t = ((p1.x - p3.x) * (p3.y - p4.y) - (p1.y - p3.y) * (p3.x - p4.x)) / denom;
     let u = -((p1.x - p2.x) * (p1.y - p3.y) - (p1.y - p2.y) * (p1.x - p3.x)) / denom;
     
-    if u >= 0.0 && u <= 1.0 {
+    if (0.0..=1.0).contains(&u) {
         Some(kurbo::Point::new(
             p1.x + t * (p2.x - p1.x),
             p1.y + t * (p2.y - p1.y),
@@ -422,6 +422,7 @@ fn get_path_start_point(path: &kurbo::BezPath) -> Option<kurbo::Point> {
 }
 
 /// Spawn a line mesh for the measure tool
+#[allow(clippy::too_many_arguments)]
 fn spawn_measure_line_mesh(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<bevy::render::mesh::Mesh>>,
@@ -558,6 +559,7 @@ fn spawn_measure_text_with_pill_background(
 }
 
 /// Spawn a pill-shaped background mesh
+#[allow(clippy::too_many_arguments)]
 fn spawn_pill_background_mesh(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<bevy::render::mesh::Mesh>>,

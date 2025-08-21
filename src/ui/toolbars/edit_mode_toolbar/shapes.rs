@@ -201,8 +201,7 @@ pub fn handle_shape_mouse_events(
 ) {
     // Check if shapes mode is active via multiple methods (same as preview system)
     let shapes_is_active = shapes_mode.as_ref().is_some_and(|s| s.0) 
-        || (current_tool.as_ref().and_then(|t| t.get_current()).map_or(false, |tool| 
-            tool == "shapes")); // Main shapes tool is selected
+        || (current_tool.as_ref().and_then(|t| t.get_current()) == Some("shapes")); // Main shapes tool is selected
     
     // Debug: Always log when this system runs  
     debug!("SHAPES INPUT: handle_shape_tool_input called - shapes_is_active: {}, current_tool: {:?}", 
@@ -269,21 +268,21 @@ pub fn handle_shape_mouse_events(
                        active_drawing.shape_type, rect.min.x, rect.min.y, rect.max.x, rect.max.y);
 
                 // Create the shape in the current glyph - try FontIR first, then legacy AppState
-                if let Some(mut fontir_state) = fontir_app_state.as_mut() {
+                if let Some(fontir_state) = fontir_app_state.as_mut() {
                     create_shape_fontir(
                         rect,
                         active_drawing.shape_type,
                         corner_radius.0,
-                        &mut fontir_state,
+                        fontir_state,
                         &mut app_state_changed,
                     );
-                } else if let Some(mut state) = app_state.as_mut() {
+                } else if let Some(state) = app_state.as_mut() {
                     create_shape(
                         rect,
                         active_drawing.shape_type,
                         corner_radius.0,
                         &glyph_navigation,
-                        &mut state,
+                        state,
                         &mut app_state_changed,
                     );
                 }
@@ -318,8 +317,7 @@ pub fn render_active_shape_drawing_with_dimensions(
 
     // Check if shapes mode is active via multiple methods (same as input handling)
     let shapes_is_active = shapes_mode.as_ref().is_some_and(|s| s.0) 
-        || (current_tool.as_ref().and_then(|t| t.get_current()).map_or(false, |tool| 
-            tool == "shapes")); // Main shapes tool is selected
+        || (current_tool.as_ref().and_then(|t| t.get_current()) == Some("shapes")); // Main shapes tool is selected
 
     // Debug: Always log when this system runs
     debug!("SHAPES PREVIEW: System running - shapes_mode_active: {:?}, current_tool: {:?}, is_drawing: {}, shapes_is_active: {}", 
@@ -830,7 +828,7 @@ fn spawn_shape_dimension_lines(
     
     // Width measurement text
     commands.spawn((
-        Text2d(format!("{:.0}", width)),
+        Text2d(format!("{width:.0}")),
         TextFont {
             font: asset_server.load(MONO_FONT_PATH),
             font_size: 14.0,
@@ -870,7 +868,7 @@ fn spawn_shape_dimension_lines(
     
     // Height measurement text
     commands.spawn((
-        Text2d(format!("{:.0}", height)),
+        Text2d(format!("{height:.0}")),
         TextFont {
             font: asset_server.load(MONO_FONT_PATH),
             font_size: 14.0,

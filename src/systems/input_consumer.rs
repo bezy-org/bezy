@@ -285,7 +285,7 @@ impl InputConsumer for KnifeInputConsumer {
             InputEvent::MouseClick { button, position, .. } => {
                 info!("🔪 KNIFE INPUT CONSUMER: Mouse click: {:?} at {:?} - EVENT CONSUMED", button, position);
                 if button == &bevy::input::mouse::MouseButton::Left {
-                    let world_position = Vec2::new(position.x as f32, position.y as f32);
+                    let world_position = Vec2::new(position.x, position.y);
                     self.gesture = KnifeGestureState::Cutting {
                         start: world_position,
                         current: world_position,
@@ -297,7 +297,7 @@ impl InputConsumer for KnifeInputConsumer {
             InputEvent::MouseDrag { current_position, .. } => {
                 debug!("🔪 KNIFE INPUT CONSUMER: Mouse drag at {:?} - EVENT CONSUMED", current_position);
                 if let KnifeGestureState::Cutting { start, .. } = self.gesture {
-                    let world_position = Vec2::new(current_position.x as f32, current_position.y as f32);
+                    let world_position = Vec2::new(current_position.x, current_position.y);
                     self.gesture = KnifeGestureState::Cutting {
                         start,
                         current: world_position,
@@ -559,7 +559,7 @@ impl InputConsumer for MeasureInputConsumer {
             InputEvent::MouseClick { button, position, .. } => {
                 info!("📏 MEASURE INPUT CONSUMER: Mouse click: {:?} at {:?} - EVENT CONSUMED", button, position);
                 if button == &bevy::input::mouse::MouseButton::Left {
-                    let world_position = Vec2::new(position.x as f32, position.y as f32);
+                    let world_position = Vec2::new(position.x, position.y);
                     self.gesture = MeasureGestureState::Measuring {
                         start: world_position,
                         current: world_position,
@@ -571,7 +571,7 @@ impl InputConsumer for MeasureInputConsumer {
             InputEvent::MouseDrag { current_position, .. } => {
                 debug!("📏 MEASURE INPUT CONSUMER: Mouse drag at {:?} - EVENT CONSUMED", current_position);
                 if let MeasureGestureState::Measuring { start, .. } = self.gesture {
-                    let world_position = Vec2::new(current_position.x as f32, current_position.y as f32);
+                    let world_position = Vec2::new(current_position.x, current_position.y);
                     self.gesture = MeasureGestureState::Measuring {
                         start,
                         current: world_position,

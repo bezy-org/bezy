@@ -10,9 +10,9 @@ bevy_pancam = "0.18.0"
 norad = { version = "0.16.0", features = ["kurbo", "rayon"] }
 kurbo = { version = "0.11.2", features = ["libm", "serde"] }
 lyon = "1.0"
-fontir = "0.2.1"
-ufo2fontir = "0.2.1"
-fontdrasil = "0.2.1"
+fontir = "0.3.0"
+ufo2fontir = "0.2.2"
+fontdrasil = "0.2.2"
 fontc = "0.3.0"
 smol_str = "0.2"
 anyhow = "1.0.86"
