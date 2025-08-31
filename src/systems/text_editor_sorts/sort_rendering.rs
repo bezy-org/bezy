@@ -6,7 +6,7 @@ use crate::core::state::text_editor::{SortKind, SortLayoutMode};
 use crate::core::state::{AppState, TextEditorState};
 use crate::rendering::entity_pools::{update_cursor_entity, EntityPools, PooledEntityType};
 use crate::ui::theme::*;
-use crate::ui::toolbars::edit_mode_toolbar::text::CurrentTextPlacementMode;
+use crate::ui::edit_mode_toolbar::text::CurrentTextPlacementMode;
 // TextPlacementMode import removed - not used in new mesh-based cursor
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh2d;
@@ -22,7 +22,7 @@ pub struct CursorRenderingState {
     pub last_cursor_position: Option<Vec2>,
     pub last_tool: Option<String>,
     pub last_placement_mode:
-        Option<crate::ui::toolbars::edit_mode_toolbar::text::TextPlacementMode>,
+        Option<crate::ui::edit_mode_toolbar::text::TextPlacementMode>,
     pub last_buffer_cursor_position: Option<usize>,
     pub last_camera_scale: Option<f32>,
 }
@@ -45,7 +45,7 @@ pub fn render_text_editor_cursor(
     current_placement_mode: Res<CurrentTextPlacementMode>,
     app_state: Option<Res<AppState>>,
     fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     camera_scale: Res<crate::rendering::zoom_aware_scaling::CameraResponsiveScale>,
     _existing_cursors: Query<Entity, With<TextEditorCursor>>,
     mut cursor_state: ResMut<CursorRenderingState>,
@@ -77,9 +77,9 @@ pub fn render_text_editor_cursor(
     // Only show cursor when in Insert mode or text placement modes (RTL/LTR)
     if !matches!(
         current_placement_mode.0,
-        crate::ui::toolbars::edit_mode_toolbar::text::TextPlacementMode::Insert
-            | crate::ui::toolbars::edit_mode_toolbar::text::TextPlacementMode::RTLText
-            | crate::ui::toolbars::edit_mode_toolbar::text::TextPlacementMode::LTRText
+        crate::ui::edit_mode_toolbar::text::TextPlacementMode::Insert
+            | crate::ui::edit_mode_toolbar::text::TextPlacementMode::RTLText
+            | crate::ui::edit_mode_toolbar::text::TextPlacementMode::LTRText
     ) {
         info!(
             "CURSOR: Not rendering - not in a text input mode (current mode: {:?})",

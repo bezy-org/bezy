@@ -21,8 +21,8 @@ use crate::systems::sort_manager::SortPointEntity;
 use crate::systems::ui_interaction::UiHoverState;
 use crate::ui::theme::*;
 use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
-use crate::ui::toolbars::edit_mode_toolbar::select::SelectModeActive;
-use crate::ui::toolbars::edit_mode_toolbar::{EditTool, ToolRegistry};
+use crate::ui::edit_mode_toolbar::select::SelectModeActive;
+use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
 use bevy::input::keyboard::KeyCode;
 use bevy::input::mouse::MouseButton;
 use bevy::prelude::*;
@@ -32,7 +32,7 @@ use norad::{Contour, ContourPoint};
 pub struct PenTool;
 
 impl EditTool for PenTool {
-    fn id(&self) -> crate::ui::toolbars::edit_mode_toolbar::ToolId {
+    fn id(&self) -> crate::ui::edit_mode_toolbar::ToolId {
         "pen"
     }
 
@@ -315,7 +315,7 @@ impl EditModeSystem for PenMode {
 /// If the user was in the middle of drawing a path, this system
 /// will automatically commit it before switching modes.
 pub fn reset_pen_mode_when_inactive(
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     mut commands: Commands,
     mut pen_state: ResMut<PenToolState>,
     mut app_state_changed: EventWriter<AppStateChanged>,
@@ -843,7 +843,7 @@ fn spawn_pen_mode_button(
     theme: &Res<CurrentTheme>,
 ) {
     // Use the unified toolbar button creation system for consistent styling with hover text
-    crate::ui::toolbars::edit_mode_toolbar::ui::create_toolbar_button_with_hover_text(
+    crate::ui::edit_mode_toolbar::ui::create_toolbar_button_with_hover_text(
         parent,
         mode.get_icon(),
         Some(mode.get_name()), // Show the mode name on hover
@@ -890,7 +890,7 @@ pub fn spawn_pen_submenu(
 
 /// Auto-show pen submenu when pen tool is active (like text tool)
 pub fn toggle_pen_submenu_visibility(
-    current_tool: Option<Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>>,
+    current_tool: Option<Res<crate::ui::edit_mode_toolbar::CurrentTool>>,
     mut submenu_query: Query<(&mut Node, &Name)>,
 ) {
     let is_pen_tool_active =
@@ -966,7 +966,7 @@ pub fn handle_pen_submenu_selection(
         }
 
         // Use the unified button color system for consistent appearance with main toolbar
-        crate::ui::toolbars::edit_mode_toolbar::ui::update_toolbar_button_colors(
+        crate::ui::edit_mode_toolbar::ui::update_toolbar_button_colors(
             *interaction,
             is_current_mode,
             &mut color,
@@ -974,7 +974,7 @@ pub fn handle_pen_submenu_selection(
         );
 
         // Use the unified text color system for consistent icon colors with main toolbar
-        crate::ui::toolbars::edit_mode_toolbar::ui::update_toolbar_button_text_colors(
+        crate::ui::edit_mode_toolbar::ui::update_toolbar_button_text_colors(
             entity,
             is_current_mode,
             &children_query,

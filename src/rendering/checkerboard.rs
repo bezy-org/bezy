@@ -135,7 +135,7 @@ pub fn update_checkerboard(
     square_query: Query<(Entity, &CheckerboardSquare)>,
     checkerboard_enabled: Res<CheckerboardEnabled>,
     window_query: Query<&Window, With<PrimaryWindow>>,
-    presentation_mode: Option<Res<crate::ui::toolbars::edit_mode_toolbar::PresentationMode>>,
+    presentation_mode: Option<Res<crate::ui::edit_mode_toolbar::PresentationMode>>,
 ) {
     // If checkerboard is disabled OR we're in presentation mode, despawn all squares and return early
     let presentation_active = presentation_mode.is_some_and(|pm| pm.active);

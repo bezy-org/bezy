@@ -1,4 +1,4 @@
-use crate::ui::toolbars::edit_mode_toolbar::{EditTool, ToolRegistry};
+use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
 use bevy::prelude::*;
 use kurbo::ParamCurve;
 
@@ -9,7 +9,7 @@ pub struct MeasureModeActive(pub bool);
 pub struct MeasureTool;
 
 impl EditTool for MeasureTool {
-    fn id(&self) -> crate::ui::toolbars::edit_mode_toolbar::ToolId {
+    fn id(&self) -> crate::ui::edit_mode_toolbar::ToolId {
         "measure"
     }
 
@@ -72,7 +72,7 @@ fn register_measure_tool(mut tool_registry: ResMut<ToolRegistry>) {
 
 /// System to manage measure mode activation/deactivation
 pub fn manage_measure_mode_state(
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     mut commands: Commands,
     measure_mode: Option<Res<MeasureModeActive>>,
 ) {
@@ -93,7 +93,7 @@ pub fn manage_measure_mode_state(
 /// System to update shift key state for axis-aligned measurements
 pub fn update_measure_shift_state(
     keyboard: Res<ButtonInput<KeyCode>>,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     mut measure_consumer: ResMut<crate::systems::input_consumer::MeasureInputConsumer>,
 ) {
     // Only update when measure tool is active
@@ -124,7 +124,7 @@ pub fn render_measure_preview(
     camera_scale: Res<crate::rendering::zoom_aware_scaling::CameraResponsiveScale>,
     mut measure_entities: Local<Vec<Entity>>,
     theme: Res<crate::ui::themes::CurrentTheme>,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     mut update_tracker: Local<Option<crate::systems::input_consumer::MeasureGestureState>>,
     fontir_state: Option<Res<crate::core::state::FontIRAppState>>,
 ) {

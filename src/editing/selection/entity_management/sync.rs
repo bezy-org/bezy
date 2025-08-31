@@ -19,7 +19,7 @@ pub fn update_glyph_data_from_selection(
     sort_query: Query<(&Sort, &Transform)>,
     mut app_state: ResMut<AppState>,
     _nudge_state: Res<NudgeState>,
-    knife_mode: Option<Res<crate::ui::toolbars::edit_mode_toolbar::knife::KnifeModeActive>>,
+    knife_mode: Option<Res<crate::ui::edit_mode_toolbar::knife::KnifeModeActive>>,
 ) {
     // Skip processing if knife mode is active
     if let Some(knife_mode) = knife_mode {

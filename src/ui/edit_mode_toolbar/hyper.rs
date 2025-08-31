@@ -6,13 +6,13 @@
 use crate::core::settings::BezySettings;
 use crate::core::state::{AppState, GlyphNavigation};
 use crate::editing::selection::systems::AppStateChanged;
-use crate::ui::toolbars::edit_mode_toolbar::{EditTool, ToolRegistry};
+use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
 use bevy::prelude::*;
 
 pub struct HyperTool;
 
 impl EditTool for HyperTool {
-    fn id(&self) -> crate::ui::toolbars::edit_mode_toolbar::ToolId {
+    fn id(&self) -> crate::ui::edit_mode_toolbar::ToolId {
         "hyper"
     }
 
@@ -233,7 +233,7 @@ pub fn handle_hyper_keyboard_events(
 
 /// Reset hyper mode when tool is inactive
 pub fn reset_hyper_mode_when_inactive(
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     mut commands: Commands,
     mut hyper_state: ResMut<HyperToolState>,
 ) {

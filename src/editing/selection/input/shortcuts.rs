@@ -18,8 +18,8 @@ pub fn handle_selection_shortcuts(
     selectable_query: Query<Entity, With<Selectable>>,
     mut selection_state: ResMut<SelectionState>,
     mut event_writer: EventWriter<EditEvent>,
-    select_mode: Option<Res<crate::ui::toolbars::edit_mode_toolbar::select::SelectModeActive>>,
-    knife_mode: Option<Res<crate::ui::toolbars::edit_mode_toolbar::knife::KnifeModeActive>>,
+    select_mode: Option<Res<crate::ui::edit_mode_toolbar::select::SelectModeActive>>,
+    knife_mode: Option<Res<crate::ui::edit_mode_toolbar::knife::KnifeModeActive>>,
     text_editor_state: Option<Res<crate::core::state::TextEditorState>>,
 ) {
     // Skip processing shortcuts if knife mode is active

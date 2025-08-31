@@ -25,7 +25,7 @@ use crate::rendering::checkerboard::calculate_dynamic_grid_size;
 use crate::ui::theme::*;
 use crate::ui::theme::{PRESSED_BUTTON_COLOR, SORT_ACTIVE_METRICS_COLOR};
 use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
-use crate::ui::toolbars::edit_mode_toolbar::{EditTool, ToolRegistry};
+use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
 
 /// Resource to track if text mode is active
 #[derive(Resource, Default)]
@@ -100,7 +100,7 @@ pub struct CurrentTextPlacementMode(pub TextPlacementMode);
 pub struct TextTool;
 
 impl EditTool for TextTool {
-    fn id(&self) -> crate::ui::toolbars::edit_mode_toolbar::ToolId {
+    fn id(&self) -> crate::ui::edit_mode_toolbar::ToolId {
         "text"
     }
 
@@ -193,7 +193,7 @@ fn spawn_text_mode_button(
     theme: &Res<CurrentTheme>,
 ) {
     // Use the unified toolbar button creation system for consistent styling with hover text
-    crate::ui::toolbars::edit_mode_toolbar::ui::create_toolbar_button_with_hover_text(
+    crate::ui::edit_mode_toolbar::ui::create_toolbar_button_with_hover_text(
         parent,
         mode.get_icon(),
         Some(mode.display_name()), // Show the mode name on hover
@@ -266,7 +266,7 @@ pub fn handle_text_mode_selection(
         }
 
         // Use the unified button color system for consistent appearance with main toolbar
-        crate::ui::toolbars::edit_mode_toolbar::ui::update_toolbar_button_colors(
+        crate::ui::edit_mode_toolbar::ui::update_toolbar_button_colors(
             *interaction,
             is_current_mode,
             &mut color,
@@ -274,7 +274,7 @@ pub fn handle_text_mode_selection(
         );
 
         // Use the unified text color system for consistent icon colors with main toolbar
-        crate::ui::toolbars::edit_mode_toolbar::ui::update_toolbar_button_text_colors(
+        crate::ui::edit_mode_toolbar::ui::update_toolbar_button_text_colors(
             entity,
             is_current_mode,
             &children_query,
@@ -285,7 +285,7 @@ pub fn handle_text_mode_selection(
 
 pub fn toggle_text_submenu_visibility(
     mut submenu_query: Query<(&mut Node, &Name)>,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
 ) {
     let is_text_tool_active = current_tool.get_current() == Some("text");
     for (mut style, name) in submenu_query.iter_mut() {
@@ -301,7 +301,7 @@ pub fn toggle_text_submenu_visibility(
 
 pub fn update_text_mode_active(
     mut text_mode_active: ResMut<TextModeActive>,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
 ) {
     let is_text_mode = current_tool.get_current() == Some("text");
     if text_mode_active.0 != is_text_mode {
@@ -345,7 +345,7 @@ pub fn handle_text_mode_cursor(
 pub fn handle_text_mode_mouse_clicks(
     mouse_button_input: Res<ButtonInput<MouseButton>>,
     text_mode_active: Res<TextModeActive>,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     ui_hover_state: Res<crate::systems::ui_interaction::UiHoverState>,
     pointer_info: Res<crate::core::io::pointer::PointerInfo>,
     mut current_placement_mode: ResMut<CurrentTextPlacementMode>,
@@ -616,7 +616,7 @@ pub fn render_sort_preview(
 
 pub fn handle_text_tool_shortcuts(
     mut keyboard_input: ResMut<ButtonInput<KeyCode>>,
-    mut current_tool: ResMut<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    mut current_tool: ResMut<crate::ui::edit_mode_toolbar::CurrentTool>,
     mut current_placement_mode: ResMut<CurrentTextPlacementMode>,
     mut text_mode_config: ResMut<TextModeConfig>,
     text_editor_state: Option<Res<TextEditorState>>,
@@ -724,7 +724,7 @@ pub fn handle_text_mode_keyboard(
     fontir_app_state: Option<Res<FontIRAppState>>,
     mut glyph_navigation: ResMut<GlyphNavigation>,
     _text_mode_state: Res<TextModeState>,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     // Add query to check for selected points
     selected_points: Query<Entity, With<crate::editing::selection::components::Selected>>,
 ) {

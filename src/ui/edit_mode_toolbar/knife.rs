@@ -10,7 +10,7 @@ use crate::core::state::AppState;
 use crate::core::state::GlyphNavigation;
 use crate::editing::selection::events::AppStateChanged;
 use crate::ui::theme::*;
-use crate::ui::toolbars::edit_mode_toolbar::{EditTool, ToolRegistry};
+use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh2d;
 use bevy::sprite::{ColorMaterial, MeshMaterial2d};
@@ -25,7 +25,7 @@ pub struct KnifeModeActive(pub bool);
 pub struct KnifeTool;
 
 impl EditTool for KnifeTool {
-    fn id(&self) -> crate::ui::toolbars::edit_mode_toolbar::ToolId {
+    fn id(&self) -> crate::ui::edit_mode_toolbar::ToolId {
         "knife"
     }
 
@@ -242,7 +242,7 @@ pub fn handle_knife_keyboard_events(
 
 /// System to manage knife mode activation/deactivation
 pub fn manage_knife_mode_state(
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     mut commands: Commands,
     mut knife_state: ResMut<KnifeToolState>,
     knife_mode: Option<Res<KnifeModeActive>>,
@@ -288,7 +288,7 @@ pub fn render_knife_preview(
     camera_scale: Res<crate::rendering::zoom_aware_scaling::CameraResponsiveScale>,
     mut knife_entities: Local<Vec<Entity>>,
     theme: Res<crate::ui::themes::CurrentTheme>,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     mut update_tracker: Local<Option<crate::systems::input_consumer::KnifeGestureState>>,
     fontir_state: Option<Res<crate::core::state::FontIRAppState>>,
     mut calc_cache: Local<KnifeCalculationCache>,

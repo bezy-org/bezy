@@ -6,7 +6,7 @@
 //! the hybrid approach.
 
 use super::{CurrentTool, ToolId, ToolRegistry};
-use crate::ui::toolbars::edit_mode_toolbar::text::{CurrentTextPlacementMode, TextPlacementMode};
+use crate::ui::edit_mode_toolbar::text::{CurrentTextPlacementMode, TextPlacementMode};
 use bevy::prelude::*;
 
 /// Resource to track spacebar toggle state

@@ -6,7 +6,7 @@ pub mod panes;
 pub mod text_editor;
 pub mod theme;
 pub mod themes;
-pub mod toolbars;
+pub mod edit_mode_toolbar;
 
 // Re-export commonly used items
 #[allow(unused_imports)]

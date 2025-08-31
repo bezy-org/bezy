@@ -4,8 +4,8 @@
 //! It integrates with the bevy_pancam system and supports temporary activation via spacebar.
 //! When active, it enables "presentation mode" - hiding grid, metrics, and editing helpers for clean viewing.
 
-use crate::ui::toolbars::edit_mode_toolbar::select::SelectModeActive;
-use crate::ui::toolbars::edit_mode_toolbar::{EditModeSystem, EditTool, ToolRegistry};
+use crate::ui::edit_mode_toolbar::select::SelectModeActive;
+use crate::ui::edit_mode_toolbar::{EditModeSystem, EditTool, ToolRegistry};
 use bevy::prelude::*;
 use bevy::ui::Display;
 use bevy_pancam::PanCam;
@@ -20,7 +20,7 @@ pub struct PresentationMode {
 pub struct PanTool;
 
 impl EditTool for PanTool {
-    fn id(&self) -> crate::ui::toolbars::edit_mode_toolbar::ToolId {
+    fn id(&self) -> crate::ui::edit_mode_toolbar::ToolId {
         "pan"
     }
 
@@ -89,7 +89,7 @@ impl EditModeSystem for PanMode {
 // System to enable/disable the PanCam component when entering/exiting pan mode
 pub fn toggle_pancam_on_mode_change(
     mut query: Query<&mut PanCam>,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
 ) {
     // Only run this system when the current tool changes
     if current_tool.is_changed() {
@@ -112,7 +112,7 @@ pub fn toggle_pancam_on_mode_change(
 // System to manage presentation mode based on current tool
 pub fn manage_presentation_mode(
     mut commands: Commands,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     presentation_mode: Option<Res<PresentationMode>>,
 ) {
     // Only run this system when the current tool changes
@@ -152,7 +152,7 @@ type PaneQuery<'w, 's> = Query<
 // System to hide/show panes based on presentation mode - DISPLAY APPROACH
 pub fn manage_pane_visibility(
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     mut pane_query: PaneQuery,
 ) {
     // Always log current state for debugging

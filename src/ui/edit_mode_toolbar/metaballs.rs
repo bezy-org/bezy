@@ -33,7 +33,7 @@ use crate::core::settings::BezySettings;
 use crate::core::state::{AppState, GlyphNavigation};
 use crate::editing::selection::systems::AppStateChanged;
 use crate::ui::theme::{METABALL_GIZMO_COLOR, METABALL_OUTLINE_COLOR, METABALL_SELECTED_COLOR};
-use crate::ui::toolbars::edit_mode_toolbar::{EditTool, ToolId, ToolRegistry};
+use crate::ui::edit_mode_toolbar::{EditTool, ToolId, ToolRegistry};
 use bevy::prelude::*;
 use contour_isobands::ContourBuilder;
 
@@ -354,7 +354,7 @@ fn cubic_bezier(p0: Vec2, c1: Vec2, c2: Vec2, p1: Vec2, t: f32) -> Vec2 {
 
 /// Reset metaballs mode when another tool is selected
 pub fn reset_metaballs_mode_when_inactive(
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     mut commands: Commands,
 ) {
     if current_tool.get_current() != Some("metaballs") {

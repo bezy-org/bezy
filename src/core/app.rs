@@ -25,7 +25,7 @@ use crate::ui::panes::glyph_pane::GlyphPanePlugin;
 use crate::ui::theme::CurrentTheme;
 #[cfg(debug_assertions)]
 use crate::ui::themes::runtime_reload::RuntimeThemePlugin;
-use crate::ui::toolbars::EditModeToolbarPlugin;
+use crate::ui::edit_mode_toolbar::EditModeToolbarPlugin;
 use anyhow::Result;
 use bevy::app::{PluginGroup, PluginGroupBuilder};
 use bevy::prelude::*;

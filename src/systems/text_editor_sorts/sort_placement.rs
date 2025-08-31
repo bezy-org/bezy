@@ -15,15 +15,15 @@ pub fn handle_sort_placement_input(
         With<crate::rendering::cameras::DesignCamera>,
     >,
     windows: Query<&Window, With<bevy::window::PrimaryWindow>>,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     current_placement_mode: ResMut<
-        crate::ui::toolbars::edit_mode_toolbar::text::CurrentTextPlacementMode,
+        crate::ui::edit_mode_toolbar::text::CurrentTextPlacementMode,
     >,
     mut text_editor_state: ResMut<crate::core::state::TextEditorState>,
     ui_hover_state: Res<crate::systems::ui_interaction::UiHoverState>,
     fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
 ) {
-    use crate::ui::toolbars::edit_mode_toolbar::text::TextPlacementMode;
+    use crate::ui::edit_mode_toolbar::text::TextPlacementMode;
 
     // Only handle input when text tool is active
     let current_tool_name = current_tool.get_current();

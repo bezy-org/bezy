@@ -124,11 +124,11 @@ impl Plugin for PenToolPlugin {
         info!("🖊️ Registering PenToolPlugin systems");
         app.init_resource::<PenToolState>()
             .init_resource::<PenModeActive>()
-            .init_resource::<crate::ui::toolbars::edit_mode_toolbar::pen::PenDrawingMode>() // Default is Regular
+            .init_resource::<crate::ui::edit_mode_toolbar::pen::PenDrawingMode>() // Default is Regular
             .add_systems(Startup, pen_tool_startup_log)
             .add_systems(
                 PostStartup,
-                crate::ui::toolbars::edit_mode_toolbar::pen::spawn_pen_submenu,
+                crate::ui::edit_mode_toolbar::pen::spawn_pen_submenu,
             )
             .add_systems(
                 Update,
@@ -138,8 +138,8 @@ impl Plugin for PenToolPlugin {
                     render_pen_preview,
                     reset_pen_mode_when_inactive,
                     debug_pen_tool_state,
-                    crate::ui::toolbars::edit_mode_toolbar::pen::toggle_pen_submenu_visibility,
-                    crate::ui::toolbars::edit_mode_toolbar::pen::handle_pen_submenu_selection,
+                    crate::ui::edit_mode_toolbar::pen::toggle_pen_submenu_visibility,
+                    crate::ui::edit_mode_toolbar::pen::handle_pen_submenu_selection,
                 ),
             );
     }
@@ -175,7 +175,7 @@ fn debug_pen_tool_state(pen_state: Res<PenToolState>, time: Res<Time>) {
 pub fn handle_pen_mouse_events(
     mut pen_state: ResMut<PenToolState>,
     pen_mode_active: Option<Res<PenModeActive>>,
-    current_tool: Option<Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>>,
+    current_tool: Option<Res<crate::ui::edit_mode_toolbar::CurrentTool>>,
     mut app_state: Option<ResMut<AppState>>,
     mut fontir_app_state: Option<ResMut<crate::core::state::FontIRAppState>>,
     mut app_state_changed: EventWriter<AppStateChanged>,
@@ -293,7 +293,7 @@ pub fn render_pen_preview(
     mut materials: ResMut<Assets<ColorMaterial>>,
     pen_state: Res<PenToolState>,
     pen_mode_active: Option<Res<PenModeActive>>,
-    current_tool: Option<Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>>,
+    current_tool: Option<Res<crate::ui::edit_mode_toolbar::CurrentTool>>,
     pointer_info: Res<PointerInfo>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
     settings: Res<crate::core::settings::BezySettings>,

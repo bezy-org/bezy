@@ -186,7 +186,7 @@ pub type ToolId = &'static str;
 ///
 /// ```rust,ignore
 /// use bevy::prelude::*;
-/// use crate::ui::toolbars::edit_mode_toolbar::{EditTool, ToolId};
+/// use crate::ui::edit_mode_toolbar::{EditTool, ToolId};
 ///
 /// trait EditTool {
 ///     fn id(&self) -> ToolId;

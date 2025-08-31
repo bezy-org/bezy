@@ -39,7 +39,7 @@ pub fn process_selection_input_events(
     mut selection_state: ResMut<SelectionState>,
     active_sort_state: Res<crate::editing::sort::ActiveSortState>,
     sort_point_entities: Query<&crate::systems::sort_manager::SortPointEntity>,
-    select_mode: Option<Res<crate::ui::toolbars::edit_mode_toolbar::select::SelectModeActive>>,
+    select_mode: Option<Res<crate::ui::edit_mode_toolbar::select::SelectModeActive>>,
     text_editor_state: ResMut<TextEditorState>,
     app_state: Option<Res<crate::core::state::AppState>>,
     buffer_entities: Res<crate::systems::text_editor_sorts::sort_entities::BufferSortEntities>,

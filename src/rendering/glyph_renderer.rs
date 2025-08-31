@@ -96,7 +96,7 @@ pub fn render_glyphs(
     // Debug: Check entities with just SortPointEntity
     existing_sort_points: Query<Entity, With<SortPointEntity>>,
     theme: Res<CurrentTheme>,
-    presentation_mode: Option<Res<crate::ui::toolbars::edit_mode_toolbar::PresentationMode>>,
+    presentation_mode: Option<Res<crate::ui::edit_mode_toolbar::PresentationMode>>,
 ) {
     // PERFORMANCE: Early exit if no sorts to render
     let active_count = active_sort_query.iter().count();

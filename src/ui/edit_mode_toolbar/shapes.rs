@@ -11,7 +11,7 @@ use crate::editing::selection::events::AppStateChanged;
 use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
 use crate::ui::theme::*;
 use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
-use crate::ui::toolbars::edit_mode_toolbar::{EditTool, ToolRegistry};
+use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh2d;
 use bevy::sprite::{ColorMaterial, MeshMaterial2d};
@@ -28,7 +28,7 @@ pub struct ShapePreviewElement;
 pub struct ShapesTool;
 
 impl EditTool for ShapesTool {
-    fn id(&self) -> crate::ui::toolbars::edit_mode_toolbar::ToolId {
+    fn id(&self) -> crate::ui::edit_mode_toolbar::ToolId {
         "shapes"
     }
 
@@ -191,7 +191,7 @@ pub fn handle_shape_mouse_events(
     glyph_navigation: Res<GlyphNavigation>,
     corner_radius: Res<CurrentCornerRadius>,
     shapes_mode: Option<Res<ShapesModeActive>>,
-    current_tool: Option<Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>>,
+    current_tool: Option<Res<crate::ui::edit_mode_toolbar::CurrentTool>>,
     settings: Res<BezySettings>,
 ) {
     // Check if shapes mode is active via multiple methods (same as preview system)
@@ -301,7 +301,7 @@ pub fn render_active_shape_drawing_with_dimensions(
     mut materials: ResMut<Assets<ColorMaterial>>,
     active_drawing: Res<ActiveShapeDrawing>,
     shapes_mode: Option<Res<ShapesModeActive>>,
-    current_tool: Option<Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>>,
+    current_tool: Option<Res<crate::ui::edit_mode_toolbar::CurrentTool>>,
     camera_scale: Res<CameraResponsiveScale>,
     existing_preview_query: Query<Entity, With<ShapePreviewElement>>,
     theme: Res<CurrentTheme>,
@@ -384,7 +384,7 @@ pub fn render_active_shape_drawing_with_dimensions(
 
 /// Reset shapes mode when another tool is selected
 pub fn reset_shapes_mode_when_inactive(
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     mut commands: Commands,
     mut active_drawing: ResMut<ActiveShapeDrawing>,
 ) {
@@ -1039,7 +1039,7 @@ fn spawn_shape_mode_button(
     theme: &Res<CurrentTheme>,
 ) {
     // Use the unified toolbar button creation system for consistent styling with hover text
-    crate::ui::toolbars::edit_mode_toolbar::ui::create_toolbar_button_with_hover_text(
+    crate::ui::edit_mode_toolbar::ui::create_toolbar_button_with_hover_text(
         parent,
         shape_type.get_icon(),
         Some(shape_type.get_name()), // Show the shape name on hover
@@ -1090,7 +1090,7 @@ pub fn spawn_shapes_submenu(
 
 /// Auto-show shapes submenu when shapes tool is active (like pen tool)
 pub fn toggle_shapes_submenu_visibility(
-    current_tool: Option<Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>>,
+    current_tool: Option<Res<crate::ui::edit_mode_toolbar::CurrentTool>>,
     mut submenu_query: Query<(&mut Node, &Name)>,
 ) {
     let is_shapes_tool_active =
@@ -1168,7 +1168,7 @@ pub fn handle_shapes_submenu_selection(
         }
 
         // Use the unified button color system for consistent appearance with main toolbar
-        crate::ui::toolbars::edit_mode_toolbar::ui::update_toolbar_button_colors(
+        crate::ui::edit_mode_toolbar::ui::update_toolbar_button_colors(
             *interaction,
             is_current_shape,
             &mut color,
@@ -1176,7 +1176,7 @@ pub fn handle_shapes_submenu_selection(
         );
 
         // Use the unified text color system for consistent icon colors with main toolbar
-        crate::ui::toolbars::edit_mode_toolbar::ui::update_toolbar_button_text_colors(
+        crate::ui::edit_mode_toolbar::ui::update_toolbar_button_text_colors(
             entity,
             is_current_shape,
             &children_query,

@@ -61,7 +61,7 @@ use crate::ui::theme::{
     TOOLBAR_PADDING, WIDGET_TEXT_FONT_SIZE,
 };
 use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
-use crate::ui::toolbars::edit_mode_toolbar::*;
+use crate::ui::edit_mode_toolbar::*;
 use bevy::prelude::*;
 
 // COMPONENTS ------------------------------------------------------------------
@@ -434,7 +434,7 @@ pub fn update_hover_text_visibility(
     pen_button_query: Query<
         (
             &Interaction,
-            &crate::ui::toolbars::edit_mode_toolbar::pen::PenModeButton,
+            &crate::ui::edit_mode_toolbar::pen::PenModeButton,
         ),
         (With<Button>, Without<ToolButtonData>),
     >,
@@ -442,25 +442,25 @@ pub fn update_hover_text_visibility(
     text_button_query: Query<
         (
             &Interaction,
-            &crate::ui::toolbars::edit_mode_toolbar::text::TextModeButton,
+            &crate::ui::edit_mode_toolbar::text::TextModeButton,
         ),
         (
             With<Button>,
             Without<ToolButtonData>,
-            Without<crate::ui::toolbars::edit_mode_toolbar::pen::PenModeButton>,
+            Without<crate::ui::edit_mode_toolbar::pen::PenModeButton>,
         ),
     >,
     // Shapes submenu buttons
     shapes_button_query: Query<
         (
             &Interaction,
-            &crate::ui::toolbars::edit_mode_toolbar::shapes::ShapeModeButton,
+            &crate::ui::edit_mode_toolbar::shapes::ShapeModeButton,
         ),
         (
             With<Button>,
             Without<ToolButtonData>,
-            Without<crate::ui::toolbars::edit_mode_toolbar::pen::PenModeButton>,
-            Without<crate::ui::toolbars::edit_mode_toolbar::text::TextModeButton>,
+            Without<crate::ui::edit_mode_toolbar::pen::PenModeButton>,
+            Without<crate::ui::edit_mode_toolbar::text::TextModeButton>,
         ),
     >,
     // Check submenu visibility by name (exclude hover text entities)

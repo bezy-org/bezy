@@ -81,7 +81,7 @@ impl Plugin for SelectionPlugin {
             .init_resource::<DragSelectionState>()
             .init_resource::<DragPointState>()
             // TEMP FIX: Manually initialize SelectModeActive since it's not being created
-            .insert_resource(crate::ui::toolbars::edit_mode_toolbar::select::SelectModeActive(true))
+            .insert_resource(crate::ui::edit_mode_toolbar::select::SelectModeActive(true))
             // Configure system sets for proper ordering
             .configure_sets(
                 Update,

@@ -166,7 +166,7 @@ pub fn render_mesh_sort_handles(
     selected_query: Query<Entity, With<Selected>>,
     fontir_app_state: Option<Res<FontIRAppState>>,
     camera_scale: Res<CameraResponsiveScale>,
-    presentation_mode: Option<Res<crate::ui::toolbars::edit_mode_toolbar::PresentationMode>>,
+    presentation_mode: Option<Res<crate::ui::edit_mode_toolbar::PresentationMode>>,
 ) {
     // Clear existing handles with entity existence checks
     for entity in existing_handles.iter() {

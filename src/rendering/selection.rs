@@ -27,7 +27,7 @@ pub fn render_selection_marquee(
     drag_state: Res<DragSelectionState>,
     marquee_query: Query<&SelectionRect>,
     theme: Res<CurrentTheme>,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
 ) {
     // Only render marquee when in select mode
     if current_tool.get_current() != Some("select") {
@@ -97,7 +97,7 @@ pub fn render_selected_entities(
     mut gizmos: Gizmos,
     selected_query: Query<(&GlobalTransform, &PointType), With<Selected>>,
     drag_point_state: Res<DragPointState>,
-    knife_mode: Option<Res<crate::ui::toolbars::edit_mode_toolbar::knife::KnifeModeActive>>,
+    knife_mode: Option<Res<crate::ui::edit_mode_toolbar::knife::KnifeModeActive>>,
     _nudge_state: Res<NudgeState>,
 ) {
     // Always render selected points - no dual-mode rendering

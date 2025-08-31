@@ -10,8 +10,8 @@ use crate::systems::arabic_shaping::{get_arabic_position, ArabicPosition};
 use crate::systems::text_editor_sorts::input_utilities::{
     unicode_to_glyph_name, unicode_to_glyph_name_fontir,
 };
-use crate::ui::toolbars::edit_mode_toolbar::text::{CurrentTextPlacementMode, TextPlacementMode};
-use crate::ui::toolbars::edit_mode_toolbar::CurrentTool;
+use crate::ui::edit_mode_toolbar::text::{CurrentTextPlacementMode, TextPlacementMode};
+use crate::ui::edit_mode_toolbar::CurrentTool;
 use bevy::input::keyboard::{Key, KeyboardInput};
 use bevy::input::ButtonState;
 use bevy::prelude::*;

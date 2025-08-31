@@ -254,7 +254,7 @@ pub fn render_mesh_metrics_lines(
     _existing_metrics: Query<Entity, With<MetricsLine>>,
     fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
     camera_scale: Res<CameraResponsiveScale>,
-    presentation_mode: Option<Res<crate::ui::toolbars::edit_mode_toolbar::PresentationMode>>,
+    presentation_mode: Option<Res<crate::ui::edit_mode_toolbar::PresentationMode>>,
 ) {
     // Check presentation mode state
     let presentation_active = presentation_mode.as_ref().is_some_and(|pm| pm.active);

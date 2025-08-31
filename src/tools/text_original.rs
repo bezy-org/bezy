@@ -21,7 +21,7 @@ use crate::rendering::cameras::DesignCamera;
 use crate::rendering::checkerboard::calculate_dynamic_grid_size;
 use crate::ui::theme::SORT_ACTIVE_METRICS_COLOR;
 use crate::ui::theme::*;
-use crate::ui::toolbars::edit_mode_toolbar::{EditTool, ToolRegistry};
+use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
 
 // --------- Resources, Structs, Enums -----------
 
@@ -96,7 +96,7 @@ pub struct CurrentTextPlacementMode(pub TextPlacementMode);
 pub struct TextTool;
 
 impl EditTool for TextTool {
-    fn id(&self) -> crate::ui::toolbars::edit_mode_toolbar::ToolId {
+    fn id(&self) -> crate::ui::edit_mode_toolbar::ToolId {
         "text"
     }
 
@@ -304,7 +304,7 @@ pub fn handle_text_mode_selection(
 
 pub fn toggle_text_submenu_visibility(
     mut submenu_query: Query<(&mut Node, &Name)>,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
 ) {
     let is_text_tool_active = current_tool.get_current() == Some("text");
     for (mut style, name) in submenu_query.iter_mut() {
@@ -320,7 +320,7 @@ pub fn toggle_text_submenu_visibility(
 
 pub fn update_text_mode_active(
     mut text_mode_active: ResMut<TextModeActive>,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
 ) {
     let is_text_mode = current_tool.get_current() == Some("text");
     if text_mode_active.0 != is_text_mode {
@@ -365,7 +365,7 @@ pub fn handle_text_mode_sort_placement(
     mut text_editor_state: ResMut<TextEditorState>,
     app_state: Res<AppState>,
     glyph_navigation: Res<GlyphNavigation>,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     current_placement_mode: Res<CurrentTextPlacementMode>,
     ui_hover_state: Res<crate::systems::ui_interaction::UiHoverState>,
     pointer_info: Res<crate::core::io::pointer::PointerInfo>,
@@ -548,7 +548,7 @@ pub fn render_sort_preview(
 pub fn handle_text_tool_shortcuts(
     mut keyboard_input: ResMut<ButtonInput<KeyCode>>,
     mut current_tool: ResMut<
-        crate::ui::toolbars::edit_mode_toolbar::CurrentTool,
+        crate::ui::edit_mode_toolbar::CurrentTool,
     >,
     mut current_placement_mode: ResMut<CurrentTextPlacementMode>,
     mut text_mode_config: ResMut<TextModeConfig>,
@@ -653,7 +653,7 @@ pub fn handle_text_mode_keyboard(
     app_state: Res<AppState>,
     mut glyph_navigation: ResMut<GlyphNavigation>,
     text_mode_state: Res<TextModeState>,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     // Add query to check for selected points
     selected_points: Query<
         Entity,

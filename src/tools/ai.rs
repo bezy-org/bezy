@@ -139,7 +139,7 @@ fn spawn_ai_operation_button(
     theme: &Res<crate::ui::themes::CurrentTheme>,
 ) {
     // Use the unified toolbar button creation system for consistent styling
-    crate::ui::toolbars::edit_mode_toolbar::create_toolbar_button(
+    crate::ui::edit_mode_toolbar::create_toolbar_button(
         parent,
         operation.get_icon(),
         (AiSubMenuButton, AiOperationButton { operation }),
@@ -214,7 +214,7 @@ pub fn handle_ai_operation_selection(
         }
 
         // Use the unified button color system for consistent appearance with main toolbar
-        crate::ui::toolbars::edit_mode_toolbar::update_toolbar_button_colors(
+        crate::ui::edit_mode_toolbar::update_toolbar_button_colors(
             *interaction,
             is_current_operation,
             &mut color,
@@ -222,7 +222,7 @@ pub fn handle_ai_operation_selection(
         );
 
         // Use the unified text color system for consistent icon colors with main toolbar
-        crate::ui::toolbars::edit_mode_toolbar::update_toolbar_button_text_colors(
+        crate::ui::edit_mode_toolbar::update_toolbar_button_text_colors(
             entity,
             is_current_operation,
             &children_query,
@@ -233,7 +233,7 @@ pub fn handle_ai_operation_selection(
 
 pub fn toggle_ai_submenu_visibility(
     mut submenu_query: Query<(&mut Node, &Name)>,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
 ) {
     let is_ai_tool_active = current_tool.get_current() == Some("ai");
     for (mut style, name) in submenu_query.iter_mut() {
@@ -249,7 +249,7 @@ pub fn toggle_ai_submenu_visibility(
 
 pub fn update_ai_mode_active(
     mut ai_mode_active: ResMut<AiModeActive>,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
 ) {
     let is_ai_mode = current_tool.get_current() == Some("ai");
     if ai_mode_active.0 != is_ai_mode {
@@ -262,16 +262,16 @@ pub fn update_ai_mode_active(
 
 pub fn handle_ai_tool_shortcuts(
     mut keyboard_input: ResMut<ButtonInput<KeyCode>>,
-    mut current_tool: ResMut<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    mut current_tool: ResMut<crate::ui::edit_mode_toolbar::CurrentTool>,
     mut current_operation: ResMut<CurrentAiOperation>,
-    text_mode_active: Option<Res<crate::ui::toolbars::edit_mode_toolbar::text::TextModeActive>>,
+    text_mode_active: Option<Res<crate::ui::edit_mode_toolbar::text::TextModeActive>>,
     current_text_placement_mode: Option<
-        Res<crate::ui::toolbars::edit_mode_toolbar::text::CurrentTextPlacementMode>,
+        Res<crate::ui::edit_mode_toolbar::text::CurrentTextPlacementMode>,
     >,
 ) {
     // Check if single-char hotkeys should be disabled for text input
     let should_disable =
-        crate::ui::toolbars::edit_mode_toolbar::keyboard_utils::should_disable_single_char_hotkeys(
+        crate::ui::edit_mode_toolbar::keyboard_utils::should_disable_single_char_hotkeys(
             text_mode_active.as_ref(),
             current_text_placement_mode.as_ref(),
         );
@@ -334,7 +334,7 @@ pub fn handle_ai_tool_shortcuts(
 
 pub fn execute_ai_operations(
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     current_operation: Res<CurrentAiOperation>,
     ai_mode_active: Res<AiModeActive>,
 ) {
