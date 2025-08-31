@@ -1128,6 +1128,8 @@ pub fn handle_shapes_submenu_selection(
         With<ShapeSubMenuButton>,
     >,
     mut current_shape_type: ResMut<CurrentShapeType>,
+    children_query: Query<&Children>,
+    mut text_query: Query<&mut TextColor>,
 ) {
     // Debug: Log if we find any submenu buttons
     let button_count = interaction_query.iter().len();
@@ -1148,7 +1150,7 @@ pub fn handle_shapes_submenu_selection(
         }
     }
 
-    for (interaction, mut color, mut border_color, shape_button, _entity) in &mut interaction_query
+    for (interaction, mut color, mut border_color, shape_button, entity) in &mut interaction_query
     {
         let is_current_shape = current_shape_type.0 == shape_button.shape_type;
 
@@ -1165,30 +1167,20 @@ pub fn handle_shapes_submenu_selection(
             info!("🔳 Switched to shape type: {:?}", shape_button.shape_type);
         }
 
-        // Visual feedback based on current shape type
-        match *interaction {
-            Interaction::Pressed => {
-                *color = PRESSED_BUTTON_COLOR.into();
-                *border_color = PRESSED_BUTTON_OUTLINE_COLOR.into();
-            }
-            Interaction::Hovered => {
-                if is_current_shape {
-                    *color = PRESSED_BUTTON_COLOR.into();
-                    *border_color = PRESSED_BUTTON_OUTLINE_COLOR.into();
-                } else {
-                    *color = HOVERED_BUTTON_COLOR.into();
-                    *border_color = HOVERED_BUTTON_OUTLINE_COLOR.into();
-                }
-            }
-            Interaction::None => {
-                if is_current_shape {
-                    *color = PRESSED_BUTTON_COLOR.into();
-                    *border_color = PRESSED_BUTTON_OUTLINE_COLOR.into();
-                } else {
-                    *color = NORMAL_BUTTON_COLOR.into();
-                    *border_color = NORMAL_BUTTON_OUTLINE_COLOR.into();
-                }
-            }
-        }
+        // Use the unified button color system for consistent appearance with main toolbar
+        crate::ui::toolbars::edit_mode_toolbar::ui::update_toolbar_button_colors(
+            *interaction,
+            is_current_shape,
+            &mut color,
+            &mut border_color,
+        );
+
+        // Use the unified text color system for consistent icon colors with main toolbar
+        crate::ui::toolbars::edit_mode_toolbar::ui::update_toolbar_button_text_colors(
+            entity,
+            is_current_shape,
+            &children_query,
+            &mut text_query,
+        );
     }
 }
