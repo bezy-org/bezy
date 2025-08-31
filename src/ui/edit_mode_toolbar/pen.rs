@@ -864,9 +864,10 @@ pub fn spawn_pen_submenu(
     let modes = [PenDrawingMode::Regular, PenDrawingMode::Hyperbezier];
 
     // Create the parent submenu node (left-aligned to match main toolbar)
+    // Position below main toolbar using consistent helper
     let submenu_node = Node {
         position_type: PositionType::Absolute,
-        top: Val::Px(TOOLBAR_CONTAINER_MARGIN + 74.0),
+        top: Val::Px(toolbar_submenu_top_position()),
         left: Val::Px(TOOLBAR_CONTAINER_MARGIN), // Left-aligned to match toolbar
         flex_direction: FlexDirection::Row,
         padding: UiRect::all(Val::Px(TOOLBAR_PADDING)),

@@ -57,8 +57,8 @@ use crate::ui::theme::{
     BUTTON_ICON_SIZE, GROTESK_FONT_PATH, HOVERED_BUTTON_COLOR, HOVERED_BUTTON_OUTLINE_COLOR,
     MONO_FONT_PATH, NORMAL_BUTTON_COLOR, NORMAL_BUTTON_OUTLINE_COLOR, PRESSED_BUTTON_COLOR,
     PRESSED_BUTTON_ICON_COLOR, PRESSED_BUTTON_OUTLINE_COLOR, TOOLBAR_BORDER_WIDTH,
-    TOOLBAR_BUTTON_SIZE, TOOLBAR_CONTAINER_MARGIN, TOOLBAR_ICON_COLOR, TOOLBAR_ITEM_SPACING,
-    TOOLBAR_PADDING, WIDGET_TEXT_FONT_SIZE,
+    TOOLBAR_BUTTON_SIZE, TOOLBAR_CONTAINER_MARGIN, TOOLBAR_ICON_COLOR, TOOLBAR_GRID_SPACING,
+    TOOLBAR_ITEM_SPACING, TOOLBAR_PADDING, WIDGET_TEXT_FONT_SIZE,
 };
 use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
 use crate::ui::edit_mode_toolbar::*;
@@ -132,7 +132,7 @@ fn create_tool_button(
 ) {
     parent
         .spawn(Node {
-            margin: UiRect::all(Val::Px(TOOLBAR_ITEM_SPACING)),
+            margin: UiRect::all(Val::Px(TOOLBAR_GRID_SPACING)),
             ..default()
         })
         .with_children(|button_container| {
@@ -242,7 +242,7 @@ pub fn create_toolbar_button_with_hover_text<T: Bundle>(
     // Note: _hover_text parameter is now ignored since hover text is handled dynamically
     parent
         .spawn(Node {
-            margin: UiRect::all(Val::Px(TOOLBAR_ITEM_SPACING)),
+            margin: UiRect::all(Val::Px(TOOLBAR_GRID_SPACING)),
             ..default()
         })
         .with_children(|button_container| {
@@ -512,7 +512,8 @@ pub fn update_hover_text_visibility(
     }
 
     // Calculate vertical position based on submenu visibility
-    let base_offset = TOOLBAR_BUTTON_SIZE + TOOLBAR_PADDING * 2.0 + 32.0; // Distance below bottom buttons
+    // Use grid spacing for consistent layout - smaller gap for better visual connection
+    let base_offset = TOOLBAR_CONTAINER_MARGIN + TOOLBAR_BUTTON_SIZE + TOOLBAR_GRID_SPACING * 2.0;
 
     // Check if any submenu is visible
     let mut submenu_visible = false;
@@ -529,10 +530,9 @@ pub fn update_hover_text_visibility(
 
     // Calculate position: if submenu visible, position below submenu; otherwise below main toolbar
     let vertical_offset = if submenu_visible {
-        // Position below submenu: main toolbar height + submenu height + consistent spacing
-        (TOOLBAR_BUTTON_SIZE + TOOLBAR_PADDING * 2.0)
-            + (TOOLBAR_BUTTON_SIZE + TOOLBAR_PADDING * 2.0)
-            + 32.0
+        // Position below submenu: container margin + main toolbar + spacing + submenu + smaller spacing
+        TOOLBAR_CONTAINER_MARGIN + TOOLBAR_BUTTON_SIZE + TOOLBAR_GRID_SPACING * 2.0
+            + TOOLBAR_BUTTON_SIZE + TOOLBAR_GRID_SPACING * 2.0
     } else {
         // Position below main toolbar with consistent spacing
         base_offset
@@ -554,11 +554,11 @@ pub fn update_hover_text_visibility(
                     font_size: WIDGET_TEXT_FONT_SIZE,
                     ..default()
                 },
-                TextColor(PRESSED_BUTTON_COLOR), // Orange active color
+                TextColor(TOOLBAR_ICON_COLOR), // Light gray color to match unselected icons
                 Node {
                     position_type: PositionType::Absolute,
                     top: Val::Px(vertical_offset),
-                    left: Val::Px(TOOLBAR_CONTAINER_MARGIN + 8.0), // Add extra left margin
+                    left: Val::Px(TOOLBAR_CONTAINER_MARGIN + TOOLBAR_GRID_SPACING), // Align with button left edge
                     display: Display::Flex,                        // Show immediately
                     ..default()
                 },

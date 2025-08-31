@@ -108,9 +108,17 @@ pub const USE_SQUARE_FOR_ON_CURVE: bool = true;
 // Layout constants
 pub const TOOLBAR_PADDING: f32 = 0.0;
 pub const TOOLBAR_CONTAINER_MARGIN: f32 = 16.0;
-pub const TOOLBAR_ITEM_SPACING: f32 = 4.0;
 pub const TOOLBAR_BUTTON_SIZE: f32 = 64.0;
+/// Grid-based spacing between buttons - scales with button size
+pub const TOOLBAR_GRID_SPACING: f32 = TOOLBAR_BUTTON_SIZE * 0.0625; // 4px at 64px button size
+/// Legacy constant for compatibility - use TOOLBAR_GRID_SPACING instead
+pub const TOOLBAR_ITEM_SPACING: f32 = TOOLBAR_GRID_SPACING;
 pub const BUTTON_ICON_SIZE: f32 = 48.0;
+
+/// Helper function to calculate submenu position below main toolbar
+pub fn toolbar_submenu_top_position() -> f32 {
+    TOOLBAR_CONTAINER_MARGIN + TOOLBAR_BUTTON_SIZE + TOOLBAR_GRID_SPACING * 2.0
+}
 
 // Sort constants
 pub const SORT_VERTICAL_PADDING: f32 = 256.0;
