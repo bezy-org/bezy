@@ -9,9 +9,9 @@ use crate::core::settings::BezySettings;
 use crate::core::state::{AppState, GlyphNavigation};
 use crate::editing::selection::events::AppStateChanged;
 use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
-use crate::ui::toolbars::edit_mode_toolbar::{EditTool, ToolRegistry};
-use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
 use crate::ui::theme::*;
+use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
+use crate::ui::toolbars::edit_mode_toolbar::{EditTool, ToolRegistry};
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh2d;
 use bevy::sprite::{ColorMaterial, MeshMaterial2d};
@@ -80,8 +80,8 @@ impl ShapeType {
     /// Get the icon for this shape type
     pub fn get_icon(&self) -> &'static str {
         match self {
-            ShapeType::Rectangle => "\u{E018}",      // Rectangle icon
-            ShapeType::Oval => "\u{E019}",           // Oval icon  
+            ShapeType::Rectangle => "\u{E018}",        // Rectangle icon
+            ShapeType::Oval => "\u{E019}",             // Oval icon
             ShapeType::RoundedRectangle => "\u{E020}", // Rounded Rectangle icon
         }
     }
@@ -90,7 +90,7 @@ impl ShapeType {
     pub fn get_name(&self) -> &'static str {
         match self {
             ShapeType::Rectangle => "Rectangle",
-            ShapeType::Oval => "Oval", 
+            ShapeType::Oval => "Oval",
             ShapeType::RoundedRectangle => "Rounded Rectangle",
         }
     }
@@ -122,9 +122,7 @@ pub struct ActiveShapeDrawing {
 impl ActiveShapeDrawing {
     /// Get the rectangle from the current drawing state
     pub fn get_rect(&self) -> Option<Rect> {
-        if let (Some(start), Some(current)) =
-            (self.start_position, self.current_position)
-        {
+        if let (Some(start), Some(current)) = (self.start_position, self.current_position) {
             let min_x = start.x.min(current.x);
             let min_y = start.y.min(current.y);
             let max_x = start.x.max(current.x);
@@ -160,10 +158,7 @@ impl Plugin for ShapesToolPlugin {
             .init_resource::<ActiveShapeDrawing>()
             .init_resource::<CurrentCornerRadius>()
             .add_systems(Startup, register_shapes_tool)
-            .add_systems(
-                PostStartup,
-                spawn_shapes_submenu,
-            )
+            .add_systems(PostStartup, spawn_shapes_submenu)
             .add_systems(
                 Update,
                 (
@@ -200,14 +195,16 @@ pub fn handle_shape_mouse_events(
     settings: Res<BezySettings>,
 ) {
     // Check if shapes mode is active via multiple methods (same as preview system)
-    let shapes_is_active = shapes_mode.as_ref().is_some_and(|s| s.0) 
+    let shapes_is_active = shapes_mode.as_ref().is_some_and(|s| s.0)
         || (current_tool.as_ref().and_then(|t| t.get_current()) == Some("shapes")); // Main shapes tool is selected
-    
-    // Debug: Always log when this system runs  
-    debug!("SHAPES INPUT: handle_shape_tool_input called - shapes_is_active: {}, current_tool: {:?}", 
-           shapes_is_active,
-           current_tool.as_ref().and_then(|t| t.get_current()));
-    
+
+    // Debug: Always log when this system runs
+    debug!(
+        "SHAPES INPUT: handle_shape_tool_input called - shapes_is_active: {}, current_tool: {:?}",
+        shapes_is_active,
+        current_tool.as_ref().and_then(|t| t.get_current())
+    );
+
     // Only handle input if shapes tool is active
     if !shapes_is_active {
         debug!("SHAPES INPUT: Shapes not active, exiting");
@@ -227,16 +224,16 @@ pub fn handle_shape_mouse_events(
     };
 
     // Convert cursor position to world coordinates
-    if let Ok(world_position) =
-        camera.viewport_to_world_2d(camera_transform, cursor_position)
-    {
+    if let Ok(world_position) = camera.viewport_to_world_2d(camera_transform, cursor_position) {
         // Apply grid snapping
         let mut snapped_position = settings.apply_grid_snap(world_position);
-        
+
         // Apply shift-key constraints for squares/circles
-        if keyboard_input.pressed(KeyCode::ShiftLeft) || keyboard_input.pressed(KeyCode::ShiftRight) {
+        if keyboard_input.pressed(KeyCode::ShiftLeft) || keyboard_input.pressed(KeyCode::ShiftRight)
+        {
             if let Some(start_pos) = active_drawing.start_position {
-                snapped_position = apply_shape_constraints(snapped_position, start_pos, current_shape_type.0);
+                snapped_position =
+                    apply_shape_constraints(snapped_position, start_pos, current_shape_type.0);
             }
         }
 
@@ -255,14 +252,14 @@ pub fn handle_shape_mouse_events(
         // Handle mouse movement during drawing
         if active_drawing.is_drawing {
             active_drawing.current_position = Some(snapped_position);
-            debug!("SHAPES TOOL: Mouse drag update - current_position: ({:.1}, {:.1})", 
-                   snapped_position.x, snapped_position.y);
+            debug!(
+                "SHAPES TOOL: Mouse drag update - current_position: ({:.1}, {:.1})",
+                snapped_position.x, snapped_position.y
+            );
         }
 
         // Handle mouse button release
-        if mouse_button_input.just_released(MouseButton::Left)
-            && active_drawing.is_drawing
-        {
+        if mouse_button_input.just_released(MouseButton::Left) && active_drawing.is_drawing {
             if let Some(rect) = active_drawing.get_rect() {
                 debug!("SHAPES TOOL: Completing {:?} shape with rect: ({:.1}, {:.1}) to ({:.1}, {:.1})", 
                        active_drawing.shape_type, rect.min.x, rect.min.y, rect.max.x, rect.max.y);
@@ -316,7 +313,7 @@ pub fn render_active_shape_drawing_with_dimensions(
     }
 
     // Check if shapes mode is active via multiple methods (same as input handling)
-    let shapes_is_active = shapes_mode.as_ref().is_some_and(|s| s.0) 
+    let shapes_is_active = shapes_mode.as_ref().is_some_and(|s| s.0)
         || (current_tool.as_ref().and_then(|t| t.get_current()) == Some("shapes")); // Main shapes tool is selected
 
     // Debug: Always log when this system runs
@@ -340,7 +337,7 @@ pub fn render_active_shape_drawing_with_dimensions(
     if let Some(rect) = active_drawing.get_rect() {
         info!("SHAPES PREVIEW: Drawing preview! Rect: ({:.1}, {:.1}) to ({:.1}, {:.1}), shape_type: {:?}", 
               rect.min.x, rect.min.y, rect.max.x, rect.max.y, active_drawing.shape_type);
-        
+
         let preview_color = theme.theme().action_color(); // Orange action color like pen tool
         let line_width = camera_scale.adjusted_line_width() * 2.0;
 
@@ -349,9 +346,9 @@ pub fn render_active_shape_drawing_with_dimensions(
                 info!("SHAPES PREVIEW: Drawing rectangle preview");
                 draw_mesh_dashed_rectangle(
                     &mut commands,
-                    &mut meshes, 
+                    &mut meshes,
                     &mut materials,
-                    rect, 
+                    rect,
                     preview_color,
                     line_width,
                 );
@@ -361,8 +358,8 @@ pub fn render_active_shape_drawing_with_dimensions(
                 draw_mesh_dashed_ellipse(
                     &mut commands,
                     &mut meshes,
-                    &mut materials, 
-                    rect, 
+                    &mut materials,
+                    rect,
                     preview_color,
                     line_width,
                 );
@@ -423,15 +420,11 @@ fn create_shape(
     let points = match shape_type {
         ShapeType::Rectangle => create_rectangle_points(rect),
         ShapeType::Oval => create_ellipse_points(rect),
-        ShapeType::RoundedRectangle => {
-            create_rounded_rectangle_points(rect, corner_radius)
-        }
+        ShapeType::RoundedRectangle => create_rounded_rectangle_points(rect, corner_radius),
     };
 
     // Add the contour to the glyph
-    if let Some(glyph_data) =
-        app_state.workspace.font.glyphs.get_mut(&glyph_name)
-    {
+    if let Some(glyph_data) = app_state.workspace.font.glyphs.get_mut(&glyph_name) {
         if glyph_data.outline.is_none() {
             glyph_data.outline = Some(crate::core::state::OutlineData {
                 contours: Vec::new(),
@@ -484,13 +477,16 @@ fn create_shape_fontir(
 
     // Get or create a working copy
     let working_copy_exists = fontir_app_state.working_copies.contains_key(&key);
-    
+
     if !working_copy_exists {
         // Create working copy from original FontIR data
         if let Some(fontir_glyph) = fontir_app_state.glyph_cache.get(&current_glyph_name) {
             if let Some((_location, instance)) = fontir_glyph.sources().iter().next() {
-                let working_copy = crate::core::state::fontir_app_state::EditableGlyphInstance::from(instance);
-                fontir_app_state.working_copies.insert(key.clone(), working_copy);
+                let working_copy =
+                    crate::core::state::fontir_app_state::EditableGlyphInstance::from(instance);
+                fontir_app_state
+                    .working_copies
+                    .insert(key.clone(), working_copy);
             }
         }
     }
@@ -500,17 +496,22 @@ fn create_shape_fontir(
         working_copy.contours.push(bez_path.clone());
         working_copy.is_dirty = true;
         app_state_changed.write(AppStateChanged);
-        
-        info!("Created {} shape with FontIR in glyph '{}'. Total contours: {}", 
-              match shape_type {
-                  ShapeType::Rectangle => "rectangle",
-                  ShapeType::Oval => "oval", 
-                  ShapeType::RoundedRectangle => "rounded rectangle",
-              },
-              current_glyph_name, 
-              working_copy.contours.len());
+
+        info!(
+            "Created {} shape with FontIR in glyph '{}'. Total contours: {}",
+            match shape_type {
+                ShapeType::Rectangle => "rectangle",
+                ShapeType::Oval => "oval",
+                ShapeType::RoundedRectangle => "rounded rectangle",
+            },
+            current_glyph_name,
+            working_copy.contours.len()
+        );
     } else {
-        warn!("Could not create working copy for FontIR shape in glyph '{}'", current_glyph_name);
+        warn!(
+            "Could not create working copy for FontIR shape in glyph '{}'",
+            current_glyph_name
+        );
     }
 }
 
@@ -551,13 +552,13 @@ fn create_ellipse_points(rect: Rect) -> Vec<crate::core::state::PointData> {
     let center = kurbo::Point::new(center_x as f64, center_y as f64);
     let radii = kurbo::Vec2::new(radius_x as f64, radius_y as f64);
     let ellipse = kurbo::Ellipse::new(center, radii, 0.0); // No rotation
-    
+
     // Convert to BezPath to get the actual Bézier curves
     let bez_path = ellipse.to_path(1e-3); // Tolerance for conversion
-    
+
     // Convert BezPath elements to PointData
     let mut points = Vec::new();
-    
+
     for element in bez_path.elements() {
         match element {
             kurbo::PathEl::MoveTo(pt) => {
@@ -619,25 +620,22 @@ fn create_ellipse_points(rect: Rect) -> Vec<crate::core::state::PointData> {
 }
 
 /// Create points for a rounded rectangle using Kurbo
-fn create_rounded_rectangle_points(
-    rect: Rect,
-    radius: f32,
-) -> Vec<crate::core::state::PointData> {
+fn create_rounded_rectangle_points(rect: Rect, radius: f32) -> Vec<crate::core::state::PointData> {
     // Create rounded rectangle with the specified radius
     let rounded_rect = kurbo::RoundedRect::new(
-        rect.min.x as f64, 
-        rect.min.y as f64, 
-        rect.max.x as f64, 
+        rect.min.x as f64,
+        rect.min.y as f64,
+        rect.max.x as f64,
         rect.max.y as f64,
-        radius as f64
+        radius as f64,
     );
-    
+
     // Convert to BezPath to get the actual Bézier curves
     let bez_path = rounded_rect.to_path(1e-3); // Tolerance for conversion
-    
+
     // Convert BezPath elements to PointData
     let mut points = Vec::new();
-    
+
     for element in bez_path.elements() {
         match element {
             kurbo::PathEl::MoveTo(pt) => {
@@ -706,10 +704,11 @@ fn create_rounded_rectangle_points(
 fn create_rectangle_bezpath(rect: Rect) -> kurbo::BezPath {
     kurbo::Rect::new(
         rect.min.x as f64,
-        rect.min.y as f64, 
+        rect.min.y as f64,
         rect.max.x as f64,
-        rect.max.y as f64
-    ).to_path(1e-3)
+        rect.max.y as f64,
+    )
+    .to_path(1e-3)
 }
 
 /// Create BezPath for ellipse using Kurbo
@@ -730,10 +729,11 @@ fn create_rounded_rectangle_bezpath(rect: Rect, corner_radius: f32) -> kurbo::Be
     kurbo::RoundedRect::new(
         rect.min.x as f64,
         rect.min.y as f64,
-        rect.max.x as f64, 
+        rect.max.x as f64,
         rect.max.y as f64,
-        corner_radius as f64
-    ).to_path(1e-3)
+        corner_radius as f64,
+    )
+    .to_path(1e-3)
 }
 
 // ================================================================
@@ -752,35 +752,31 @@ fn spawn_shape_preview_dashed_line(
 ) {
     let dash_length = 8.0;
     let gap_length = 4.0;
-    
+
     let direction = (end - start).normalize();
     let total_length = start.distance(end);
     let segment_length = dash_length + gap_length;
-    
+
     let mut current_pos = 0.0;
-    
+
     while current_pos < total_length {
         let dash_start = start + direction * current_pos;
         let dash_end_pos = (current_pos + dash_length).min(total_length);
         let dash_end = start + direction * dash_end_pos;
-        
+
         // Create line mesh for this dash segment
-        let line_mesh = crate::rendering::mesh_utils::create_line_mesh(
-            dash_start,
-            dash_end,
-            width,
-        );
-        
+        let line_mesh = crate::rendering::mesh_utils::create_line_mesh(dash_start, dash_end, width);
+
         // Calculate midpoint for proper positioning
         let midpoint = (dash_start + dash_end) * 0.5;
-        
+
         commands.spawn((
             Mesh2d(meshes.add(line_mesh)),
             MeshMaterial2d(materials.add(ColorMaterial::from(color))),
             Transform::from_translation(Vec3::new(midpoint.x, midpoint.y, 10.0)), // Position at midpoint
             ShapePreviewElement,
         ));
-        
+
         current_pos += segment_length;
     }
 }
@@ -797,35 +793,48 @@ fn spawn_shape_dimension_lines(
 ) {
     let width = (rect.max.x - rect.min.x).abs();
     let height = (rect.max.y - rect.min.y).abs();
-    
+
     let dimension_color = theme.theme().action_color(); // Use orange action color
     let line_width = camera_scale.adjusted_line_width() * 1.0;
-    
+
     // Width dimension (horizontal line below shape)
     let width_y = rect.min.y - 20.0;
     let width_start = Vec2::new(rect.min.x, width_y);
     let width_end = Vec2::new(rect.max.x, width_y);
-    
-    let width_line_mesh = crate::rendering::mesh_utils::create_line_mesh(
-        width_start,
-        width_end,
-        line_width,
-    );
-    
+
+    let width_line_mesh =
+        crate::rendering::mesh_utils::create_line_mesh(width_start, width_end, line_width);
+
     // Calculate midpoint for width line positioning
     let width_midpoint = (width_start + width_end) * 0.5;
-    
+
     commands.spawn((
         Mesh2d(meshes.add(width_line_mesh)),
         MeshMaterial2d(materials.add(ColorMaterial::from(dimension_color))),
         Transform::from_translation(Vec3::new(width_midpoint.x, width_midpoint.y, 11.0)), // Position at midpoint
         ShapePreviewElement,
     ));
-    
+
     // Add arrows at width line ends
-    spawn_arrow(commands, meshes, materials, width_start, Vec2::new(-1.0, 0.0), dimension_color, camera_scale);
-    spawn_arrow(commands, meshes, materials, width_end, Vec2::new(1.0, 0.0), dimension_color, camera_scale);
-    
+    spawn_arrow(
+        commands,
+        meshes,
+        materials,
+        width_start,
+        Vec2::new(-1.0, 0.0),
+        dimension_color,
+        camera_scale,
+    );
+    spawn_arrow(
+        commands,
+        meshes,
+        materials,
+        width_end,
+        Vec2::new(1.0, 0.0),
+        dimension_color,
+        camera_scale,
+    );
+
     // Width measurement text
     commands.spawn((
         Text2d(format!("{width:.0}")),
@@ -840,32 +849,45 @@ fn spawn_shape_dimension_lines(
         Transform::from_translation(Vec3::new(width_midpoint.x, width_y - 12.0, 12.0)),
         ShapePreviewElement,
     ));
-    
+
     // Height dimension (vertical line to the right of shape)
     let height_x = rect.max.x + 20.0;
     let height_start = Vec2::new(height_x, rect.min.y);
     let height_end = Vec2::new(height_x, rect.max.y);
-    
-    let height_line_mesh = crate::rendering::mesh_utils::create_line_mesh(
-        height_start,
-        height_end,
-        line_width,
-    );
-    
+
+    let height_line_mesh =
+        crate::rendering::mesh_utils::create_line_mesh(height_start, height_end, line_width);
+
     // Calculate midpoint for height line positioning
     let height_midpoint = (height_start + height_end) * 0.5;
-    
+
     commands.spawn((
         Mesh2d(meshes.add(height_line_mesh)),
         MeshMaterial2d(materials.add(ColorMaterial::from(dimension_color))),
         Transform::from_translation(Vec3::new(height_midpoint.x, height_midpoint.y, 11.0)), // Position at midpoint
         ShapePreviewElement,
     ));
-    
+
     // Add arrows at height line ends
-    spawn_arrow(commands, meshes, materials, height_start, Vec2::new(0.0, -1.0), dimension_color, camera_scale);
-    spawn_arrow(commands, meshes, materials, height_end, Vec2::new(0.0, 1.0), dimension_color, camera_scale);
-    
+    spawn_arrow(
+        commands,
+        meshes,
+        materials,
+        height_start,
+        Vec2::new(0.0, -1.0),
+        dimension_color,
+        camera_scale,
+    );
+    spawn_arrow(
+        commands,
+        meshes,
+        materials,
+        height_end,
+        Vec2::new(0.0, 1.0),
+        dimension_color,
+        camera_scale,
+    );
+
     // Height measurement text
     commands.spawn((
         Text2d(format!("{height:.0}")),
@@ -894,30 +916,33 @@ fn spawn_arrow(
 ) {
     let arrow_size = camera_scale.adjusted_line_width() * 5.0;
     let direction = direction.normalize();
-    
+
     // Create arrow vertices (triangle pointing in direction)
     let perpendicular = Vec2::new(-direction.y, direction.x);
     let tip = position + direction * arrow_size;
     let base_left = position - direction * arrow_size * 0.5 + perpendicular * arrow_size * 0.5;
     let base_right = position - direction * arrow_size * 0.5 - perpendicular * arrow_size * 0.5;
-    
+
     // Create triangle mesh
     let vertices = vec![
         [tip.x, tip.y, 0.0],
         [base_left.x, base_left.y, 0.0],
         [base_right.x, base_right.y, 0.0],
     ];
-    
+
     let indices = vec![0, 1, 2];
     let normals = vec![[0.0, 0.0, 1.0]; 3];
     let uvs = vec![[0.5, 1.0], [0.0, 0.0], [1.0, 0.0]];
-    
-    let mut mesh = Mesh::new(bevy::render::mesh::PrimitiveTopology::TriangleList, default());
+
+    let mut mesh = Mesh::new(
+        bevy::render::mesh::PrimitiveTopology::TriangleList,
+        default(),
+    );
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
     mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
     mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
     mesh.insert_indices(bevy::render::mesh::Indices::U32(indices));
-    
+
     commands.spawn((
         Mesh2d(meshes.add(mesh)),
         MeshMaterial2d(materials.add(ColorMaterial::from(color))),
@@ -945,15 +970,7 @@ fn draw_mesh_dashed_rectangle(
     for i in 0..4 {
         let start = corners[i];
         let end = corners[(i + 1) % 4];
-        spawn_shape_preview_dashed_line(
-            commands,
-            meshes,
-            materials,
-            start,
-            end,
-            color,
-            width,
-        );
+        spawn_shape_preview_dashed_line(commands, meshes, materials, start, end, color, width);
     }
 }
 
@@ -984,22 +1001,14 @@ fn draw_mesh_dashed_ellipse(
     for i in 0..32 {
         let start = points[i];
         let end = points[(i + 1) % 32];
-        spawn_shape_preview_dashed_line(
-            commands,
-            meshes,
-            materials,
-            start,
-            end,
-            color,
-            width,
-        );
+        spawn_shape_preview_dashed_line(commands, meshes, materials, start, end, color, width);
     }
 }
 
 /// Apply shape constraints when shift is held (square, circle, rounded square)
 fn apply_shape_constraints(cursor_pos: Vec2, start_pos: Vec2, shape_type: ShapeType) -> Vec2 {
     let delta = cursor_pos - start_pos;
-    
+
     match shape_type {
         ShapeType::Rectangle | ShapeType::RoundedRectangle => {
             // For rectangles, make it a square by using the larger dimension
@@ -1047,7 +1056,7 @@ pub fn spawn_shapes_submenu(
 ) {
     info!("🔳 Spawning shapes submenu with Rectangle, Oval, and Rounded Rectangle");
     info!("🔳 Default shape type is: {:?}", ShapeType::default());
-    
+
     let shapes = [
         ShapeType::Rectangle,
         ShapeType::Oval,
@@ -1058,7 +1067,7 @@ pub fn spawn_shapes_submenu(
     let submenu_node = Node {
         position_type: PositionType::Absolute,
         top: Val::Px(TOOLBAR_CONTAINER_MARGIN + 74.0),
-        left: Val::Px(TOOLBAR_CONTAINER_MARGIN),  // Left-aligned to match toolbar
+        left: Val::Px(TOOLBAR_CONTAINER_MARGIN), // Left-aligned to match toolbar
         flex_direction: FlexDirection::Row,
         padding: UiRect::all(Val::Px(TOOLBAR_PADDING)),
         margin: UiRect::all(Val::ZERO),
@@ -1075,7 +1084,7 @@ pub fn spawn_shapes_submenu(
                 spawn_shape_mode_button(parent, shape_type, &asset_server, &theme);
             }
         });
-        
+
     info!("🔳 Shapes submenu spawned successfully");
 }
 
@@ -1084,9 +1093,9 @@ pub fn toggle_shapes_submenu_visibility(
     current_tool: Option<Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>>,
     mut submenu_query: Query<(&mut Node, &Name)>,
 ) {
-    let is_shapes_tool_active = current_tool.as_ref()
-        .and_then(|tool| tool.get_current()) == Some("shapes");
-    
+    let is_shapes_tool_active =
+        current_tool.as_ref().and_then(|tool| tool.get_current()) == Some("shapes");
+
     for (mut node, name) in submenu_query.iter_mut() {
         if name.as_str() == "ShapesSubMenu" {
             let new_display = if is_shapes_tool_active {
@@ -1094,11 +1103,13 @@ pub fn toggle_shapes_submenu_visibility(
             } else {
                 Display::None
             };
-            
+
             if node.display != new_display {
                 node.display = new_display;
-                info!("🔳 Shapes submenu visibility changed: tool_active={}, display={:?}", 
-                      is_shapes_tool_active, new_display);
+                info!(
+                    "🔳 Shapes submenu visibility changed: tool_active={}, display={:?}",
+                    is_shapes_tool_active, new_display
+                );
             }
         }
     }
@@ -1129,22 +1140,26 @@ pub fn handle_shapes_submenu_selection(
                 .as_secs_f32();
             if current_time - LAST_LOG > 2.0 {
                 LAST_LOG = current_time;
-                info!("🔳 Shapes submenu selection system: found {} buttons", button_count);
+                info!(
+                    "🔳 Shapes submenu selection system: found {} buttons",
+                    button_count
+                );
             }
         }
     }
-    
-    for (interaction, mut color, mut border_color, shape_button, _entity) in
-        &mut interaction_query
+
+    for (interaction, mut color, mut border_color, shape_button, _entity) in &mut interaction_query
     {
         let is_current_shape = current_shape_type.0 == shape_button.shape_type;
-        
+
         // Debug: Log interactions for debugging
         if *interaction != Interaction::None {
-            info!("🔳 Button interaction: {:?} for shape {:?} (current: {:?})", 
-                  interaction, shape_button.shape_type, current_shape_type.0);
+            info!(
+                "🔳 Button interaction: {:?} for shape {:?} (current: {:?})",
+                interaction, shape_button.shape_type, current_shape_type.0
+            );
         }
-        
+
         if *interaction == Interaction::Pressed && !is_current_shape {
             current_shape_type.0 = shape_button.shape_type;
             info!("🔳 Switched to shape type: {:?}", shape_button.shape_type);

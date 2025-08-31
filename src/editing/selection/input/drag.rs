@@ -32,7 +32,6 @@ pub fn handle_point_drag(
     mut event_writer: EventWriter<EditEvent>,
     settings: Res<BezySettings>,
 ) {
-    
     // Only drag if the resource says we are
     if !drag_point_state.is_dragging {
         return;
@@ -46,8 +45,7 @@ pub fn handle_point_drag(
         let mut movement = total_movement;
 
         // Handle constrained movement with Shift key
-        if keyboard_input.pressed(KeyCode::ShiftLeft)
-            || keyboard_input.pressed(KeyCode::ShiftRight)
+        if keyboard_input.pressed(KeyCode::ShiftLeft) || keyboard_input.pressed(KeyCode::ShiftRight)
         {
             if total_movement.x.abs() > total_movement.y.abs() {
                 movement.y = 0.0; // Constrain to horizontal
@@ -58,17 +56,8 @@ pub fn handle_point_drag(
 
         let mut updated_count = 0;
 
-        for (
-            entity,
-            mut transform,
-            mut coordinates,
-            point_ref,
-            sort_crosshair,
-        ) in &mut query
-        {
-            if let Some(original_pos) =
-                drag_point_state.original_positions.get(&entity)
-            {
+        for (entity, mut transform, mut coordinates, point_ref, sort_crosshair) in &mut query {
+            if let Some(original_pos) = drag_point_state.original_positions.get(&entity) {
                 let new_pos = *original_pos + movement;
 
                 // Handle sort crosshair drag (no snapping, keep on top)

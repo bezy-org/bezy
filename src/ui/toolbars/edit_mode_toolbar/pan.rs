@@ -5,9 +5,7 @@
 //! When active, it enables "presentation mode" - hiding grid, metrics, and editing helpers for clean viewing.
 
 use crate::ui::toolbars::edit_mode_toolbar::select::SelectModeActive;
-use crate::ui::toolbars::edit_mode_toolbar::{
-    EditModeSystem, EditTool, ToolRegistry,
-};
+use crate::ui::toolbars::edit_mode_toolbar::{EditModeSystem, EditTool, ToolRegistry};
 use bevy::prelude::*;
 use bevy::ui::Display;
 use bevy_pancam::PanCam;
@@ -121,10 +119,14 @@ pub fn manage_presentation_mode(
     if current_tool.is_changed() {
         let is_pan_active = current_tool.get_current() == Some("pan");
         let current_mode = presentation_mode.as_ref().is_some_and(|pm| pm.active);
-        
-        info!("🎭 TOOL CHANGED: current_tool={:?}, is_pan_active={}, current_presentation_mode={}", 
-              current_tool.get_current(), is_pan_active, current_mode);
-        
+
+        info!(
+            "🎭 TOOL CHANGED: current_tool={:?}, is_pan_active={}, current_presentation_mode={}",
+            current_tool.get_current(),
+            is_pan_active,
+            current_mode
+        );
+
         if is_pan_active {
             info!("🎭 ACTIVATING PRESENTATION MODE - hiding grid, metrics, and editing helpers");
             commands.insert_resource(PresentationMode { active: true });
@@ -141,7 +143,7 @@ type PaneQuery<'w, 's> = Query<
     's,
     (Entity, &'static mut Node, Option<&'static Name>),
     Or<(
-        With<crate::ui::panes::coord_pane::CoordPane>,
+        With<crate::ui::panes::coordinate_pane::CoordinatePane>,
         With<crate::ui::panes::file_pane::FilePane>,
         With<crate::ui::panes::glyph_pane::GlyphPane>,
     )>,
@@ -157,15 +159,21 @@ pub fn manage_pane_visibility(
     let spacebar_pressed = keyboard_input.pressed(KeyCode::Space);
     let pan_tool_selected = current_tool.get_current() == Some("pan");
     let should_hide_panes = spacebar_pressed || pan_tool_selected;
-    
+
     // Log every few frames for debugging
     static mut DEBUG_COUNTER: u32 = 0;
     unsafe {
         DEBUG_COUNTER += 1;
-        if DEBUG_COUNTER % 60 == 0 {  // Log every second at 60fps
-            info!("🎭 PANE DEBUG: spacebar={}, pan_tool={}, current_tool={:?}, should_hide={}", 
-                  spacebar_pressed, pan_tool_selected, current_tool.get_current(), should_hide_panes);
-            
+        if DEBUG_COUNTER % 60 == 0 {
+            // Log every second at 60fps
+            info!(
+                "🎭 PANE DEBUG: spacebar={}, pan_tool={}, current_tool={:?}, should_hide={}",
+                spacebar_pressed,
+                pan_tool_selected,
+                current_tool.get_current(),
+                should_hide_panes
+            );
+
             let pane_count = pane_query.iter().count();
             info!("🎭 PANE DEBUG: Found {} total panes", pane_count);
             for (_entity, node, name) in pane_query.iter() {
@@ -174,19 +182,22 @@ pub fn manage_pane_visibility(
             }
         }
     }
-    
+
     let target_display = if should_hide_panes {
         Display::None
     } else {
         Display::Flex
     };
-    
+
     // Update the main pane entities using Display property
     for (_entity, mut node, name) in pane_query.iter_mut() {
         let pane_name = name.map(|n| n.as_str()).unwrap_or("Unknown");
-        
+
         if node.display != target_display {
-            info!("🎭 MAIN PANE UPDATE: '{}' from {:?} to {:?}", pane_name, node.display, target_display);
+            info!(
+                "🎭 MAIN PANE UPDATE: '{}' from {:?} to {:?}",
+                pane_name, node.display, target_display
+            );
             node.display = target_display;
         }
     }
@@ -199,11 +210,14 @@ impl Plugin for PanToolPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<PresentationMode>()
             .add_systems(Startup, register_pan_tool)
-            .add_systems(Update, (
-                toggle_pancam_on_mode_change,
-                manage_presentation_mode,
-                manage_pane_visibility,
-            ));
+            .add_systems(
+                Update,
+                (
+                    toggle_pancam_on_mode_change,
+                    manage_presentation_mode,
+                    manage_pane_visibility,
+                ),
+            );
     }
 }
 

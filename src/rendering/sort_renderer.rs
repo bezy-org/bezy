@@ -7,9 +7,7 @@
 
 use crate::core::state::{AppState, FontIRAppState, SortLayoutMode};
 use crate::editing::sort::{ActiveSort, InactiveSort, Sort};
-use crate::ui::theme::{
-    MONO_FONT_PATH, SORT_ACTIVE_METRICS_COLOR, SORT_INACTIVE_METRICS_COLOR,
-};
+use crate::ui::theme::{MONO_FONT_PATH, SORT_ACTIVE_METRICS_COLOR, SORT_INACTIVE_METRICS_COLOR};
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
 use bevy::text::TextBounds;
@@ -50,8 +48,7 @@ pub fn manage_sort_labels(
     };
 
     // Remove text for sorts that no longer exist
-    let existing_sort_entities: HashSet<Entity> =
-        all_sorts_query.iter().collect();
+    let existing_sort_entities: HashSet<Entity> = all_sorts_query.iter().collect();
 
     // Clean up glyph name text entities
     for (text_entity, sort_name_text) in existing_name_text_query.iter() {
@@ -82,11 +79,7 @@ pub fn manage_sort_labels(
         let position = transform.translation.truncate();
 
         // Calculate position for glyph name text
-        let name_transform = calculate_glyph_name_transform(
-            position,
-            &app_state,
-            &sort.glyph_name,
-        );
+        let name_transform = calculate_glyph_name_transform(position, &app_state, &sort.glyph_name);
 
         // Check if name text already exists
         let mut _name_text_exists = false;
@@ -115,14 +108,10 @@ pub fn manage_sort_labels(
         ));
 
         // Get unicode value for this glyph
-        if let Some(unicode_string) =
-            get_unicode_for_glyph(&sort.glyph_name, &app_state)
-        {
+        if let Some(unicode_string) = get_unicode_for_glyph(&sort.glyph_name, &app_state) {
             // Check if unicode text already exists
             let mut _unicode_text_exists = false;
-            for (text_entity, sort_unicode_text) in
-                existing_unicode_text_query.iter()
-            {
+            for (text_entity, sort_unicode_text) in existing_unicode_text_query.iter() {
                 if sort_unicode_text.sort_entity == sort_entity {
                     // Update existing text
                     commands.entity(text_entity).despawn();
@@ -156,10 +145,7 @@ pub fn manage_sort_labels(
 /// System to update text label positions when sorts move
 pub fn update_sort_label_positions(
     sorts_query: Query<(Entity, &Transform), (With<Sort>, Changed<Transform>)>,
-    mut name_text_query: Query<
-        (&mut Transform, &SortGlyphNameText),
-        Without<Sort>,
-    >,
+    mut name_text_query: Query<(&mut Transform, &SortGlyphNameText), Without<Sort>>,
     mut unicode_text_query: Query<
         (&mut Transform, &SortUnicodeText),
         (Without<Sort>, Without<SortGlyphNameText>),
@@ -178,21 +164,13 @@ pub fn update_sort_label_positions(
             if sort_name_text.sort_entity == sort_entity {
                 // Get glyph advance width for proper positioning
                 if let Some(selected_glyph) = &app_state.workspace.selected {
-                    if let Some(glyph_data) =
-                        app_state.workspace.font.glyphs.get(selected_glyph)
-                    {
+                    if let Some(glyph_data) = app_state.workspace.font.glyphs.get(selected_glyph) {
                         let advance_width = glyph_data.advance_width as f32;
-                        let descender = app_state
-                            .workspace
-                            .info
-                            .metrics
-                            .descender
-                            .unwrap_or(-200.0)
-                            as f32;
+                        let descender =
+                            app_state.workspace.info.metrics.descender.unwrap_or(-200.0) as f32;
 
                         // Position text to the right of the glyph, at descender height
-                        text_transform.translation.x =
-                            position.x + advance_width + 20.0;
+                        text_transform.translation.x = position.x + advance_width + 20.0;
                         text_transform.translation.y = position.y + descender;
                         text_transform.translation.z = 10.0; // Above glyph
                     }
@@ -201,15 +179,13 @@ pub fn update_sort_label_positions(
         }
 
         // Update unicode text position
-        for (mut text_transform, sort_unicode_text) in
-            unicode_text_query.iter_mut()
-        {
+        for (mut text_transform, sort_unicode_text) in unicode_text_query.iter_mut() {
             if sort_unicode_text.sort_entity == sort_entity {
                 // Position below glyph name
                 for (name_transform, sort_name_text) in name_text_query.iter() {
                     if sort_name_text.sort_entity == sort_entity {
-                        text_transform.translation = name_transform.translation
-                            + Vec3::new(0.0, -20.0, 0.0);
+                        text_transform.translation =
+                            name_transform.translation + Vec3::new(0.0, -20.0, 0.0);
                         break;
                     }
                 }
@@ -222,14 +198,8 @@ pub fn update_sort_label_positions(
 pub fn update_sort_label_colors(
     active_sorts_query: Query<Entity, Added<ActiveSort>>,
     inactive_sorts_query: Query<Entity, Added<InactiveSort>>,
-    mut name_text_query: Query<
-        (&mut TextColor, &SortGlyphNameText),
-        Without<SortUnicodeText>,
-    >,
-    mut unicode_text_query: Query<
-        (&mut TextColor, &SortUnicodeText),
-        Without<SortGlyphNameText>,
-    >,
+    mut name_text_query: Query<(&mut TextColor, &SortGlyphNameText), Without<SortUnicodeText>>,
+    mut unicode_text_query: Query<(&mut TextColor, &SortUnicodeText), Without<SortGlyphNameText>>,
 ) {
     // Update colors for newly active sorts
     for sort_entity in active_sorts_query.iter() {
@@ -238,8 +208,7 @@ pub fn update_sort_label_colors(
                 text_color.0 = SORT_ACTIVE_METRICS_COLOR;
             }
         }
-        for (mut text_color, sort_unicode_text) in unicode_text_query.iter_mut()
-        {
+        for (mut text_color, sort_unicode_text) in unicode_text_query.iter_mut() {
             if sort_unicode_text.sort_entity == sort_entity {
                 text_color.0 = SORT_ACTIVE_METRICS_COLOR.with_alpha(0.7);
             }
@@ -253,8 +222,7 @@ pub fn update_sort_label_colors(
                 text_color.0 = SORT_INACTIVE_METRICS_COLOR;
             }
         }
-        for (mut text_color, sort_unicode_text) in unicode_text_query.iter_mut()
-        {
+        for (mut text_color, sort_unicode_text) in unicode_text_query.iter_mut() {
             if sort_unicode_text.sort_entity == sort_entity {
                 text_color.0 = SORT_INACTIVE_METRICS_COLOR.with_alpha(0.7);
             }
@@ -269,16 +237,13 @@ fn calculate_glyph_name_transform(
     glyph_name: &str,
 ) -> Transform {
     // Get glyph advance width for proper positioning
-    let advance_width = if let Some(glyph_data) =
-        app_state.workspace.font.glyphs.get(glyph_name)
-    {
+    let advance_width = if let Some(glyph_data) = app_state.workspace.font.glyphs.get(glyph_name) {
         glyph_data.advance_width as f32
     } else {
         500.0 // Default if glyph not found
     };
 
-    let descender =
-        app_state.workspace.info.metrics.descender.unwrap_or(-200.0) as f32;
+    let descender = app_state.workspace.info.metrics.descender.unwrap_or(-200.0) as f32;
 
     // Position text to the right of the glyph, at descender height
     Transform::from_xyz(
@@ -289,10 +254,7 @@ fn calculate_glyph_name_transform(
 }
 
 /// Get unicode value string for a glyph name
-fn get_unicode_for_glyph(
-    glyph_name: &str,
-    app_state: &AppState,
-) -> Option<String> {
+fn get_unicode_for_glyph(glyph_name: &str, app_state: &AppState) -> Option<String> {
     // Check if glyph has unicode value
     if let Some(glyph_data) = app_state.workspace.font.glyphs.get(glyph_name) {
         if !glyph_data.unicode_values.is_empty() {

@@ -44,4 +44,3 @@ pub fn load_fontir_font(mut commands: Commands, cli_args: Res<CliArgs>) {
         // Don't insert any FontIRAppState resource - systems will need to handle this
     }
 }
-

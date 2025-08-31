@@ -129,15 +129,9 @@ pub fn update_path_point(
     let new_element = match (old_element, reference.point_index) {
         (PathEl::MoveTo(_), 0) => PathEl::MoveTo(new_position),
         (PathEl::LineTo(_), 0) => PathEl::LineTo(new_position),
-        (PathEl::CurveTo(_, c2, pt), 0) => {
-            PathEl::CurveTo(new_position, *c2, *pt)
-        }
-        (PathEl::CurveTo(c1, _, pt), 1) => {
-            PathEl::CurveTo(*c1, new_position, *pt)
-        }
-        (PathEl::CurveTo(c1, c2, _), 2) => {
-            PathEl::CurveTo(*c1, *c2, new_position)
-        }
+        (PathEl::CurveTo(_, c2, pt), 0) => PathEl::CurveTo(new_position, *c2, *pt),
+        (PathEl::CurveTo(c1, _, pt), 1) => PathEl::CurveTo(*c1, new_position, *pt),
+        (PathEl::CurveTo(c1, c2, _), 2) => PathEl::CurveTo(*c1, *c2, new_position),
         (PathEl::QuadTo(_, pt), 0) => PathEl::QuadTo(new_position, *pt),
         (PathEl::QuadTo(c, _), 1) => PathEl::QuadTo(*c, new_position),
         _ => return Err("Invalid point index for element type".to_string()),
@@ -233,8 +227,7 @@ mod tests {
             point_index: 0,
         };
 
-        update_path_point(&mut path, reference, Point::new(200.0, 50.0))
-            .unwrap();
+        update_path_point(&mut path, reference, Point::new(200.0, 50.0)).unwrap();
 
         let points = extract_editable_points(&path);
         assert_eq!(points[1].position, Point::new(200.0, 50.0));

@@ -39,8 +39,7 @@ mod workspace_tests {
     fn test_workspace_loads_ufo() {
         // First load the UFO file
         let test_path = "assets/fonts/bezy-grotesk-regular.ufo";
-        let _ufo = ufo::load_ufo_from_path(test_path)
-            .expect("Failed to load UFO file");
+        let _ufo = ufo::load_ufo_from_path(test_path).expect("Failed to load UFO file");
 
         // Create a new app state and load the font
         let mut app_state = AppState::default();

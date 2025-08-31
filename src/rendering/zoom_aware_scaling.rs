@@ -38,12 +38,12 @@ impl CameraResponsiveScale {
             scale_factor: 1.0,
             base_line_width: 1.0,
             // EASY TO TUNE: Adjust these three scale factors
-            zoom_in_max_factor: 1.0, // Keep current size when zoomed in
-            default_factor: 1.0,     // Keep current size at default zoom
+            zoom_in_max_factor: 1.0,   // Keep current size when zoomed in
+            default_factor: 1.0,       // Keep current size at default zoom
             zoom_out_max_factor: 12.0, // Make 12x bigger when zoomed out (was 3.0)
             // Camera scale ranges (you can adjust these if needed)
-            zoom_in_max_camera_scale: 0.2, // Maximum zoom in
-            default_camera_scale: 1.0,     // Default zoom level
+            zoom_in_max_camera_scale: 0.2,   // Maximum zoom in
+            default_camera_scale: 1.0,       // Default zoom level
             zoom_out_max_camera_scale: 16.0, // Maximum zoom out
         }
     }
@@ -86,24 +86,18 @@ pub fn update_camera_responsive_scale(
         // Use inverse relationship to make the effect very obvious
 
         // Simple interpolation between three scale factors
-        let responsive_factor = if camera_scale
-            <= scale_resource.default_camera_scale
-        {
+        let responsive_factor = if camera_scale <= scale_resource.default_camera_scale {
             // Interpolate between zoom_in_max and default
             let t = (camera_scale - scale_resource.zoom_in_max_camera_scale)
-                / (scale_resource.default_camera_scale
-                    - scale_resource.zoom_in_max_camera_scale);
+                / (scale_resource.default_camera_scale - scale_resource.zoom_in_max_camera_scale);
             let t = t.clamp(0.0, 1.0);
-            scale_resource.zoom_in_max_factor * (1.0 - t)
-                + scale_resource.default_factor * t
+            scale_resource.zoom_in_max_factor * (1.0 - t) + scale_resource.default_factor * t
         } else {
             // Interpolate between default and zoom_out_max
             let t = (camera_scale - scale_resource.default_camera_scale)
-                / (scale_resource.zoom_out_max_camera_scale
-                    - scale_resource.default_camera_scale);
+                / (scale_resource.zoom_out_max_camera_scale - scale_resource.default_camera_scale);
             let t = t.clamp(0.0, 1.0);
-            scale_resource.default_factor * (1.0 - t)
-                + scale_resource.zoom_out_max_factor * t
+            scale_resource.default_factor * (1.0 - t) + scale_resource.zoom_out_max_factor * t
         };
 
         // Store the interpolated factor directly (no additional clamping needed)
@@ -131,17 +125,12 @@ pub enum ResponsiveElementType {
 /// System that applies camera-responsive scaling to marked entities
 pub fn apply_camera_responsive_scaling(
     scale_resource: Res<CameraResponsiveScale>,
-    mut responsive_query: Query<
-        (&CameraResponsive, &mut Transform),
-        Changed<CameraResponsive>,
-    >,
+    mut responsive_query: Query<(&CameraResponsive, &mut Transform), Changed<CameraResponsive>>,
 ) {
     if scale_resource.is_changed() {
         for (responsive, mut transform) in responsive_query.iter_mut() {
             let new_scale = match responsive.element_type {
-                ResponsiveElementType::LineWidth => {
-                    scale_resource.adjusted_line_width()
-                }
+                ResponsiveElementType::LineWidth => scale_resource.adjusted_line_width(),
                 ResponsiveElementType::PointSize => {
                     scale_resource.adjusted_point_size(responsive.base_size)
                 }

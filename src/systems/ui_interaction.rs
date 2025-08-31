@@ -28,12 +28,7 @@ pub fn detect_ui_hover(
     // Check if any UI element is being hovered or interacted with
     for (interaction, node) in interaction_query.iter() {
         // Make sure we're only considering actual UI elements (with Node component)
-        if node.is_some()
-            && matches!(
-                interaction,
-                Interaction::Hovered | Interaction::Pressed
-            )
-        {
+        if node.is_some() && matches!(interaction, Interaction::Hovered | Interaction::Pressed) {
             ui_hover_state.is_hovering_ui = true;
             return;
         }

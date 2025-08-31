@@ -143,11 +143,10 @@ mod spacebar_toggle;
 // Re-export the new tool system
 pub use spacebar_toggle::{handle_spacebar_toggle, SpacebarToggleState};
 pub use ui::{
-    create_toolbar_button, create_toolbar_button_with_hover_text,
-    handle_toolbar_mode_selection, spawn_edit_mode_toolbar,
-    update_current_edit_mode, update_toolbar_button_appearances,
-    update_toolbar_button_colors, update_toolbar_button_text_colors,
-    update_hover_text_visibility,
+    create_toolbar_button, create_toolbar_button_with_hover_text, handle_toolbar_mode_selection,
+    spawn_edit_mode_toolbar, update_current_edit_mode, update_hover_text_visibility,
+    update_toolbar_button_appearances, update_toolbar_button_colors,
+    update_toolbar_button_text_colors,
 };
 
 // NEW: Re-export centralized configuration system
@@ -332,8 +331,7 @@ impl ToolRegistry {
         // Sort by order value (lower numbers first)
         tools_with_order.sort_by_key(|(_, order)| *order);
 
-        self.ordered_tool_ids =
-            tools_with_order.into_iter().map(|(id, _)| id).collect();
+        self.ordered_tool_ids = tools_with_order.into_iter().map(|(id, _)| id).collect();
 
         self.ordering_dirty = false;
     }
@@ -485,8 +483,7 @@ impl ToolOrdering {
     #[allow(dead_code)]
     pub fn set_annotation_focused_order(&mut self) {
         self.custom_order = vec![
-            "select", "text", "pen", "shapes", "measure", "eraser", "knife",
-            "hyper", "pan",
+            "select", "text", "pen", "shapes", "measure", "eraser", "knife", "hyper", "pan",
         ];
     }
 }
@@ -551,9 +548,7 @@ fn initialize_default_tool(
         current_tool.switch_to("select");
         info!("Initialized with default tool: select");
     } else {
-        warn!(
-            "Select tool not found in registry! Will use first available tool."
-        );
+        warn!("Select tool not found in registry! Will use first available tool.");
         // Fallback to first available tool if select is not available
         let all_tools = tool_registry.get_all_tool_ids();
         if let Some(&first_tool) = all_tools.first() {
@@ -569,15 +564,15 @@ fn initialize_default_tool(
 }
 
 /// ✅ UNIFIED TOOLBAR SYSTEM - Main Plugin
-/// 
+///
 /// This plugin provides the complete toolbar system using the new config-based architecture.
-/// 
+///
 /// ## What This Plugin Includes:
 /// - **ConfigBasedToolbarPlugin**: Automatically registers all tools from `toolbar_config.rs`
 /// - **Tool behavior plugins**: Pan, Measure, Text (provide ECS systems for tool behavior)
 /// - **UI systems**: Toolbar rendering, button interactions, tool switching
 /// - **Spacebar toggle**: Temporary pan mode when holding spacebar
-/// 
+///
 /// ## No Manual Registration Needed:
 /// Just add `EditModeToolbarPlugin` to your app - it handles everything automatically!
 ///
@@ -601,16 +596,14 @@ impl Plugin for EditModeToolbarPlugin {
             .init_resource::<SpacebarToggleState>()
             // ✅ NEW SYSTEM: Centralized configuration system handles all tool registration
             .add_plugins(config_loader::ConfigBasedToolbarPlugin)
-            
             // ✅ BEHAVIOR PLUGINS: These provide the actual tool behavior (systems, input handling)
             // These are still needed because they contain the ECS systems that make tools work
-            .add_plugins(PanToolPlugin)     // Pan tool input handling and behavior
-            .add_plugins(MeasureToolPlugin) // Measure tool rendering and interaction  
-            .add_plugins(TextToolPlugin)    // Text tool with submenu functionality
-            .add_plugins(ShapesToolPlugin)  // Shapes tool with submenu functionality  
-            .add_plugins(KnifeToolPlugin)   // Knife tool for cutting paths
+            .add_plugins(PanToolPlugin) // Pan tool input handling and behavior
+            .add_plugins(MeasureToolPlugin) // Measure tool rendering and interaction
+            .add_plugins(TextToolPlugin) // Text tool with submenu functionality
+            .add_plugins(ShapesToolPlugin) // Shapes tool with submenu functionality
+            .add_plugins(KnifeToolPlugin) // Knife tool for cutting paths
             .add_plugins(crate::tools::ai::AiToolPlugin) // AI tool with submenu functionality
-            
             // ✅ NOTE: Tool registration (toolbar buttons) is automatic via ConfigBasedToolbarPlugin
             // ✅ NOTE: Tool behavior (what tools do) still needs these individual behavior plugins
             .add_systems(

@@ -6,10 +6,7 @@
 use bevy::prelude::*;
 
 /// System to exit the application when the Escape key is pressed
-pub fn exit_on_esc(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    mut app_exit_events: EventWriter<AppExit>,
-) {
+pub fn exit_on_esc(keyboard: Res<ButtonInput<KeyCode>>, mut app_exit_events: EventWriter<AppExit>) {
     if keyboard.just_pressed(KeyCode::Escape) {
         app_exit_events.write(AppExit::Success);
     }

@@ -15,9 +15,8 @@
 
 use crate::rendering::cameras::DesignCamera;
 use crate::ui::theme::{
-    CHECKERBOARD_COLOR, CHECKERBOARD_DEFAULT_UNIT_SIZE,
-    CHECKERBOARD_ENABLED_BY_DEFAULT, CHECKERBOARD_MAX_ZOOM_VISIBLE,
-    CHECKERBOARD_SCALE_FACTOR, WINDOW_HEIGHT, WINDOW_WIDTH,
+    CHECKERBOARD_COLOR, CHECKERBOARD_DEFAULT_UNIT_SIZE, CHECKERBOARD_ENABLED_BY_DEFAULT,
+    CHECKERBOARD_MAX_ZOOM_VISIBLE, CHECKERBOARD_SCALE_FACTOR, WINDOW_HEIGHT, WINDOW_WIDTH,
 };
 use bevy::prelude::*;
 use bevy::window::{PrimaryWindow, WindowResized};
@@ -132,10 +131,7 @@ pub fn calculate_dynamic_grid_size(zoom_scale: f32) -> f32 {
 pub fn update_checkerboard(
     mut commands: Commands,
     mut state: ResMut<CheckerboardState>,
-    camera_query: Query<
-        (&Transform, &Projection, Option<&PanCam>),
-        With<DesignCamera>,
-    >,
+    camera_query: Query<(&Transform, &Projection, Option<&PanCam>), With<DesignCamera>>,
     square_query: Query<(Entity, &CheckerboardSquare)>,
     checkerboard_enabled: Res<CheckerboardEnabled>,
     window_query: Query<&Window, With<PrimaryWindow>>,
@@ -151,8 +147,7 @@ pub fn update_checkerboard(
         return;
     }
 
-    let Ok((camera_transform, projection, _pancam_opt)) = camera_query.single()
-    else {
+    let Ok((camera_transform, projection, _pancam_opt)) = camera_query.single() else {
         return;
     };
 
@@ -170,11 +165,10 @@ pub fn update_checkerboard(
 
     // Debug logging to help troubleshoot zoom issues (only log when scale
     // changes significantly)
-    let significant_scale_change =
-        state.last_camera_state.is_none_or(|(_, last_scale)| {
-            (camera_scale / last_scale - 1.0).abs() > 0.05 // Log if scale
-                                                           // changes by >5%
-        });
+    let significant_scale_change = state.last_camera_state.is_none_or(|(_, last_scale)| {
+        (camera_scale / last_scale - 1.0).abs() > 0.05 // Log if scale
+                                                       // changes by >5%
+    });
 
     if significant_scale_change {
         info!(
@@ -259,8 +253,8 @@ pub fn update_checkerboard(
         // Use a more responsive threshold than just doubling/halving
         // This prevents sudden jumps but still triggers when grid size changes meaningfully
         let ratio = current_grid_size / last_size;
-        let should_change = ratio >= GRID_SIZE_CHANGE_THRESHOLD
-            || ratio <= (1.0 / GRID_SIZE_CHANGE_THRESHOLD);
+        let should_change =
+            ratio >= GRID_SIZE_CHANGE_THRESHOLD || ratio <= (1.0 / GRID_SIZE_CHANGE_THRESHOLD);
 
         // Debug why grid size change isn't happening
         if !should_change && significant_scale_change {
@@ -313,7 +307,7 @@ pub fn update_checkerboard(
         despawn_all_squares(&mut commands, &mut state, &square_query);
         state.last_window_size = Some(window_size);
         state.last_camera_state = None; // Force camera update
-        // Don't update visible squares this frame - let the next frame handle spawning
+                                        // Don't update visible squares this frame - let the next frame handle spawning
         return;
     }
 
@@ -378,9 +372,7 @@ fn update_visible_squares(
     let needed_squares = get_needed_squares(&visible_area, current_grid_size);
 
     // Debug logging for visible area (only when grid size changes)
-    if state.last_grid_size.is_none()
-        || state.last_grid_size.unwrap() != current_grid_size
-    {
+    if state.last_grid_size.is_none() || state.last_grid_size.unwrap() != current_grid_size {
         debug!(
             "Design space grid: visible=({:.0}, {:.0}) to ({:.0}, {:.0}), \
                {} squares",
@@ -429,48 +421,43 @@ fn calculate_visible_area(
         VISIBLE_AREA_COVERAGE_MULTIPLIER / grid_scale_factor.sqrt();
 
     // Performance-based coverage
-    let perf_half_width =
-        (screen_width * camera_scale * performance_coverage_multiplier) / 2.0;
-    let perf_half_height =
-        (screen_height * camera_scale * performance_coverage_multiplier) / 2.0;
+    let perf_half_width = (screen_width * camera_scale * performance_coverage_multiplier) / 2.0;
+    let perf_half_height = (screen_height * camera_scale * performance_coverage_multiplier) / 2.0;
 
     // ENSURE COMPLETE COVERAGE: Use the larger of screen coverage or performance coverage
-    let final_half_width =
-        (min_screen_half_width + edge_padding).max(perf_half_width);
-    let final_half_height =
-        (min_screen_half_height + edge_padding).max(perf_half_height);
+    let final_half_width = (min_screen_half_width + edge_padding).max(perf_half_width);
+    let final_half_height = (min_screen_half_height + edge_padding).max(perf_half_height);
 
     // Only log when grid size changes to reduce spam
     // TODO: Refactor to use OnceCell or Lazy for safer static access
     #[allow(static_mut_refs)]
     static mut LAST_LOGGED_GRID_SIZE: Option<f32> = None;
     unsafe {
-        if LAST_LOGGED_GRID_SIZE.is_none()
-            || LAST_LOGGED_GRID_SIZE.unwrap() != current_grid_size
-        {
-            info!("✅ Screen coverage: window=({:.0}x{:.0}), camera_scale={:.3}, \
+        if LAST_LOGGED_GRID_SIZE.is_none() || LAST_LOGGED_GRID_SIZE.unwrap() != current_grid_size {
+            info!(
+                "✅ Screen coverage: window=({:.0}x{:.0}), camera_scale={:.3}, \
                    min_screen=({:.0}, {:.0}), final=({:.0}, {:.0}), \
-                   grid_size={:.0}, padding={:.0}", 
-                   screen_width, screen_height, camera_scale,
-                   min_screen_half_width, min_screen_half_height,
-                   final_half_width, final_half_height,
-                   current_grid_size, edge_padding);
+                   grid_size={:.0}, padding={:.0}",
+                screen_width,
+                screen_height,
+                camera_scale,
+                min_screen_half_width,
+                min_screen_half_height,
+                final_half_width,
+                final_half_height,
+                current_grid_size,
+                edge_padding
+            );
             LAST_LOGGED_GRID_SIZE = Some(current_grid_size);
         }
     }
 
-    Rect::from_center_half_size(
-        camera_pos,
-        Vec2::new(final_half_width, final_half_height),
-    )
+    Rect::from_center_half_size(camera_pos, Vec2::new(final_half_width, final_half_height))
 }
 
 /// Gets the set of grid positions that need checkerboard squares
 #[allow(static_mut_refs)]
-fn get_needed_squares(
-    visible_area: &Rect,
-    current_grid_size: f32,
-) -> HashSet<IVec2> {
+fn get_needed_squares(visible_area: &Rect, current_grid_size: f32) -> HashSet<IVec2> {
     let mut needed = HashSet::new();
 
     // Calculate grid bounds for visible area with extra padding to ensure edge coverage
@@ -579,11 +566,7 @@ fn spawn_needed_squares(
 
 /// Spawns a single checkerboard square at the given grid position
 #[allow(static_mut_refs)]
-fn spawn_square(
-    commands: &mut Commands,
-    grid_pos: IVec2,
-    current_grid_size: f32,
-) {
+fn spawn_square(commands: &mut Commands, grid_pos: IVec2, current_grid_size: f32) {
     let world_pos = grid_to_world_position(grid_pos, current_grid_size);
 
     // Debug log the first few squares spawned to verify design space alignment
@@ -595,12 +578,7 @@ fn spawn_square(
             info!(
                 "Design space square {} at grid=({}, {}), \
                    world=({:.0}, {:.0}), size={:.0}",
-                SPAWN_COUNT,
-                grid_pos.x,
-                grid_pos.y,
-                world_pos.x,
-                world_pos.y,
-                current_grid_size
+                SPAWN_COUNT, grid_pos.x, grid_pos.y, world_pos.x, world_pos.y, current_grid_size
             );
             SPAWN_COUNT += 1;
         }

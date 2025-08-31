@@ -114,9 +114,7 @@ pub fn handle_text_input(
 }
 
 /// System to update text display
-pub fn update_text_display(
-    text_editor: Query<(Entity, &TextEditor), Changed<TextEditor>>,
-) {
+pub fn update_text_display(text_editor: Query<(Entity, &TextEditor), Changed<TextEditor>>) {
     for (_entity, editor) in text_editor.iter() {
         info!("Text: {}", editor.text);
     }

@@ -226,8 +226,7 @@ mod tests {
 
     #[test]
     fn quadrant_positioning() {
-        let rect =
-            Rect::from_corners(Vec2::new(10.0, 10.0), Vec2::new(100.0, 100.0));
+        let rect = Rect::from_corners(Vec2::new(10.0, 10.0), Vec2::new(100.0, 100.0));
 
         assert_eq!(
             Quadrant::BottomLeft.point_in_design_space_rect(rect),

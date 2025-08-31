@@ -134,8 +134,7 @@ fn update_glyph_pane(world: &mut World) {
     };
 
     // Update the texts in the UI
-    let mut name_query =
-        world.query_filtered::<&mut Text, With<GlyphNameText>>();
+    let mut name_query = world.query_filtered::<&mut Text, With<GlyphNameText>>();
     let name_count = name_query.iter_mut(world).count();
     info!(
         "update_glyph_pane: Found {} GlyphNameText entities to update",
@@ -149,14 +148,12 @@ fn update_glyph_pane(world: &mut World) {
         *text = Text::new(glyph_name.clone());
     }
 
-    let mut unicode_query =
-        world.query_filtered::<&mut Text, With<GlyphUnicodeText>>();
+    let mut unicode_query = world.query_filtered::<&mut Text, With<GlyphUnicodeText>>();
     for mut text in unicode_query.iter_mut(world) {
         *text = Text::new(unicode.clone());
     }
 
-    let mut advance_query =
-        world.query_filtered::<&mut Text, With<GlyphAdvanceText>>();
+    let mut advance_query = world.query_filtered::<&mut Text, With<GlyphAdvanceText>>();
     let advance_count = advance_query.iter_mut(world).count();
     info!(
         "update_glyph_pane: Found {} GlyphAdvanceText entities to update",
@@ -167,26 +164,22 @@ fn update_glyph_pane(world: &mut World) {
         *text = Text::new(advance.clone());
     }
 
-    let mut lsb_query =
-        world.query_filtered::<&mut Text, With<GlyphLeftBearingText>>();
+    let mut lsb_query = world.query_filtered::<&mut Text, With<GlyphLeftBearingText>>();
     for mut text in lsb_query.iter_mut(world) {
         *text = Text::new(lsb.clone());
     }
 
-    let mut rsb_query =
-        world.query_filtered::<&mut Text, With<GlyphRightBearingText>>();
+    let mut rsb_query = world.query_filtered::<&mut Text, With<GlyphRightBearingText>>();
     for mut text in rsb_query.iter_mut(world) {
         *text = Text::new(rsb.clone());
     }
 
-    let mut left_group_query =
-        world.query_filtered::<&mut Text, With<GlyphLeftGroupText>>();
+    let mut left_group_query = world.query_filtered::<&mut Text, With<GlyphLeftGroupText>>();
     for mut text in left_group_query.iter_mut(world) {
         *text = Text::new(left_group.clone());
     }
 
-    let mut right_group_query =
-        world.query_filtered::<&mut Text, With<GlyphRightGroupText>>();
+    let mut right_group_query = world.query_filtered::<&mut Text, With<GlyphRightGroupText>>();
     for mut text in right_group_query.iter_mut(world) {
         *text = Text::new(right_group.clone());
     }
@@ -220,7 +213,7 @@ pub fn spawn_glyph_pane(
     let position_props = UiRect {
         left: Val::Px(WIDGET_MARGIN),
         bottom: Val::Px(WIDGET_MARGIN),
-        top: Val::Auto, // Explicitly set top to Auto to prevent stretching
+        top: Val::Auto,   // Explicitly set top to Auto to prevent stretching
         right: Val::Auto, // Explicitly set right to Auto for correct sizing
     };
 
@@ -558,8 +551,7 @@ pub fn update_glyph_metrics(
             };
 
             // Get advance width from FontIR
-            let advance_width =
-                fontir_state.get_glyph_advance_width(&glyph_name);
+            let advance_width = fontir_state.get_glyph_advance_width(&glyph_name);
             info!(
                 "Glyph pane: advance_width for '{}' = {}",
                 glyph_name, advance_width
@@ -605,8 +597,7 @@ pub fn update_glyph_metrics(
 
             // Get kerning groups from FontIR if available
             if let Some(fontir_state) = fontir_app_state.as_ref() {
-                let (left_group, right_group) =
-                    fontir_state.get_glyph_kerning_groups(&glyph_name);
+                let (left_group, right_group) = fontir_state.get_glyph_kerning_groups(&glyph_name);
                 metrics.left_group = left_group.unwrap_or_else(String::new);
                 metrics.right_group = right_group.unwrap_or_else(String::new);
             } else {
@@ -619,25 +610,19 @@ pub fn update_glyph_metrics(
                 "Glyph pane: FALLBACK BRANCH - Using AppState for glyph '{}'",
                 glyph_name
             );
-            if let Some(glyph_data) =
-                state.workspace.font.get_glyph(&glyph_name)
-            {
+            if let Some(glyph_data) = state.workspace.font.get_glyph(&glyph_name) {
                 // Find the first Unicode codepoint for this glyph
-                if let Some(first_codepoint) = glyph_data.unicode_values.first()
-                {
-                    metrics.unicode =
-                        format!("{:04X}", *first_codepoint as u32);
+                if let Some(first_codepoint) = glyph_data.unicode_values.first() {
+                    metrics.unicode = format!("{:04X}", *first_codepoint as u32);
                 } else {
                     metrics.unicode = String::new();
                 }
 
                 // Get advance width
-                metrics.advance =
-                    format!("{}", glyph_data.advance_width as i32);
+                metrics.advance = format!("{}", glyph_data.advance_width as i32);
 
                 // Calculate sidebearings based on glyph outline bounds
-                let outline_bounds = if let Some(outline) = &glyph_data.outline
-                {
+                let outline_bounds = if let Some(outline) = &glyph_data.outline {
                     if !outline.contours.is_empty() {
                         // Calculate bounds from outline contours
                         let mut min_x = f64::MAX;
@@ -658,8 +643,7 @@ pub fn update_glyph_metrics(
                         }
 
                         // If we found valid bounds
-                        if has_points && min_x != f64::MAX && max_x != f64::MIN
-                        {
+                        if has_points && min_x != f64::MAX && max_x != f64::MIN {
                             Some((min_x, max_x))
                         } else {
                             None
@@ -696,8 +680,7 @@ pub fn update_glyph_metrics(
                     let (left_group, right_group) =
                         fontir_state.get_glyph_kerning_groups(&glyph_name);
                     metrics.left_group = left_group.unwrap_or_else(String::new);
-                    metrics.right_group =
-                        right_group.unwrap_or_else(String::new);
+                    metrics.right_group = right_group.unwrap_or_else(String::new);
                     info!(
                         "Glyph pane: Set groups - left: '{}', right: '{}'",
                         metrics.left_group, metrics.right_group
@@ -739,8 +722,7 @@ pub fn update_glyph_metrics(
             metrics.unicode = "0061".to_string();
 
             // Get advance width from FontIR
-            let advance_width =
-                fontir_state.get_glyph_advance_width(&glyph_name);
+            let advance_width = fontir_state.get_glyph_advance_width(&glyph_name);
             info!(
                 "DEBUG TEST: advance_width for '{}' = {}",
                 glyph_name, advance_width

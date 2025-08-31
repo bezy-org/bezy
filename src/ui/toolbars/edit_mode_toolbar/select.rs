@@ -3,9 +3,7 @@
 //! This tool provides selection and manipulation functionality for objects in the design space.
 //! It's typically the default tool and allows users to select, move, and modify existing elements.
 
-use crate::ui::toolbars::edit_mode_toolbar::{
-    EditModeSystem, EditTool, ToolRegistry,
-};
+use crate::ui::toolbars::edit_mode_toolbar::{EditModeSystem, EditTool, ToolRegistry};
 use bevy::prelude::*;
 
 /// Plugin to register selection mode systems

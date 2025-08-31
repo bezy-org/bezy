@@ -9,12 +9,12 @@ use crate::core::state::AppState;
 #[allow(unused_imports)]
 use crate::core::state::GlyphNavigation;
 use crate::editing::selection::events::AppStateChanged;
-use crate::ui::toolbars::edit_mode_toolbar::{EditTool, ToolRegistry};
 use crate::ui::theme::*;
+use crate::ui::toolbars::edit_mode_toolbar::{EditTool, ToolRegistry};
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh2d;
 use bevy::sprite::{ColorMaterial, MeshMaterial2d};
-use kurbo::{BezPath, PathEl, Point, ParamCurve};
+use kurbo::{BezPath, ParamCurve, PathEl, Point};
 
 // Simple path operations are defined at the end of this file
 
@@ -176,12 +176,10 @@ pub fn handle_knife_mouse_events(
     };
 
     // Convert cursor position to world coordinates
-    if let Ok(world_position) =
-        camera.viewport_to_world_2d(camera_transform, cursor_position)
-    {
+    if let Ok(world_position) = camera.viewport_to_world_2d(camera_transform, cursor_position) {
         // Update shift lock state
-        knife_state.shift_locked = keyboard.pressed(KeyCode::ShiftLeft)
-            || keyboard.pressed(KeyCode::ShiftRight);
+        knife_state.shift_locked =
+            keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
 
         // Handle mouse button press
         if mouse_button_input.just_pressed(MouseButton::Left) {
@@ -251,7 +249,7 @@ pub fn manage_knife_mode_state(
 ) {
     let is_knife_active = current_tool.get_current() == Some("knife");
     let current_mode = knife_mode.as_ref().map(|m| m.0).unwrap_or(false);
-    
+
     if is_knife_active && !current_mode {
         // Knife tool is active but mode is not set - activate it
         commands.insert_resource(KnifeModeActive(true));
@@ -296,20 +294,20 @@ pub fn render_knife_preview(
     mut calc_cache: Local<KnifeCalculationCache>,
 ) {
     // Check if tool is active
-    let is_knife_active = current_tool.get_current() == Some("knife") && 
-                         knife_mode.as_ref().map(|m| m.0).unwrap_or(false);
-    
+    let is_knife_active = current_tool.get_current() == Some("knife")
+        && knife_mode.as_ref().map(|m| m.0).unwrap_or(false);
+
     // Only update if gesture state has changed or knife tool became active
     let gesture_changed = update_tracker.as_ref() != Some(&knife_consumer.gesture);
     let needs_update = gesture_changed || (!knife_entities.is_empty() && !is_knife_active);
-    
+
     if !needs_update {
         return; // Early exit for performance
     }
-    
+
     // Update tracking state
     *update_tracker = Some(knife_consumer.gesture);
-    
+
     // Clean up previous knife entities
     for entity in knife_entities.drain(..) {
         if let Ok(mut entity_commands) = commands.get_entity(entity) {
@@ -333,9 +331,12 @@ pub fn render_knife_preview(
 
     // Draw the cutting line
     if let Some((start, end)) = knife_consumer.get_cutting_line() {
-        debug!("🔪 RENDER_KNIFE_PREVIEW: Drawing cutting line from {:?} to {:?}", start, end);
+        debug!(
+            "🔪 RENDER_KNIFE_PREVIEW: Drawing cutting line from {:?} to {:?}",
+            start, end
+        );
         let line_color = theme.theme().knife_line_color();
-        
+
         // Create dashed line effect with a single batched mesh for performance
         let direction = (end - start).normalize();
         let total_length = start.distance(end);
@@ -372,12 +373,12 @@ pub fn render_knife_preview(
             19.0, // z-order above line but below intersection points
         );
         knife_entities.push(point_entity);
-        
+
         // Draw end point (orange cross)
         let end_color = theme.theme().action_color();
         let cross_size = theme.theme().knife_cross_size() * camera_scale.scale_factor;
         let cross_width = camera_scale.adjusted_line_width();
-        
+
         // Horizontal line of cross
         let cross_h_entity = spawn_knife_line_mesh(
             &mut commands,
@@ -390,7 +391,7 @@ pub fn render_knife_preview(
             19.0, // z-order above line but below intersection points
         );
         knife_entities.push(cross_h_entity);
-        
+
         // Vertical line of cross
         let cross_v_entity = spawn_knife_line_mesh(
             &mut commands,
@@ -403,11 +404,17 @@ pub fn render_knife_preview(
             19.0, // z-order above line but below intersection points
         );
         knife_entities.push(cross_v_entity);
-        
-        debug!("🔪 RENDER_KNIFE_PREVIEW: Created {} visual entities for knife preview", knife_entities.len());
+
+        debug!(
+            "🔪 RENDER_KNIFE_PREVIEW: Created {} visual entities for knife preview",
+            knife_entities.len()
+        );
     } else {
         // Log when we're not drawing
-        if matches!(knife_consumer.gesture, crate::systems::input_consumer::KnifeGestureState::Ready) {
+        if matches!(
+            knife_consumer.gesture,
+            crate::systems::input_consumer::KnifeGestureState::Ready
+        ) {
             debug!("🔪 RENDER_KNIFE_PREVIEW: No cutting line to draw (Ready state)");
         }
     }
@@ -415,25 +422,27 @@ pub fn render_knife_preview(
     // Calculate and draw intersection points from actual glyph data
     if let Some((start, end)) = knife_consumer.get_cutting_line() {
         // Check if we need to recalculate intersections
-        let current_glyph = fontir_state.as_ref()
+        let current_glyph = fontir_state
+            .as_ref()
             .and_then(|fs| fs.current_glyph.clone());
-        
-        let needs_recalc = calc_cache.last_cutting_line != Some((start, end)) 
+
+        let needs_recalc = calc_cache.last_cutting_line != Some((start, end))
             || calc_cache.last_glyph != current_glyph;
-        
+
         if needs_recalc {
             // Update cache with new intersections
-            calc_cache.cached_intersections = calculate_real_intersections(start, end, &fontir_state);
+            calc_cache.cached_intersections =
+                calculate_real_intersections(start, end, &fontir_state);
             calc_cache.last_cutting_line = Some((start, end));
             calc_cache.last_glyph = current_glyph;
         }
-        
+
         let intersection_color = theme.theme().knife_intersection_color();
-        
+
         for &intersection in &calc_cache.cached_intersections {
             let cross_size = theme.theme().knife_cross_size() * camera_scale.scale_factor;
             let cross_width = camera_scale.adjusted_line_width();
-            
+
             // Create X mark with two diagonal lines
             // Diagonal line from top-left to bottom-right
             let diagonal1_entity = spawn_knife_line_mesh(
@@ -447,7 +456,7 @@ pub fn render_knife_preview(
                 20.0, // z-order above everything else
             );
             knife_entities.push(diagonal1_entity);
-            
+
             // Diagonal line from top-right to bottom-left
             let diagonal2_entity = spawn_knife_line_mesh(
                 &mut commands,
@@ -466,12 +475,12 @@ pub fn render_knife_preview(
 
 /// Calculate real intersections between knife line and current glyph contours
 fn calculate_real_intersections(
-    start: Vec2, 
-    end: Vec2, 
-    fontir_state: &Option<Res<crate::core::state::FontIRAppState>>
+    start: Vec2,
+    end: Vec2,
+    fontir_state: &Option<Res<crate::core::state::FontIRAppState>>,
 ) -> Vec<Vec2> {
     let mut intersections = Vec::new();
-    
+
     // Convert cutting line to kurbo Line for intersection testing
     let cutting_line = kurbo::Line::new(
         kurbo::Point::new(start.x as f64, start.y as f64),
@@ -482,17 +491,27 @@ fn calculate_real_intersections(
     if let Some(fontir_state) = fontir_state {
         if let Some(ref current_glyph) = fontir_state.current_glyph {
             if let Some(paths) = fontir_state.get_glyph_paths_with_edits(current_glyph) {
-                debug!("🔪 CALCULATE_REAL_INTERSECTIONS: Found {} paths for glyph '{}'", paths.len(), current_glyph);
+                debug!(
+                    "🔪 CALCULATE_REAL_INTERSECTIONS: Found {} paths for glyph '{}'",
+                    paths.len(),
+                    current_glyph
+                );
                 for path in &paths {
                     let path_intersections = find_path_intersections_simple(path, &cutting_line);
                     for intersection in path_intersections {
                         intersections.push(Vec2::new(intersection.x as f32, intersection.y as f32));
                     }
                 }
-                debug!("🔪 CALCULATE_REAL_INTERSECTIONS: Total intersections found: {}", intersections.len());
+                debug!(
+                    "🔪 CALCULATE_REAL_INTERSECTIONS: Total intersections found: {}",
+                    intersections.len()
+                );
                 return intersections;
             } else {
-                info!("🔪 CALCULATE_REAL_INTERSECTIONS: No paths found for glyph '{}'", current_glyph);
+                info!(
+                    "🔪 CALCULATE_REAL_INTERSECTIONS: No paths found for glyph '{}'",
+                    current_glyph
+                );
             }
         } else {
             info!("🔪 CALCULATE_REAL_INTERSECTIONS: No current glyph selected");
@@ -500,7 +519,7 @@ fn calculate_real_intersections(
     } else {
         info!("🔪 CALCULATE_REAL_INTERSECTIONS: No FontIR state available");
     }
-    
+
     intersections
 }
 
@@ -526,7 +545,9 @@ fn update_intersections(
                     for path in &paths {
                         let intersections = find_path_intersections_simple(path, &cutting_line);
                         for intersection in intersections {
-                            knife_state.intersections.push(Vec2::new(intersection.x as f32, intersection.y as f32));
+                            knife_state
+                                .intersections
+                                .push(Vec2::new(intersection.x as f32, intersection.y as f32));
                         }
                     }
                     return; // Found paths in FontIR, use those
@@ -564,7 +585,7 @@ fn perform_cut(
     // 3. Using slice_path_with_line on each contour
     // 4. Updating the working copy with the new paths
     // 5. Marking the working copy as dirty
-    
+
     app_state_changed.write(crate::editing::selection::events::AppStateChanged);
     info!("Knife cut completed - ready for FontIR integration");
 }
@@ -583,7 +604,7 @@ pub fn handle_fontir_knife_cutting(
         if let Some(ref mut fontir_state) = fontir_state {
             if let Some((start, end)) = knife_consumer.get_cutting_line() {
                 perform_fontir_cut(start, end, fontir_state, &mut app_state_changed);
-                
+
                 // Reset the knife gesture state after successful cut
                 knife_consumer.gesture = crate::systems::input_consumer::KnifeGestureState::Ready;
                 knife_consumer.intersections.clear();
@@ -612,7 +633,7 @@ fn perform_fontir_cut(
         // Get or create working copy for this glyph
         let location = fontir_state.current_location.clone();
         let key = (current_glyph.clone(), location);
-        
+
         // Ensure we have a working copy
         if !fontir_state.working_copies.contains_key(&key) {
             if let Some(original_paths) = fontir_state.get_glyph_paths(current_glyph) {
@@ -623,27 +644,32 @@ fn perform_fontir_cut(
                     contours: original_paths,
                     is_dirty: false,
                 };
-                fontir_state.working_copies.insert(key.clone(), working_copy);
+                fontir_state
+                    .working_copies
+                    .insert(key.clone(), working_copy);
             }
         }
-        
+
         // Perform the cut on the working copy
         if let Some(working_copy) = fontir_state.working_copies.get_mut(&key) {
             let mut new_contours = Vec::new();
             let mut any_cuts_made = false;
-            
+
             for contour in &working_copy.contours {
                 // Find intersections with the cutting line
                 let hits = find_path_intersections_with_parameters(contour, &cutting_line);
-                
+
                 if !hits.is_empty() {
                     // Path has intersections - slice it
                     let sliced_paths = slice_path_at_hits(contour, &hits);
-                    
+
                     if sliced_paths.len() > 1 {
-                        info!("Cut contour into {} pieces at {} intersection points", 
-                              sliced_paths.len(), hits.len());
-                        
+                        info!(
+                            "Cut contour into {} pieces at {} intersection points",
+                            sliced_paths.len(),
+                            hits.len()
+                        );
+
                         // Add all the sliced paths as new contours
                         new_contours.extend(sliced_paths);
                         any_cuts_made = true;
@@ -656,13 +682,16 @@ fn perform_fontir_cut(
                     new_contours.push(contour.clone());
                 }
             }
-            
+
             if any_cuts_made {
                 // Replace the contours with the cut versions
                 working_copy.contours = new_contours;
                 working_copy.is_dirty = true;
                 app_state_changed.write(crate::editing::selection::events::AppStateChanged);
-                info!("FontIR knife cut completed - glyph now has {} contours", working_copy.contours.len());
+                info!(
+                    "FontIR knife cut completed - glyph now has {} contours",
+                    working_copy.contours.len()
+                );
             } else {
                 info!("FontIR knife cut completed - no intersections found");
             }
@@ -687,59 +716,81 @@ fn spawn_dashed_line_batched(
     z: f32,
 ) -> Entity {
     use bevy::render::mesh::{Indices, PrimitiveTopology};
-    
+
     let direction = (end - start).normalize();
     let perpendicular = Vec2::new(-direction.y, direction.x) * width * 0.5;
     let total_length = start.distance(end);
     let segment_length = dash_length + gap_length;
-    
+
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
     let mut vertex_count = 0u32;
-    
+
     // Generate all dash segments in a single mesh
     let mut current_pos = 0.0;
     while current_pos < total_length {
         let dash_start = start + direction * current_pos;
         let dash_end_pos = (current_pos + dash_length).min(total_length);
         let dash_end = start + direction * dash_end_pos;
-        
+
         // Add vertices for this dash segment
-        vertices.push([dash_start.x - perpendicular.x, dash_start.y - perpendicular.y, z]);
-        vertices.push([dash_start.x + perpendicular.x, dash_start.y + perpendicular.y, z]);
-        vertices.push([dash_end.x + perpendicular.x, dash_end.y + perpendicular.y, z]);
-        vertices.push([dash_end.x - perpendicular.x, dash_end.y - perpendicular.y, z]);
-        
+        vertices.push([
+            dash_start.x - perpendicular.x,
+            dash_start.y - perpendicular.y,
+            z,
+        ]);
+        vertices.push([
+            dash_start.x + perpendicular.x,
+            dash_start.y + perpendicular.y,
+            z,
+        ]);
+        vertices.push([
+            dash_end.x + perpendicular.x,
+            dash_end.y + perpendicular.y,
+            z,
+        ]);
+        vertices.push([
+            dash_end.x - perpendicular.x,
+            dash_end.y - perpendicular.y,
+            z,
+        ]);
+
         // Add indices for this dash segment
         indices.extend_from_slice(&[
-            vertex_count, vertex_count + 1, vertex_count + 2,
-            vertex_count, vertex_count + 2, vertex_count + 3,
+            vertex_count,
+            vertex_count + 1,
+            vertex_count + 2,
+            vertex_count,
+            vertex_count + 2,
+            vertex_count + 3,
         ]);
-        
+
         vertex_count += 4;
         current_pos += segment_length;
     }
-    
+
     if vertices.is_empty() {
         // Create a dummy entity if no dashes were created
         return commands.spawn_empty().id();
     }
-    
+
     let mut mesh = Mesh::new(
         PrimitiveTopology::TriangleList,
-        bevy::render::render_asset::RenderAssetUsages::default()
+        bevy::render::render_asset::RenderAssetUsages::default(),
     );
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
     mesh.insert_indices(Indices::U32(indices));
-    
+
     let mesh_handle = meshes.add(mesh);
     let material_handle = materials.add(ColorMaterial::from(color));
-    
-    commands.spawn((
-        Mesh2d(mesh_handle),
-        MeshMaterial2d(material_handle),
-        Transform::from_translation(Vec3::new(0.0, 0.0, z)),
-    )).id()
+
+    commands
+        .spawn((
+            Mesh2d(mesh_handle),
+            MeshMaterial2d(material_handle),
+            Transform::from_translation(Vec3::new(0.0, 0.0, z)),
+        ))
+        .id()
 }
 
 /// Spawn a line mesh for the knife tool
@@ -769,18 +820,23 @@ fn spawn_knife_line_mesh(
 
     let indices = vec![0, 1, 2, 0, 2, 3];
 
-    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, bevy::render::render_asset::RenderAssetUsages::default());
+    let mut mesh = Mesh::new(
+        PrimitiveTopology::TriangleList,
+        bevy::render::render_asset::RenderAssetUsages::default(),
+    );
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
     mesh.insert_indices(Indices::U32(indices));
 
     let mesh_handle = meshes.add(mesh);
     let material_handle = materials.add(ColorMaterial::from(color));
 
-    commands.spawn((
-        Mesh2d(mesh_handle),
-        MeshMaterial2d(material_handle),
-        Transform::from_translation(Vec3::new(0.0, 0.0, z)),
-    )).id()
+    commands
+        .spawn((
+            Mesh2d(mesh_handle),
+            MeshMaterial2d(material_handle),
+            Transform::from_translation(Vec3::new(0.0, 0.0, z)),
+        ))
+        .id()
 }
 
 /// Spawn a point (circle) mesh for the knife tool
@@ -813,20 +869,24 @@ fn spawn_knife_point_mesh(
         indices.extend_from_slice(&[0, i + 1, i + 2]);
     }
 
-    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, bevy::render::render_asset::RenderAssetUsages::default());
+    let mut mesh = Mesh::new(
+        PrimitiveTopology::TriangleList,
+        bevy::render::render_asset::RenderAssetUsages::default(),
+    );
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
     mesh.insert_indices(Indices::U32(indices));
 
     let mesh_handle = meshes.add(mesh);
     let material_handle = materials.add(ColorMaterial::from(color));
 
-    commands.spawn((
-        Mesh2d(mesh_handle),
-        MeshMaterial2d(material_handle),
-        Transform::from_translation(Vec3::new(0.0, 0.0, z)),
-    )).id()
+    commands
+        .spawn((
+            Mesh2d(mesh_handle),
+            MeshMaterial2d(material_handle),
+            Transform::from_translation(Vec3::new(0.0, 0.0, z)),
+        ))
+        .id()
 }
-
 
 // ============================================================================
 // SIMPLE PATH OPERATIONS FOR KNIFE TOOL
@@ -836,7 +896,7 @@ fn spawn_knife_point_mesh(
 fn find_path_intersections_simple(path: &BezPath, cutting_line: &kurbo::Line) -> Vec<Point> {
     let mut intersections = Vec::new();
     let mut current_point = Point::ZERO;
-    
+
     for element in path.elements() {
         match element {
             PathEl::MoveTo(pt) => {
@@ -844,7 +904,9 @@ fn find_path_intersections_simple(path: &BezPath, cutting_line: &kurbo::Line) ->
             }
             PathEl::LineTo(end) => {
                 let segment = kurbo::Line::new(current_point, *end);
-                if let Some(intersection_point) = line_line_intersection_simple(cutting_line, &segment) {
+                if let Some(intersection_point) =
+                    line_line_intersection_simple(cutting_line, &segment)
+                {
                     intersections.push(intersection_point);
                 }
                 current_point = *end;
@@ -864,14 +926,16 @@ fn find_path_intersections_simple(path: &BezPath, cutting_line: &kurbo::Line) ->
             PathEl::ClosePath => {
                 if let Some(start_point) = get_path_start_point_inline(path) {
                     let segment = kurbo::Line::new(current_point, start_point);
-                    if let Some(intersection_point) = line_line_intersection_simple(cutting_line, &segment) {
+                    if let Some(intersection_point) =
+                        line_line_intersection_simple(cutting_line, &segment)
+                    {
                         intersections.push(intersection_point);
                     }
                 }
             }
         }
     }
-    
+
     intersections.dedup_by(|a, b| a.distance(*b) < 5.0);
     intersections
 }
@@ -887,19 +951,21 @@ struct Hit {
 /// Slice a path with a cutting line, returning new path segments
 fn _slice_path_with_line_simple(path: &BezPath, cutting_line: &kurbo::Line) -> Vec<BezPath> {
     let hits = find_path_intersections_with_parameters(path, cutting_line);
-    
+
     if hits.is_empty() {
         return vec![path.clone()];
     }
-    
+
     info!("Found {} intersections, slicing path", hits.len());
-    
+
     // Sort hits by segment index and parameter t
     let mut sorted_hits = hits;
     sorted_hits.sort_by(|a, b| {
-        a.segment_idx.cmp(&b.segment_idx).then(a.t.partial_cmp(&b.t).unwrap_or(std::cmp::Ordering::Equal))
+        a.segment_idx
+            .cmp(&b.segment_idx)
+            .then(a.t.partial_cmp(&b.t).unwrap_or(std::cmp::Ordering::Equal))
     });
-    
+
     // Slice the path at intersection points
     slice_path_at_hits(path, &sorted_hits)
 }
@@ -909,7 +975,7 @@ fn find_path_intersections_with_parameters(path: &BezPath, cutting_line: &kurbo:
     let mut hits = Vec::new();
     let mut current_point = Point::ZERO;
     let mut segment_idx = 0;
-    
+
     for element in path.elements() {
         match element {
             PathEl::MoveTo(pt) => {
@@ -917,7 +983,9 @@ fn find_path_intersections_with_parameters(path: &BezPath, cutting_line: &kurbo:
             }
             PathEl::LineTo(end) => {
                 let segment = kurbo::Line::new(current_point, *end);
-                if let Some(intersection) = line_line_intersection_with_parameter(&segment, cutting_line) {
+                if let Some(intersection) =
+                    line_line_intersection_with_parameter(&segment, cutting_line)
+                {
                     hits.push(Hit {
                         point: intersection.0,
                         t: intersection.1,
@@ -929,14 +997,16 @@ fn find_path_intersections_with_parameters(path: &BezPath, cutting_line: &kurbo:
             }
             PathEl::CurveTo(c1, c2, end) => {
                 let curve = kurbo::CubicBez::new(current_point, *c1, *c2, *end);
-                let curve_hits = curve_line_intersections_with_parameters(&curve, cutting_line, segment_idx);
+                let curve_hits =
+                    curve_line_intersections_with_parameters(&curve, cutting_line, segment_idx);
                 hits.extend(curve_hits);
                 current_point = *end;
                 segment_idx += 1;
             }
             PathEl::QuadTo(c, end) => {
                 let curve = kurbo::QuadBez::new(current_point, *c, *end);
-                let curve_hits = quad_line_intersections_with_parameters(&curve, cutting_line, segment_idx);
+                let curve_hits =
+                    quad_line_intersections_with_parameters(&curve, cutting_line, segment_idx);
                 hits.extend(curve_hits);
                 current_point = *end;
                 segment_idx += 1;
@@ -944,7 +1014,9 @@ fn find_path_intersections_with_parameters(path: &BezPath, cutting_line: &kurbo:
             PathEl::ClosePath => {
                 if let Some(start_point) = get_path_start_point_inline(path) {
                     let segment = kurbo::Line::new(current_point, start_point);
-                    if let Some(intersection) = line_line_intersection_with_parameter(&segment, cutting_line) {
+                    if let Some(intersection) =
+                        line_line_intersection_with_parameter(&segment, cutting_line)
+                    {
                         hits.push(Hit {
                             point: intersection.0,
                             t: intersection.1,
@@ -956,7 +1028,7 @@ fn find_path_intersections_with_parameters(path: &BezPath, cutting_line: &kurbo:
             }
         }
     }
-    
+
     // Remove duplicate hits
     hits.dedup_by(|a, b| a.point.distance(b.point) < 1.0);
     hits
@@ -968,39 +1040,45 @@ fn slice_path_at_hits(path: &BezPath, hits: &[Hit]) -> Vec<BezPath> {
     if hits.is_empty() {
         return vec![path.clone()];
     }
-    
+
     if hits.len() != 2 {
-        info!("Knife tool requires exactly 2 intersection points, found {}", hits.len());
+        info!(
+            "Knife tool requires exactly 2 intersection points, found {}",
+            hits.len()
+        );
         return vec![path.clone()];
     }
-    
+
     // Sort hits by their position along the original path
     let mut sorted_hits = hits.to_vec();
     sorted_hits.sort_by(|a, b| {
-        a.segment_idx.cmp(&b.segment_idx)
+        a.segment_idx
+            .cmp(&b.segment_idx)
             .then(a.t.partial_cmp(&b.t).unwrap_or(std::cmp::Ordering::Equal))
     });
-    
+
     let first_hit = &sorted_hits[0];
     let second_hit = &sorted_hits[1];
-    
-    info!("Cutting path between intersection points at segments {} and {}", 
-          first_hit.segment_idx, second_hit.segment_idx);
-    
+
+    info!(
+        "Cutting path between intersection points at segments {} and {}",
+        first_hit.segment_idx, second_hit.segment_idx
+    );
+
     // Convert path to segments for easier processing
     let segments = path_to_segments(path);
-    
+
     // Create two complete closed contours
     let mut path1 = BezPath::new(); // Path from first hit to second hit
     let mut path2 = BezPath::new(); // Path from second hit back to first hit
-    
+
     let mut _path1_started = false;
     let mut _path2_started = false;
-    
+
     // Build path1: from first intersection to second intersection
     path1.move_to(first_hit.point);
     _path1_started = true;
-    
+
     for (seg_idx, segment) in segments.iter().enumerate() {
         if seg_idx < first_hit.segment_idx {
             // Before first intersection - ignore
@@ -1026,50 +1104,50 @@ fn slice_path_at_hits(path: &BezPath, hits: &[Hit]) -> Vec<BezPath> {
             break;
         }
     }
-    
+
     // Close path1 - the cutting line is implicit in the close_path() operation
     if !path1.elements().is_empty() {
         path1.close_path();
     }
-    
+
     // Build path2: from second intersection, around the rest, back to first intersection
     // This path takes the "long way around" the original contour
     path2.move_to(second_hit.point);
     _path2_started = true;
-    
+
     // Start from the second intersection and go to the end of that segment
     if second_hit.segment_idx < segments.len() && first_hit.segment_idx != second_hit.segment_idx {
         let segment = &segments[second_hit.segment_idx];
         let subseg = extract_subsegment(segment, second_hit.t, 1.0);
         add_segment_to_path(&mut path2, &subseg, &mut _path2_started);
     }
-    
+
     // Add all segments after the second intersection
     for (seg_idx, segment) in segments.iter().enumerate() {
         if seg_idx > second_hit.segment_idx {
             add_segment_to_path(&mut path2, segment, &mut _path2_started);
         }
     }
-    
+
     // Add all segments before the first intersection (completing the loop around)
     for (seg_idx, segment) in segments.iter().enumerate() {
         if seg_idx < first_hit.segment_idx {
             add_segment_to_path(&mut path2, segment, &mut _path2_started);
         }
     }
-    
+
     // Add the final segment up to the first intersection
     if first_hit.segment_idx < segments.len() && first_hit.segment_idx != second_hit.segment_idx {
         let segment = &segments[first_hit.segment_idx];
         let subseg = extract_subsegment(segment, 0.0, first_hit.t);
         add_segment_to_path(&mut path2, &subseg, &mut _path2_started);
     }
-    
-    // Close path2 - the cutting line is implicit in the close_path() operation  
+
+    // Close path2 - the cutting line is implicit in the close_path() operation
     if !path2.elements().is_empty() {
         path2.close_path();
     }
-    
+
     let mut result_paths = Vec::new();
     if !path1.elements().is_empty() {
         result_paths.push(path1);
@@ -1077,8 +1155,11 @@ fn slice_path_at_hits(path: &BezPath, hits: &[Hit]) -> Vec<BezPath> {
     if !path2.elements().is_empty() {
         result_paths.push(path2);
     }
-    
-    info!("Successfully split closed contour into {} closed contours", result_paths.len());
+
+    info!(
+        "Successfully split closed contour into {} closed contours",
+        result_paths.len()
+    );
     result_paths
 }
 
@@ -1102,7 +1183,7 @@ fn path_to_segments(path: &BezPath) -> Vec<PathSegment> {
     let mut segments = Vec::new();
     let mut current_point = Point::ZERO;
     let mut start_point = Point::ZERO;
-    
+
     for element in path.elements() {
         match element {
             PathEl::MoveTo(pt) => {
@@ -1114,22 +1195,34 @@ fn path_to_segments(path: &BezPath) -> Vec<PathSegment> {
                 current_point = *end;
             }
             PathEl::CurveTo(c1, c2, end) => {
-                segments.push(PathSegment::Cubic(kurbo::CubicBez::new(current_point, *c1, *c2, *end)));
+                segments.push(PathSegment::Cubic(kurbo::CubicBez::new(
+                    current_point,
+                    *c1,
+                    *c2,
+                    *end,
+                )));
                 current_point = *end;
             }
             PathEl::QuadTo(c, end) => {
-                segments.push(PathSegment::Quad(kurbo::QuadBez::new(current_point, *c, *end)));
+                segments.push(PathSegment::Quad(kurbo::QuadBez::new(
+                    current_point,
+                    *c,
+                    *end,
+                )));
                 current_point = *end;
             }
             PathEl::ClosePath => {
                 // Add a line back to the start if needed
                 if current_point.distance(start_point) > 1e-6 {
-                    segments.push(PathSegment::Line(kurbo::Line::new(current_point, start_point)));
+                    segments.push(PathSegment::Line(kurbo::Line::new(
+                        current_point,
+                        start_point,
+                    )));
                 }
             }
         }
     }
-    
+
     segments
 }
 
@@ -1182,26 +1275,26 @@ fn add_segment_to_path(path: &mut BezPath, segment: &PathSegment, started: &mut 
 }
 
 /// Line-line intersection with parameter information
-fn line_line_intersection_with_parameter(line1: &kurbo::Line, line2: &kurbo::Line) -> Option<(Point, f64)> {
+fn line_line_intersection_with_parameter(
+    line1: &kurbo::Line,
+    line2: &kurbo::Line,
+) -> Option<(Point, f64)> {
     let p1 = line1.p0;
     let p2 = line1.p1;
     let p3 = line2.p0;
     let p4 = line2.p1;
-    
+
     let denom = (p1.x - p2.x) * (p3.y - p4.y) - (p1.y - p2.y) * (p3.x - p4.x);
-    
+
     if denom.abs() < 1e-10 {
         return None;
     }
-    
+
     let t = ((p1.x - p3.x) * (p3.y - p4.y) - (p1.y - p3.y) * (p3.x - p4.x)) / denom;
     let u = -((p1.x - p2.x) * (p1.y - p3.y) - (p1.y - p2.y) * (p1.x - p3.x)) / denom;
-    
+
     if (0.0..=1.0).contains(&u) && (0.0..=1.0).contains(&t) {
-        let point = Point::new(
-            p1.x + t * (p2.x - p1.x),
-            p1.y + t * (p2.y - p1.y),
-        );
+        let point = Point::new(p1.x + t * (p2.x - p1.x), p1.y + t * (p2.y - p1.y));
         Some((point, t))
     } else {
         None
@@ -1209,11 +1302,15 @@ fn line_line_intersection_with_parameter(line1: &kurbo::Line, line2: &kurbo::Lin
 }
 
 /// Curve-line intersections with parameter information
-fn curve_line_intersections_with_parameters(curve: &kurbo::CubicBez, line: &kurbo::Line, segment_idx: usize) -> Vec<Hit> {
+fn curve_line_intersections_with_parameters(
+    curve: &kurbo::CubicBez,
+    line: &kurbo::Line,
+    segment_idx: usize,
+) -> Vec<Hit> {
     let mut hits = Vec::new();
     let curve_seg = kurbo::PathSeg::Cubic(*curve);
     let curve_intersections = curve_seg.intersect_line(*line);
-    
+
     for intersection in curve_intersections {
         // Calculate the intersection point using segment_t
         let point = curve.eval(intersection.segment_t);
@@ -1223,16 +1320,20 @@ fn curve_line_intersections_with_parameters(curve: &kurbo::CubicBez, line: &kurb
             segment_idx,
         });
     }
-    
+
     hits
 }
 
 /// Quad-line intersections with parameter information
-fn quad_line_intersections_with_parameters(curve: &kurbo::QuadBez, line: &kurbo::Line, segment_idx: usize) -> Vec<Hit> {
+fn quad_line_intersections_with_parameters(
+    curve: &kurbo::QuadBez,
+    line: &kurbo::Line,
+    segment_idx: usize,
+) -> Vec<Hit> {
     let mut hits = Vec::new();
     let curve_seg = kurbo::PathSeg::Quad(*curve);
     let curve_intersections = curve_seg.intersect_line(*line);
-    
+
     for intersection in curve_intersections {
         // Calculate the intersection point using segment_t
         let point = curve.eval(intersection.segment_t);
@@ -1242,7 +1343,7 @@ fn quad_line_intersections_with_parameters(curve: &kurbo::QuadBez, line: &kurbo:
             segment_idx,
         });
     }
-    
+
     hits
 }
 
@@ -1251,16 +1352,16 @@ fn line_line_intersection_simple(line1: &kurbo::Line, line2: &kurbo::Line) -> Op
     let p2 = line1.p1;
     let p3 = line2.p0;
     let p4 = line2.p1;
-    
+
     let denom = (p1.x - p2.x) * (p3.y - p4.y) - (p1.y - p2.y) * (p3.x - p4.x);
-    
+
     if denom.abs() < 1e-10 {
         return None;
     }
-    
+
     let t = ((p1.x - p3.x) * (p3.y - p4.y) - (p1.y - p3.y) * (p3.x - p4.x)) / denom;
     let u = -((p1.x - p2.x) * (p1.y - p3.y) - (p1.y - p2.y) * (p1.x - p3.x)) / denom;
-    
+
     if (0.0..=1.0).contains(&u) {
         Some(Point::new(
             p1.x + t * (p2.x - p1.x),
@@ -1274,19 +1375,19 @@ fn line_line_intersection_simple(line1: &kurbo::Line, line2: &kurbo::Line) -> Op
 fn curve_line_intersections_simple(curve: &kurbo::CubicBez, line: &kurbo::Line) -> Vec<Point> {
     // Use kurbo's built-in intersection method for accurate mathematical intersection
     let mut intersections = Vec::new();
-    
+
     // Convert curve to PathSeg for intersection testing
     let curve_seg = kurbo::PathSeg::Cubic(*curve);
-    
+
     // Find intersections using kurbo's accurate intersection algorithm
     let curve_intersections = curve_seg.intersect_line(*line);
-    
+
     for intersection in curve_intersections {
         // Calculate the intersection point using segment_t
         let point = curve.eval(intersection.segment_t);
         intersections.push(point);
     }
-    
+
     // Remove duplicates with smaller tolerance for accuracy
     intersections.dedup_by(|a, b| a.distance(*b) < 1.0);
     intersections
@@ -1295,19 +1396,19 @@ fn curve_line_intersections_simple(curve: &kurbo::CubicBez, line: &kurbo::Line) 
 fn quad_line_intersections_simple(curve: &kurbo::QuadBez, line: &kurbo::Line) -> Vec<Point> {
     // Use kurbo's built-in intersection method for accurate mathematical intersection
     let mut intersections = Vec::new();
-    
+
     // Convert curve to PathSeg for intersection testing
     let curve_seg = kurbo::PathSeg::Quad(*curve);
-    
+
     // Find intersections using kurbo's accurate intersection algorithm
     let curve_intersections = curve_seg.intersect_line(*line);
-    
+
     for intersection in curve_intersections {
         // Calculate the intersection point using segment_t
         let point = curve.eval(intersection.segment_t);
         intersections.push(point);
     }
-    
+
     // Remove duplicates with smaller tolerance for accuracy
     intersections.dedup_by(|a, b| a.distance(*b) < 1.0);
     intersections
@@ -1327,8 +1428,6 @@ fn _calculate_line_point_distance(line: &kurbo::Line, point: Point) -> f64 {
     let a = line.p1.y - line.p0.y;
     let b = line.p0.x - line.p1.x;
     let c = line.p1.x * line.p0.y - line.p0.x * line.p1.y;
-    
-    
+
     (a * point.x + b * point.y + c).abs() / (a * a + b * b).sqrt()
 }
-

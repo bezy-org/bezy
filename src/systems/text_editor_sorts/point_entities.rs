@@ -2,9 +2,7 @@
 
 use crate::core::state::font_data::PointTypeData;
 use crate::core::state::{AppState, FontIRAppState};
-use crate::editing::selection::components::{
-    GlyphPointReference, PointType, Selectable,
-};
+use crate::editing::selection::components::{GlyphPointReference, PointType, Selectable};
 use crate::editing::sort::{ActiveSort, InactiveSort, Sort};
 use crate::geometry::design_space::DPoint;
 use crate::geometry::point::EditPoint;
@@ -28,20 +26,23 @@ pub fn spawn_active_sort_points_optimized(
     app_state: Option<Res<AppState>>,
     fontir_app_state: Option<Res<FontIRAppState>>,
     // Debug: Check all buffer sorts
-    all_buffer_sorts: Query<(Entity, &Sort, &Transform, Option<&ActiveSort>), With<crate::systems::text_editor_sorts::sort_entities::BufferSortIndex>>,
+    all_buffer_sorts: Query<
+        (Entity, &Sort, &Transform, Option<&ActiveSort>),
+        With<crate::systems::text_editor_sorts::sort_entities::BufferSortIndex>,
+    >,
     // CRITICAL FIX: Trigger unified renderer update when points are spawned
     mut visual_update_tracker: ResMut<crate::rendering::glyph_renderer::SortVisualUpdateTracker>,
 ) {
     let active_sort_count = active_sort_query.iter().count();
     let total_buffer_sorts = all_buffer_sorts.iter().count();
     let sort_point_count = existing_sort_points.iter().count();
-    
+
     // Always log for debugging the default sort issue
     info!(
         "🔍 POINT SPAWN DEBUG: {} active sorts found, {} total buffer sorts, {} points with SortPointEntity",
         active_sort_count, total_buffer_sorts, sort_point_count
     );
-    
+
     // Debug: Log all buffer sorts and their ActiveSort status
     for (entity, sort, _transform, maybe_active) in all_buffer_sorts.iter() {
         let is_active = maybe_active.is_some();
@@ -50,7 +51,7 @@ pub fn spawn_active_sort_points_optimized(
             entity, sort.glyph_name, is_active
         );
     }
-    
+
     if active_sort_count > 0 {
         info!(
             "Point spawning system called: {} active sorts found",
@@ -60,24 +61,33 @@ pub fn spawn_active_sort_points_optimized(
 
     for (sort_entity, sort, transform) in active_sort_query.iter() {
         // Check if points already exist for this sort
-        let existing_point_count = existing_points.iter().filter(|parent| parent.0 == sort_entity).count();
+        let existing_point_count = existing_points
+            .iter()
+            .filter(|parent| parent.0 == sort_entity)
+            .count();
         let has_points = existing_point_count > 0;
-        
+
         info!(
             "🔍 POINT CHECK: Sort {:?} glyph '{}' has {} existing points, skipping: {}",
             sort_entity, sort.glyph_name, existing_point_count, has_points
         );
-        
+
         // Debug: Check what components the existing points have
         for point_parent in existing_points.iter() {
             if point_parent.0 == sort_entity {
-                info!("🔍 Existing point has PointSortParent({:?})", point_parent.0);
+                info!(
+                    "🔍 Existing point has PointSortParent({:?})",
+                    point_parent.0
+                );
                 break; // Just check one example
             }
         }
-        
+
         if has_points {
-            info!("Skipping point spawning for sort entity {:?} - {} points already exist", sort_entity, existing_point_count);
+            info!(
+                "Skipping point spawning for sort entity {:?} - {} points already exist",
+                sort_entity, existing_point_count
+            );
             continue; // Skip if points already exist
         }
 
@@ -95,10 +105,13 @@ pub fn spawn_active_sort_points_optimized(
         // Try FontIR first, then fallback to AppState
         if let Some(fontir_state) = fontir_app_state.as_ref() {
             // CRITICAL FIX: Get FontIR BezPaths WITH pen tool edits for this glyph
-            if let Some(paths) = fontir_state.get_glyph_paths_with_edits(&sort.glyph_name)
-            {
+            if let Some(paths) = fontir_state.get_glyph_paths_with_edits(&sort.glyph_name) {
                 let mut point_count = 0;
-                info!("FontIR: Spawning points for active sort '{}' with {} paths", sort.glyph_name, paths.len());
+                info!(
+                    "FontIR: Spawning points for active sort '{}' with {} paths",
+                    sort.glyph_name,
+                    paths.len()
+                );
 
                 // Spawn points for each BezPath (contour)
                 for (contour_index, path) in paths.iter().enumerate() {
@@ -111,11 +124,8 @@ pub fn spawn_active_sort_points_optimized(
 
                         for (point_pos, point_type) in points {
                             // Calculate world position for this point
-                            let world_pos = position
-                                + Vec2::new(
-                                    point_pos.x as f32,
-                                    point_pos.y as f32,
-                                );
+                            let world_pos =
+                                position + Vec2::new(point_pos.x as f32, point_pos.y as f32);
 
                             if point_count < 10 {
                                 info!("FontIR Point {}: type={:?}, raw=({:.1}, {:.1}), sort_pos=({:.1}, {:.1}), world_pos=({:.1}, {:.1})", 
@@ -124,10 +134,7 @@ pub fn spawn_active_sort_points_optimized(
 
                             // Create the EditPoint
                             let edit_point = EditPoint {
-                                position: Point::new(
-                                    world_pos.x as f64,
-                                    world_pos.y as f64,
-                                ),
+                                position: Point::new(world_pos.x as f64, world_pos.y as f64),
                                 point_type,
                             };
 
@@ -143,11 +150,7 @@ pub fn spawn_active_sort_points_optimized(
 
                             // Spawn the point entity
                             commands.spawn((
-                                Transform::from_xyz(
-                                    world_pos.x,
-                                    world_pos.y,
-                                    10.0,
-                                ),
+                                Transform::from_xyz(world_pos.x, world_pos.y, 10.0),
                                 GlobalTransform::default(),
                                 Visibility::default(),
                                 InheritedVisibility::default(),
@@ -177,9 +180,17 @@ pub fn spawn_active_sort_points_optimized(
                             element_point_index += 1;
                             point_count += 1;
                             if point_count <= 10 {
-                                info!("FontIR: Spawned {} point {} at world position ({:.1}, {:.1})", 
-                                      if point_type == PointTypeData::OffCurve { "off-curve" } else { "on-curve" },
-                                      point_count, world_pos.x, world_pos.y);
+                                info!(
+                                    "FontIR: Spawned {} point {} at world position ({:.1}, {:.1})",
+                                    if point_type == PointTypeData::OffCurve {
+                                        "off-curve"
+                                    } else {
+                                        "on-curve"
+                                    },
+                                    point_count,
+                                    world_pos.x,
+                                    world_pos.y
+                                );
                             }
                         }
                     }
@@ -189,37 +200,30 @@ pub fn spawn_active_sort_points_optimized(
                     "FontIR: Spawned {} points for active sort '{}'",
                     point_count, sort.glyph_name
                 );
-                
+
                 // CRITICAL FIX: Trigger unified renderer update when points are spawned
                 if point_count > 0 {
                     visual_update_tracker.needs_update = true;
-                    info!("🔄 TRIGGERED VISUAL UPDATE: Points spawned for sort '{}'", sort.glyph_name);
+                    info!(
+                        "🔄 TRIGGERED VISUAL UPDATE: Points spawned for sort '{}'",
+                        sort.glyph_name
+                    );
                 }
             } else {
                 warn!("FontIR: No paths found for glyph '{}'", sort.glyph_name);
             }
         } else if let Some(state) = app_state.as_ref() {
             // Fallback to UFO AppState logic
-            if let Some(glyph_data) =
-                state.workspace.font.get_glyph(&sort.glyph_name)
-            {
+            if let Some(glyph_data) = state.workspace.font.get_glyph(&sort.glyph_name) {
                 if let Some(outline) = &glyph_data.outline {
                     let mut point_count = 0;
 
-                    for (contour_index, contour) in
-                        outline.contours.iter().enumerate()
-                    {
-                        for (point_index, point) in
-                            contour.points.iter().enumerate()
-                        {
-                            let world_pos = position
-                                + Vec2::new(point.x as f32, point.y as f32);
+                    for (contour_index, contour) in outline.contours.iter().enumerate() {
+                        for (point_index, point) in contour.points.iter().enumerate() {
+                            let world_pos = position + Vec2::new(point.x as f32, point.y as f32);
 
                             let edit_point = EditPoint {
-                                position: Point::new(
-                                    world_pos.x as f64,
-                                    world_pos.y as f64,
-                                ),
+                                position: Point::new(world_pos.x as f64, world_pos.y as f64),
                                 point_type: point.point_type,
                             };
 
@@ -233,11 +237,7 @@ pub fn spawn_active_sort_points_optimized(
                             };
 
                             commands.spawn((
-                                Transform::from_xyz(
-                                    world_pos.x,
-                                    world_pos.y,
-                                    10.0,
-                                ),
+                                Transform::from_xyz(world_pos.x, world_pos.y, 10.0),
                                 GlobalTransform::default(),
                                 Visibility::default(),
                                 InheritedVisibility::default(),
@@ -252,9 +252,7 @@ pub fn spawn_active_sort_points_optimized(
                                 Selectable,
                                 SortPointEntity { sort_entity },
                                 PointSortParent(sort_entity),
-                                Name::new(format!(
-                                    "UFO_Point[{contour_index},{point_index}]"
-                                )),
+                                Name::new(format!("UFO_Point[{contour_index},{point_index}]")),
                             ));
 
                             point_count += 1;
@@ -265,25 +263,23 @@ pub fn spawn_active_sort_points_optimized(
                         "UFO: Spawned {} points for active sort '{}'",
                         point_count, sort.glyph_name
                     );
-                    
+
                     // CRITICAL FIX: Trigger unified renderer update when points are spawned
                     if point_count > 0 {
                         visual_update_tracker.needs_update = true;
-                        info!("🔄 TRIGGERED VISUAL UPDATE: Points spawned for sort '{}'", sort.glyph_name);
+                        info!(
+                            "🔄 TRIGGERED VISUAL UPDATE: Points spawned for sort '{}'",
+                            sort.glyph_name
+                        );
                     }
                 } else {
-                    warn!(
-                        "UFO: No outline found for glyph '{}'",
-                        sort.glyph_name
-                    );
+                    warn!("UFO: No outline found for glyph '{}'", sort.glyph_name);
                 }
             } else {
                 warn!("UFO: No glyph data found for '{}'", sort.glyph_name);
             }
         } else {
-            warn!(
-                "Point spawning failed - neither FontIR nor AppState available"
-            );
+            warn!("Point spawning failed - neither FontIR nor AppState available");
         }
     }
 }
@@ -292,7 +288,10 @@ pub fn spawn_active_sort_points_optimized(
 pub fn regenerate_points_on_fontir_change(
     mut commands: Commands,
     mut app_state_events: EventReader<crate::editing::selection::events::AppStateChanged>,
-    active_sort_query: Query<(Entity, &crate::editing::sort::Sort, &Transform), With<crate::editing::sort::ActiveSort>>,
+    active_sort_query: Query<
+        (Entity, &crate::editing::sort::Sort, &Transform),
+        With<crate::editing::sort::ActiveSort>,
+    >,
     existing_point_query: Query<(Entity, &PointSortParent)>,
     fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
     _app_state: Option<Res<crate::core::state::AppState>>,
@@ -305,7 +304,10 @@ pub fn regenerate_points_on_fontir_change(
 
     // For each active sort, regenerate its point entities to include new contours
     for (sort_entity, sort, _sort_transform) in active_sort_query.iter() {
-        info!("Regenerating point entities for active sort '{}' due to FontIR change", sort.glyph_name);
+        info!(
+            "Regenerating point entities for active sort '{}' due to FontIR change",
+            sort.glyph_name
+        );
 
         // Despawn existing point entities for this sort
         let mut despawn_count = 0;
@@ -319,14 +321,21 @@ pub fn regenerate_points_on_fontir_change(
         }
 
         if despawn_count > 0 {
-            info!("Despawned {} old point entities for sort '{}'", despawn_count, sort.glyph_name);
+            info!(
+                "Despawned {} old point entities for sort '{}'",
+                despawn_count, sort.glyph_name
+            );
         }
 
         // Respawn point entities with updated FontIR data using FontIR paths
         if let Some(fontir_state) = fontir_app_state.as_ref() {
             if let Some(paths) = fontir_state.get_glyph_paths_with_edits(&sort.glyph_name) {
                 let mut point_count = 0;
-                info!("FontIR: Regenerating {} paths for active sort '{}'", paths.len(), sort.glyph_name);
+                info!(
+                    "FontIR: Regenerating {} paths for active sort '{}'",
+                    paths.len(),
+                    sort.glyph_name
+                );
 
                 // Spawn points for each BezPath (contour) - including new pen tool contours
                 for (contour_index, path) in paths.iter().enumerate() {
@@ -338,18 +347,20 @@ pub fn regenerate_points_on_fontir_change(
 
                         for (point_pos, point_type_data) in points {
                             // All FontIR coordinates are now consistently relative to sort position
-                            let sort_position = active_sort_query.get(sort_entity)
+                            let sort_position = active_sort_query
+                                .get(sort_entity)
                                 .map(|(_, _, transform)| transform.translation.truncate())
                                 .unwrap_or(Vec2::ZERO);
-                            
-                            let world_pos = sort_position + Vec2::new(point_pos.x as f32, point_pos.y as f32);
-                            
+
+                            let world_pos =
+                                sort_position + Vec2::new(point_pos.x as f32, point_pos.y as f32);
+
                             // COORDINATE DEBUG: Log transformation details
                             if point_count < 5 {
                                 info!("🔍 COORD DEBUG [{}]: relative=({:.1}, {:.1}), sort_pos=({:.1}, {:.1}), final_world=({:.1}, {:.1})", 
                                       point_count, point_pos.x, point_pos.y, sort_position.x, sort_position.y, world_pos.x, world_pos.y);
                             }
-                            
+
                             let point_index = element_point_index;
 
                             // Create EditPoint component
@@ -384,7 +395,9 @@ pub fn regenerate_points_on_fontir_change(
                                 Selectable,
                                 SortPointEntity { sort_entity },
                                 PointSortParent(sort_entity),
-                                Name::new(format!("FontIR_Regen_Point[{contour_index},{point_index}]")),
+                                Name::new(format!(
+                                    "FontIR_Regen_Point[{contour_index},{point_index}]"
+                                )),
                             ));
 
                             point_count += 1;
@@ -393,7 +406,10 @@ pub fn regenerate_points_on_fontir_change(
                     }
                 }
 
-                info!("FontIR: Regenerated {} points for active sort '{}'", point_count, sort.glyph_name);
+                info!(
+                    "FontIR: Regenerated {} points for active sort '{}'",
+                    point_count, sort.glyph_name
+                );
             }
         }
     }
@@ -402,10 +418,7 @@ pub fn regenerate_points_on_fontir_change(
 /// Despawn inactive sort points optimized
 pub fn despawn_inactive_sort_points_optimized(
     mut commands: Commands,
-    inactive_sort_query: Query<
-        Entity,
-        (With<InactiveSort>, Changed<InactiveSort>),
-    >,
+    inactive_sort_query: Query<Entity, (With<InactiveSort>, Changed<InactiveSort>)>,
     point_query: Query<(Entity, &PointSortParent)>,
 ) {
     for inactive_sort_entity in inactive_sort_query.iter() {
@@ -435,17 +448,16 @@ pub fn detect_sort_glyph_changes(
 ) {
     for (sort_entity, sort) in changed_sorts.iter() {
         let current_glyph_name = &sort.glyph_name;
-        
+
         // Check if the glyph name actually changed
-        let glyph_changed = local_previous_glyphs
-            .get(&sort_entity) != Some(current_glyph_name);
-            
+        let glyph_changed = local_previous_glyphs.get(&sort_entity) != Some(current_glyph_name);
+
         if glyph_changed {
             debug!(
                 "Detected glyph change for sort {:?}: switching to '{}'",
                 sort_entity, current_glyph_name
             );
-            
+
             // Despawn all existing point entities for this sort
             let mut despawn_count = 0;
             for (point_entity, sort_point) in existing_point_query.iter() {
@@ -454,20 +466,20 @@ pub fn detect_sort_glyph_changes(
                     despawn_count += 1;
                 }
             }
-            
+
             if despawn_count > 0 {
                 debug!(
                     "Despawned {} existing point entities for sort {:?}",
                     despawn_count, sort_entity
                 );
             }
-            
+
             // Update the previous glyph name
             local_previous_glyphs.insert(sort_entity, current_glyph_name.clone());
-            
+
             // Trigger visual update to ensure new points are rendered
             visual_update_tracker.needs_update = true;
-            
+
             debug!(
                 "Sort {:?} glyph changed to '{}', triggered point regeneration",
                 sort_entity, current_glyph_name
@@ -477,9 +489,7 @@ pub fn detect_sort_glyph_changes(
 }
 
 /// Extract all points (on-curve and off-curve) from a kurbo PathEl
-fn extract_points_from_path_element(
-    element: &PathEl,
-) -> Vec<(Point, PointTypeData)> {
+fn extract_points_from_path_element(element: &PathEl) -> Vec<(Point, PointTypeData)> {
     match element {
         PathEl::MoveTo(pt) => vec![(*pt, PointTypeData::Move)],
         PathEl::LineTo(pt) => vec![(*pt, PointTypeData::Line)],

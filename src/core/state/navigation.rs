@@ -48,17 +48,14 @@ impl GlyphNavigation {
 
     /// Find the glyph name for the current codepoint
     pub fn find_glyph(&self, app_state: &AppState) -> Option<String> {
-        self.current_codepoint.as_ref().and_then(|codepoint| {
-            find_glyph_by_unicode_codepoint(app_state, codepoint)
-        })
+        self.current_codepoint
+            .as_ref()
+            .and_then(|codepoint| find_glyph_by_unicode_codepoint(app_state, codepoint))
     }
 }
 
 /// Find a glyph by Unicode codepoint in the app state
-pub fn find_glyph_by_unicode_codepoint(
-    app_state: &AppState,
-    codepoint: &str,
-) -> Option<String> {
+pub fn find_glyph_by_unicode_codepoint(app_state: &AppState, codepoint: &str) -> Option<String> {
     // Parse the codepoint string to a character
     if let Ok(codepoint_num) = u32::from_str_radix(codepoint, 16) {
         if let Some(ch) = char::from_u32(codepoint_num) {
@@ -110,8 +107,7 @@ pub fn cycle_codepoint_in_list(
     };
 
     // Find the position of the current codepoint
-    if let Some(current_index) = codepoints.iter().position(|cp| cp == &current)
-    {
+    if let Some(current_index) = codepoints.iter().position(|cp| cp == &current) {
         match direction {
             CycleDirection::Next => {
                 let next_index = (current_index + 1) % codepoints.len();

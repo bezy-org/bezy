@@ -1,6 +1,6 @@
 #![allow(unused_imports)]
 
-pub mod coord_pane;
+pub mod coordinate_pane;
 pub mod design_space;
 pub mod file_pane;
 pub mod glyph_pane;

@@ -6,9 +6,7 @@
 //! the hybrid approach.
 
 use super::{CurrentTool, ToolId, ToolRegistry};
-use crate::ui::toolbars::edit_mode_toolbar::text::{
-    CurrentTextPlacementMode, TextPlacementMode,
-};
+use crate::ui::toolbars::edit_mode_toolbar::text::{CurrentTextPlacementMode, TextPlacementMode};
 use bevy::prelude::*;
 
 /// Resource to track spacebar toggle state
@@ -74,8 +72,7 @@ fn handle_spacebar_press(
     toggle_state: &mut ResMut<SpacebarToggleState>,
     tool_registry: &Res<ToolRegistry>,
 ) {
-    if !keyboard.just_pressed(KeyCode::Space) || toggle_state.in_temporary_mode
-    {
+    if !keyboard.just_pressed(KeyCode::Space) || toggle_state.in_temporary_mode {
         return;
     }
 
@@ -106,9 +103,7 @@ fn handle_spacebar_release(
     toggle_state: &mut ResMut<SpacebarToggleState>,
     tool_registry: &Res<ToolRegistry>,
 ) {
-    if !keyboard.just_released(KeyCode::Space)
-        || !toggle_state.in_temporary_mode
-    {
+    if !keyboard.just_released(KeyCode::Space) || !toggle_state.in_temporary_mode {
         return;
     }
 
@@ -126,13 +121,9 @@ fn handle_spacebar_release(
 }
 
 /// Exit the currently active tool
-fn exit_current_tool(
-    current_tool: &mut ResMut<CurrentTool>,
-    tool_registry: &Res<ToolRegistry>,
-) {
+fn exit_current_tool(current_tool: &mut ResMut<CurrentTool>, tool_registry: &Res<ToolRegistry>) {
     if let Some(current_tool_id) = current_tool.get_current() {
-        if let Some(current_tool_impl) = tool_registry.get_tool(current_tool_id)
-        {
+        if let Some(current_tool_impl) = tool_registry.get_tool(current_tool_id) {
             current_tool_impl.on_exit();
         }
     }

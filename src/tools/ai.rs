@@ -47,8 +47,12 @@ impl AiOperation {
     /// Get description for tooltip
     pub fn description(&self) -> &'static str {
         match self {
-            AiOperation::Kerning => "Automatically adjust character spacing for optimal readability",
-            AiOperation::LanguageSupport => "Expand font support for additional languages and scripts", 
+            AiOperation::Kerning => {
+                "Automatically adjust character spacing for optimal readability"
+            }
+            AiOperation::LanguageSupport => {
+                "Expand font support for additional languages and scripts"
+            }
             AiOperation::OpticalAdjustment => "Make optical corrections to improve visual harmony",
             AiOperation::WeightFix => "Fix weight inconsistencies across characters",
             AiOperation::CurveSmoothing => "Optimize curve smoothness and mathematical precision",
@@ -216,7 +220,7 @@ pub fn handle_ai_operation_selection(
             &mut color,
             &mut border_color,
         );
-        
+
         // Use the unified text color system for consistent icon colors with main toolbar
         crate::ui::toolbars::edit_mode_toolbar::update_toolbar_button_text_colors(
             entity,
@@ -261,14 +265,17 @@ pub fn handle_ai_tool_shortcuts(
     mut current_tool: ResMut<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
     mut current_operation: ResMut<CurrentAiOperation>,
     text_mode_active: Option<Res<crate::ui::toolbars::edit_mode_toolbar::text::TextModeActive>>,
-    current_text_placement_mode: Option<Res<crate::ui::toolbars::edit_mode_toolbar::text::CurrentTextPlacementMode>>,
+    current_text_placement_mode: Option<
+        Res<crate::ui::toolbars::edit_mode_toolbar::text::CurrentTextPlacementMode>,
+    >,
 ) {
     // Check if single-char hotkeys should be disabled for text input
-    let should_disable = crate::ui::toolbars::edit_mode_toolbar::keyboard_utils::should_disable_single_char_hotkeys(
-        text_mode_active.as_ref(),
-        current_text_placement_mode.as_ref(),
-    );
-    
+    let should_disable =
+        crate::ui::toolbars::edit_mode_toolbar::keyboard_utils::should_disable_single_char_hotkeys(
+            text_mode_active.as_ref(),
+            current_text_placement_mode.as_ref(),
+        );
+
     // Activate AI tool with 'A' key (but not when in text insert mode)
     if keyboard_input.just_pressed(KeyCode::KeyA)
         && current_tool.get_current() != Some("ai")
@@ -280,9 +287,7 @@ pub fn handle_ai_tool_shortcuts(
     }
 
     // Cycle through AI operations with Tab when AI tool is active
-    if current_tool.get_current() == Some("ai")
-        && keyboard_input.just_pressed(KeyCode::Tab)
-    {
+    if current_tool.get_current() == Some("ai") && keyboard_input.just_pressed(KeyCode::Tab) {
         let new_operation = match current_operation.0 {
             AiOperation::Kerning => AiOperation::LanguageSupport,
             AiOperation::LanguageSupport => AiOperation::OpticalAdjustment,
@@ -296,9 +301,7 @@ pub fn handle_ai_tool_shortcuts(
     }
 
     // Show help with F1
-    if current_tool.get_current() == Some("ai")
-        && keyboard_input.just_pressed(KeyCode::F1)
-    {
+    if current_tool.get_current() == Some("ai") && keyboard_input.just_pressed(KeyCode::F1) {
         info!("=== AI TOOL HELP ===");
         info!("A - Activate AI tool");
         info!("Tab - Switch between AI operations");
@@ -315,9 +318,7 @@ pub fn handle_ai_tool_shortcuts(
     }
 
     // Exit AI tool with Escape
-    if current_tool.get_current() == Some("ai")
-        && keyboard_input.just_pressed(KeyCode::Escape)
-    {
+    if current_tool.get_current() == Some("ai") && keyboard_input.just_pressed(KeyCode::Escape) {
         if let Some(previous_tool) = current_tool.get_previous() {
             current_tool.switch_to(previous_tool);
             info!(

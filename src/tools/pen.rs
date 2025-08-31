@@ -75,11 +75,7 @@ pub struct PenModeActive(pub bool);
 pub struct PenInputConsumer;
 
 impl crate::systems::input_consumer::InputConsumer for PenInputConsumer {
-    fn should_handle_input(
-        &self,
-        event: &InputEvent,
-        input_state: &InputState,
-    ) -> bool {
+    fn should_handle_input(&self, event: &InputEvent, input_state: &InputState) -> bool {
         // Only handle input if pen mode is active
         if !helpers::is_input_mode(input_state, InputMode::Pen) {
             return false;
@@ -130,7 +126,10 @@ impl Plugin for PenToolPlugin {
             .init_resource::<PenModeActive>()
             .init_resource::<crate::ui::toolbars::edit_mode_toolbar::pen::PenDrawingMode>() // Default is Regular
             .add_systems(Startup, pen_tool_startup_log)
-            .add_systems(PostStartup, crate::ui::toolbars::edit_mode_toolbar::pen::spawn_pen_submenu)
+            .add_systems(
+                PostStartup,
+                crate::ui::toolbars::edit_mode_toolbar::pen::spawn_pen_submenu,
+            )
             .add_systems(
                 Update,
                 (
@@ -152,18 +151,18 @@ fn pen_tool_startup_log() {
 }
 
 /// Debug system to monitor pen tool state
-fn debug_pen_tool_state(
-    pen_state: Res<PenToolState>,
-    time: Res<Time>,
-) {
+fn debug_pen_tool_state(pen_state: Res<PenToolState>, time: Res<Time>) {
     static mut LAST_LOG: f32 = 0.0;
     let current_time = time.elapsed_secs();
-    
+
     unsafe {
         if current_time - LAST_LOG > 2.0 && !pen_state.current_path.is_empty() {
             LAST_LOG = current_time;
-            info!("🖊️ PEN STATE: {} points in path, drawing: {}", 
-                  pen_state.current_path.len(), pen_state.is_drawing);
+            info!(
+                "🖊️ PEN STATE: {} points in path, drawing: {}",
+                pen_state.current_path.len(),
+                pen_state.is_drawing
+            );
         }
     }
 }
@@ -187,18 +186,20 @@ pub fn handle_pen_mouse_events(
     settings: Res<crate::core::settings::BezySettings>,
 ) {
     // Check if pen tool is active via multiple methods
-    let pen_is_active = pen_mode_active.as_ref().is_some_and(|p| p.0) 
+    let pen_is_active = pen_mode_active.as_ref().is_some_and(|p| p.0)
         || (current_tool.as_ref().and_then(|t| t.get_current()) == Some("pen"));
-    
+
     // Debug: Always log current state during mouse button presses (ALWAYS LOG REGARDLESS OF PEN STATE)
-    if mouse_button_input.just_pressed(MouseButton::Left) || mouse_button_input.just_pressed(MouseButton::Right) {
+    if mouse_button_input.just_pressed(MouseButton::Left)
+        || mouse_button_input.just_pressed(MouseButton::Right)
+    {
         info!("🖊️ PEN TOOL SYSTEM: Mouse button pressed - pen_is_active: {}, pen_mode_active: {:?}, current_tool: {:?}, ui_hovering: {}", 
               pen_is_active,
               pen_mode_active.as_ref().map(|p| p.0), 
               current_tool.as_ref().and_then(|t| t.get_current()),
               ui_hover_state.is_hovering_ui);
     }
-    
+
     if !pen_is_active || ui_hover_state.is_hovering_ui {
         return;
     }
@@ -207,18 +208,16 @@ pub fn handle_pen_mouse_events(
 
     if mouse_button_input.just_pressed(MouseButton::Left) {
         let raw_position = pointer_info.design.to_raw();
-        
+
         // Calculate final position with grid snap and axis locking
-        let final_position = calculate_final_position(
-            raw_position,
-            &keyboard_input,
-            &pen_state,
-            &settings,
-        );
+        let final_position =
+            calculate_final_position(raw_position, &keyboard_input, &pen_state, &settings);
         let final_dpoint = DPoint::new(final_position.x, final_position.y);
-        
-        info!("Pen tool: Left click at ({:.1}, {:.1}) -> final ({:.1}, {:.1})", 
-              raw_position.x, raw_position.y, final_position.x, final_position.y);
+
+        info!(
+            "Pen tool: Left click at ({:.1}, {:.1}) -> final ({:.1}, {:.1})",
+            raw_position.x, raw_position.y, final_position.x, final_position.y
+        );
 
         // Check if we should close the path
         if pen_state.current_path.len() > 2 {
@@ -254,7 +253,10 @@ pub fn handle_pen_mouse_events(
         info!("Pen tool: Right click detected");
         // Finish open path
         if pen_state.current_path.len() > 1 {
-            info!("Pen tool: Finishing open path with {} points", pen_state.current_path.len());
+            info!(
+                "Pen tool: Finishing open path with {} points",
+                pen_state.current_path.len()
+            );
             finalize_pen_path(
                 &mut pen_state,
                 &mut app_state,
@@ -305,35 +307,34 @@ pub fn render_pen_preview(
     }
 
     // Check if pen tool is active via multiple methods
-    let pen_is_active = pen_mode_active.as_ref().is_some_and(|p| p.0) 
+    let pen_is_active = pen_mode_active.as_ref().is_some_and(|p| p.0)
         || (current_tool.as_ref().and_then(|t| t.get_current()) == Some("pen"));
-    
+
     if !pen_is_active {
         return;
     }
 
     // Debug: Log the current path state
     if !pen_state.current_path.is_empty() {
-        info!("Pen tool preview: Rendering {} points", pen_state.current_path.len());
+        info!(
+            "Pen tool preview: Rendering {} points",
+            pen_state.current_path.len()
+        );
     }
 
     // Use theme colors: orange ACTION color for points and lines
     let action_color = theme.theme().action_color();
     let active_color = theme.theme().active_color(); // Green for closure indicator
     let line_width = camera_scale.adjusted_line_width() * 2.0;
-    
+
     // Check if cursor is hovering over start point for closure
     // Use same method as click handler: to_raw()
     let cursor_pos = pointer_info.design.to_raw();
-    
+
     // Calculate final position with grid snap and axis locking for closure check
-    let final_position_for_closure = calculate_final_position(
-        cursor_pos,
-        &keyboard_input,
-        &pen_state,
-        &settings,
-    );
-    
+    let final_position_for_closure =
+        calculate_final_position(cursor_pos, &keyboard_input, &pen_state, &settings);
+
     let hovering_start_point = if pen_state.current_path.len() > 2 {
         if let Some(first_point) = pen_state.current_path.first() {
             let first_pos = Vec2::new(first_point.x, first_point.y);
@@ -349,7 +350,7 @@ pub fn render_pen_preview(
     // Draw current path points
     for (i, &point) in pen_state.current_path.iter().enumerate() {
         let pos = Vec2::new(point.x, point.y);
-        
+
         // Spawn point mesh using orange ACTION color
         spawn_pen_preview_point(
             &mut commands,
@@ -379,20 +380,20 @@ pub fn render_pen_preview(
     // Always show preview point at cursor position (with grid snap)
     // Use the already calculated final_position_for_closure (which is grid-snapped)
     let final_position = final_position_for_closure;
-    
+
     spawn_pen_preview_point(
         &mut commands,
         &mut meshes,
         &mut materials,
         final_position,
-        action_color,  // Same color as placed points (no alpha)
-        camera_scale.adjusted_point_size(POINT_PREVIEW_SIZE),  // Same size as placed points
+        action_color, // Same color as placed points (no alpha)
+        camera_scale.adjusted_point_size(POINT_PREVIEW_SIZE), // Same size as placed points
     );
 
     // Draw dashed preview line to cursor if we have at least one point
     if let Some(&last_point) = pen_state.current_path.last() {
         let last_pos = Vec2::new(last_point.x, last_point.y);
-        
+
         spawn_pen_preview_dashed_line(
             &mut commands,
             &mut meshes,
@@ -414,8 +415,8 @@ pub fn render_pen_preview(
                 &mut materials,
                 first_pos,
                 active_color,
-                CLOSE_PATH_THRESHOLD,  // Use the threshold as radius
-                camera_scale.adjusted_line_width(),  // Use standard zoom-aware line thickness
+                CLOSE_PATH_THRESHOLD, // Use the threshold as radius
+                camera_scale.adjusted_line_width(), // Use standard zoom-aware line thickness
             );
         }
     }
@@ -453,9 +454,7 @@ fn finalize_pen_path(
     } else if let Some(_app_state) = _app_state.as_mut() {
         finalize_appstate_path(pen_state);
     } else {
-        warn!(
-            "Pen tool: No AppState or FontIR available for path finalization"
-        );
+        warn!("Pen tool: No AppState or FontIR available for path finalization");
     }
 
     // Reset state
@@ -476,8 +475,7 @@ fn finalize_fontir_path(
     let mut bez_path = BezPath::new();
 
     if let Some(&first_point) = pen_state.current_path.first() {
-        bez_path
-            .move_to(Point::new(first_point.x as f64, first_point.y as f64));
+        bez_path.move_to(Point::new(first_point.x as f64, first_point.y as f64));
 
         for &point in pen_state.current_path.iter().skip(1) {
             bez_path.line_to(Point::new(point.x as f64, point.y as f64));
@@ -498,13 +496,18 @@ fn finalize_fontir_path(
 
             // Get or create a working copy
             let working_copy_exists = fontir_state.working_copies.contains_key(&key);
-            
+
             if !working_copy_exists {
                 // Create working copy from original FontIR data
                 if let Some(fontir_glyph) = fontir_state.glyph_cache.get(&current_glyph_name) {
                     if let Some((_location, instance)) = fontir_glyph.sources().iter().next() {
-                        let working_copy = crate::core::state::fontir_app_state::EditableGlyphInstance::from(instance);
-                        fontir_state.working_copies.insert(key.clone(), working_copy);
+                        let working_copy =
+                            crate::core::state::fontir_app_state::EditableGlyphInstance::from(
+                                instance,
+                            );
+                        fontir_state
+                            .working_copies
+                            .insert(key.clone(), working_copy);
                     }
                 }
             }
@@ -514,11 +517,14 @@ fn finalize_fontir_path(
                 working_copy.contours.push(bez_path.clone());
                 working_copy.is_dirty = true;
                 app_state_changed.write(AppStateChanged);
-                
+
                 info!("Pen tool (FontIR): Added contour with {} elements to glyph '{}'. Total contours: {}", 
                       bez_path.elements().len(), current_glyph_name, working_copy.contours.len());
             } else {
-                warn!("Pen tool (FontIR): Could not create working copy for glyph '{}'", current_glyph_name);
+                warn!(
+                    "Pen tool (FontIR): Could not create working copy for glyph '{}'",
+                    current_glyph_name
+                );
             }
         } else {
             warn!("Pen tool (FontIR): No current glyph selected");
@@ -527,8 +533,7 @@ fn finalize_fontir_path(
         warn!("Pen tool (FontIR): FontIR app state not available");
     }
 
-    let path_info =
-        format!("BezPath with {} elements", bez_path.elements().len());
+    let path_info = format!("BezPath with {} elements", bez_path.elements().len());
     info!("Pen tool (FontIR): Created {} for current glyph", path_info);
 }
 
@@ -564,8 +569,11 @@ fn finalize_appstate_path(pen_state: &mut ResMut<PenToolState>) {
 
     // Add contour to current glyph - this needs to be done through a proper system
     // For now just log that we would add it
-    info!("Pen tool (AppState): Would add {} point contour to current glyph (contour has {} points)", 
-          pen_state.current_path.len(), contour.points.len());
+    info!(
+        "Pen tool (AppState): Would add {} point contour to current glyph (contour has {} points)",
+        pen_state.current_path.len(),
+        contour.points.len()
+    );
 }
 
 // ================================================================
@@ -606,33 +614,36 @@ fn spawn_pen_preview_line(
     let direction = (end - start).normalize();
     let perpendicular = Vec2::new(-direction.y, direction.x);
     let half_width = width * 0.5;
-    
+
     // Calculate the center position for the transform
     let center = (start + end) * 0.5;
-    
+
     // Create vertices relative to the center position
     let p1 = (start - center) + perpendicular * half_width;
     let p2 = (start - center) - perpendicular * half_width;
     let p3 = (end - center) - perpendicular * half_width;
     let p4 = (end - center) + perpendicular * half_width;
-    
+
     let vertices = vec![
         [p1.x, p1.y, 0.0],
         [p2.x, p2.y, 0.0],
         [p3.x, p3.y, 0.0],
         [p4.x, p4.y, 0.0],
     ];
-    
+
     let indices = vec![0, 1, 2, 0, 2, 3];
     let uvs = vec![[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]];
     let normals = vec![[0.0, 0.0, 1.0]; 4];
-    
-    let mut mesh = Mesh::new(bevy::render::render_resource::PrimitiveTopology::TriangleList, bevy::render::render_asset::RenderAssetUsages::all());
+
+    let mut mesh = Mesh::new(
+        bevy::render::render_resource::PrimitiveTopology::TriangleList,
+        bevy::render::render_asset::RenderAssetUsages::all(),
+    );
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
     mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
     mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
     mesh.insert_indices(bevy::render::mesh::Indices::U32(indices));
-    
+
     let material = ColorMaterial::from(color);
 
     commands.spawn((
@@ -655,7 +666,7 @@ fn spawn_pen_preview_dashed_line(
 ) {
     let dash_length = 8.0;
     let gap_length = 4.0;
-    
+
     let direction = (end - start).normalize();
     let total_length = start.distance(end);
     let segment_length = dash_length + gap_length;
@@ -669,9 +680,7 @@ fn spawn_pen_preview_dashed_line(
         let dash_end = start + direction * dash_end_pos;
 
         // Create mesh for this dash segment using the existing mesh utility
-        let line_mesh = crate::rendering::mesh_utils::create_line_mesh(
-            dash_start, dash_end, width,
-        );
+        let line_mesh = crate::rendering::mesh_utils::create_line_mesh(dash_start, dash_end, width);
 
         commands.spawn((
             Mesh2d(meshes.add(line_mesh)),
@@ -702,51 +711,57 @@ fn spawn_pen_closure_indicator(
     let segments = 32;
     let outer_radius = radius;
     let inner_radius = radius - line_width; // Use line width to control ring thickness
-    
+
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
     let mut uvs = Vec::new();
     let mut normals = Vec::new();
-    
+
     // Create vertices for the ring
     for i in 0..=segments {
         let angle = (i as f32 / segments as f32) * 2.0 * std::f32::consts::PI;
         let cos_a = angle.cos();
         let sin_a = angle.sin();
-        
+
         // Outer vertex
         vertices.push([outer_radius * cos_a, outer_radius * sin_a, 0.0]);
         uvs.push([0.5 + 0.5 * cos_a, 0.5 + 0.5 * sin_a]);
         normals.push([0.0, 0.0, 1.0]);
-        
+
         // Inner vertex
         vertices.push([inner_radius * cos_a, inner_radius * sin_a, 0.0]);
-        uvs.push([0.5 + 0.5 * cos_a * (inner_radius / outer_radius), 0.5 + 0.5 * sin_a * (inner_radius / outer_radius)]);
+        uvs.push([
+            0.5 + 0.5 * cos_a * (inner_radius / outer_radius),
+            0.5 + 0.5 * sin_a * (inner_radius / outer_radius),
+        ]);
         normals.push([0.0, 0.0, 1.0]);
     }
-    
+
     // Create indices for the ring triangles
     for i in 0..segments {
         let base = i * 2;
         let next_base = ((i + 1) % (segments + 1)) * 2;
-        
+
         // Triangle 1: outer[i] -> inner[i] -> outer[i+1]
         indices.push(base as u32);
         indices.push((base + 1) as u32);
         indices.push(next_base as u32);
-        
+
         // Triangle 2: inner[i] -> inner[i+1] -> outer[i+1]
         indices.push((base + 1) as u32);
         indices.push((next_base + 1) as u32);
         indices.push(next_base as u32);
     }
-    
-    let mut mesh = Mesh::new(bevy::render::render_resource::PrimitiveTopology::TriangleList, bevy::render::render_asset::RenderAssetUsages::all());
+
+    let mut mesh = Mesh::new(
+        bevy::render::render_resource::PrimitiveTopology::TriangleList,
+        bevy::render::render_asset::RenderAssetUsages::all(),
+    );
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
     mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
     mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
     mesh.insert_indices(bevy::render::mesh::Indices::U32(indices));
-    
+
     let material = ColorMaterial::from(color);
 
     commands.spawn((
@@ -772,8 +787,8 @@ fn calculate_final_position(
     let snapped_pos = settings.apply_grid_snap(cursor_pos);
 
     // Apply axis locking if shift is held and we have points
-    let shift_pressed = keyboard.pressed(KeyCode::ShiftLeft)
-        || keyboard.pressed(KeyCode::ShiftRight);
+    let shift_pressed =
+        keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
 
     if shift_pressed && !pen_state.current_path.is_empty() {
         if let Some(last_point) = pen_state.current_path.last() {

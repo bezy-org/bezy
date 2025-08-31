@@ -104,10 +104,7 @@ fn create_handles_from_fontir_paths(
     for (entity, transform, glyph_ref, _) in point_query.iter() {
         if glyph_ref.glyph_name == glyph_name {
             let position = transform.translation.truncate();
-            point_entities.insert(
-                (glyph_ref.contour_index, glyph_ref.point_index),
-                entity,
-            );
+            point_entities.insert((glyph_ref.contour_index, glyph_ref.point_index), entity);
             point_positions.insert(entity, position);
         }
     }
@@ -124,14 +121,10 @@ fn create_handles_from_fontir_paths(
 
         // Find the next point in the same contour
         let next_index = glyph_ref.point_index + 1;
-        if let Some(next_entity) =
-            point_entities.get(&(glyph_ref.contour_index, next_index))
-        {
+        if let Some(next_entity) = point_entities.get(&(glyph_ref.contour_index, next_index)) {
             if let Some(next_pos) = point_positions.get(next_entity) {
                 // Get the next point's type
-                if let Ok((_, _, _, next_point_type)) =
-                    point_query.get(*next_entity)
-                {
+                if let Ok((_, _, _, next_point_type)) = point_query.get(*next_entity) {
                     let next_is_on_curve = next_point_type.is_on_curve;
 
                     // Create handle if one is on-curve and the other is off-curve
@@ -143,8 +136,7 @@ fn create_handles_from_fontir_paths(
 
                         // Create a rectangle mesh for the line
                         let line_thickness = 1.0; // 1px width for subtle handles
-                        let line_mesh =
-                            meshes.add(Rectangle::new(length, line_thickness));
+                        let line_mesh = meshes.add(Rectangle::new(length, line_thickness));
 
                         commands.spawn((
                             Mesh2d(line_mesh),

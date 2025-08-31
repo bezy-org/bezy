@@ -43,16 +43,13 @@ fn update_pointer_position(
     windows: Query<&Window>,
     camera_query: Query<(&Camera, &GlobalTransform), With<DesignCamera>>,
 ) {
-    if let (Ok(window), Ok((camera, camera_transform))) =
-        (windows.single(), camera_query.single())
+    if let (Ok(window), Ok((camera, camera_transform))) = (windows.single(), camera_query.single())
     {
         if let Some(screen_pos) = window.cursor_position() {
             pointer_info.screen = screen_pos;
 
             // Convert to world space
-            if let Ok(world_pos) =
-                camera.viewport_to_world_2d(camera_transform, screen_pos)
-            {
+            if let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, screen_pos) {
                 pointer_info.world = world_pos;
 
                 // Convert to design space

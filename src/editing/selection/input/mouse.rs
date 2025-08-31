@@ -4,8 +4,7 @@ use crate::core::io::input::{InputEvent, InputState, ModifierState};
 use crate::core::state::TextEditorState;
 use crate::editing::edit_type::EditType;
 use crate::editing::selection::components::{
-    GlyphPointReference, PointType, Selectable, Selected, SelectionRect,
-    SelectionState,
+    GlyphPointReference, PointType, Selectable, Selected, SelectionRect, SelectionState,
 };
 use crate::editing::selection::coordinate_system::SelectionCoordinateSystem;
 use crate::editing::selection::events::{ClickWorldPosition, SELECTION_MARGIN};
@@ -40,25 +39,27 @@ pub fn process_selection_input_events(
     mut selection_state: ResMut<SelectionState>,
     active_sort_state: Res<crate::editing::sort::ActiveSortState>,
     sort_point_entities: Query<&crate::systems::sort_manager::SortPointEntity>,
-    select_mode: Option<
-        Res<crate::ui::toolbars::edit_mode_toolbar::select::SelectModeActive>,
-    >,
+    select_mode: Option<Res<crate::ui::toolbars::edit_mode_toolbar::select::SelectModeActive>>,
     text_editor_state: ResMut<TextEditorState>,
     app_state: Option<Res<crate::core::state::AppState>>,
-    buffer_entities: Res<
-        crate::systems::text_editor_sorts::sort_entities::BufferSortEntities,
-    >,
+    buffer_entities: Res<crate::systems::text_editor_sorts::sort_entities::BufferSortEntities>,
 ) {
     // Early exit if no events to process - this prevents expensive logging every frame
     let event_count = input_events.len();
     if event_count == 0 {
         return;
     }
-    
-    debug!("[process_selection_input_events] CALLED with {} events", event_count);
+
+    debug!(
+        "[process_selection_input_events] CALLED with {} events",
+        event_count
+    );
 
     // Check if select tool is active by checking InputMode
-    if !crate::core::io::input::helpers::is_input_mode(&input_state, crate::core::io::input::InputMode::Select) {
+    if !crate::core::io::input::helpers::is_input_mode(
+        &input_state,
+        crate::core::io::input::InputMode::Select,
+    ) {
         info!("[process_selection_input_events] Not in Select input mode (current: {:?}), skipping all events", input_state.mode);
         return;
     }
@@ -66,8 +67,11 @@ pub fn process_selection_input_events(
 
     // Only log when we actually have events to process
     let mode_status = select_mode.as_ref().map(|s| s.0).unwrap_or(false);
-    debug!("[process_selection_input_events] SelectModeActive exists: {}, active: {}", 
-          select_mode.is_some(), mode_status);
+    debug!(
+        "[process_selection_input_events] SelectModeActive exists: {}, active: {}",
+        select_mode.is_some(),
+        mode_status
+    );
 
     // Only process if in select mode
     if let Some(select_mode) = select_mode {
@@ -108,15 +112,21 @@ pub fn process_selection_input_events(
                 position,
                 modifiers,
             } => {
-                debug!("[process_selection_input_events] GOT MOUSE CLICK: button={:?}, position={:?}", button, position);
+                debug!(
+                    "[process_selection_input_events] GOT MOUSE CLICK: button={:?}, position={:?}",
+                    button, position
+                );
                 if *button == MouseButton::Left {
                     let world_position = position.to_raw();
                     let handle_tolerance = 50.0;
-                    
+
                     // Try to detect sort handle clicks if AppState is available
                     let clicked_sort_handle = if let Some(state) = app_state.as_ref() {
                         let font_metrics = &state.workspace.info.metrics;
-                        debug!("[sort-handle-hit] Mouse click at world position: ({:.1}, {:.1})", world_position.x, world_position.y);
+                        debug!(
+                            "[sort-handle-hit] Mouse click at world position: ({:.1}, {:.1})",
+                            world_position.x, world_position.y
+                        );
                         debug!(
                             "[sort-handle-hit] Buffer has {} sorts",
                             text_editor_state.buffer.len()
@@ -125,19 +135,14 @@ pub fn process_selection_input_events(
                         // Only log detailed handle positions if we have a small number of sorts to avoid spam
                         if text_editor_state.buffer.len() <= 10 {
                             for i in 0..text_editor_state.buffer.len() {
-                                if let Some(_sort) = text_editor_state.buffer.get(i)
-                                {
-                                    if let Some(sort_pos) = text_editor_state
-                                        .get_sort_visual_position(i)
+                                if let Some(_sort) = text_editor_state.buffer.get(i) {
+                                    if let Some(sort_pos) =
+                                        text_editor_state.get_sort_visual_position(i)
                                     {
-                                        let descender = font_metrics
-                                            .descender
-                                            .unwrap_or(-200.0)
-                                            as f32;
-                                        let handle_pos =
-                                            sort_pos + Vec2::new(0.0, descender);
-                                        let distance =
-                                            world_position.distance(handle_pos);
+                                        let descender =
+                                            font_metrics.descender.unwrap_or(-200.0) as f32;
+                                        let handle_pos = sort_pos + Vec2::new(0.0, descender);
+                                        let distance = world_position.distance(handle_pos);
                                         debug!("[sort-handle-hit] Sort {}: handle_pos=({:.1}, {:.1}), distance={:.1}, tolerance={:.1}",
                                             i, handle_pos.x, handle_pos.y, distance, handle_tolerance);
                                     }
@@ -162,22 +167,17 @@ pub fn process_selection_input_events(
 
                                 if is_ctrl_held {
                                     // Multi-select: toggle selection
-                                    if selection_state
-                                        .selected
-                                        .contains(&sort_entity)
-                                    {
+                                    if selection_state.selected.contains(&sort_entity) {
                                         // Remove from selection
                                         commands.entity(sort_entity).remove::<crate::editing::selection::components::Selected>();
-                                        selection_state
-                                            .selected
-                                            .remove(&sort_entity);
+                                        selection_state.selected.remove(&sort_entity);
                                         info!("[process_selection_input_events] Ctrl+click: removed sort {} from selection", clicked_sort_index);
                                     } else {
                                         // Add to selection
-                                        commands.entity(sort_entity).insert(crate::editing::selection::components::Selected);
-                                        selection_state
-                                            .selected
-                                            .insert(sort_entity);
+                                        commands.entity(sort_entity).insert(
+                                            crate::editing::selection::components::Selected,
+                                        );
+                                        selection_state.selected.insert(sort_entity);
                                         info!("[process_selection_input_events] Ctrl+click: added sort {} to selection", clicked_sort_index);
                                     }
                                 } else {
@@ -189,7 +189,9 @@ pub fn process_selection_input_events(
                                     selection_state.selected.clear();
 
                                     // Select this sort
-                                    commands.entity(sort_entity).insert(crate::editing::selection::components::Selected);
+                                    commands
+                                        .entity(sort_entity)
+                                        .insert(crate::editing::selection::components::Selected);
                                     selection_state.selected.insert(sort_entity);
                                     info!("[process_selection_input_events] Single click: selected sort {} exclusively", clicked_sort_index);
                                 }
@@ -241,8 +243,10 @@ pub fn process_selection_input_events(
                 modifiers,
             } => {
                 if *button == MouseButton::Left {
-                    debug!("Selection: Processing mouse drag from {:?} to {:?} with modifiers {:?}",
-                          start_position, current_position, modifiers);
+                    debug!(
+                        "Selection: Processing mouse drag from {:?} to {:?} with modifiers {:?}",
+                        start_position, current_position, modifiers
+                    );
                     debug!(
                         "Selection: active_sort_entity={:?}",
                         active_sort_state.active_sort_entity
@@ -278,7 +282,10 @@ pub fn process_selection_input_events(
                 modifiers,
             } => {
                 if *button == MouseButton::Left {
-                    debug!("Selection: Processing mouse release at {:?} with modifiers {:?}", position, modifiers);
+                    debug!(
+                        "Selection: Processing mouse release at {:?} with modifiers {:?}",
+                        position, modifiers
+                    );
                     // Always handle mouse release for selection, regardless of active sort state
                     handle_selection_release(
                         &mut commands,
@@ -295,10 +302,12 @@ pub fn process_selection_input_events(
             InputEvent::KeyPress { key, modifiers } => {
                 if matches!(
                     key,
-                    bevy::input::keyboard::KeyCode::KeyA
-                        | bevy::input::keyboard::KeyCode::Escape
+                    bevy::input::keyboard::KeyCode::KeyA | bevy::input::keyboard::KeyCode::Escape
                 ) {
-                    debug!("Selection: Processing key press {:?} with modifiers {:?}", key, modifiers);
+                    debug!(
+                        "Selection: Processing key press {:?} with modifiers {:?}",
+                        key, modifiers
+                    );
                     // Always handle key presses for selection, regardless of active sort state
                     // Use a dummy entity if no active sort exists
                     let active_sort_entity = active_sort_state
@@ -346,7 +355,10 @@ pub fn handle_selection_click(
     active_sort_entity: Entity,
     sort_point_entities: &Query<&crate::systems::sort_manager::SortPointEntity>,
 ) {
-    debug!("=== HANDLE SELECTION CLICK === position={:?}, active_sort={:?}", position, active_sort_entity);
+    debug!(
+        "=== HANDLE SELECTION CLICK === position={:?}, active_sort={:?}",
+        position, active_sort_entity
+    );
     let cursor_pos = position.to_raw();
     debug!("Click position: {:?} (raw: {:?})", position, cursor_pos);
     debug!("Modifiers: {:?}", modifiers);
@@ -391,7 +403,9 @@ pub fn handle_selection_click(
         // Check if this entity belongs to the active sort
         if let Ok(sort_point_entity) = sort_point_entities.get(entity) {
             // If we have a valid active sort, filter by it
-            if active_sort_entity != Entity::PLACEHOLDER && sort_point_entity.sort_entity != active_sort_entity {
+            if active_sort_entity != Entity::PLACEHOLDER
+                && sort_point_entity.sort_entity != active_sort_entity
+            {
                 continue; // Skip points that don't belong to the active sort
             }
             points_in_active_sort += 1;
@@ -468,9 +482,7 @@ pub fn handle_selection_click(
             if let Some(glyph_ref) = glyph_ref {
                 debug!(
                     "Selected point in glyph '{}', contour {}, point {}",
-                    glyph_ref.glyph_name,
-                    glyph_ref.contour_index,
-                    glyph_ref.point_index
+                    glyph_ref.glyph_name, glyph_ref.contour_index, glyph_ref.point_index
                 );
             }
         }
@@ -488,8 +500,7 @@ pub fn handle_selection_click(
         drag_point_state.current_position = Some(cursor_pos);
 
         // Include all currently selected entities in the drag operation
-        drag_point_state.dragged_entities =
-            selection_state.selected.iter().cloned().collect();
+        drag_point_state.dragged_entities = selection_state.selected.iter().cloned().collect();
         debug!(
             "Starting drag with {} entities",
             drag_point_state.dragged_entities.len()
@@ -499,8 +510,7 @@ pub fn handle_selection_click(
         drag_point_state.original_positions.clear();
         for (entity, transform) in selected_query.iter() {
             if selection_state.selected.contains(&entity) {
-                let pos =
-                    Vec2::new(transform.translation.x, transform.translation.y);
+                let pos = Vec2::new(transform.translation.x, transform.translation.y);
                 drag_point_state.original_positions.insert(entity, pos);
             }
         }
@@ -558,14 +568,19 @@ pub fn handle_selection_drag(
     >,
     selection_state: &mut ResMut<SelectionState>,
     _active_sort_entity: Entity,
-    _sort_point_entities: &Query<
-        &crate::systems::sort_manager::SortPointEntity,
-    >,
+    _sort_point_entities: &Query<&crate::systems::sort_manager::SortPointEntity>,
     _selection_rect_query: &Query<Entity, With<SelectionRect>>,
 ) {
-    info!("[handle_selection_drag] Called: start={:?}, current={:?}, is_dragging={}", start_position, current_position, drag_state.is_dragging);
+    info!(
+        "[handle_selection_drag] Called: start={:?}, current={:?}, is_dragging={}",
+        start_position, current_position, drag_state.is_dragging
+    );
     if !drag_state.is_dragging {
-        info!("[handle_selection_drag] Starting new drag selection at start={:?}, end={:?}", start_position.to_raw(), current_position.to_raw());
+        info!(
+            "[handle_selection_drag] Starting new drag selection at start={:?}, end={:?}",
+            start_position.to_raw(),
+            current_position.to_raw()
+        );
 
         // Initialize drag state
         drag_state.is_dragging = true;
@@ -575,8 +590,7 @@ pub fn handle_selection_drag(
 
         // Store previous selection for multi-select
         if modifiers.shift {
-            drag_state.previous_selection =
-                selection_state.selected.iter().cloned().collect();
+            drag_state.previous_selection = selection_state.selected.iter().cloned().collect();
         }
 
         // Spawn selection rectangle entity
@@ -615,7 +629,10 @@ pub fn handle_selection_drag(
                     current_position.to_raw()
                 );
             } else {
-                info!("ERROR: Could not get entity commands for SelectionRect entity {:?}", rect_entity);
+                info!(
+                    "ERROR: Could not get entity commands for SelectionRect entity {:?}",
+                    rect_entity
+                );
             }
         } else {
             info!("ERROR: No SelectionRect entity found in drag_state!");
@@ -667,9 +684,7 @@ pub fn handle_selection_drag(
         // Collect entity positions for debugging and coordinate system analysis
         let entity_positions: Vec<(Entity, Vec2)> = selectable_query
             .iter()
-            .map(|(entity, transform, _, _)| {
-                (entity, transform.translation().truncate())
-            })
+            .map(|(entity, transform, _, _)| (entity, transform.translation().truncate()))
             .collect();
 
         // Use centralized coordinate system for debugging
@@ -688,10 +703,11 @@ pub fn handle_selection_drag(
                 &current_pos,
             ) {
                 points_in_rect += 1;
-                info!("Selection: Entity {:?} is inside marquee rect! Position: {:?}", entity, entity_pos);
-                if drag_state.is_multi_select
-                    && drag_state.previous_selection.contains(entity)
-                {
+                info!(
+                    "Selection: Entity {:?} is inside marquee rect! Position: {:?}",
+                    entity, entity_pos
+                );
+                if drag_state.is_multi_select && drag_state.previous_selection.contains(entity) {
                     // Toggle off if previously selected
                     selection_state.selected.remove(entity);
                     commands.entity(*entity).remove::<Selected>();
@@ -706,41 +722,31 @@ pub fn handle_selection_drag(
             } else {
                 // Debug: Show why entity is not selected using centralized coordinate system
                 let rect_entity_start =
-                    SelectionCoordinateSystem::design_to_entity_coordinates(
-                        &start_pos,
-                    );
+                    SelectionCoordinateSystem::design_to_entity_coordinates(&start_pos);
                 let rect_entity_end =
-                    SelectionCoordinateSystem::design_to_entity_coordinates(
-                        &current_pos,
-                    );
+                    SelectionCoordinateSystem::design_to_entity_coordinates(&current_pos);
 
-                let distance_x = if entity_pos.x
-                    < rect_entity_start.x.min(rect_entity_end.x)
-                {
+                let distance_x = if entity_pos.x < rect_entity_start.x.min(rect_entity_end.x) {
                     rect_entity_start.x.min(rect_entity_end.x) - entity_pos.x
-                } else if entity_pos.x
-                    > rect_entity_start.x.max(rect_entity_end.x)
-                {
+                } else if entity_pos.x > rect_entity_start.x.max(rect_entity_end.x) {
                     entity_pos.x - rect_entity_start.x.max(rect_entity_end.x)
                 } else {
                     0.0
                 };
 
-                let distance_y = if entity_pos.y
-                    < rect_entity_start.y.min(rect_entity_end.y)
-                {
+                let distance_y = if entity_pos.y < rect_entity_start.y.min(rect_entity_end.y) {
                     rect_entity_start.y.min(rect_entity_end.y) - entity_pos.y
-                } else if entity_pos.y
-                    > rect_entity_start.y.max(rect_entity_end.y)
-                {
+                } else if entity_pos.y > rect_entity_start.y.max(rect_entity_end.y) {
                     entity_pos.y - rect_entity_start.y.max(rect_entity_end.y)
                 } else {
                     0.0
                 };
 
                 if distance_x > 0.0 || distance_y > 0.0 {
-                    info!("Selection: Entity {:?} outside rect - X: {:.1} units, Y: {:.1} units", 
-                          entity, distance_x, distance_y);
+                    info!(
+                        "Selection: Entity {:?} outside rect - X: {:.1} units, Y: {:.1} units",
+                        entity, distance_x, distance_y
+                    );
                 }
             }
         }

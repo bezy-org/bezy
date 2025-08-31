@@ -28,10 +28,8 @@ pub struct GamepadPlugin;
 
 impl Plugin for GamepadPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<GamepadManager>().add_systems(
-            Update,
-            (gamepad_connection_system, gamepad_input_system),
-        );
+        app.init_resource::<GamepadManager>()
+            .add_systems(Update, (gamepad_connection_system, gamepad_input_system));
     }
 }
 
@@ -54,10 +52,7 @@ fn gamepad_connection_system(
 }
 
 /// System to update gamepad input state
-fn gamepad_input_system(
-    gamepad_manager: Res<GamepadManager>,
-    gamepads: Query<&Gamepad>,
-) {
+fn gamepad_input_system(gamepad_manager: Res<GamepadManager>, gamepads: Query<&Gamepad>) {
     if let Some(info) = &gamepad_manager.active_gamepad {
         if let Ok(_gamepad) = gamepads.get(info.entity) {
             // Placeholder for reading gamepad input

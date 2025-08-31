@@ -11,10 +11,10 @@ use crate::ui::themes::{CurrentTheme, UiBorderRadius};
 use bevy::prelude::*;
 use bevy::ui::Display;
 use bevy::window::{PrimaryWindow, Window, WindowMode};
+use chrono::{DateTime, Local};
 use norad::designspace::DesignSpaceDocument;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
-use chrono::{DateTime, Local};
 
 // ============================================================================
 // DESIGN CONSTANTS
@@ -35,7 +35,7 @@ const ROW_SPACING: f32 = WIDGET_ROW_LEADING;
 /// Extra spacing after master selector (between circles and text)
 const MASTER_SELECTOR_MARGIN: f32 = 16.0;
 
-/// File pane internal padding 
+/// File pane internal padding
 const FILE_PANE_PADDING: f32 = 16.0;
 
 /// File pane border width
@@ -149,7 +149,7 @@ pub fn spawn_file_pane(
     // But we want some visible margin, so let's use a small positive offset
     let position = UiRect {
         right: Val::Px(TOOLBAR_CONTAINER_MARGIN + 4.0), // Slight adjustment to better align
-        top: Val::Px(TOOLBAR_CONTAINER_MARGIN + 4.0),  
+        top: Val::Px(TOOLBAR_CONTAINER_MARGIN + 4.0),
         left: Val::Auto,
         bottom: Val::Auto,
     };
@@ -167,11 +167,11 @@ pub fn spawn_file_pane(
                 flex_direction: FlexDirection::Column,
                 row_gap: Val::Px(WIDGET_ROW_LEADING),
                 border: UiRect::all(Val::Px(FILE_PANE_BORDER)),
-                width: Val::Auto,  // Auto-size to content
+                width: Val::Auto, // Auto-size to content
                 height: Val::Auto,
                 min_width: Val::Auto,
                 min_height: Val::Auto,
-                max_width: Val::Auto,  // No max width constraint
+                max_width: Val::Auto, // No max width constraint
                 max_height: Val::Percent(50.0),
                 justify_content: JustifyContent::FlexStart,
                 align_items: AlignItems::FlexStart,
@@ -189,7 +189,7 @@ pub fn spawn_file_pane(
             parent
                 .spawn(Node {
                     position_type: PositionType::Relative,
-                    width: Val::Auto, // Auto-size to content
+                    width: Val::Auto,  // Auto-size to content
                     height: Val::Auto, // Auto-size to content
                     margin: UiRect::bottom(Val::Px(MASTER_SELECTOR_MARGIN)),
                     flex_direction: FlexDirection::Row,
@@ -284,7 +284,7 @@ pub fn spawn_file_pane(
                         flex_direction: FlexDirection::Row,
                         align_items: AlignItems::Center,
                         margin: UiRect::bottom(Val::Px(ROW_SPACING)),
-                        display: Display::None,  // Initially hidden
+                        display: Display::None, // Initially hidden
                         ..default()
                     },
                     SavedRowContainer,
@@ -323,7 +323,7 @@ pub fn spawn_file_pane(
                     Node {
                         flex_direction: FlexDirection::Row,
                         align_items: AlignItems::Center,
-                        display: Display::None,  // Initially hidden
+                        display: Display::None, // Initially hidden
                         ..default()
                     },
                     ExportedRowContainer,
@@ -376,13 +376,17 @@ fn update_file_info(
             .map(|window| {
                 let is_fullscreen = window.mode != bevy::window::WindowMode::Windowed;
                 let is_wide = window.width() > 1200.0;
-                
+
                 // Debug logging
                 if file_info.is_changed() {
-                    info!("Window mode: {:?}, Width: {}, Show full path: {}", 
-                          window.mode, window.width(), is_fullscreen || is_wide);
+                    info!(
+                        "Window mode: {:?}, Width: {}, Show full path: {}",
+                        window.mode,
+                        window.width(),
+                        is_fullscreen || is_wide
+                    );
                 }
-                
+
                 // Show full path if:
                 // 1. Window is in fullscreen mode, OR
                 // 2. Window width is greater than 1200 pixels (large enough to show full path)
@@ -403,7 +407,8 @@ fn update_file_info(
                 file_info.designspace_path = full_path;
             } else {
                 // In windowed mode: show just the filename
-                let filename = state.source_path
+                let filename = state
+                    .source_path
                     .file_name()
                     .and_then(|n| n.to_str())
                     .unwrap_or("Unknown");
@@ -417,18 +422,17 @@ fn update_file_info(
                 file_info.masters = masters;
             } else {
                 // Fallback for single UFO files or when designspace loading fails
-                file_info.masters = vec![
-                    UFOMaster {
-                        name: "Regular".to_string(),
-                        style_name: "Regular".to_string(),
-                        filename: state.source_path
-                            .file_name()
-                            .and_then(|n| n.to_str())
-                            .unwrap_or("Unknown")
-                            .to_string(),
-                        file_path: state.source_path.clone(),
-                    },
-                ];
+                file_info.masters = vec![UFOMaster {
+                    name: "Regular".to_string(),
+                    style_name: "Regular".to_string(),
+                    filename: state
+                        .source_path
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("Unknown")
+                        .to_string(),
+                    file_path: state.source_path.clone(),
+                }];
             }
         }
 
@@ -440,7 +444,9 @@ fn update_file_info(
 }
 
 /// Load UFO masters from a designspace file
-fn load_masters_from_designspace(source_path: &PathBuf) -> Result<Vec<UFOMaster>, Box<dyn std::error::Error>> {
+fn load_masters_from_designspace(
+    source_path: &PathBuf,
+) -> Result<Vec<UFOMaster>, Box<dyn std::error::Error>> {
     // Check if it's a designspace file
     if source_path.extension().and_then(|s| s.to_str()) != Some("designspace") {
         return Err("Not a designspace file".into());
@@ -449,17 +455,23 @@ fn load_masters_from_designspace(source_path: &PathBuf) -> Result<Vec<UFOMaster>
     // Load and parse the designspace
     let designspace = DesignSpaceDocument::load(source_path)?;
     let mut masters = Vec::new();
-    
+
     let designspace_dir = source_path
         .parent()
         .unwrap_or_else(|| std::path::Path::new("."));
 
     for source in &designspace.sources {
         let ufo_path = designspace_dir.join(&source.filename);
-        
+
         masters.push(UFOMaster {
-            name: source.name.clone().unwrap_or_else(|| source.filename.clone()),
-            style_name: source.stylename.clone().unwrap_or_else(|| "Regular".to_string()),
+            name: source
+                .name
+                .clone()
+                .unwrap_or_else(|| source.filename.clone()),
+            style_name: source
+                .stylename
+                .clone()
+                .unwrap_or_else(|| "Regular".to_string()),
             filename: source.filename.clone(),
             file_path: ufo_path,
         });
@@ -500,44 +512,82 @@ fn update_master_buttons(
     for (i, _master) in file_info.masters.iter().enumerate() {
         let is_selected = i == file_info.current_master_index;
 
-        let button_entity = commands.spawn((
-            Button,
-            Node {
-                width: Val::Px(MASTER_BUTTON_SIZE),
-                height: Val::Px(MASTER_BUTTON_SIZE),
-                border: UiRect::all(Val::Px(2.0)),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                ..default()
-            },
-            BackgroundColor(if is_selected {
-                PRESSED_BUTTON_COLOR
-            } else {
-                NORMAL_BUTTON_COLOR
-            }),
-            BorderColor(if is_selected {
-                PRESSED_BUTTON_OUTLINE_COLOR
-            } else {
-                NORMAL_BUTTON_OUTLINE_COLOR
-            }),
-            BorderRadius::all(Val::Px(
-                theme.theme().ui_border_radius(),
-            )),
-            UiBorderRadius,
-            MasterButton {
-                master_index: i,
-            },
-        )).id();
+        let button_entity = commands
+            .spawn((
+                Button,
+                Node {
+                    width: Val::Px(MASTER_BUTTON_SIZE),
+                    height: Val::Px(MASTER_BUTTON_SIZE),
+                    border: UiRect::all(Val::Px(2.0)),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    ..default()
+                },
+                BackgroundColor(if is_selected {
+                    PRESSED_BUTTON_COLOR
+                } else {
+                    NORMAL_BUTTON_COLOR
+                }),
+                BorderColor(if is_selected {
+                    PRESSED_BUTTON_OUTLINE_COLOR
+                } else {
+                    NORMAL_BUTTON_OUTLINE_COLOR
+                }),
+                BorderRadius::all(Val::Px(theme.theme().ui_border_radius())),
+                UiBorderRadius,
+                MasterButton { master_index: i },
+            ))
+            .id();
 
         commands.entity(container_entity).add_child(button_entity);
     }
 }
 
 // Type aliases for complex query types
-type DesignspaceTextQuery<'w, 's> = Query<'w, 's, &'static mut Text, (With<DesignspacePathText>, Without<CurrentUFOText>, Without<LastSavedText>, Without<LastExportedText>)>;
-type CurrentUFOTextQuery<'w, 's> = Query<'w, 's, &'static mut Text, (With<CurrentUFOText>, Without<DesignspacePathText>, Without<LastSavedText>, Without<LastExportedText>)>;
-type LastSavedTextQuery<'w, 's> = Query<'w, 's, &'static mut Text, (With<LastSavedText>, Without<DesignspacePathText>, Without<CurrentUFOText>, Without<LastExportedText>)>;
-type LastExportedTextQuery<'w, 's> = Query<'w, 's, &'static mut Text, (With<LastExportedText>, Without<DesignspacePathText>, Without<CurrentUFOText>, Without<LastSavedText>)>;
+type DesignspaceTextQuery<'w, 's> = Query<
+    'w,
+    's,
+    &'static mut Text,
+    (
+        With<DesignspacePathText>,
+        Without<CurrentUFOText>,
+        Without<LastSavedText>,
+        Without<LastExportedText>,
+    ),
+>;
+type CurrentUFOTextQuery<'w, 's> = Query<
+    'w,
+    's,
+    &'static mut Text,
+    (
+        With<CurrentUFOText>,
+        Without<DesignspacePathText>,
+        Without<LastSavedText>,
+        Without<LastExportedText>,
+    ),
+>;
+type LastSavedTextQuery<'w, 's> = Query<
+    'w,
+    's,
+    &'static mut Text,
+    (
+        With<LastSavedText>,
+        Without<DesignspacePathText>,
+        Without<CurrentUFOText>,
+        Without<LastExportedText>,
+    ),
+>;
+type LastExportedTextQuery<'w, 's> = Query<
+    'w,
+    's,
+    &'static mut Text,
+    (
+        With<LastExportedText>,
+        Without<DesignspacePathText>,
+        Without<CurrentUFOText>,
+        Without<LastSavedText>,
+    ),
+>;
 
 /// Updates the displayed file information
 fn update_file_display(
@@ -547,7 +597,10 @@ fn update_file_display(
     mut saved_query: LastSavedTextQuery,
     mut exported_query: LastExportedTextQuery,
     mut saved_row_query: Query<&mut Node, (With<SavedRowContainer>, Without<ExportedRowContainer>)>,
-    mut exported_row_query: Query<&mut Node, (With<ExportedRowContainer>, Without<SavedRowContainer>)>,
+    mut exported_row_query: Query<
+        &mut Node,
+        (With<ExportedRowContainer>, Without<SavedRowContainer>),
+    >,
 ) {
     // Update designspace path
     if let Ok(mut text) = designspace_query.single_mut() {
@@ -565,7 +618,7 @@ fn update_file_display(
             // Convert SystemTime to DateTime<Local> for human-readable formatting
             let datetime: DateTime<Local> = save_time.into();
             *text = Text::new(datetime.format("%Y-%m-%d %H:%M:%S").to_string());
-            
+
             // Show the saved row
             if let Ok(mut node) = saved_row_query.single_mut() {
                 node.display = Display::Flex;
@@ -579,7 +632,7 @@ fn update_file_display(
             // Convert SystemTime to DateTime<Local> for human-readable formatting
             let datetime: DateTime<Local> = export_time.into();
             *text = Text::new(datetime.format("%Y-%m-%d %H:%M:%S").to_string());
-            
+
             // Show the exported row
             if let Ok(mut node) = exported_row_query.single_mut() {
                 node.display = Display::Flex;
@@ -590,16 +643,9 @@ fn update_file_display(
 
 /// Handles master button interactions
 fn handle_master_buttons(
-    interaction_query: Query<
-        (&Interaction, &MasterButton),
-        Changed<Interaction>,
-    >,
+    interaction_query: Query<(&Interaction, &MasterButton), Changed<Interaction>>,
     mut file_info: ResMut<FileInfo>,
-    mut all_buttons: Query<(
-        &MasterButton,
-        &mut BackgroundColor,
-        &mut BorderColor,
-    )>,
+    mut all_buttons: Query<(&MasterButton, &mut BackgroundColor, &mut BorderColor)>,
     mut switch_events: EventWriter<SwitchMasterEvent>,
 ) {
     for (interaction, button) in interaction_query.iter() {
@@ -624,8 +670,11 @@ fn handle_master_buttons(
                 }
 
                 if let Some(current_master) = file_info.masters.get(button.master_index) {
-                    info!("Switching to UFO master: {} ({})", current_master.style_name, current_master.filename);
-                    
+                    info!(
+                        "Switching to UFO master: {} ({})",
+                        current_master.style_name, current_master.filename
+                    );
+
                     // Send event to handle the actual master switching
                     switch_events.write(SwitchMasterEvent {
                         master_index: button.master_index,
@@ -646,14 +695,20 @@ fn handle_switch_master_events(
     sort_query: Query<Entity, With<crate::editing::sort::Sort>>,
 ) {
     for event in switch_events.read() {
-        info!("🔄 Processing master switch event: switching to master {} at path: {}", 
-              event.master_index, event.master_path.display());
+        info!(
+            "🔄 Processing master switch event: switching to master {} at path: {}",
+            event.master_index,
+            event.master_path.display()
+        );
 
         // Step 1: Try to load the new FontIR state from the master UFO file
         match FontIRAppState::from_path(event.master_path.clone()) {
             Ok(new_fontir_state) => {
-                info!("✅ Successfully loaded new FontIR state from: {}", event.master_path.display());
-                
+                info!(
+                    "✅ Successfully loaded new FontIR state from: {}",
+                    event.master_path.display()
+                );
+
                 // Step 2: Replace the existing FontIR state
                 if let Some(ref mut current_fontir) = fontir_state {
                     **current_fontir = new_fontir_state;
@@ -670,26 +725,33 @@ fn handle_switch_master_events(
                 for (&_buffer_index, &entity) in buffer_entities.entities.iter() {
                     if sort_query.get(entity).is_ok() {
                         commands.entity(entity).despawn();
-                        info!("🗑️ Despawned sort entity {:?} to force refresh with new master", entity);
+                        info!(
+                            "🗑️ Despawned sort entity {:?} to force refresh with new master",
+                            entity
+                        );
                     }
                 }
 
                 // The buffer entities will be cleared by despawn_missing_buffer_sort_entities system
                 // and then recreated by spawn_missing_sort_entities system with the new FontIR data
 
-                info!("🔄 Master switch complete - sorts will be recreated with new advance widths");
+                info!(
+                    "🔄 Master switch complete - sorts will be recreated with new advance widths"
+                );
             }
             Err(e) => {
-                error!("❌ Failed to load FontIR state from {}: {}", event.master_path.display(), e);
+                error!(
+                    "❌ Failed to load FontIR state from {}: {}",
+                    event.master_path.display(),
+                    e
+                );
             }
         }
     }
 }
 
 /// Shows/hides the file pane (always visible for now, but could be toggled later)
-fn toggle_file_pane_visibility(
-    mut file_pane: Query<&mut Visibility, With<FilePane>>,
-) {
+fn toggle_file_pane_visibility(mut file_pane: Query<&mut Visibility, With<FilePane>>) {
     // For now, always keep the file pane visible
     for mut visibility in file_pane.iter_mut() {
         *visibility = Visibility::Visible;

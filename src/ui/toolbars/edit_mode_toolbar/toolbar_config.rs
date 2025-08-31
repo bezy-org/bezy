@@ -88,7 +88,7 @@ pub const TOOLBAR_TOOLS: &[ToolConfig] = &[
         order: 15,
         id: "pan",
         name: "Pan",
-        icon: "\u{E014}", // Hand icon (FIXED - was E015, now E014)
+        icon: "\u{E014}",    // Hand icon (FIXED - was E015, now E014)
         shortcut: Some(' '), // Spacebar
         enabled: true,
         behavior: ToolBehavior::Pan,
@@ -182,8 +182,7 @@ pub const TOOLBAR_TOOLS: &[ToolConfig] = &[
 impl ToolConfig {
     /// Get all enabled tools sorted by order
     pub fn get_enabled_tools() -> Vec<&'static ToolConfig> {
-        let mut tools: Vec<_> =
-            TOOLBAR_TOOLS.iter().filter(|tool| tool.enabled).collect();
+        let mut tools: Vec<_> = TOOLBAR_TOOLS.iter().filter(|tool| tool.enabled).collect();
 
         tools.sort_by_key(|tool| tool.order);
         tools

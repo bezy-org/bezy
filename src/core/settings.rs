@@ -67,10 +67,8 @@ impl BezySettings {
     pub fn apply_grid_snap(&self, position: Vec2) -> Vec2 {
         if self.grid.enabled {
             Vec2::new(
-                (position.x / self.grid.unit_size).round()
-                    * self.grid.unit_size,
-                (position.y / self.grid.unit_size).round()
-                    * self.grid.unit_size,
+                (position.x / self.grid.unit_size).round() * self.grid.unit_size,
+                (position.y / self.grid.unit_size).round() * self.grid.unit_size,
             )
         } else {
             position

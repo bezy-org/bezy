@@ -51,12 +51,8 @@ pub fn handle_selection_shortcuts(
     selectable_query: Query<Entity, With<Selectable>>,
     mut selection_state: ResMut<SelectionState>,
     mut event_writer: EventWriter<EditEvent>,
-    select_mode: Option<
-        Res<crate::ui::toolbars::edit_mode_toolbar::select::SelectModeActive>,
-    >,
-    knife_mode: Option<
-        Res<crate::ui::toolbars::edit_mode_toolbar::knife::KnifeModeActive>,
-    >,
+    select_mode: Option<Res<crate::ui::toolbars::edit_mode_toolbar::select::SelectModeActive>>,
+    knife_mode: Option<Res<crate::ui::toolbars::edit_mode_toolbar::knife::KnifeModeActive>>,
     text_editor_state: Option<Res<crate::core::state::TextEditorState>>,
 ) {
     // Skip processing shortcuts if knife mode is active
@@ -148,9 +144,7 @@ pub fn update_glyph_data_from_selection(
     mut app_state: ResMut<AppState>,
     // Track if we're in a nudging operation
     _nudge_state: Res<crate::editing::selection::nudge::NudgeState>,
-    knife_mode: Option<
-        Res<crate::ui::toolbars::edit_mode_toolbar::knife::KnifeModeActive>,
-    >,
+    knife_mode: Option<Res<crate::ui::toolbars::edit_mode_toolbar::knife::KnifeModeActive>>,
 ) {
     // Skip processing if knife mode is active
     if let Some(knife_mode) = knife_mode {
@@ -176,27 +170,24 @@ pub fn update_glyph_data_from_selection(
 
     for (transform, point_ref, sort_point_entity_opt) in query.iter() {
         // Default to world position if we can't get sort position
-        let (relative_x, relative_y) =
-            if let Some(sort_point_entity) = sort_point_entity_opt {
-                if let Ok((_sort, sort_transform)) =
-                    sort_query.get(sort_point_entity.sort_entity)
-                {
-                    let world_pos = transform.translation.truncate();
-                    let sort_pos = sort_transform.translation.truncate();
-                    let rel = world_pos - sort_pos;
-                    (rel.x as f64, rel.y as f64)
-                } else {
-                    (
-                        transform.translation.x as f64,
-                        transform.translation.y as f64,
-                    )
-                }
+        let (relative_x, relative_y) = if let Some(sort_point_entity) = sort_point_entity_opt {
+            if let Ok((_sort, sort_transform)) = sort_query.get(sort_point_entity.sort_entity) {
+                let world_pos = transform.translation.truncate();
+                let sort_pos = sort_transform.translation.truncate();
+                let rel = world_pos - sort_pos;
+                (rel.x as f64, rel.y as f64)
             } else {
                 (
                     transform.translation.x as f64,
                     transform.translation.y as f64,
                 )
-            };
+            }
+        } else {
+            (
+                transform.translation.x as f64,
+                transform.translation.y as f64,
+            )
+        };
 
         let updated = app_state.set_point_position(
             &point_ref.glyph_name,
@@ -220,9 +211,7 @@ pub fn update_glyph_data_from_selection(
             any_updates = true;
             debug!(
                 "Updated UFO glyph data for point {} in contour {} of glyph {}",
-                point_ref.point_index,
-                point_ref.contour_index,
-                point_ref.glyph_name
+                point_ref.point_index, point_ref.contour_index, point_ref.glyph_name
             );
         } else {
             warn!(
@@ -234,7 +223,10 @@ pub fn update_glyph_data_from_selection(
 
     // Log the results
     if any_updates {
-        info!("[update_glyph_data_from_selection] Successfully updated {} outline points", query.iter().count());
+        info!(
+            "[update_glyph_data_from_selection] Successfully updated {} outline points",
+            query.iter().count()
+        );
     } else {
         info!("[update_glyph_data_from_selection] No outline updates needed");
     }
@@ -245,18 +237,13 @@ pub fn spawn_active_sort_points(
     mut commands: Commands,
     active_sort_state: Res<crate::editing::sort::ActiveSortState>,
     sort_query: Query<(Entity, &crate::editing::sort::Sort, &Transform)>,
-    point_entities: Query<
-        Entity,
-        With<crate::systems::sort_manager::SortPointEntity>,
-    >,
+    point_entities: Query<Entity, With<crate::systems::sort_manager::SortPointEntity>>,
     app_state: Res<AppState>,
     _selection_state: ResMut<crate::editing::selection::SelectionState>,
 ) {
     // Only spawn points if there's an active sort
     if let Some(active_sort_entity) = active_sort_state.active_sort_entity {
-        if let Ok((sort_entity, sort, transform)) =
-            sort_query.get(active_sort_entity)
-        {
+        if let Ok((sort_entity, sort, transform)) = sort_query.get(active_sort_entity) {
             // Check if points already exist for this sort
             let existing_points = point_entities.iter().any(|_entity| {
                 // Check if points already exist for this sort
@@ -269,21 +256,15 @@ pub fn spawn_active_sort_points(
                       sort.glyph_name, position);
 
                 // Get glyph data for the active sort
-                if let Some(glyph_data) =
-                    app_state.workspace.font.get_glyph(&sort.glyph_name)
-                {
+                if let Some(glyph_data) = app_state.workspace.font.get_glyph(&sort.glyph_name) {
                     if let Some(outline) = &glyph_data.outline {
                         let mut point_count = 0;
 
-                        for (contour_index, contour) in
-                            outline.contours.iter().enumerate()
-                        {
-                            for (point_index, point) in
-                                contour.points.iter().enumerate()
-                            {
+                        for (contour_index, contour) in outline.contours.iter().enumerate() {
+                            for (point_index, point) in contour.points.iter().enumerate() {
                                 // Calculate world position: sort position + point offset
-                                let point_world_pos = position
-                                    + Vec2::new(point.x as f32, point.y as f32);
+                                let point_world_pos =
+                                    position + Vec2::new(point.x as f32, point.y as f32);
                                 point_count += 1;
 
                                 // Debug: Print first few point positions
@@ -292,39 +273,53 @@ pub fn spawn_active_sort_points(
                                           point_count, point.x, point.y, point_world_pos.x, point_world_pos.y);
                                 }
 
-                                let glyph_point_ref = crate::editing::selection::components::GlyphPointReference {
-                                    glyph_name: sort.glyph_name.clone(),
-                                    contour_index,
-                                    point_index,
-                                };
+                                let glyph_point_ref =
+                                    crate::editing::selection::components::GlyphPointReference {
+                                        glyph_name: sort.glyph_name.clone(),
+                                        contour_index,
+                                        point_index,
+                                    };
 
-                                let _entity = commands.spawn((
-                                    crate::geometry::point::EditPoint {
-                                        position: kurbo::Point::new(point.x, point.y),
-                                        point_type: point.point_type,
-                                    },
-                                    glyph_point_ref,
-                                    crate::editing::selection::components::PointType {
-                                        is_on_curve: matches!(point.point_type,
+                                let _entity = commands
+                                    .spawn((
+                                        crate::geometry::point::EditPoint {
+                                            position: kurbo::Point::new(point.x, point.y),
+                                            point_type: point.point_type,
+                                        },
+                                        glyph_point_ref,
+                                        crate::editing::selection::components::PointType {
+                                            is_on_curve: matches!(point.point_type,
                                             crate::core::state::font_data::PointTypeData::Move |
                                             crate::core::state::font_data::PointTypeData::Line |
                                             crate::core::state::font_data::PointTypeData::Curve),
-                                    },
-                                    Transform::from_translation(point_world_pos.extend(0.0)),
-                                    Visibility::Visible,
-                                    InheritedVisibility::default(),
-                                    ViewVisibility::default(),
-                                    crate::editing::selection::components::Selectable,
-                                    crate::systems::sort_manager::SortPointEntity { sort_entity },
-                                )).id();
+                                        },
+                                        Transform::from_translation(point_world_pos.extend(0.0)),
+                                        Visibility::Visible,
+                                        InheritedVisibility::default(),
+                                        ViewVisibility::default(),
+                                        crate::editing::selection::components::Selectable,
+                                        crate::systems::sort_manager::SortPointEntity {
+                                            sort_entity,
+                                        },
+                                    ))
+                                    .id();
                             }
                         }
-                        info!("[spawn_active_sort_points] Successfully spawned {} point entities", point_count);
+                        info!(
+                            "[spawn_active_sort_points] Successfully spawned {} point entities",
+                            point_count
+                        );
                     } else {
-                        warn!("[spawn_active_sort_points] No outline found for glyph '{}'", sort.glyph_name);
+                        warn!(
+                            "[spawn_active_sort_points] No outline found for glyph '{}'",
+                            sort.glyph_name
+                        );
                     }
                 } else {
-                    warn!("[spawn_active_sort_points] No glyph data found for '{}'", sort.glyph_name);
+                    warn!(
+                        "[spawn_active_sort_points] No glyph data found for '{}'",
+                        sort.glyph_name
+                    );
                 }
             } else {
                 debug!("[spawn_active_sort_points] Points already exist for active sort, skipping spawn");
@@ -333,9 +328,7 @@ pub fn spawn_active_sort_points(
             warn!("[spawn_active_sort_points] Active sort entity not found in sort query");
         }
     } else {
-        debug!(
-            "[spawn_active_sort_points] No active sort, skipping point spawn"
-        );
+        debug!("[spawn_active_sort_points] No active sort, skipping point spawn");
     }
 }
 
@@ -343,26 +336,28 @@ pub fn spawn_active_sort_points(
 pub fn despawn_inactive_sort_points(
     mut commands: Commands,
     active_sort_state: Res<crate::editing::sort::ActiveSortState>,
-    point_entities: Query<(
-        Entity,
-        &crate::systems::sort_manager::SortPointEntity,
-    )>,
+    point_entities: Query<(Entity, &crate::systems::sort_manager::SortPointEntity)>,
     mut selection_state: ResMut<crate::editing::selection::SelectionState>,
 ) {
     // Despawn points for sorts that are no longer active
     for (entity, sort_point) in point_entities.iter() {
-        let is_active = active_sort_state.active_sort_entity
-            == Some(sort_point.sort_entity);
+        let is_active = active_sort_state.active_sort_entity == Some(sort_point.sort_entity);
 
         if !is_active {
             // Remove from selection state if selected
             if selection_state.selected.contains(&entity) {
                 selection_state.selected.remove(&entity);
-                info!("[despawn_inactive_sort_points] Removed despawned entity {:?} from selection", entity);
+                info!(
+                    "[despawn_inactive_sort_points] Removed despawned entity {:?} from selection",
+                    entity
+                );
             }
 
             commands.entity(entity).despawn();
-            debug!("[despawn_inactive_sort_points] Despawned point entity {:?} for inactive sort {:?}", entity, sort_point.sort_entity);
+            debug!(
+                "[despawn_inactive_sort_points] Despawned point entity {:?} for inactive sort {:?}",
+                entity, sort_point.sort_entity
+            );
         }
     }
 }
@@ -392,28 +387,17 @@ pub fn sync_point_positions_to_sort(
     }
 
     // Then update all point transforms based on the collected positions
-    for (mut point_transform, sort_point, glyph_ref) in
-        param_set.p1().iter_mut()
-    {
-        if let Some((glyph_name, position)) =
-            sort_positions.get(&sort_point.sort_entity)
-        {
+    for (mut point_transform, sort_point, glyph_ref) in param_set.p1().iter_mut() {
+        if let Some((glyph_name, position)) = sort_positions.get(&sort_point.sort_entity) {
             // Get the original point data from the glyph
-            if let Some(glyph_data) =
-                app_state.workspace.font.get_glyph(glyph_name)
-            {
+            if let Some(glyph_data) = app_state.workspace.font.get_glyph(glyph_name) {
                 if let Some(outline) = &glyph_data.outline {
-                    if let Some(contour) =
-                        outline.contours.get(glyph_ref.contour_index)
-                    {
-                        if let Some(point) =
-                            contour.points.get(glyph_ref.point_index)
-                        {
+                    if let Some(contour) = outline.contours.get(glyph_ref.contour_index) {
+                        if let Some(point) = contour.points.get(glyph_ref.point_index) {
                             // Calculate new world position: sort position + original point offset
-                            let point_world_pos = *position
-                                + Vec2::new(point.x as f32, point.y as f32);
-                            point_transform.translation =
-                                point_world_pos.extend(0.0);
+                            let point_world_pos =
+                                *position + Vec2::new(point.x as f32, point.y as f32);
+                            point_transform.translation = point_world_pos.extend(0.0);
 
                             debug!("[sync_point_positions_to_sort] Updated point {} in contour {} to position {:?}", 
                                    glyph_ref.point_index, glyph_ref.contour_index, point_world_pos);
@@ -438,8 +422,7 @@ pub fn handle_key_releases(
         KeyCode::ArrowDown,
     ];
 
-    let any_arrow_pressed =
-        arrow_keys.iter().any(|key| keyboard_input.pressed(*key));
+    let any_arrow_pressed = arrow_keys.iter().any(|key| keyboard_input.pressed(*key));
 
     if !any_arrow_pressed {
         nudge_state.is_nudging = false;
@@ -499,8 +482,7 @@ pub fn handle_point_drag(
         let mut movement = total_movement;
 
         // Handle constrained movement with Shift key
-        if keyboard_input.pressed(KeyCode::ShiftLeft)
-            || keyboard_input.pressed(KeyCode::ShiftRight)
+        if keyboard_input.pressed(KeyCode::ShiftLeft) || keyboard_input.pressed(KeyCode::ShiftRight)
         {
             if total_movement.x.abs() > total_movement.y.abs() {
                 movement.y = 0.0; // Constrain to horizontal
@@ -511,17 +493,8 @@ pub fn handle_point_drag(
 
         let mut updated_count = 0;
 
-        for (
-            entity,
-            mut transform,
-            mut coordinates,
-            point_ref,
-            sort_crosshair,
-        ) in &mut query
-        {
-            if let Some(original_pos) =
-                drag_point_state.original_positions.get(&entity)
-            {
+        for (entity, mut transform, mut coordinates, point_ref, sort_crosshair) in &mut query {
+            if let Some(original_pos) = drag_point_state.original_positions.get(&entity) {
                 let new_pos = *original_pos + movement;
 
                 // Handle sort crosshair drag (no snapping, keep on top)
@@ -606,20 +579,21 @@ pub fn process_selection_input_events(
     mut selection_state: ResMut<SelectionState>,
     active_sort_state: Res<crate::editing::sort::ActiveSortState>,
     sort_point_entities: Query<&crate::systems::sort_manager::SortPointEntity>,
-    select_mode: Option<
-        Res<crate::ui::toolbars::edit_mode_toolbar::select::SelectModeActive>,
-    >,
+    select_mode: Option<Res<crate::ui::toolbars::edit_mode_toolbar::select::SelectModeActive>>,
     text_editor_state: ResMut<TextEditorState>,
     app_state: Res<crate::core::state::AppState>,
 ) {
     debug!("[process_selection_input_events] Called");
-    
+
     // Check if select tool is active by checking InputMode
-    if !crate::core::io::input::helpers::is_input_mode(&input_state, crate::core::io::input::InputMode::Select) {
+    if !crate::core::io::input::helpers::is_input_mode(
+        &input_state,
+        crate::core::io::input::InputMode::Select,
+    ) {
         debug!("[process_selection_input_events] Not in Select input mode, returning early");
         return;
     }
-    
+
     // Only process if in select mode
     if let Some(select_mode) = select_mode {
         if !select_mode.0 {
@@ -650,20 +624,17 @@ pub fn process_selection_input_events(
                     let world_position = position.to_raw();
                     let handle_tolerance = 50.0;
                     let font_metrics = &app_state.workspace.info.metrics;
-                    debug!("[sort-handle-hit] Click at world position: ({:.1}, {:.1})", world_position.x, world_position.y);
+                    debug!(
+                        "[sort-handle-hit] Click at world position: ({:.1}, {:.1})",
+                        world_position.x, world_position.y
+                    );
                     // Print all handle positions and distances
                     for i in 0..text_editor_state.buffer.len() {
                         if let Some(_sort) = text_editor_state.buffer.get(i) {
-                            if let Some(sort_pos) =
-                                text_editor_state.get_sort_visual_position(i)
-                            {
-                                let descender =
-                                    font_metrics.descender.unwrap_or(-200.0)
-                                        as f32;
-                                let handle_pos =
-                                    sort_pos + Vec2::new(0.0, descender);
-                                let distance =
-                                    world_position.distance(handle_pos);
+                            if let Some(sort_pos) = text_editor_state.get_sort_visual_position(i) {
+                                let descender = font_metrics.descender.unwrap_or(-200.0) as f32;
+                                let handle_pos = sort_pos + Vec2::new(0.0, descender);
+                                let distance = world_position.distance(handle_pos);
                                 debug!("[sort-handle-hit] Sort {}: handle_pos=({:.1}, {:.1}), distance={:.1}, tolerance={:.1}",
                                     i, handle_pos.x, handle_pos.y, distance, handle_tolerance);
                             }
@@ -676,7 +647,10 @@ pub fn process_selection_input_events(
                             Some(font_metrics),
                         )
                     {
-                        debug!("[process_selection_input_events] Clicked near sort handle at index {}", clicked_sort_index);
+                        debug!(
+                            "[process_selection_input_events] Clicked near sort handle at index {}",
+                            clicked_sort_index
+                        );
                         let is_ctrl_held = modifiers.ctrl;
                         if is_ctrl_held {
                             // OLD: ECS-based selection: activate the clicked sort directly
@@ -721,8 +695,10 @@ pub fn process_selection_input_events(
                 modifiers,
             } => {
                 if *button == MouseButton::Left {
-                    debug!("Selection: Processing mouse drag from {:?} to {:?} with modifiers {:?}",
-                          start_position, current_position, modifiers);
+                    debug!(
+                        "Selection: Processing mouse drag from {:?} to {:?} with modifiers {:?}",
+                        start_position, current_position, modifiers
+                    );
                     debug!(
                         "Selection: active_sort_entity={:?}",
                         active_sort_state.active_sort_entity
@@ -758,7 +734,10 @@ pub fn process_selection_input_events(
                 modifiers,
             } => {
                 if *button == MouseButton::Left {
-                    debug!("Selection: Processing mouse release at {:?} with modifiers {:?}", position, modifiers);
+                    debug!(
+                        "Selection: Processing mouse release at {:?} with modifiers {:?}",
+                        position, modifiers
+                    );
                     // Always handle mouse release for selection, regardless of active sort state
                     handle_selection_release(
                         &mut commands,
@@ -775,10 +754,12 @@ pub fn process_selection_input_events(
             crate::core::io::input::InputEvent::KeyPress { key, modifiers } => {
                 if matches!(
                     key,
-                    bevy::input::keyboard::KeyCode::KeyA
-                        | bevy::input::keyboard::KeyCode::Escape
+                    bevy::input::keyboard::KeyCode::KeyA | bevy::input::keyboard::KeyCode::Escape
                 ) {
-                    debug!("Selection: Processing key press {:?} with modifiers {:?}", key, modifiers);
+                    debug!(
+                        "Selection: Processing key press {:?} with modifiers {:?}",
+                        key, modifiers
+                    );
                     // Always handle key presses for selection, regardless of active sort state
                     // Use a dummy entity if no active sort exists
                     let active_sort_entity = active_sort_state
@@ -947,9 +928,7 @@ pub fn handle_selection_click(
             if let Some(glyph_ref) = glyph_ref {
                 debug!(
                     "Selected point in glyph '{}', contour {}, point {}",
-                    glyph_ref.glyph_name,
-                    glyph_ref.contour_index,
-                    glyph_ref.point_index
+                    glyph_ref.glyph_name, glyph_ref.contour_index, glyph_ref.point_index
                 );
             }
         }
@@ -967,8 +946,7 @@ pub fn handle_selection_click(
         drag_point_state.current_position = Some(cursor_pos);
 
         // Include all currently selected entities in the drag operation
-        drag_point_state.dragged_entities =
-            selection_state.selected.iter().cloned().collect();
+        drag_point_state.dragged_entities = selection_state.selected.iter().cloned().collect();
         debug!(
             "Starting drag with {} entities",
             drag_point_state.dragged_entities.len()
@@ -978,8 +956,7 @@ pub fn handle_selection_click(
         drag_point_state.original_positions.clear();
         for (entity, transform) in selected_query.iter() {
             if selection_state.selected.contains(&entity) {
-                let pos =
-                    Vec2::new(transform.translation.x, transform.translation.y);
+                let pos = Vec2::new(transform.translation.x, transform.translation.y);
                 drag_point_state.original_positions.insert(entity, pos);
             }
         }
@@ -1037,14 +1014,19 @@ pub fn handle_selection_drag(
     >,
     selection_state: &mut ResMut<SelectionState>,
     _active_sort_entity: Entity,
-    _sort_point_entities: &Query<
-        &crate::systems::sort_manager::SortPointEntity,
-    >,
+    _sort_point_entities: &Query<&crate::systems::sort_manager::SortPointEntity>,
     _selection_rect_query: &Query<Entity, With<SelectionRect>>,
 ) {
-    info!("[handle_selection_drag] Called: start={:?}, current={:?}, delta={:?}, is_dragging={}", start_position, current_position, delta, drag_state.is_dragging);
+    info!(
+        "[handle_selection_drag] Called: start={:?}, current={:?}, delta={:?}, is_dragging={}",
+        start_position, current_position, delta, drag_state.is_dragging
+    );
     if !drag_state.is_dragging {
-        info!("[handle_selection_drag] Starting new drag selection at start={:?}, end={:?}", start_position.to_raw(), current_position.to_raw());
+        info!(
+            "[handle_selection_drag] Starting new drag selection at start={:?}, end={:?}",
+            start_position.to_raw(),
+            current_position.to_raw()
+        );
 
         // Initialize drag state
         drag_state.is_dragging = true;
@@ -1054,8 +1036,7 @@ pub fn handle_selection_drag(
 
         // Store previous selection for multi-select
         if modifiers.shift {
-            drag_state.previous_selection =
-                selection_state.selected.iter().cloned().collect();
+            drag_state.previous_selection = selection_state.selected.iter().cloned().collect();
         }
 
         // Spawn selection rectangle entity
@@ -1094,7 +1075,10 @@ pub fn handle_selection_drag(
                     current_position.to_raw()
                 );
             } else {
-                info!("ERROR: Could not get entity commands for SelectionRect entity {:?}", rect_entity);
+                info!(
+                    "ERROR: Could not get entity commands for SelectionRect entity {:?}",
+                    rect_entity
+                );
             }
         } else {
             info!("ERROR: No SelectionRect entity found in drag_state!");
@@ -1146,9 +1130,7 @@ pub fn handle_selection_drag(
         // Collect entity positions for debugging and coordinate system analysis
         let entity_positions: Vec<(Entity, Vec2)> = selectable_query
             .iter()
-            .map(|(entity, transform, _, _)| {
-                (entity, transform.translation().truncate())
-            })
+            .map(|(entity, transform, _, _)| (entity, transform.translation().truncate()))
             .collect();
 
         // Use centralized coordinate system for debugging
@@ -1167,10 +1149,11 @@ pub fn handle_selection_drag(
                 &current_pos,
             ) {
                 points_in_rect += 1;
-                info!("Selection: Entity {:?} is inside marquee rect! Position: {:?}", entity, entity_pos);
-                if drag_state.is_multi_select
-                    && drag_state.previous_selection.contains(entity)
-                {
+                info!(
+                    "Selection: Entity {:?} is inside marquee rect! Position: {:?}",
+                    entity, entity_pos
+                );
+                if drag_state.is_multi_select && drag_state.previous_selection.contains(entity) {
                     // Toggle off if previously selected
                     selection_state.selected.remove(entity);
                     commands.entity(*entity).remove::<Selected>();
@@ -1185,41 +1168,31 @@ pub fn handle_selection_drag(
             } else {
                 // Debug: Show why entity is not selected using centralized coordinate system
                 let rect_entity_start =
-                    SelectionCoordinateSystem::design_to_entity_coordinates(
-                        &start_pos,
-                    );
+                    SelectionCoordinateSystem::design_to_entity_coordinates(&start_pos);
                 let rect_entity_end =
-                    SelectionCoordinateSystem::design_to_entity_coordinates(
-                        &current_pos,
-                    );
+                    SelectionCoordinateSystem::design_to_entity_coordinates(&current_pos);
 
-                let distance_x = if entity_pos.x
-                    < rect_entity_start.x.min(rect_entity_end.x)
-                {
+                let distance_x = if entity_pos.x < rect_entity_start.x.min(rect_entity_end.x) {
                     rect_entity_start.x.min(rect_entity_end.x) - entity_pos.x
-                } else if entity_pos.x
-                    > rect_entity_start.x.max(rect_entity_end.x)
-                {
+                } else if entity_pos.x > rect_entity_start.x.max(rect_entity_end.x) {
                     entity_pos.x - rect_entity_start.x.max(rect_entity_end.x)
                 } else {
                     0.0
                 };
 
-                let distance_y = if entity_pos.y
-                    < rect_entity_start.y.min(rect_entity_end.y)
-                {
+                let distance_y = if entity_pos.y < rect_entity_start.y.min(rect_entity_end.y) {
                     rect_entity_start.y.min(rect_entity_end.y) - entity_pos.y
-                } else if entity_pos.y
-                    > rect_entity_start.y.max(rect_entity_end.y)
-                {
+                } else if entity_pos.y > rect_entity_start.y.max(rect_entity_end.y) {
                     entity_pos.y - rect_entity_start.y.max(rect_entity_end.y)
                 } else {
                     0.0
                 };
 
                 if distance_x > 0.0 || distance_y > 0.0 {
-                    info!("Selection: Entity {:?} outside rect - X: {:.1} units, Y: {:.1} units", 
-                          entity, distance_x, distance_y);
+                    info!(
+                        "Selection: Entity {:?} outside rect - X: {:.1} units, Y: {:.1} units",
+                        entity, distance_x, distance_y
+                    );
                 }
             }
         }
@@ -1317,9 +1290,7 @@ pub fn handle_selection_key_press(
 
                 for (entity, _, _, _) in selectable_query.iter() {
                     // Check if this entity belongs to the active sort
-                    if let Ok(sort_point_entity) =
-                        sort_point_entities.get(entity)
-                    {
+                    if let Ok(sort_point_entity) = sort_point_entities.get(entity) {
                         if sort_point_entity.sort_entity != active_sort_entity {
                             continue; // Skip points that don't belong to the active sort
                         }
@@ -1356,9 +1327,7 @@ pub fn handle_selection_key_press(
 }
 
 /// TEMP: Debug system to print all SelectionRect entities every frame
-pub fn debug_print_selection_rects(
-    selection_rects: Query<(Entity, &SelectionRect)>,
-) {
+pub fn debug_print_selection_rects(selection_rects: Query<(Entity, &SelectionRect)>) {
     let count = selection_rects.iter().count();
     if count > 0 {
         info!(
@@ -1501,21 +1470,19 @@ mod tests {
 
         // This should fail because the coordinate systems don't match
         // The test documents the expected behavior
-        assert!(!in_rect, "Sort point should NOT be in marquee due to coordinate system mismatch");
+        assert!(
+            !in_rect,
+            "Sort point should NOT be in marquee due to coordinate system mismatch"
+        );
     }
 
     #[test]
     fn test_coordinate_system_conversion() {
         // Test the coordinate conversion functions
         let design_point = DPoint::new(100.0, 200.0);
-        let entity_coords =
-            SelectionCoordinateSystem::design_to_entity_coordinates(
-                &design_point,
-            );
+        let entity_coords = SelectionCoordinateSystem::design_to_entity_coordinates(&design_point);
         let back_to_design =
-            SelectionCoordinateSystem::entity_to_design_coordinates(
-                &entity_coords,
-            );
+            SelectionCoordinateSystem::entity_to_design_coordinates(&entity_coords);
 
         assert_eq!(
             design_point.to_raw(),
@@ -1586,14 +1553,15 @@ mod tests {
         let marquee_end = DPoint::from_raw(Vec2::new(233.0, 398.5));
 
         for (i, pos) in entity_positions.iter().enumerate() {
-            let in_rect = SelectionCoordinateSystem::is_point_in_rectangle(
-                pos,
-                &marquee_start,
-                &marquee_end,
-            );
+            let in_rect =
+                SelectionCoordinateSystem::is_point_in_rectangle(pos, &marquee_start, &marquee_end);
 
             // All should fail due to Y coordinate mismatch
-            assert!(!in_rect, "Entity {} should not be in marquee due to Y coordinate mismatch", i);
+            assert!(
+                !in_rect,
+                "Entity {} should not be in marquee due to Y coordinate mismatch",
+                i
+            );
         }
 
         // Test what Y coordinate the marquee would need to be at to select these entities
@@ -1642,7 +1610,10 @@ mod tests {
             }
         }
 
-        println!("Result: {} points in rect (correctly 0 due to old coordinate system bug)", points_in_rect);
+        println!(
+            "Result: {} points in rect (correctly 0 due to old coordinate system bug)",
+            points_in_rect
+        );
 
         // This test documents the old bug - it should pass (0 points selected)
         assert_eq!(

@@ -78,7 +78,7 @@ pub fn manage_measure_mode_state(
 ) {
     let is_measure_active = current_tool.get_current() == Some("measure");
     let current_mode = measure_mode.as_ref().map(|m| m.0).unwrap_or(false);
-    
+
     if is_measure_active && !current_mode {
         // Measure tool is active but mode is not set - activate it
         commands.insert_resource(MeasureModeActive(true));
@@ -98,9 +98,9 @@ pub fn update_measure_shift_state(
 ) {
     // Only update when measure tool is active
     if current_tool.get_current() == Some("measure") {
-        let shift_pressed = keyboard.pressed(KeyCode::ShiftLeft) 
-            || keyboard.pressed(KeyCode::ShiftRight);
-        
+        let shift_pressed =
+            keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
+
         // Only log when state changes to avoid spam
         if measure_consumer.shift_locked != shift_pressed {
             measure_consumer.shift_locked = shift_pressed;
@@ -129,30 +129,37 @@ pub fn render_measure_preview(
     fontir_state: Option<Res<crate::core::state::FontIRAppState>>,
 ) {
     // Check if tool is active
-    let is_measure_active = current_tool.get_current() == Some("measure") && 
-                           measure_mode.as_ref().map(|m| m.0).unwrap_or(false);
-    
+    let is_measure_active = current_tool.get_current() == Some("measure")
+        && measure_mode.as_ref().map(|m| m.0).unwrap_or(false);
+
     // Debug current state
-    info!("📏 RENDER_MEASURE_PREVIEW: current_tool={:?}, measure_mode={:?}, is_measure_active={}", 
-          current_tool.get_current(), measure_mode.as_ref().map(|m| m.0), is_measure_active);
-    info!("📏 RENDER_MEASURE_PREVIEW: measure_consumer.gesture={:?}", measure_consumer.gesture);
-    
+    info!(
+        "📏 RENDER_MEASURE_PREVIEW: current_tool={:?}, measure_mode={:?}, is_measure_active={}",
+        current_tool.get_current(),
+        measure_mode.as_ref().map(|m| m.0),
+        is_measure_active
+    );
+    info!(
+        "📏 RENDER_MEASURE_PREVIEW: measure_consumer.gesture={:?}",
+        measure_consumer.gesture
+    );
+
     // Only update if gesture state has changed, measure tool became active, or cleanup needed
     let gesture_changed = update_tracker.as_ref() != Some(&measure_consumer.gesture);
     let cleanup_needed = !measure_entities.is_empty() && !is_measure_active;
     let tool_became_active = is_measure_active && measure_entities.is_empty();
     let needs_update = gesture_changed || cleanup_needed || tool_became_active;
-    
+
     info!("📏 RENDER_MEASURE_PREVIEW: gesture_changed={}, cleanup_needed={}, tool_became_active={}, needs_update={}, measure_entities.len()={}", 
           gesture_changed, cleanup_needed, tool_became_active, needs_update, measure_entities.len());
-    
+
     if !needs_update {
         return; // Early exit for performance
     }
-    
+
     // Update tracking state
     *update_tracker = Some(measure_consumer.gesture);
-    
+
     // Clean up previous measure entities
     for entity in measure_entities.drain(..) {
         if let Ok(mut entity_commands) = commands.get_entity(entity) {
@@ -176,10 +183,13 @@ pub fn render_measure_preview(
 
     // Draw the measuring line
     if let Some((start, end)) = measure_consumer.get_measuring_line() {
-        debug!("📏 RENDER_MEASURE_PREVIEW: Drawing measuring line from {:?} to {:?}", start, end);
+        debug!(
+            "📏 RENDER_MEASURE_PREVIEW: Drawing measuring line from {:?} to {:?}",
+            start, end
+        );
         let line_color = theme.theme().active_color(); // Use bright active green for measure line
         let line_width = camera_scale.adjusted_line_width();
-        
+
         // Create solid line for measuring
         let line_entity = spawn_measure_line_mesh(
             &mut commands,
@@ -206,7 +216,7 @@ pub fn render_measure_preview(
             19.0, // z-order above line but below intersection points
         );
         measure_entities.push(point_entity);
-        
+
         // Draw end point (bright active green circle)
         let end_color = theme.theme().active_color();
         let end_point_entity = spawn_measure_point_mesh(
@@ -219,11 +229,17 @@ pub fn render_measure_preview(
             19.0, // z-order above line but below intersection points
         );
         measure_entities.push(end_point_entity);
-        
-        debug!("📏 RENDER_MEASURE_PREVIEW: Created {} visual entities for measure preview", measure_entities.len());
+
+        debug!(
+            "📏 RENDER_MEASURE_PREVIEW: Created {} visual entities for measure preview",
+            measure_entities.len()
+        );
     } else {
         // Log when we're not drawing
-        if matches!(measure_consumer.gesture, crate::systems::input_consumer::MeasureGestureState::Ready) {
+        if matches!(
+            measure_consumer.gesture,
+            crate::systems::input_consumer::MeasureGestureState::Ready
+        ) {
             debug!("📏 RENDER_MEASURE_PREVIEW: No measuring line to draw (Ready state)");
         }
     }
@@ -231,9 +247,9 @@ pub fn render_measure_preview(
     // Calculate and draw intersection points from actual glyph data
     if let Some((start, end)) = measure_consumer.get_measuring_line() {
         let intersections = calculate_measure_intersections(start, end, &fontir_state);
-        
+
         let intersection_color = theme.theme().action_color(); // Use orange action color for intersection points
-        
+
         for &intersection in &intersections {
             // Create orange filled circles for intersection points
             let intersection_size = camera_scale.adjusted_point_size(3.0);
@@ -248,15 +264,15 @@ pub fn render_measure_preview(
             );
             measure_entities.push(intersection_entity);
         }
-        
+
         // Calculate and display distance measurement
         if intersections.len() >= 2 {
             let distance = intersections[0].distance(intersections[1]);
             let midpoint = (intersections[0] + intersections[1]) * 0.5;
-            
+
             // Format distance value appropriately
             let distance_text = format!("{distance:.1}");
-            
+
             // Spawn pill-shaped background for text with higher z-orders
             let pill_entities = spawn_measure_text_with_pill_background(
                 &mut commands,
@@ -268,20 +284,23 @@ pub fn render_measure_preview(
                 &camera_scale,
             );
             measure_entities.extend(pill_entities);
-            
-            info!("📏 MEASURE: Distance between intersection points: {} units", distance_text);
+
+            info!(
+                "📏 MEASURE: Distance between intersection points: {} units",
+                distance_text
+            );
         }
     }
 }
 
 /// Calculate intersections between measure line and current glyph contours
 fn calculate_measure_intersections(
-    start: Vec2, 
-    end: Vec2, 
-    fontir_state: &Option<Res<crate::core::state::FontIRAppState>>
+    start: Vec2,
+    end: Vec2,
+    fontir_state: &Option<Res<crate::core::state::FontIRAppState>>,
 ) -> Vec<Vec2> {
     let mut intersections = Vec::new();
-    
+
     // Convert measuring line to kurbo Line for intersection testing
     let measuring_line = kurbo::Line::new(
         kurbo::Point::new(start.x as f64, start.y as f64),
@@ -292,17 +311,27 @@ fn calculate_measure_intersections(
     if let Some(fontir_state) = fontir_state {
         if let Some(ref current_glyph) = fontir_state.current_glyph {
             if let Some(paths) = fontir_state.get_glyph_paths_with_edits(current_glyph) {
-                debug!("📏 CALCULATE_MEASURE_INTERSECTIONS: Found {} paths for glyph '{}'", paths.len(), current_glyph);
+                debug!(
+                    "📏 CALCULATE_MEASURE_INTERSECTIONS: Found {} paths for glyph '{}'",
+                    paths.len(),
+                    current_glyph
+                );
                 for path in &paths {
                     let path_intersections = find_measure_path_intersections(path, &measuring_line);
                     for intersection in path_intersections {
                         intersections.push(Vec2::new(intersection.x as f32, intersection.y as f32));
                     }
                 }
-                debug!("📏 CALCULATE_MEASURE_INTERSECTIONS: Total intersections found: {}", intersections.len());
+                debug!(
+                    "📏 CALCULATE_MEASURE_INTERSECTIONS: Total intersections found: {}",
+                    intersections.len()
+                );
                 return intersections;
             } else {
-                info!("📏 CALCULATE_MEASURE_INTERSECTIONS: No paths found for glyph '{}'", current_glyph);
+                info!(
+                    "📏 CALCULATE_MEASURE_INTERSECTIONS: No paths found for glyph '{}'",
+                    current_glyph
+                );
             }
         } else {
             info!("📏 CALCULATE_MEASURE_INTERSECTIONS: No current glyph selected");
@@ -310,15 +339,18 @@ fn calculate_measure_intersections(
     } else {
         info!("📏 CALCULATE_MEASURE_INTERSECTIONS: No FontIR state available");
     }
-    
+
     intersections
 }
 
 /// Find intersections between a measuring line and a path (reuse knife tool logic)
-fn find_measure_path_intersections(path: &kurbo::BezPath, measuring_line: &kurbo::Line) -> Vec<kurbo::Point> {
+fn find_measure_path_intersections(
+    path: &kurbo::BezPath,
+    measuring_line: &kurbo::Line,
+) -> Vec<kurbo::Point> {
     let mut intersections = Vec::new();
     let mut current_point = kurbo::Point::ZERO;
-    
+
     for element in path.elements() {
         match element {
             kurbo::PathEl::MoveTo(pt) => {
@@ -326,7 +358,9 @@ fn find_measure_path_intersections(path: &kurbo::BezPath, measuring_line: &kurbo
             }
             kurbo::PathEl::LineTo(end) => {
                 let segment = kurbo::Line::new(current_point, *end);
-                if let Some(intersection_point) = line_line_intersection_simple(measuring_line, &segment) {
+                if let Some(intersection_point) =
+                    line_line_intersection_simple(measuring_line, &segment)
+                {
                     intersections.push(intersection_point);
                 }
                 current_point = *end;
@@ -346,14 +380,16 @@ fn find_measure_path_intersections(path: &kurbo::BezPath, measuring_line: &kurbo
             kurbo::PathEl::ClosePath => {
                 if let Some(start_point) = get_path_start_point(path) {
                     let segment = kurbo::Line::new(current_point, start_point);
-                    if let Some(intersection_point) = line_line_intersection_simple(measuring_line, &segment) {
+                    if let Some(intersection_point) =
+                        line_line_intersection_simple(measuring_line, &segment)
+                    {
                         intersections.push(intersection_point);
                     }
                 }
             }
         }
     }
-    
+
     intersections.dedup_by(|a, b| a.distance(*b) < 5.0);
     intersections
 }
@@ -364,16 +400,16 @@ fn line_line_intersection_simple(line1: &kurbo::Line, line2: &kurbo::Line) -> Op
     let p2 = line1.p1;
     let p3 = line2.p0;
     let p4 = line2.p1;
-    
+
     let denom = (p1.x - p2.x) * (p3.y - p4.y) - (p1.y - p2.y) * (p3.x - p4.x);
-    
+
     if denom.abs() < 1e-10 {
         return None;
     }
-    
+
     let t = ((p1.x - p3.x) * (p3.y - p4.y) - (p1.y - p3.y) * (p3.x - p4.x)) / denom;
     let u = -((p1.x - p2.x) * (p1.y - p3.y) - (p1.y - p2.y) * (p1.x - p3.x)) / denom;
-    
+
     if (0.0..=1.0).contains(&u) {
         Some(kurbo::Point::new(
             p1.x + t * (p2.x - p1.x),
@@ -384,16 +420,19 @@ fn line_line_intersection_simple(line1: &kurbo::Line, line2: &kurbo::Line) -> Op
     }
 }
 
-fn curve_line_intersections_simple(curve: &kurbo::CubicBez, line: &kurbo::Line) -> Vec<kurbo::Point> {
+fn curve_line_intersections_simple(
+    curve: &kurbo::CubicBez,
+    line: &kurbo::Line,
+) -> Vec<kurbo::Point> {
     let mut intersections = Vec::new();
     let curve_seg = kurbo::PathSeg::Cubic(*curve);
     let curve_intersections = curve_seg.intersect_line(*line);
-    
+
     for intersection in curve_intersections {
         let point = curve.eval(intersection.segment_t);
         intersections.push(point);
     }
-    
+
     intersections.dedup_by(|a, b| a.distance(*b) < 1.0);
     intersections
 }
@@ -402,12 +441,12 @@ fn quad_line_intersections_simple(curve: &kurbo::QuadBez, line: &kurbo::Line) ->
     let mut intersections = Vec::new();
     let curve_seg = kurbo::PathSeg::Quad(*curve);
     let curve_intersections = curve_seg.intersect_line(*line);
-    
+
     for intersection in curve_intersections {
         let point = curve.eval(intersection.segment_t);
         intersections.push(point);
     }
-    
+
     intersections.dedup_by(|a, b| a.distance(*b) < 1.0);
     intersections
 }
@@ -448,18 +487,23 @@ fn spawn_measure_line_mesh(
 
     let indices = vec![0, 1, 2, 0, 2, 3];
 
-    let mut mesh = bevy::render::mesh::Mesh::new(PrimitiveTopology::TriangleList, bevy::render::render_asset::RenderAssetUsages::default());
+    let mut mesh = bevy::render::mesh::Mesh::new(
+        PrimitiveTopology::TriangleList,
+        bevy::render::render_asset::RenderAssetUsages::default(),
+    );
     mesh.insert_attribute(bevy::render::mesh::Mesh::ATTRIBUTE_POSITION, vertices);
     mesh.insert_indices(Indices::U32(indices));
 
     let mesh_handle = meshes.add(mesh);
     let material_handle = materials.add(bevy::sprite::ColorMaterial::from(color));
 
-    commands.spawn((
-        bevy::render::mesh::Mesh2d(mesh_handle),
-        bevy::sprite::MeshMaterial2d(material_handle),
-        Transform::from_translation(Vec3::new(0.0, 0.0, z)),
-    )).id()
+    commands
+        .spawn((
+            bevy::render::mesh::Mesh2d(mesh_handle),
+            bevy::sprite::MeshMaterial2d(material_handle),
+            Transform::from_translation(Vec3::new(0.0, 0.0, z)),
+        ))
+        .id()
 }
 
 /// Spawn a point (circle) mesh for the measure tool
@@ -492,18 +536,23 @@ fn spawn_measure_point_mesh(
         indices.extend_from_slice(&[0, i + 1, i + 2]);
     }
 
-    let mut mesh = bevy::render::mesh::Mesh::new(PrimitiveTopology::TriangleList, bevy::render::render_asset::RenderAssetUsages::default());
+    let mut mesh = bevy::render::mesh::Mesh::new(
+        PrimitiveTopology::TriangleList,
+        bevy::render::render_asset::RenderAssetUsages::default(),
+    );
     mesh.insert_attribute(bevy::render::mesh::Mesh::ATTRIBUTE_POSITION, vertices);
     mesh.insert_indices(Indices::U32(indices));
 
     let mesh_handle = meshes.add(mesh);
     let material_handle = materials.add(bevy::sprite::ColorMaterial::from(color));
 
-    commands.spawn((
-        bevy::render::mesh::Mesh2d(mesh_handle),
-        bevy::sprite::MeshMaterial2d(material_handle),
-        Transform::from_translation(Vec3::new(0.0, 0.0, z)),
-    )).id()
+    commands
+        .spawn((
+            bevy::render::mesh::Mesh2d(mesh_handle),
+            bevy::sprite::MeshMaterial2d(material_handle),
+            Transform::from_translation(Vec3::new(0.0, 0.0, z)),
+        ))
+        .id()
 }
 
 /// Spawn a text label with pill-shaped background for distance measurement
@@ -517,17 +566,17 @@ fn spawn_measure_text_with_pill_background(
     camera_scale: &Res<crate::rendering::zoom_aware_scaling::CameraResponsiveScale>,
 ) -> Vec<Entity> {
     let mut entities = Vec::new();
-    
+
     // Calculate camera-responsive font size
     let base_font_size = 14.0;
     let scaled_font_size = base_font_size * camera_scale.scale_factor;
-    
+
     // Estimate text dimensions for background pill
     let text_width = text_content.len() as f32 * scaled_font_size * 0.6; // Rough estimation
     let text_height = scaled_font_size;
     let pill_width = text_width + (8.0 * camera_scale.scale_factor); // Padding
     let pill_height = text_height + (4.0 * camera_scale.scale_factor); // Padding
-    
+
     // Create pill-shaped background (rounded rectangle) using orange color
     let background_color = theme.theme().action_color(); // Same orange as hit points
     let pill_entity = spawn_pill_background_mesh(
@@ -541,20 +590,22 @@ fn spawn_measure_text_with_pill_background(
         100.0, // Much higher z-order below text
     );
     entities.push(pill_entity);
-    
+
     // Create text label on top using black color
     let text_color = Color::BLACK; // Black text for good contrast on orange
-    let text_entity = commands.spawn((
-        Text2d::new(text_content),
-        TextFont {
-            font_size: scaled_font_size,
-            ..default()
-        },
-        TextColor(text_color),
-        Transform::from_translation(Vec3::new(position.x, position.y, 200.0)), // Much higher z-order above background
-    )).id();
+    let text_entity = commands
+        .spawn((
+            Text2d::new(text_content),
+            TextFont {
+                font_size: scaled_font_size,
+                ..default()
+            },
+            TextColor(text_color),
+            Transform::from_translation(Vec3::new(position.x, position.y, 200.0)), // Much higher z-order above background
+        ))
+        .id();
     entities.push(text_entity);
-    
+
     entities
 }
 
@@ -576,32 +627,34 @@ fn spawn_pill_background_mesh(
     let radius = height * 0.5;
     let rect_width = width - height; // Width of the rectangular part
     let segments = 8; // Number of segments for each rounded end
-    
+
     let mut vertices = Vec::new();
     let mut indices = Vec::new();
-    
+
     // Center vertex for triangle fan
     vertices.push([position.x, position.y, z]);
     let center_index = 0;
-    
+
     // Left semicircle
     let left_center = position.x - rect_width * 0.5;
     for i in 0..=segments {
-        let angle = std::f32::consts::PI * 0.5 + (i as f32 / segments as f32) * std::f32::consts::PI;
+        let angle =
+            std::f32::consts::PI * 0.5 + (i as f32 / segments as f32) * std::f32::consts::PI;
         let x = left_center + radius * angle.cos();
         let y = position.y + radius * angle.sin();
         vertices.push([x, y, z]);
     }
-    
+
     // Right semicircle
     let right_center = position.x + rect_width * 0.5;
     for i in 0..=segments {
-        let angle = -std::f32::consts::PI * 0.5 + (i as f32 / segments as f32) * std::f32::consts::PI;
+        let angle =
+            -std::f32::consts::PI * 0.5 + (i as f32 / segments as f32) * std::f32::consts::PI;
         let x = right_center + radius * angle.cos();
         let y = position.y + radius * angle.sin();
         vertices.push([x, y, z]);
     }
-    
+
     // Create triangle fan indices
     let total_vertices = vertices.len() as u32;
     for i in 1..total_vertices {
@@ -609,16 +662,21 @@ fn spawn_pill_background_mesh(
         indices.extend_from_slice(&[center_index, i, next_i]);
     }
 
-    let mut mesh = bevy::render::mesh::Mesh::new(PrimitiveTopology::TriangleList, bevy::render::render_asset::RenderAssetUsages::default());
+    let mut mesh = bevy::render::mesh::Mesh::new(
+        PrimitiveTopology::TriangleList,
+        bevy::render::render_asset::RenderAssetUsages::default(),
+    );
     mesh.insert_attribute(bevy::render::mesh::Mesh::ATTRIBUTE_POSITION, vertices);
     mesh.insert_indices(Indices::U32(indices));
 
     let mesh_handle = meshes.add(mesh);
     let material_handle = materials.add(bevy::sprite::ColorMaterial::from(color));
 
-    commands.spawn((
-        bevy::render::mesh::Mesh2d(mesh_handle),
-        bevy::sprite::MeshMaterial2d(material_handle),
-        Transform::from_translation(Vec3::new(0.0, 0.0, z)),
-    )).id()
+    commands
+        .spawn((
+            bevy::render::mesh::Mesh2d(mesh_handle),
+            bevy::sprite::MeshMaterial2d(material_handle),
+            Transform::from_translation(Vec3::new(0.0, 0.0, z)),
+        ))
+        .id()
 }

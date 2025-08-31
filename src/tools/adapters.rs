@@ -15,9 +15,7 @@
 //! - **To add new tools**: Add to config, no manual adapters needed
 
 use super::*;
-use crate::ui::toolbars::edit_mode_toolbar::{
-    EditTool as LegacyEditTool, ToolId,
-};
+use crate::ui::toolbars::edit_mode_toolbar::{EditTool as LegacyEditTool, ToolId};
 use bevy::prelude::*;
 
 /// Adapter for the new select tool to work with legacy system
@@ -147,7 +145,7 @@ impl LegacyEditTool for TextToolAdapter {
 }
 
 /// ⚠️ DEPRECATED: Plugin to register all the clean tool adapters
-/// 
+///
 /// This plugin is now a no-op since the config-based system handles registration.
 /// It remains only for backward compatibility and will be removed.
 pub struct CleanToolsPlugin;
@@ -158,7 +156,9 @@ impl Plugin for CleanToolsPlugin {
         // This plugin is now redundant - all registration happens via toolbar_config.rs
 
         warn!("⚠️  CleanToolsPlugin is DEPRECATED - remove from your app.add_plugins()");
-        info!("✅ Use ConfigBasedToolbarPlugin instead (already included in EditModeToolbarPlugin)");
+        info!(
+            "✅ Use ConfigBasedToolbarPlugin instead (already included in EditModeToolbarPlugin)"
+        );
         info!("📝 To modify toolbar: Edit src/ui/toolbars/edit_mode_toolbar/toolbar_config.rs");
     }
 }
@@ -334,9 +334,7 @@ impl LegacyEditTool for MetaballsToolAdapter {
 /// This function is disabled - all tools are now registered automatically
 /// from the configuration in toolbar_config.rs
 fn _register_clean_tools_old_system(
-    mut _tool_registry: ResMut<
-        crate::ui::toolbars::edit_mode_toolbar::ToolRegistry,
-    >,
+    mut _tool_registry: ResMut<crate::ui::toolbars::edit_mode_toolbar::ToolRegistry>,
 ) {
     // 🚫 OLD SYSTEM - DO NOT USE
     // All tools are now automatically registered from toolbar_config.rs

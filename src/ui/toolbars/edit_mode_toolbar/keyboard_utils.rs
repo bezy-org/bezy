@@ -15,14 +15,15 @@ use bevy::prelude::*;
 pub fn should_disable_single_char_hotkeys<T1, T2>(
     text_mode_active: Option<&T1>,
     current_text_placement_mode: Option<&T2>,
-) -> bool 
+) -> bool
 where
     T1: AsRef<super::text::TextModeActive>,
     T2: AsRef<super::text::CurrentTextPlacementMode>,
 {
     // Check if we're in text insert mode
-    if let (Some(text_active), Some(placement_mode)) = 
-        (text_mode_active, current_text_placement_mode) {
+    if let (Some(text_active), Some(placement_mode)) =
+        (text_mode_active, current_text_placement_mode)
+    {
         // Disable single-char hotkeys when in text mode with Insert placement
         let text_active = text_active.as_ref();
         let placement_mode = placement_mode.as_ref();

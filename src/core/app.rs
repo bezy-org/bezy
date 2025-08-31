@@ -8,22 +8,20 @@ use crate::core::settings::{BezySettings, DEFAULT_WINDOW_SIZE, WINDOW_TITLE};
 use crate::core::state::GlyphNavigation;
 use crate::editing::{FontEditorSystemSetsPlugin, SelectionPlugin, TextEditorPlugin, UndoPlugin};
 use crate::rendering::{
-    zoom_aware_scaling::CameraResponsivePlugin, cameras::CameraPlugin,
-    checkerboard::CheckerboardPlugin, EntityPoolingPlugin, MeshCachingPlugin,
-    MetricsRenderingPlugin,
-    SortHandleRenderingPlugin, GlyphRenderingPlugin,
+    cameras::CameraPlugin, checkerboard::CheckerboardPlugin,
+    zoom_aware_scaling::CameraResponsivePlugin, EntityPoolingPlugin, GlyphRenderingPlugin,
+    MeshCachingPlugin, MetricsRenderingPlugin, SortHandleRenderingPlugin,
 };
 use crate::systems::{
-    exit_on_esc, load_fontir_font, create_startup_layout, center_camera_on_startup_layout,
-    BezySystems, CommandsPlugin, InputConsumerPlugin, HarfBuzzShapingPlugin, 
-    UiInteractionPlugin,
+    center_camera_on_startup_layout, create_startup_layout, exit_on_esc, load_fontir_font,
+    BezySystems, CommandsPlugin, HarfBuzzShapingPlugin, InputConsumerPlugin, UiInteractionPlugin,
 };
+use crate::ui::file_menu::FileMenuPlugin;
 use crate::ui::hud::HudPlugin;
-use crate::ui::panes::coord_pane::CoordinatePanePlugin;
+use crate::ui::panes::coordinate_pane::CoordinatePanePlugin;
 use crate::ui::panes::design_space::DesignSpacePlugin;
 use crate::ui::panes::file_pane::FilePanePlugin;
 use crate::ui::panes::glyph_pane::GlyphPanePlugin;
-use crate::ui::file_menu::FileMenuPlugin;
 use crate::ui::theme::CurrentTheme;
 #[cfg(debug_assertions)]
 use crate::ui::themes::runtime_reload::RuntimeThemePlugin;
@@ -90,12 +88,11 @@ impl PluginGroup for EditorPluginGroup {
             .add(HudPlugin)
             // ✅ NEW SYSTEM: All tools are now automatically registered via EditModeToolbarPlugin
             // No need for manual tool plugin registration - everything is handled by toolbar_config.rs
-            
             // ❌ OLD SYSTEM (REMOVED): Manual tool plugin registration
             // .add(crate::tools::CleanToolsPlugin)     // DEPRECATED - now handled by config system
-            // .add(crate::tools::SelectToolPlugin)     // DEPRECATED - now handled by config system  
-            .add(crate::tools::PenToolPlugin)        // Re-enabled - pen tool needs its business logic plugin
-            // .add(crate::tools::TextToolPlugin)       // DEPRECATED - now handled by config system
+            // .add(crate::tools::SelectToolPlugin)     // DEPRECATED - now handled by config system
+            .add(crate::tools::PenToolPlugin) // Re-enabled - pen tool needs its business logic plugin
+                                              // .add(crate::tools::TextToolPlugin)       // DEPRECATED - now handled by config system
     }
 }
 
@@ -161,23 +158,27 @@ fn configure_window_plugins(app: &mut App) {
 
     #[cfg(target_arch = "wasm32")]
     {
-        app.add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                canvas: None,
-                prevent_default_event_handling: false,
-                ..window_config
-            }),
-            ..default()
-        }).set(bevy::render::RenderPlugin {
-            render_creation: bevy::render::settings::RenderCreation::Automatic(
-                bevy::render::settings::WgpuSettings {
-                    backends: Some(bevy::render::settings::Backends::GL),
-                    power_preference: bevy::render::settings::PowerPreference::LowPower,
+        app.add_plugins(
+            DefaultPlugins
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        canvas: None,
+                        prevent_default_event_handling: false,
+                        ..window_config
+                    }),
                     ..default()
-                }
-            ),
-            ..default()
-        }));
+                })
+                .set(bevy::render::RenderPlugin {
+                    render_creation: bevy::render::settings::RenderCreation::Automatic(
+                        bevy::render::settings::WgpuSettings {
+                            backends: Some(bevy::render::settings::Backends::GL),
+                            power_preference: bevy::render::settings::PowerPreference::LowPower,
+                            ..default()
+                        },
+                    ),
+                    ..default()
+                }),
+        );
     }
 }
 

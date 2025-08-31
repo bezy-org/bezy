@@ -121,19 +121,14 @@ pub struct JsonTheme {
 
 impl JsonTheme {
     /// Load theme from JSON file
-    pub fn load_from_file<P: AsRef<Path>>(
-        path: P,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn load_from_file<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn std::error::Error>> {
         let contents = fs::read_to_string(path)?;
         let theme: JsonTheme = serde_json::from_str(&contents)?;
         Ok(theme)
     }
 
     /// Save theme to JSON file
-    pub fn save_to_file<P: AsRef<Path>>(
-        &self,
-        path: P,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn save_to_file<P: AsRef<Path>>(&self, path: P) -> Result<(), Box<dyn std::error::Error>> {
         let json = serde_json::to_string_pretty(self)?;
         fs::write(path, json)?;
         Ok(())
@@ -661,9 +656,7 @@ impl JsonThemeManager {
     }
 
     /// Load all JSON theme files from the themes directory
-    pub fn load_all_themes(
-        &mut self,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn load_all_themes(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         if !self.themes_dir.exists() {
             return Ok(());
         }
@@ -681,16 +674,12 @@ impl JsonThemeManager {
 
                             if let Ok(metadata) = fs::metadata(&path) {
                                 if let Ok(modified) = metadata.modified() {
-                                    self.file_timestamps
-                                        .insert(stem.to_string(), modified);
+                                    self.file_timestamps.insert(stem.to_string(), modified);
                                 }
                             }
                         }
                         Err(e) => {
-                            error!(
-                                "Failed to load theme from {:?}: {}",
-                                path, e
-                            );
+                            error!("Failed to load theme from {:?}: {}", path, e);
                         }
                     }
                 }
@@ -713,37 +702,28 @@ impl JsonThemeManager {
                 let path = entry.path();
 
                 if path.extension().and_then(|s| s.to_str()) == Some("json") {
-                    if let Some(stem) =
-                        path.file_stem().and_then(|s| s.to_str())
-                    {
+                    if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
                         if let Ok(metadata) = fs::metadata(&path) {
                             if let Ok(modified) = metadata.modified() {
-                                let should_reload =
-                                    match self.file_timestamps.get(stem) {
-                                        Some(&last_modified) => {
-                                            let is_newer =
-                                                modified > last_modified;
-                                            is_newer
-                                        }
-                                        None => true,
-                                    };
+                                let should_reload = match self.file_timestamps.get(stem) {
+                                    Some(&last_modified) => {
+                                        let is_newer = modified > last_modified;
+                                        is_newer
+                                    }
+                                    None => true,
+                                };
 
                                 if should_reload {
                                     match JsonTheme::load_from_file(&path) {
                                         Ok(theme) => {
-                                            self.loaded_themes.insert(
-                                                stem.to_string(),
-                                                theme,
-                                            );
-                                            self.file_timestamps.insert(
-                                                stem.to_string(),
-                                                modified,
-                                            );
-                                            changed_themes
-                                                .push(stem.to_string());
+                                            self.loaded_themes.insert(stem.to_string(), theme);
+                                            self.file_timestamps.insert(stem.to_string(), modified);
+                                            changed_themes.push(stem.to_string());
                                         }
                                         Err(e) => {
-                                            println!("❌ Failed to reload theme from {path:?}: {e}");
+                                            println!(
+                                                "❌ Failed to reload theme from {path:?}: {e}"
+                                            );
                                         }
                                     }
                                 }
@@ -822,22 +802,17 @@ pub fn update_border_radius_on_theme_change(
     if theme.is_changed() {
         // Update widget border radius
         for mut border_radius in widget_query.iter_mut() {
-            *border_radius = BorderRadius::all(Val::Px(
-                theme.theme().widget_border_radius(),
-            ));
+            *border_radius = BorderRadius::all(Val::Px(theme.theme().widget_border_radius()));
         }
 
         // Update toolbar border radius
         for mut border_radius in toolbar_query.iter_mut() {
-            *border_radius = BorderRadius::all(Val::Px(
-                theme.theme().toolbar_border_radius(),
-            ));
+            *border_radius = BorderRadius::all(Val::Px(theme.theme().toolbar_border_radius()));
         }
 
         // Update UI border radius
         for mut border_radius in ui_query.iter_mut() {
-            *border_radius =
-                BorderRadius::all(Val::Px(theme.theme().ui_border_radius()));
+            *border_radius = BorderRadius::all(Val::Px(theme.theme().ui_border_radius()));
         }
     }
 }

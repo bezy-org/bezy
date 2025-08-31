@@ -6,9 +6,7 @@
 use super::json_theme::JsonThemeManager;
 use bevy::prelude::*;
 
-use super::json_theme::{
-    check_json_theme_changes, update_border_radius_on_theme_change,
-};
+use super::json_theme::{check_json_theme_changes, update_border_radius_on_theme_change};
 
 /// Plugin for runtime theme reloading
 pub struct RuntimeThemePlugin;

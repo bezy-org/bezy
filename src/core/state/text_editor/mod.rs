@@ -10,6 +10,6 @@ pub mod editor;
 
 // Re-export main types for public API compatibility
 pub use buffer::{
-    ActiveSortEntity, GridConfig, SortBuffer, SortEntry, SortKind,
-    SortLayoutMode, TextEditorState, TextModeConfig,
+    ActiveSortEntity, GridConfig, SortBuffer, SortEntry, SortKind, SortLayoutMode, TextEditorState,
+    TextModeConfig,
 };

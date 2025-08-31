@@ -147,9 +147,7 @@ pub fn handle_hyper_mouse_events(
     };
 
     // Convert cursor position to world coordinates
-    if let Ok(world_position) =
-        camera.viewport_to_world_2d(camera_transform, cursor_position)
-    {
+    if let Ok(world_position) = camera.viewport_to_world_2d(camera_transform, cursor_position) {
         // Apply grid snapping
         let settings = BezySettings::default();
         let snapped_position = settings.apply_grid_snap(world_position);
@@ -159,8 +157,8 @@ pub fn handle_hyper_mouse_events(
 
         // Handle left mouse button press
         if mouse_button_input.just_pressed(MouseButton::Left) {
-            let is_smooth = !keyboard.pressed(KeyCode::AltLeft)
-                && !keyboard.pressed(KeyCode::AltRight);
+            let is_smooth =
+                !keyboard.pressed(KeyCode::AltLeft) && !keyboard.pressed(KeyCode::AltRight);
 
             // Check if we should close the path
             if hyper_state.should_close_path() && hyper_state.is_drawing {
@@ -189,9 +187,7 @@ pub fn handle_hyper_mouse_events(
         }
 
         // Handle right mouse button press (finish path)
-        if mouse_button_input.just_pressed(MouseButton::Right)
-            && hyper_state.is_drawing
-        {
+        if mouse_button_input.just_pressed(MouseButton::Right) && hyper_state.is_drawing {
             if hyper_state.points.len() >= 2 {
                 create_hyper_contour(
                     &hyper_state.points,
@@ -283,11 +279,7 @@ pub fn render_hyper_preview(
 
     // Draw lines between points
     for i in 0..hyper_state.points.len().saturating_sub(1) {
-        gizmos.line_2d(
-            hyper_state.points[i],
-            hyper_state.points[i + 1],
-            line_color,
-        );
+        gizmos.line_2d(hyper_state.points[i], hyper_state.points[i + 1], line_color);
     }
 
     // Draw preview line to cursor
@@ -348,9 +340,7 @@ fn create_hyper_contour(
     }
 
     // Add the contour to the glyph
-    if let Some(glyph_data) =
-        app_state.workspace.font.glyphs.get_mut(&glyph_name)
-    {
+    if let Some(glyph_data) = app_state.workspace.font.glyphs.get_mut(&glyph_name) {
         if glyph_data.outline.is_none() {
             glyph_data.outline = Some(crate::core::state::OutlineData {
                 contours: Vec::new(),

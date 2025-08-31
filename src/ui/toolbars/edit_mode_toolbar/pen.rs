@@ -7,28 +7,22 @@
 //! The tool converts placed points into UFO contours that are saved to the font file.
 
 use super::EditModeSystem;
-use crate::core::io::input::{
-    helpers, InputEvent, InputMode, InputState, ModifierState,
-};
+use crate::core::io::input::{helpers, InputEvent, InputMode, InputState, ModifierState};
 use crate::core::io::pointer::PointerInfo;
 use crate::core::settings::BezySettings;
 use crate::core::state::AppState;
 use crate::editing::edit_type::EditType;
-use crate::editing::selection::components::{
-    GlyphPointReference, PointType, Selectable, Selected,
-};
+use crate::editing::selection::components::{GlyphPointReference, PointType, Selectable, Selected};
 use crate::editing::selection::systems::AppStateChanged;
-use crate::editing::selection::{
-    DragPointState, DragSelectionState, SelectionState,
-};
+use crate::editing::selection::{DragPointState, DragSelectionState, SelectionState};
 use crate::editing::sort::ActiveSortState;
 use crate::geometry::design_space::DPoint;
 use crate::systems::sort_manager::SortPointEntity;
 use crate::systems::ui_interaction::UiHoverState;
+use crate::ui::theme::*;
+use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
 use crate::ui::toolbars::edit_mode_toolbar::select::SelectModeActive;
 use crate::ui::toolbars::edit_mode_toolbar::{EditTool, ToolRegistry};
-use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
-use crate::ui::theme::*;
 use bevy::input::keyboard::KeyCode;
 use bevy::input::mouse::MouseButton;
 use bevy::prelude::*;
@@ -116,7 +110,7 @@ impl Plugin for PenModePlugin {
                     reset_pen_mode_when_inactive,
                     toggle_pen_submenu_visibility,
                     handle_pen_submenu_selection,
-                )
+                ),
             )
             .add_systems(PostStartup, spawn_pen_submenu);
     }
@@ -139,11 +133,7 @@ pub struct PenModeActive(pub bool);
 pub struct PenInputConsumer;
 
 impl crate::systems::input_consumer::InputConsumer for PenInputConsumer {
-    fn should_handle_input(
-        &self,
-        event: &InputEvent,
-        input_state: &InputState,
-    ) -> bool {
+    fn should_handle_input(&self, event: &InputEvent, input_state: &InputState) -> bool {
         // Only handle input if pen mode is active
         if !helpers::is_input_mode(input_state, InputMode::Pen) {
             return false;
@@ -166,7 +156,10 @@ impl crate::systems::input_consumer::InputConsumer for PenInputConsumer {
                 modifiers,
             } => {
                 if *button == MouseButton::Left {
-                    debug!("Pen: Processing mouse click at {:?} with modifiers {:?}", position, modifiers);
+                    debug!(
+                        "Pen: Processing mouse click at {:?} with modifiers {:?}",
+                        position, modifiers
+                    );
                     // TODO: Implement pen click handling
                 }
             }
@@ -178,8 +171,10 @@ impl crate::systems::input_consumer::InputConsumer for PenInputConsumer {
                 modifiers,
             } => {
                 if *button == MouseButton::Left {
-                    debug!("Pen: Processing mouse drag from {:?} to {:?} with modifiers {:?}",
-                          start_position, current_position, modifiers);
+                    debug!(
+                        "Pen: Processing mouse drag from {:?} to {:?} with modifiers {:?}",
+                        start_position, current_position, modifiers
+                    );
                     // TODO: Implement pen drag handling
                 }
             }
@@ -189,7 +184,10 @@ impl crate::systems::input_consumer::InputConsumer for PenInputConsumer {
                 modifiers,
             } => {
                 if *button == MouseButton::Left {
-                    info!("Pen: Processing mouse release at {:?} with modifiers {:?}", position, modifiers);
+                    info!(
+                        "Pen: Processing mouse release at {:?} with modifiers {:?}",
+                        position, modifiers
+                    );
                     // TODO: Implement pen release handling
                 }
             }
@@ -254,7 +252,7 @@ impl PenDrawingMode {
     /// Get the icon for each pen submenu mode
     pub fn get_icon(&self) -> &'static str {
         match self {
-            PenDrawingMode::Regular => "\u{E011}", // Pen nib icon
+            PenDrawingMode::Regular => "\u{E011}",     // Pen nib icon
             PenDrawingMode::Hyperbezier => "\u{E012}", // Spiral icon
         }
     }
@@ -343,9 +341,7 @@ fn try_commit_current_path(
         return;
     }
 
-    if let Some(_contour) =
-        create_contour_from_points(&pen_state.points, Vec2::ZERO)
-    {
+    if let Some(_contour) = create_contour_from_points(&pen_state.points, Vec2::ZERO) {
         app_state_changed.write(AppStateChanged);
         info!("Auto-committing path when switching modes");
     }
@@ -357,10 +353,7 @@ fn is_path_drawable(pen_state: &PenToolState) -> bool {
 }
 
 /// Resets pen state and marks pen mode as inactive
-fn deactivate_pen_mode(
-    pen_state: &mut ResMut<PenToolState>,
-    commands: &mut Commands,
-) {
+fn deactivate_pen_mode(pen_state: &mut ResMut<PenToolState>, commands: &mut Commands) {
     **pen_state = PenToolState::default();
     pen_state.active = false;
     commands.insert_resource(PenModeActive(false));
@@ -443,8 +436,7 @@ fn handle_left_click(
     cursor_pos: Vec2,
     settings: &BezySettings,
 ) {
-    let final_position =
-        calculate_final_position(cursor_pos, keyboard, pen_state, settings);
+    let final_position = calculate_final_position(cursor_pos, keyboard, pen_state, settings);
 
     if pen_state.state == PenState::Ready {
         start_new_path(pen_state, final_position);
@@ -473,8 +465,8 @@ fn calculate_final_position(
     let snapped_pos = settings.apply_grid_snap(cursor_pos);
 
     // Apply axis locking if shift is held and we have points
-    let shift_pressed = keyboard.pressed(KeyCode::ShiftLeft)
-        || keyboard.pressed(KeyCode::ShiftRight);
+    let shift_pressed =
+        keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
 
     if shift_pressed && !pen_state.points.is_empty() {
         let last_point = pen_state.points.last().unwrap();
@@ -517,19 +509,16 @@ fn close_current_path(
     text_editor_state: Option<&crate::core::state::TextEditorState>,
 ) {
     if !pen_state.points.is_empty() {
-        let active_sort_offset = if let (Some((sort_index, _)), Some(state)) =
-            (active_sort_info, text_editor_state)
-        {
-            state
-                .get_sort_visual_position(sort_index)
-                .unwrap_or(Vec2::ZERO)
-        } else {
-            Vec2::ZERO
-        };
+        let active_sort_offset =
+            if let (Some((sort_index, _)), Some(state)) = (active_sort_info, text_editor_state) {
+                state
+                    .get_sort_visual_position(sort_index)
+                    .unwrap_or(Vec2::ZERO)
+            } else {
+                Vec2::ZERO
+            };
 
-        if let Some(contour) =
-            create_contour_from_points(&pen_state.points, active_sort_offset)
-        {
+        if let Some(contour) = create_contour_from_points(&pen_state.points, active_sort_offset) {
             add_contour_to_glyph(
                 contour,
                 glyph_navigation,
@@ -567,19 +556,16 @@ fn handle_right_click(
     if pen_state.state == PenState::Drawing && pen_state.points.len() >= 2 {
         info!("Finishing open path with right click");
 
-        let active_sort_offset = if let (Some((sort_index, _)), Some(state)) =
-            (active_sort_info, text_editor_state)
-        {
-            state
-                .get_sort_visual_position(sort_index)
-                .unwrap_or(Vec2::ZERO)
-        } else {
-            Vec2::ZERO
-        };
+        let active_sort_offset =
+            if let (Some((sort_index, _)), Some(state)) = (active_sort_info, text_editor_state) {
+                state
+                    .get_sort_visual_position(sort_index)
+                    .unwrap_or(Vec2::ZERO)
+            } else {
+                Vec2::ZERO
+            };
 
-        if let Some(contour) =
-            create_contour_from_points(&pen_state.points, active_sort_offset)
-        {
+        if let Some(contour) = create_contour_from_points(&pen_state.points, active_sort_offset) {
             add_contour_to_glyph(
                 contour,
                 glyph_navigation,
@@ -629,21 +615,17 @@ fn add_contour_to_glyph(
     // The current architecture uses thread-safe data structures and doesn't have direct norad access
 
     // Convert the norad contour to our thread-safe ContourData
-    let contour_data =
-        crate::core::state::font_data::ContourData::from_norad_contour(
-            &contour,
-        );
+    let contour_data = crate::core::state::font_data::ContourData::from_norad_contour(&contour);
 
     // Check if the glyph exists in our thread-safe data
-    if let Some(glyph_data) =
-        app_state.workspace.font.glyphs.get_mut(&glyph_name)
-    {
+    if let Some(glyph_data) = app_state.workspace.font.glyphs.get_mut(&glyph_name) {
         // Get or create the outline data
-        let outline_data = glyph_data.outline.get_or_insert_with(|| {
-            crate::core::state::font_data::OutlineData {
-                contours: Vec::new(),
-            }
-        });
+        let outline_data =
+            glyph_data
+                .outline
+                .get_or_insert_with(|| crate::core::state::font_data::OutlineData {
+                    contours: Vec::new(),
+                });
 
         // Add the new contour
         outline_data.contours.push(contour_data);
@@ -654,8 +636,13 @@ fn add_contour_to_glyph(
         } else {
             "glyph navigation"
         };
-        info!("PEN TOOL: Successfully added {} contour to glyph {} (from {}). Total contours now: {}", 
-               path_type, glyph_name, source, outline_data.contours.len());
+        info!(
+            "PEN TOOL: Successfully added {} contour to glyph {} (from {}). Total contours now: {}",
+            path_type,
+            glyph_name,
+            source,
+            outline_data.contours.len()
+        );
 
         // Notify that the app state has changed
         app_state_changed.write(AppStateChanged);
@@ -721,13 +708,7 @@ pub fn render_pen_preview(
 
     draw_placed_points_and_lines(&mut gizmos, &pen_state);
     let cursor_pos = pointer_info.design.to_raw();
-    draw_preview_elements(
-        &mut gizmos,
-        &pen_state,
-        cursor_pos,
-        &keyboard,
-        &settings,
-    );
+    draw_preview_elements(&mut gizmos, &pen_state, cursor_pos, &keyboard, &settings);
 }
 
 /// Draw all the points that have been placed and lines between them
@@ -769,23 +750,16 @@ fn draw_preview_elements(
 
     if let Some(&last_point) = pen_state.points.last() {
         // Calculate the final position for the preview, same logic as for placing points
-        let final_pos =
-            calculate_final_position(cursor_pos, keyboard, pen_state, settings);
+        let final_pos = calculate_final_position(cursor_pos, keyboard, pen_state, settings);
 
         // Draw line from last point to cursor's final position
         gizmos.line_2d(last_point, final_pos, Color::srgb(0.0, 1.0, 0.0));
 
         // Draw a circle at the final position
-        gizmos.circle_2d(
-            final_pos,
-            POINT_PREVIEW_SIZE,
-            Color::srgb(0.0, 1.0, 0.0),
-        );
+        gizmos.circle_2d(final_pos, POINT_PREVIEW_SIZE, Color::srgb(0.0, 1.0, 0.0));
 
         // If close to the start point, draw a circle to indicate path closing
-        draw_close_indicator_if_needed(
-            gizmos, pen_state, cursor_pos, last_point,
-        );
+        draw_close_indicator_if_needed(gizmos, pen_state, cursor_pos, last_point);
     }
 }
 
@@ -823,10 +797,7 @@ fn axis_lock_position(pos: Vec2, relative_to: Vec2) -> Vec2 {
 }
 
 /// Create a UFO contour from a list of points
-fn create_contour_from_points(
-    points: &[Vec2],
-    active_sort_offset: Vec2,
-) -> Option<Contour> {
+fn create_contour_from_points(points: &[Vec2], active_sort_offset: Vec2) -> Option<Contour> {
     if points.len() < 2 {
         return None;
     }
@@ -850,11 +821,10 @@ fn create_contour_from_points(
         contour_points.push(ContourPoint::new(
             glyph_local_point.x as f64,
             glyph_local_point.y as f64,
-            crate::core::state::font_data::PointTypeData::Line
-                .to_norad_point_type(), // Convert our internal type to norad for I/O
-            false, // not smooth
-            None,  // no name
-            None,  // no identifier
+            crate::core::state::font_data::PointTypeData::Line.to_norad_point_type(), // Convert our internal type to norad for I/O
+            false,                                                                    // not smooth
+            None,                                                                     // no name
+            None, // no identifier
         ));
     }
 
@@ -890,17 +860,14 @@ pub fn spawn_pen_submenu(
 ) {
     info!("🖊️ Spawning pen submenu with Regular and Hyperbezier modes");
     info!("🖊️ Default pen mode is: {:?}", PenDrawingMode::default());
-    
-    let modes = [
-        PenDrawingMode::Regular,
-        PenDrawingMode::Hyperbezier,
-    ];
+
+    let modes = [PenDrawingMode::Regular, PenDrawingMode::Hyperbezier];
 
     // Create the parent submenu node (left-aligned to match main toolbar)
     let submenu_node = Node {
         position_type: PositionType::Absolute,
         top: Val::Px(TOOLBAR_CONTAINER_MARGIN + 74.0),
-        left: Val::Px(TOOLBAR_CONTAINER_MARGIN),  // Left-aligned to match toolbar
+        left: Val::Px(TOOLBAR_CONTAINER_MARGIN), // Left-aligned to match toolbar
         flex_direction: FlexDirection::Row,
         padding: UiRect::all(Val::Px(TOOLBAR_PADDING)),
         margin: UiRect::all(Val::ZERO),
@@ -917,7 +884,7 @@ pub fn spawn_pen_submenu(
                 spawn_pen_mode_button(parent, mode, &asset_server, &theme);
             }
         });
-        
+
     info!("🖊️ Pen submenu spawned successfully");
 }
 
@@ -926,9 +893,9 @@ pub fn toggle_pen_submenu_visibility(
     current_tool: Option<Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>>,
     mut submenu_query: Query<(&mut Node, &Name)>,
 ) {
-    let is_pen_tool_active = current_tool.as_ref()
-        .and_then(|tool| tool.get_current()) == Some("pen");
-    
+    let is_pen_tool_active =
+        current_tool.as_ref().and_then(|tool| tool.get_current()) == Some("pen");
+
     for (mut node, name) in submenu_query.iter_mut() {
         if name.as_str() == "PenSubMenu" {
             let new_display = if is_pen_tool_active {
@@ -936,11 +903,13 @@ pub fn toggle_pen_submenu_visibility(
             } else {
                 Display::None
             };
-            
+
             if node.display != new_display {
                 node.display = new_display;
-                info!("🖊️ Pen submenu visibility changed: tool_active={}, display={:?}", 
-                      is_pen_tool_active, new_display);
+                info!(
+                    "🖊️ Pen submenu visibility changed: tool_active={}, display={:?}",
+                    is_pen_tool_active, new_display
+                );
             }
         }
     }
@@ -971,21 +940,24 @@ pub fn handle_pen_submenu_selection(
                 .as_secs_f32();
             if current_time - LAST_LOG > 2.0 {
                 LAST_LOG = current_time;
-                info!("🖊️ Pen submenu selection system: found {} buttons", button_count);
+                info!(
+                    "🖊️ Pen submenu selection system: found {} buttons",
+                    button_count
+                );
             }
         }
     }
-    for (interaction, mut color, mut border_color, mode_button, _entity) in
-        &mut interaction_query
-    {
+    for (interaction, mut color, mut border_color, mode_button, _entity) in &mut interaction_query {
         let is_current_mode = *current_mode == mode_button.mode;
-        
+
         // Debug: Log interactions for debugging
         if *interaction != Interaction::None {
-            info!("🖊️ Button interaction: {:?} for mode {:?} (current: {:?})", 
-                  interaction, mode_button.mode, *current_mode);
+            info!(
+                "🖊️ Button interaction: {:?} for mode {:?} (current: {:?})",
+                interaction, mode_button.mode, *current_mode
+            );
         }
-        
+
         if *interaction == Interaction::Pressed && !is_current_mode {
             *current_mode = mode_button.mode;
             info!("🖊️ Switched to pen mode: {:?}", mode_button.mode);

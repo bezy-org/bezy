@@ -19,9 +19,7 @@ pub fn update_glyph_data_from_selection(
     sort_query: Query<(&Sort, &Transform)>,
     mut app_state: ResMut<AppState>,
     _nudge_state: Res<NudgeState>,
-    knife_mode: Option<
-        Res<crate::ui::toolbars::edit_mode_toolbar::knife::KnifeModeActive>,
-    >,
+    knife_mode: Option<Res<crate::ui::toolbars::edit_mode_toolbar::knife::KnifeModeActive>>,
 ) {
     // Skip processing if knife mode is active
     if let Some(knife_mode) = knife_mode {
@@ -45,27 +43,24 @@ pub fn update_glyph_data_from_selection(
 
     for (transform, point_ref, sort_point_entity_opt) in query.iter() {
         // Default to world position if we can't get sort position
-        let (relative_x, relative_y) =
-            if let Some(sort_point_entity) = sort_point_entity_opt {
-                if let Ok((_sort, sort_transform)) =
-                    sort_query.get(sort_point_entity.sort_entity)
-                {
-                    let world_pos = transform.translation.truncate();
-                    let sort_pos = sort_transform.translation.truncate();
-                    let rel = world_pos - sort_pos;
-                    (rel.x as f64, rel.y as f64)
-                } else {
-                    (
-                        transform.translation.x as f64,
-                        transform.translation.y as f64,
-                    )
-                }
+        let (relative_x, relative_y) = if let Some(sort_point_entity) = sort_point_entity_opt {
+            if let Ok((_sort, sort_transform)) = sort_query.get(sort_point_entity.sort_entity) {
+                let world_pos = transform.translation.truncate();
+                let sort_pos = sort_transform.translation.truncate();
+                let rel = world_pos - sort_pos;
+                (rel.x as f64, rel.y as f64)
             } else {
                 (
                     transform.translation.x as f64,
                     transform.translation.y as f64,
                 )
-            };
+            }
+        } else {
+            (
+                transform.translation.x as f64,
+                transform.translation.y as f64,
+            )
+        };
 
         let updated = app_state.set_point_position(
             &point_ref.glyph_name,
@@ -89,9 +84,7 @@ pub fn update_glyph_data_from_selection(
             any_updates = true;
             debug!(
                 "Updated UFO glyph data for point {} in contour {} of glyph {}",
-                point_ref.point_index,
-                point_ref.contour_index,
-                point_ref.glyph_name
+                point_ref.point_index, point_ref.contour_index, point_ref.glyph_name
             );
         } else {
             warn!(
@@ -103,7 +96,10 @@ pub fn update_glyph_data_from_selection(
 
     // Log the results
     if any_updates {
-        info!("[update_glyph_data_from_selection] Successfully updated {} outline points", query.iter().count());
+        info!(
+            "[update_glyph_data_from_selection] Successfully updated {} outline points",
+            query.iter().count()
+        );
     } else {
         info!("[update_glyph_data_from_selection] No outline updates needed");
     }
@@ -127,28 +123,17 @@ pub fn sync_point_positions_to_sort(
     }
 
     // Then update all point transforms based on the collected positions
-    for (mut point_transform, sort_point, glyph_ref) in
-        param_set.p1().iter_mut()
-    {
-        if let Some((glyph_name, position)) =
-            sort_positions.get(&sort_point.sort_entity)
-        {
+    for (mut point_transform, sort_point, glyph_ref) in param_set.p1().iter_mut() {
+        if let Some((glyph_name, position)) = sort_positions.get(&sort_point.sort_entity) {
             // Get the original point data from the glyph
-            if let Some(glyph_data) =
-                app_state.workspace.font.get_glyph(glyph_name)
-            {
+            if let Some(glyph_data) = app_state.workspace.font.get_glyph(glyph_name) {
                 if let Some(outline) = &glyph_data.outline {
-                    if let Some(contour) =
-                        outline.contours.get(glyph_ref.contour_index)
-                    {
-                        if let Some(point) =
-                            contour.points.get(glyph_ref.point_index)
-                        {
+                    if let Some(contour) = outline.contours.get(glyph_ref.contour_index) {
+                        if let Some(point) = contour.points.get(glyph_ref.point_index) {
                             // Calculate new world position: sort position + original point offset
-                            let point_world_pos = *position
-                                + Vec2::new(point.x as f32, point.y as f32);
-                            point_transform.translation =
-                                point_world_pos.extend(0.0);
+                            let point_world_pos =
+                                *position + Vec2::new(point.x as f32, point.y as f32);
+                            point_transform.translation = point_world_pos.extend(0.0);
 
                             debug!("[sync_point_positions_to_sort] Updated point {} in contour {} to position {:?}", 
                                    glyph_ref.point_index, glyph_ref.contour_index, point_world_pos);

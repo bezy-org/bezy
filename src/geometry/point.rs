@@ -10,7 +10,7 @@ use kurbo::Point;
 /// A point in a glyph's outline that can be edited
 #[derive(Component, Debug, Clone, PartialEq)]
 pub struct EditPoint {
-    pub position: Point, // Position in glyph coordinate space
+    pub position: Point,           // Position in glyph coordinate space
     pub point_type: PointTypeData, // Point type (move, line, curve, etc.)
 }
 
