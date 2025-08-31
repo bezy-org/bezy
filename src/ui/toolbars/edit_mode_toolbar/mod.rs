@@ -143,10 +143,10 @@ mod spacebar_toggle;
 // Re-export the new tool system
 pub use spacebar_toggle::{handle_spacebar_toggle, SpacebarToggleState};
 pub use ui::{
-    create_unified_toolbar_button, create_unified_toolbar_button_with_hover_text,
+    create_toolbar_button, create_toolbar_button_with_hover_text,
     handle_toolbar_mode_selection, spawn_edit_mode_toolbar,
     update_current_edit_mode, update_toolbar_button_appearances,
-    update_unified_button_colors, update_unified_button_text_colors,
+    update_toolbar_button_colors, update_toolbar_button_text_colors,
     update_hover_text_visibility,
 };
 

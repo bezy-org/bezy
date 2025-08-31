@@ -30,7 +30,7 @@ pub fn spawn_active_sort_points_optimized(
     // Debug: Check all buffer sorts
     all_buffer_sorts: Query<(Entity, &Sort, &Transform, Option<&ActiveSort>), With<crate::systems::text_editor_sorts::sort_entities::BufferSortIndex>>,
     // CRITICAL FIX: Trigger unified renderer update when points are spawned
-    mut visual_update_tracker: ResMut<crate::rendering::unified_glyph_editing::SortVisualUpdateTracker>,
+    mut visual_update_tracker: ResMut<crate::rendering::glyph_renderer::SortVisualUpdateTracker>,
 ) {
     let active_sort_count = active_sort_query.iter().count();
     let total_buffer_sorts = all_buffer_sorts.iter().count();
@@ -430,7 +430,7 @@ pub fn detect_sort_glyph_changes(
     mut commands: Commands,
     changed_sorts: Query<(Entity, &Sort), (With<ActiveSort>, Changed<Sort>)>,
     existing_point_query: Query<(Entity, &SortPointEntity)>,
-    mut visual_update_tracker: ResMut<crate::rendering::unified_glyph_editing::SortVisualUpdateTracker>,
+    mut visual_update_tracker: ResMut<crate::rendering::glyph_renderer::SortVisualUpdateTracker>,
     mut local_previous_glyphs: Local<HashMap<Entity, String>>,
 ) {
     for (sort_entity, sort) in changed_sorts.iter() {

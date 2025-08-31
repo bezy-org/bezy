@@ -287,7 +287,7 @@ pub fn render_knife_preview(
     mut materials: ResMut<Assets<ColorMaterial>>,
     knife_consumer: Res<crate::systems::input_consumer::KnifeInputConsumer>,
     knife_mode: Option<Res<KnifeModeActive>>,
-    camera_scale: Res<crate::rendering::camera_responsive::CameraResponsiveScale>,
+    camera_scale: Res<crate::rendering::zoom_aware_scaling::CameraResponsiveScale>,
     mut knife_entities: Local<Vec<Entity>>,
     theme: Res<crate::ui::themes::CurrentTheme>,
     current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,

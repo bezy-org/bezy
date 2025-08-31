@@ -1,7 +1,7 @@
-//! Unified glyph editing rendering system
+//! Glyph rendering system
 //!
-//! This module combines all glyph editing rendering (points, outlines, handles) into a single
-//! system to eliminate any visual lag between components during nudging operations.
+//! This module renders all glyph visual elements (points, outlines, handles) together
+//! in a single system to eliminate visual lag and ensure consistent rendering.
 
 #![allow(clippy::too_many_arguments)]
 
@@ -9,7 +9,7 @@ use crate::editing::selection::components::{
     GlyphPointReference, PointType, Selected,
 };
 use crate::editing::sort::{ActiveSort, Sort};
-use crate::rendering::camera_responsive::CameraResponsiveScale;
+use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
 use crate::systems::sort_manager::SortPointEntity;
 use crate::ui::theme::*;
 use crate::ui::themes::CurrentTheme;
@@ -26,16 +26,16 @@ use lyon::tessellation::{
     VertexBuffers,
 };
 
-/// Component to mark entities as unified glyph editing elements
+/// Component to mark entities as glyph rendering elements
 #[derive(Component)]
-pub struct UnifiedGlyphElement {
-    pub element_type: UnifiedElementType,
+pub struct GlyphRenderElement {
+    pub element_type: GlyphElementType,
     pub sort_entity: Entity,
 }
 
-/// Types of unified glyph editing elements
+/// Types of glyph rendering elements
 #[derive(Debug, Clone)]
-pub enum UnifiedElementType {
+pub enum GlyphElementType {
     Point {
         point_entity: Entity,
         is_outer: bool,
@@ -45,9 +45,9 @@ pub enum UnifiedElementType {
     ContourStartArrow,
 }
 
-/// Resource to track unified editing entities
+/// Resource to track glyph rendering entities
 #[derive(Resource, Default)]
-pub struct UnifiedGlyphEntities {
+pub struct GlyphRenderEntities {
     pub elements: HashMap<Entity, Vec<Entity>>, // sort_entity -> element entities
 }
 
@@ -58,19 +58,19 @@ pub struct SortVisualUpdateTracker {
 }
 
 /// Z-levels for proper layering
-const UNIFIED_HANDLE_Z: f32 = 7.0; // Behind outlines
-const UNIFIED_OUTLINE_Z: f32 = 8.0; // Above handles, behind points
-const UNIFIED_POINT_Z: f32 = 10.0; // Unselected points
-const UNIFIED_SELECTED_POINT_Z: f32 = 15.0; // Selected points - always above unselected
+const HANDLE_Z: f32 = 7.0; // Behind outlines
+const OUTLINE_Z: f32 = 8.0; // Above handles, behind points
+const POINT_Z: f32 = 10.0; // Unselected points
+const SELECTED_POINT_Z: f32 = 15.0; // Selected points - always above unselected
 
-/// Unified system that renders all sorts - both active (with points/handles) and inactive (filled outlines)
-/// This eliminates the need for the separate mesh_glyph_outline system and coordination complexity
+/// Main glyph rendering system - renders both active (with points/handles) and inactive (filled outlines) sorts
+/// This single system eliminates coordination complexity between separate rendering systems
 #[allow(clippy::type_complexity)]
-pub fn render_unified_glyph_editing(
+pub fn render_glyphs(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    mut unified_entities: ResMut<UnifiedGlyphEntities>,
+    mut glyph_entities: ResMut<GlyphRenderEntities>,
     mut update_tracker: ResMut<SortVisualUpdateTracker>,
     camera_scale: Res<CameraResponsiveScale>,
     // Include ALL sorts (both active and inactive)
@@ -95,7 +95,7 @@ pub fn render_unified_glyph_editing(
     >,
     app_state: Option<Res<crate::core::state::AppState>>,
     fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
-    existing_elements: Query<(Entity, &UnifiedGlyphElement)>,
+    existing_elements: Query<(Entity, &GlyphRenderElement)>,
     // Debug: Check entities with just SortPointEntity
     existing_sort_points: Query<Entity, With<SortPointEntity>>,
     theme: Res<CurrentTheme>,
@@ -167,7 +167,7 @@ pub fn render_unified_glyph_editing(
     let mut sorts_to_clear = HashSet::new();
     
     // Find sorts that no longer exist
-    for &tracked_sort in unified_entities.elements.keys() {
+    for &tracked_sort in glyph_entities.elements.keys() {
         if !all_current_sorts.contains(&tracked_sort) {
             sorts_to_clear.insert(tracked_sort);
         }
@@ -187,9 +187,9 @@ pub fn render_unified_glyph_editing(
     let mut skipped_count = 0;
     let total_count = existing_elements.iter().count();
     
-    for (element_entity, unified_element) in existing_elements.iter() {
+    for (element_entity, glyph_element) in existing_elements.iter() {
         // Only despawn elements that belong to sorts that need clearing
-        if sorts_to_clear.contains(&unified_element.sort_entity) {
+        if sorts_to_clear.contains(&glyph_element.sort_entity) {
             commands.entity(element_entity).despawn();
             cleared_count += 1;
         } else {
@@ -203,11 +203,11 @@ pub fn render_unified_glyph_editing(
     // Only clear tracking for sorts that changed, not all sorts
     if sorts_to_clear.len() == all_current_sorts.len() {
         // If all sorts changed, clear everything (fallback to nuclear approach)
-        unified_entities.elements.clear();
+        glyph_entities.elements.clear();
     } else {
         // Selective clearing: only remove tracking for changed sorts
         for sort_entity in &sorts_to_clear {
-            unified_entities.elements.remove(sort_entity);
+            glyph_entities.elements.remove(sort_entity);
         }
     }
 
@@ -242,7 +242,7 @@ pub fn render_unified_glyph_editing(
                 &camera_scale,
                 &theme,
             );
-            unified_entities.elements.insert(sort_entity, element_entities);
+            glyph_entities.elements.insert(sort_entity, element_entities);
             continue;
         }
 
@@ -280,7 +280,7 @@ pub fn render_unified_glyph_editing(
             // UNIFIED RENDERING: Render all components using the same live Transform data
 
             // 1. Render outlines using live Transform positions
-            render_unified_outline(
+            render_glyph_outline(
                 &mut commands,
                 &mut meshes,
                 &mut materials,
@@ -294,7 +294,7 @@ pub fn render_unified_glyph_editing(
             );
 
             // 2. Render handles using live Transform positions
-            render_unified_handles(
+            render_glyph_handles(
                 &mut commands,
                 &mut meshes,
                 &mut materials,
@@ -305,7 +305,7 @@ pub fn render_unified_glyph_editing(
             );
 
             // 3. Render points using live Transform positions
-            render_unified_points(
+            render_glyph_points(
                 &mut commands,
                 &mut meshes,
                 &mut materials,
@@ -332,7 +332,7 @@ pub fn render_unified_glyph_editing(
             );
         }
 
-        unified_entities
+        glyph_entities
             .elements
             .insert(sort_entity, element_entities);
     }
@@ -362,7 +362,7 @@ pub fn render_unified_glyph_editing(
             &theme,
         );
 
-        unified_entities
+        glyph_entities
             .elements
             .insert(sort_entity, element_entities);
     }
@@ -464,13 +464,13 @@ fn render_filled_outline(
                 
                 // Create filled mesh entity
                 let entity = commands.spawn((
-                    UnifiedGlyphElement { 
-                        element_type: UnifiedElementType::OutlineSegment,
+                    GlyphRenderElement { 
+                        element_type: GlyphElementType::OutlineSegment,
                         sort_entity,
                     },
                     Mesh2d(meshes.add(mesh)),
                     MeshMaterial2d(materials.add(ColorMaterial::from_color(FILLED_GLYPH_COLOR))),
-                    Transform::from_translation(Vec3::new(0.0, 0.0, UNIFIED_OUTLINE_Z)),
+                    Transform::from_translation(Vec3::new(0.0, 0.0, OUTLINE_Z)),
                     GlobalTransform::default(),
                     Visibility::Visible,
                     InheritedVisibility::default(),
@@ -488,7 +488,7 @@ fn render_filled_outline(
 }
 
 /// Render outline using live Transform positions from points
-fn render_unified_outline(
+fn render_glyph_outline(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<ColorMaterial>>,
@@ -515,7 +515,7 @@ fn render_unified_outline(
         if let Some(original_paths) = fontir_state
             .get_glyph_paths_with_components(&sort_points[0].2.glyph_name)
         {
-            render_fontir_outline_unified(
+            render_fontir_outline(
                 commands,
                 meshes,
                 materials,
@@ -531,7 +531,7 @@ fn render_unified_outline(
 }
 
 /// Render handles using live Transform positions
-fn render_unified_handles(
+fn render_glyph_handles(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<ColorMaterial>>,
@@ -566,7 +566,7 @@ fn render_unified_handles(
 
             // Draw handle if one is on-curve and other is off-curve
             if current.3.is_on_curve != next.3.is_on_curve {
-                let entity = spawn_unified_line_mesh(
+                let entity = spawn_line_mesh(
                     commands,
                     meshes,
                     materials,
@@ -574,9 +574,9 @@ fn render_unified_handles(
                     next.1,
                     1.0, // 1px width
                     HANDLE_LINE_COLOR,
-                    UNIFIED_HANDLE_Z,
+                    HANDLE_Z,
                     sort_entity,
-                    UnifiedElementType::Handle,
+                    GlyphElementType::Handle,
                     camera_scale,
                 );
                 element_entities.push(entity);
@@ -586,7 +586,7 @@ fn render_unified_handles(
 }
 
 /// Render points using live Transform positions
-fn render_unified_points(
+fn render_glyph_points(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<ColorMaterial>>,
@@ -604,19 +604,19 @@ fn render_unified_points(
             (
                 theme.theme().selected_primary_color(),
                 theme.theme().selected_secondary_color(),
-                UNIFIED_SELECTED_POINT_Z,
+                SELECTED_POINT_Z,
             )
         } else if point_type.is_on_curve {
             (
                 theme.theme().on_curve_primary_color(),
                 theme.theme().on_curve_secondary_color(),
-                UNIFIED_POINT_Z,
+                POINT_Z,
             )
         } else {
             (
                 theme.theme().off_curve_primary_color(),
                 theme.theme().off_curve_secondary_color(),
-                UNIFIED_POINT_Z,
+                POINT_Z,
             )
         };
 
@@ -630,8 +630,8 @@ fn render_unified_points(
             // Layer 1: Base shape (full width) - primary color
             let entity = commands
                 .spawn((
-                    UnifiedGlyphElement {
-                        element_type: UnifiedElementType::Point {
+                    GlyphRenderElement {
+                        element_type: GlyphElementType::Point {
                             point_entity: *point_entity,
                             is_outer: true,
                         },
@@ -655,8 +655,8 @@ fn render_unified_points(
             let secondary_size = size * 0.7;
             let secondary_entity = commands
                 .spawn((
-                    UnifiedGlyphElement {
-                        element_type: UnifiedElementType::Point {
+                    GlyphRenderElement {
+                        element_type: GlyphElementType::Point {
                             point_entity: *point_entity,
                             is_outer: false,
                         },
@@ -681,8 +681,8 @@ fn render_unified_points(
                 let center_size = size * ON_CURVE_INNER_CIRCLE_RATIO;
                 let center_entity = commands
                     .spawn((
-                        UnifiedGlyphElement {
-                            element_type: UnifiedElementType::Point {
+                        GlyphRenderElement {
+                            element_type: GlyphElementType::Point {
                                 point_entity: *point_entity,
                                 is_outer: false,
                             },
@@ -716,8 +716,8 @@ fn render_unified_points(
             // Layer 1: Base circle (full size) - primary color
             let entity = commands
                 .spawn((
-                    UnifiedGlyphElement {
-                        element_type: UnifiedElementType::Point {
+                    GlyphRenderElement {
+                        element_type: GlyphElementType::Point {
                             point_entity: *point_entity,
                             is_outer: true,
                         },
@@ -740,8 +740,8 @@ fn render_unified_points(
             let secondary_radius = radius * 0.7;
             let secondary_entity = commands
                 .spawn((
-                    UnifiedGlyphElement {
-                        element_type: UnifiedElementType::Point {
+                    GlyphRenderElement {
+                        element_type: GlyphElementType::Point {
                             point_entity: *point_entity,
                             is_outer: false,
                         },
@@ -771,8 +771,8 @@ fn render_unified_points(
                     };
                 let center_entity = commands
                     .spawn((
-                        UnifiedGlyphElement {
-                            element_type: UnifiedElementType::Point {
+                        GlyphRenderElement {
+                            element_type: GlyphElementType::Point {
                                 point_entity: *point_entity,
                                 is_outer: false,
                             },
@@ -812,8 +812,8 @@ fn render_unified_points(
             // Horizontal line - primary color only
             let h_primary_entity = commands
                 .spawn((
-                    UnifiedGlyphElement {
-                        element_type: UnifiedElementType::Point {
+                    GlyphRenderElement {
+                        element_type: GlyphElementType::Point {
                             point_entity: *point_entity,
                             is_outer: false,
                         },
@@ -839,8 +839,8 @@ fn render_unified_points(
             // Vertical line - primary color only
             let v_primary_entity = commands
                 .spawn((
-                    UnifiedGlyphElement {
-                        element_type: UnifiedElementType::Point {
+                    GlyphRenderElement {
+                        element_type: GlyphElementType::Point {
                             point_entity: *point_entity,
                             is_outer: false,
                         },
@@ -898,7 +898,7 @@ fn render_static_outline(
                             if let Some(start) = current_pos {
                                 let end = Vec2::new(pt.x as f32, pt.y as f32)
                                     + position;
-                                let entity = spawn_unified_line_mesh(
+                                let entity = spawn_line_mesh(
                                     commands,
                                     meshes,
                                     materials,
@@ -906,9 +906,9 @@ fn render_static_outline(
                                     end,
                                     1.0,
                                     PATH_STROKE_COLOR,
-                                    UNIFIED_OUTLINE_Z,
+                                    OUTLINE_Z,
                                     sort_entity,
-                                    UnifiedElementType::OutlineSegment,
+                                    GlyphElementType::OutlineSegment,
                                     camera_scale,
                                 );
                                 element_entities.push(entity);
@@ -948,7 +948,7 @@ fn render_static_outline(
                                             + t3 * end.y,
                                     );
 
-                                    let entity = spawn_unified_line_mesh(
+                                    let entity = spawn_line_mesh(
                                         commands,
                                         meshes,
                                         materials,
@@ -956,9 +956,9 @@ fn render_static_outline(
                                         curve_pos,
                                         1.0,
                                         PATH_STROKE_COLOR,
-                                        UNIFIED_OUTLINE_Z,
+                                        OUTLINE_Z,
                                         sort_entity,
-                                        UnifiedElementType::OutlineSegment,
+                                        GlyphElementType::OutlineSegment,
                                         camera_scale,
                                     );
                                     element_entities.push(entity);
@@ -991,7 +991,7 @@ fn render_static_outline(
                                             + t * t * end.y,
                                     );
 
-                                    let entity = spawn_unified_line_mesh(
+                                    let entity = spawn_line_mesh(
                                         commands,
                                         meshes,
                                         materials,
@@ -999,9 +999,9 @@ fn render_static_outline(
                                         curve_pos,
                                         1.0,
                                         PATH_STROKE_COLOR,
-                                        UNIFIED_OUTLINE_Z,
+                                        OUTLINE_Z,
                                         sort_entity,
-                                        UnifiedElementType::OutlineSegment,
+                                        GlyphElementType::OutlineSegment,
                                         camera_scale,
                                     );
                                     element_entities.push(entity);
@@ -1021,7 +1021,7 @@ fn render_static_outline(
 }
 
 /// Render FontIR outline using live positions
-fn render_fontir_outline_unified(
+fn render_fontir_outline(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<ColorMaterial>>,
@@ -1100,7 +1100,7 @@ fn render_fontir_outline_unified(
                             start
                         };
 
-                        let entity = spawn_unified_line_mesh(
+                        let entity = spawn_line_mesh(
                             commands,
                             meshes,
                             materials,
@@ -1108,9 +1108,9 @@ fn render_fontir_outline_unified(
                             end,
                             1.0,
                             PATH_STROKE_COLOR,
-                            UNIFIED_OUTLINE_Z,
+                            OUTLINE_Z,
                             sort_entity,
-                            UnifiedElementType::OutlineSegment,
+                            GlyphElementType::OutlineSegment,
                             camera_scale,
                         );
                         element_entities.push(entity);
@@ -1177,7 +1177,7 @@ fn render_fontir_outline_unified(
                                     + t3 * end.y,
                             );
 
-                            let entity = spawn_unified_line_mesh(
+                            let entity = spawn_line_mesh(
                                 commands,
                                 meshes,
                                 materials,
@@ -1185,9 +1185,9 @@ fn render_fontir_outline_unified(
                                 curve_pos,
                                 1.0,
                                 PATH_STROKE_COLOR,
-                                UNIFIED_OUTLINE_Z,
+                                OUTLINE_Z,
                                 sort_entity,
-                                UnifiedElementType::OutlineSegment,
+                                GlyphElementType::OutlineSegment,
                                 camera_scale,
                             );
                             element_entities.push(entity);
@@ -1236,7 +1236,7 @@ fn render_fontir_outline_unified(
                                     + t * t * end.y,
                             );
 
-                            let entity = spawn_unified_line_mesh(
+                            let entity = spawn_line_mesh(
                                 commands,
                                 meshes,
                                 materials,
@@ -1244,9 +1244,9 @@ fn render_fontir_outline_unified(
                                 curve_pos,
                                 1.0,
                                 PATH_STROKE_COLOR,
-                                UNIFIED_OUTLINE_Z,
+                                OUTLINE_Z,
                                 sort_entity,
-                                UnifiedElementType::OutlineSegment,
+                                GlyphElementType::OutlineSegment,
                                 camera_scale,
                             );
                             element_entities.push(entity);
@@ -1270,7 +1270,7 @@ fn render_fontir_outline_unified(
                             
                             // Only draw closing line if start and end are different
                             if (end - start).length() > 0.1 {
-                                let entity = spawn_unified_line_mesh(
+                                let entity = spawn_line_mesh(
                                     commands,
                                     meshes,
                                     materials,
@@ -1278,9 +1278,9 @@ fn render_fontir_outline_unified(
                                     start,
                                     1.0,
                                     PATH_STROKE_COLOR,
-                                    UNIFIED_OUTLINE_Z,
+                                    OUTLINE_Z,
                                     sort_entity,
-                                    UnifiedElementType::OutlineSegment,
+                                    GlyphElementType::OutlineSegment,
                                     camera_scale,
                                 );
                                 element_entities.push(entity);
@@ -1294,7 +1294,7 @@ fn render_fontir_outline_unified(
 }
 
 /// Helper to spawn a line mesh entity for unified rendering
-fn spawn_unified_line_mesh(
+fn spawn_line_mesh(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<ColorMaterial>>,
@@ -1304,7 +1304,7 @@ fn spawn_unified_line_mesh(
     color: Color,
     z: f32,
     sort_entity: Entity,
-    element_type: UnifiedElementType,
+    element_type: GlyphElementType,
     camera_scale: &CameraResponsiveScale,
 ) -> Entity {
     let adjusted_width = camera_scale.adjusted_line_width() * width;
@@ -1316,7 +1316,7 @@ fn spawn_unified_line_mesh(
 
     commands
         .spawn((
-            UnifiedGlyphElement {
+            GlyphRenderElement {
                 element_type,
                 sort_entity,
             },
@@ -1438,9 +1438,9 @@ fn spawn_contour_start_arrow(
         .spawn((
             Mesh2d(meshes.add(mesh)),
             MeshMaterial2d(materials.add(ColorMaterial::from_color(arrow_color))),
-            Transform::from_xyz(0.0, 0.0, UNIFIED_OUTLINE_Z + 0.1), // Slightly above outlines
-            UnifiedGlyphElement {
-                element_type: UnifiedElementType::ContourStartArrow,
+            Transform::from_xyz(0.0, 0.0, OUTLINE_Z + 0.1), // Slightly above outlines
+            GlyphRenderElement {
+                element_type: GlyphElementType::ContourStartArrow,
                 sort_entity,
             },
         ))
@@ -1448,15 +1448,15 @@ fn spawn_contour_start_arrow(
 }
 
 /// Plugin for unified glyph editing rendering
-pub struct UnifiedGlyphEditingPlugin;
+pub struct GlyphRenderingPlugin;
 
-impl Plugin for UnifiedGlyphEditingPlugin {
+impl Plugin for GlyphRenderingPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<UnifiedGlyphEntities>()
+        app.init_resource::<GlyphRenderEntities>()
            .init_resource::<SortVisualUpdateTracker>()
            .add_systems(Update, (
                detect_sort_changes,
-               render_unified_glyph_editing,
+               render_glyphs,
            ).chain()
                .after(crate::systems::text_editor_sorts::spawn_active_sort_points_optimized)
                .after(crate::editing::selection::nudge::handle_nudge_input));

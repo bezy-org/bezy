@@ -9,7 +9,7 @@
 
 #![allow(unused_imports)]
 
-pub mod camera_responsive;
+pub mod zoom_aware_scaling;
 pub mod cameras;
 pub mod checkerboard;
 pub mod debug;
@@ -23,10 +23,10 @@ pub mod points;
 pub mod selection;
 pub mod sort_renderer;
 pub mod sort_visuals;
-pub mod unified_glyph_editing;
+pub mod glyph_renderer;
 
 // Re-export commonly used items
-pub use camera_responsive::{CameraResponsivePlugin, CameraResponsiveScale};
+pub use zoom_aware_scaling::{CameraResponsivePlugin, CameraResponsiveScale};
 pub use checkerboard::{CheckerboardEnabled, CheckerboardPlugin};
 pub use entity_pools::EntityPoolingPlugin;
 pub use mesh_cache::MeshCachingPlugin;
@@ -38,4 +38,4 @@ pub use selection::{
     render_selection_marquee,
 };
 pub use sort_visuals::SortHandleRenderingPlugin;
-pub use unified_glyph_editing::UnifiedGlyphEditingPlugin;
+pub use glyph_renderer::GlyphRenderingPlugin;

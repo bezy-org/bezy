@@ -1,10 +1,11 @@
-//! Camera-responsive scaling system
+//! Zoom-aware scaling system for mesh-based rendering
 //!
-//! This module provides a system to adjust visual element sizes (line widths, point sizes, etc.)
-//! based on camera zoom level to maintain visual consistency across different zoom levels.
+//! This module provides automatic scaling for mesh-rendered elements (points, lines, handles)
+//! to maintain visual consistency at all zoom levels. Similar to how professional font editors
+//! keep UI elements visible when zoomed in or out.
 //!
-//! This addresses the issue where mesh-based rendering elements become too small when zoomed out,
-//! unlike gizmos which maintain screen-space size automatically.
+//! The system scales mesh elements based on camera zoom to ensure they remain visible and
+//! usable regardless of zoom level.
 
 use crate::rendering::cameras::DesignCamera;
 use bevy::prelude::*;

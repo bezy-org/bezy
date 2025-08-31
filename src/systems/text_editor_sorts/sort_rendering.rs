@@ -49,7 +49,7 @@ pub fn render_text_editor_cursor(
     fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
     current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
     camera_scale: Res<
-        crate::rendering::camera_responsive::CameraResponsiveScale,
+        crate::rendering::zoom_aware_scaling::CameraResponsiveScale,
     >,
     _existing_cursors: Query<Entity, With<TextEditorCursor>>,
     mut cursor_state: ResMut<CursorRenderingState>,
@@ -525,7 +525,7 @@ fn create_mesh_cursor(
     cursor_top: f32,
     cursor_bottom: f32,
     cursor_color: Color,
-    camera_scale: &crate::rendering::camera_responsive::CameraResponsiveScale,
+    camera_scale: &crate::rendering::zoom_aware_scaling::CameraResponsiveScale,
 ) {
     let outline_width = camera_scale.adjusted_line_width();
     let cursor_width = outline_width * 2.0; // 2x the outline width (reduced by half)

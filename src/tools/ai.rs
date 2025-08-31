@@ -135,7 +135,7 @@ fn spawn_ai_operation_button(
     theme: &Res<crate::ui::themes::CurrentTheme>,
 ) {
     // Use the unified toolbar button creation system for consistent styling
-    crate::ui::toolbars::edit_mode_toolbar::create_unified_toolbar_button(
+    crate::ui::toolbars::edit_mode_toolbar::create_toolbar_button(
         parent,
         operation.get_icon(),
         (AiSubMenuButton, AiOperationButton { operation }),
@@ -210,7 +210,7 @@ pub fn handle_ai_operation_selection(
         }
 
         // Use the unified button color system for consistent appearance with main toolbar
-        crate::ui::toolbars::edit_mode_toolbar::update_unified_button_colors(
+        crate::ui::toolbars::edit_mode_toolbar::update_toolbar_button_colors(
             *interaction,
             is_current_operation,
             &mut color,
@@ -218,7 +218,7 @@ pub fn handle_ai_operation_selection(
         );
         
         // Use the unified text color system for consistent icon colors with main toolbar
-        crate::ui::toolbars::edit_mode_toolbar::update_unified_button_text_colors(
+        crate::ui::toolbars::edit_mode_toolbar::update_toolbar_button_text_colors(
             entity,
             is_current_operation,
             &children_query,

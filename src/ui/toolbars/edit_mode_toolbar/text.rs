@@ -194,7 +194,7 @@ fn spawn_text_mode_button(
     theme: &Res<CurrentTheme>,
 ) {
     // Use the unified toolbar button creation system for consistent styling with hover text
-    crate::ui::toolbars::edit_mode_toolbar::ui::create_unified_toolbar_button_with_hover_text(
+    crate::ui::toolbars::edit_mode_toolbar::ui::create_toolbar_button_with_hover_text(
         parent,
         mode.get_icon(),
         Some(mode.display_name()), // Show the mode name on hover
@@ -270,7 +270,7 @@ pub fn handle_text_mode_selection(
         }
 
         // Use the unified button color system for consistent appearance with main toolbar
-        crate::ui::toolbars::edit_mode_toolbar::ui::update_unified_button_colors(
+        crate::ui::toolbars::edit_mode_toolbar::ui::update_toolbar_button_colors(
             *interaction,
             is_current_mode,
             &mut color,
@@ -278,7 +278,7 @@ pub fn handle_text_mode_selection(
         );
         
         // Use the unified text color system for consistent icon colors with main toolbar
-        crate::ui::toolbars::edit_mode_toolbar::ui::update_unified_button_text_colors(
+        crate::ui::toolbars::edit_mode_toolbar::ui::update_toolbar_button_text_colors(
             entity,
             is_current_mode,
             &children_query,

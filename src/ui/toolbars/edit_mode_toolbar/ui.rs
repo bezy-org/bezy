@@ -6,26 +6,26 @@
 //! proper ordering and visual feedback. To add a new tool, implement the
 //! `EditTool` trait and register it with `ToolRegistry::register_tool()`.
 //!
-//! ## Unified Button Rendering System
+//! ## Consistent Button Rendering System
 //!
-//! This module provides a comprehensive unified button rendering system that ensures
+//! This module provides a comprehensive button rendering system that ensures
 //! consistent visual appearance across all toolbar buttons (main toolbar and submenus).
 //!
 //! ### Key Features
 //! 
-//! - **Consistent Button Creation**: `create_unified_toolbar_button()` creates buttons with
+//! - **Consistent Button Creation**: `create_toolbar_button()` creates buttons with
 //!   identical styling, sizing, borders, and color handling
-//! - **Unified Color System**: `update_unified_button_colors()` ensures all buttons use
+//! - **Consistent Color System**: `update_toolbar_button_colors()` ensures all buttons use
 //!   the same color states (normal, hovered, pressed/active)
 //! - **Icon Alignment**: `create_button_icon_text()` provides consistent icon centering
 //!   and font sizing across all buttons
 //!
 //! ### For Submenu Developers
 //!
-//! When creating submenu buttons, always use the unified system:
+//! When creating submenu buttons, always use the consistent system:
 //! ```rust,ignore
 //! // 1. Create the button with consistent styling
-//! create_unified_toolbar_button(
+//! create_toolbar_button(
 //!     parent,
 //!     icon_string,
 //!     (YourSubMenuButton, YourModeButton { mode }),
@@ -34,7 +34,7 @@
 //! );
 //!
 //! // 2. Handle background/border color updates
-//! update_unified_button_colors(
+//! update_toolbar_button_colors(
 //!     interaction,
 //!     is_active,
 //!     &mut background_color,
@@ -42,7 +42,7 @@
 //! );
 //!
 //! // 3. Handle icon text color updates (for bright white active icons)
-//! update_unified_button_text_colors(
+//! update_toolbar_button_text_colors(
 //!     entity,
 //!     is_active,
 //!     &children_query,
@@ -213,21 +213,21 @@ pub fn create_button_icon_text(
     ));
 }
 
-/// Creates a unified toolbar button with consistent styling and returns a builder for adding components
-/// This should be used by all toolbar buttons (main toolbar and submenus) for visual consistency
-pub fn create_unified_toolbar_button<T: Bundle>(
+/// Creates a standard button with consistent styling and returns a builder for adding components
+/// This should be used by most toolbar buttons (main toolbar and submenus) for visual consistency
+pub fn create_toolbar_button<T: Bundle>(
     parent: &mut ChildSpawnerCommands,
     icon: &str,
     additional_components: T,
     asset_server: &AssetServer,
     theme: &Res<CurrentTheme>,
 ) {
-    create_unified_toolbar_button_with_hover_text(parent, icon, None, additional_components, asset_server, theme);
+    create_toolbar_button_with_hover_text(parent, icon, None, additional_components, asset_server, theme);
 }
 
-/// Creates a unified toolbar button with hover text support
+/// Creates a standard button with hover text support
 /// This version allows specifying the hover text to display when the button is hovered
-pub fn create_unified_toolbar_button_with_hover_text<T: Bundle>(
+pub fn create_toolbar_button_with_hover_text<T: Bundle>(
     parent: &mut ChildSpawnerCommands,
     icon: &str,
     _hover_text: Option<&str>,
@@ -259,9 +259,9 @@ pub fn create_unified_toolbar_button_with_hover_text<T: Bundle>(
 }
 
 
-/// Updates button colors using the unified color system
-/// This should be used by all button color update systems for consistency
-pub fn update_unified_button_colors(
+/// Updates standard button colors with consistent styling
+/// This should be used by all standard button color update systems for consistency
+pub fn update_toolbar_button_colors(
     interaction: Interaction,
     is_active: bool,
     background_color: &mut BackgroundColor,
@@ -285,7 +285,7 @@ pub fn update_unified_button_colors(
 
 /// Updates button text (icon) colors using the unified color system
 /// This should be used by all button text color update systems for consistency
-pub fn update_unified_button_text_colors(
+pub fn update_toolbar_button_text_colors(
     entity: Entity,
     is_active: bool,
     children_query: &Query<&Children>,
@@ -422,8 +422,8 @@ fn update_button_colors(
     background_color: &mut BackgroundColor,
     border_color: &mut BorderColor,
 ) {
-    // Use the unified color system for consistency
-    update_unified_button_colors(interaction, is_current_tool, background_color, border_color);
+    // Use consistent color system
+    update_toolbar_button_colors(interaction, is_current_tool, background_color, border_color);
 }
 
 /// Updates text color for button children based on current tool state
@@ -433,8 +433,8 @@ fn update_button_text_color(
     children_query: &Query<&Children>,
     text_query: &mut Query<&mut TextColor>,
 ) {
-    // Use the unified text color system for consistency
-    update_unified_button_text_colors(entity, is_current_tool, children_query, text_query);
+    // Use consistent text color system
+    update_toolbar_button_text_colors(entity, is_current_tool, children_query, text_query);
 }
 
 /// Updates hover text visibility based on button interaction states

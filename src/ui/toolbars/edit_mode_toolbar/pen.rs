@@ -873,7 +873,7 @@ fn spawn_pen_mode_button(
     theme: &Res<CurrentTheme>,
 ) {
     // Use the unified toolbar button creation system for consistent styling with hover text
-    crate::ui::toolbars::edit_mode_toolbar::ui::create_unified_toolbar_button_with_hover_text(
+    crate::ui::toolbars::edit_mode_toolbar::ui::create_toolbar_button_with_hover_text(
         parent,
         mode.get_icon(),
         Some(mode.get_name()), // Show the mode name on hover

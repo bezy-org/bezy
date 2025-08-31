@@ -524,8 +524,8 @@ pub fn despawn_missing_buffer_sort_entities(
     mut commands: Commands,
     text_editor_state: Res<TextEditorState>,
     mut buffer_entities: ResMut<BufferSortEntities>,
-    mut unified_entities: ResMut<
-        crate::rendering::unified_glyph_editing::UnifiedGlyphEntities,
+    mut glyph_entities: ResMut<
+        crate::rendering::glyph_renderer::GlyphRenderEntities,
     >,
     mut metrics_entities: ResMut<
         crate::rendering::metrics::MetricsLineEntities,
@@ -534,9 +534,9 @@ pub fn despawn_missing_buffer_sort_entities(
         crate::rendering::sort_visuals::SortHandleEntities,
     >,
     sort_query: Query<Entity, With<BufferSortIndex>>,
-    unified_element_query: Query<(
+    glyph_element_query: Query<(
         Entity,
-        &crate::rendering::unified_glyph_editing::UnifiedGlyphElement,
+        &crate::rendering::glyph_renderer::GlyphRenderElement,
     )>,
     point_query: Query<
         Entity,
@@ -587,23 +587,23 @@ pub fn despawn_missing_buffer_sort_entities(
                     buffer_index, text_editor_state.buffer.len()
                 );
 
-                // First, despawn all unified glyph elements associated with this sort
-                let mut unified_count = 0;
+                // First, despawn all glyph render elements associated with this sort
+                let mut glyph_count = 0;
 
-                // Despawn all unified elements (points, outlines, handles)
-                if let Some(element_entities) = unified_entities.elements.get(&entity) {
+                // Despawn all glyph elements (points, outlines, handles)
+                if let Some(element_entities) = glyph_entities.elements.get(&entity) {
                     for &element_entity in element_entities.iter() {
                         commands.entity(element_entity).despawn();
-                        unified_count += 1;
+                        glyph_count += 1;
                         despawn_operations += 1;
                     }
                 }
 
-                // Also despawn any loose unified elements that might not be tracked
-                for (unified_entity, unified_element) in unified_element_query.iter() {
-                    if unified_element.sort_entity == entity {
-                        commands.entity(unified_entity).despawn();
-                        unified_count += 1;
+                // Also despawn any loose glyph elements that might not be tracked
+                for (glyph_entity, glyph_element) in glyph_element_query.iter() {
+                    if glyph_element.sort_entity == entity {
+                        commands.entity(glyph_entity).despawn();
+                        glyph_count += 1;
                         despawn_operations += 1;
                     }
                 }
@@ -675,11 +675,11 @@ pub fn despawn_missing_buffer_sort_entities(
                     }
                 }
 
-                info!("🗑️ Despawned {} unified elements, {} point entities, {} metrics line entities, {} label entities, and {} handle entities for sort {:?} (total operations: {})", 
-                      unified_count, point_count, metrics_count, label_count, handle_count, entity, despawn_operations);
+                info!("🗑️ Despawned {} glyph elements, {} point entities, {} metrics line entities, {} label entities, and {} handle entities for sort {:?} (total operations: {})", 
+                      glyph_count, point_count, metrics_count, label_count, handle_count, entity, despawn_operations);
 
-                // Remove from unified tracking
-                unified_entities.elements.remove(&entity);
+                // Remove from glyph render tracking
+                glyph_entities.elements.remove(&entity);
 
                 // Remove from metrics tracking
                 metrics_entities.lines.remove(&entity);

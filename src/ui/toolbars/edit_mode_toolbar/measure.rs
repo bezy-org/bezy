@@ -121,7 +121,7 @@ pub fn render_measure_preview(
     mut materials: ResMut<Assets<bevy::sprite::ColorMaterial>>,
     measure_consumer: Res<crate::systems::input_consumer::MeasureInputConsumer>,
     measure_mode: Option<Res<MeasureModeActive>>,
-    camera_scale: Res<crate::rendering::camera_responsive::CameraResponsiveScale>,
+    camera_scale: Res<crate::rendering::zoom_aware_scaling::CameraResponsiveScale>,
     mut measure_entities: Local<Vec<Entity>>,
     theme: Res<crate::ui::themes::CurrentTheme>,
     current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
@@ -514,7 +514,7 @@ fn spawn_measure_text_with_pill_background(
     position: Vec2,
     text_content: &str,
     theme: &Res<crate::ui::themes::CurrentTheme>,
-    camera_scale: &Res<crate::rendering::camera_responsive::CameraResponsiveScale>,
+    camera_scale: &Res<crate::rendering::zoom_aware_scaling::CameraResponsiveScale>,
 ) -> Vec<Entity> {
     let mut entities = Vec::new();
     

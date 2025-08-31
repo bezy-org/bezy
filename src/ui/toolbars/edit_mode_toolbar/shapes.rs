@@ -8,7 +8,7 @@
 use crate::core::settings::BezySettings;
 use crate::core::state::{AppState, GlyphNavigation};
 use crate::editing::selection::events::AppStateChanged;
-use crate::rendering::camera_responsive::CameraResponsiveScale;
+use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
 use crate::ui::toolbars::edit_mode_toolbar::{EditTool, ToolRegistry};
 use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
 use crate::ui::theme::*;
@@ -1030,7 +1030,7 @@ fn spawn_shape_mode_button(
     theme: &Res<CurrentTheme>,
 ) {
     // Use the unified toolbar button creation system for consistent styling with hover text
-    crate::ui::toolbars::edit_mode_toolbar::ui::create_unified_toolbar_button_with_hover_text(
+    crate::ui::toolbars::edit_mode_toolbar::ui::create_toolbar_button_with_hover_text(
         parent,
         shape_type.get_icon(),
         Some(shape_type.get_name()), // Show the shape name on hover

@@ -8,7 +8,7 @@
 
 use crate::core::state::font_metrics::FontMetrics;
 use crate::core::state::fontir_app_state::FontIRMetrics;
-use crate::rendering::camera_responsive::CameraResponsiveScale;
+use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
 use crate::rendering::entity_pools::{update_metrics_entity, EntityPools};
 use crate::ui::theme::METRICS_GUIDE_COLOR;
 use bevy::prelude::*;

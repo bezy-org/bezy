@@ -8,10 +8,10 @@ use crate::core::settings::{BezySettings, DEFAULT_WINDOW_SIZE, WINDOW_TITLE};
 use crate::core::state::GlyphNavigation;
 use crate::editing::{FontEditorSystemSetsPlugin, SelectionPlugin, TextEditorPlugin, UndoPlugin};
 use crate::rendering::{
-    camera_responsive::CameraResponsivePlugin, cameras::CameraPlugin,
+    zoom_aware_scaling::CameraResponsivePlugin, cameras::CameraPlugin,
     checkerboard::CheckerboardPlugin, EntityPoolingPlugin, MeshCachingPlugin,
     MetricsRenderingPlugin,
-    SortHandleRenderingPlugin, UnifiedGlyphEditingPlugin,
+    SortHandleRenderingPlugin, GlyphRenderingPlugin,
 };
 use crate::systems::{
     exit_on_esc, load_fontir_font, create_startup_layout, center_camera_on_startup_layout,
@@ -70,7 +70,7 @@ impl PluginGroup for RenderingPluginGroup {
             .add(MeshCachingPlugin)
             .add(MetricsRenderingPlugin)
             .add(SortHandleRenderingPlugin)
-            .add(UnifiedGlyphEditingPlugin)
+            .add(GlyphRenderingPlugin)
     }
 }
 
