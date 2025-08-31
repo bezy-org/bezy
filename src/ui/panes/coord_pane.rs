@@ -25,15 +25,16 @@ const QUADRANT_SELECTOR_SIZE: f32 = 96.0;
 /// Size of each quadrant button
 const QUADRANT_BUTTON_SIZE: f32 = 24.0;
 
-/// Gap between quadrant buttons
-const QUADRANT_BUTTON_GAP: f32 = 4.0;
-
 /// Width of grid lines
 const GRID_LINE_WIDTH: f32 = 2.0;
 
-/// Positions where buttons are placed in the grid
-/// Adjust these if the grid lines don't align with button centers
-const BUTTON_POSITIONS: [f32; 3] = [12.0, 44.0, 76.0];
+/// Button center positions - grid lines will align with these
+/// Using absolute positioning to ensure perfect alignment
+const BUTTON_CENTER_POSITIONS: [f32; 3] = [
+    QUADRANT_SELECTOR_SIZE * 0.5 / 3.0,      // 16.0 for 96px container
+    QUADRANT_SELECTOR_SIZE * 0.5,            // 48.0 (center)
+    QUADRANT_SELECTOR_SIZE * 2.5 / 3.0,      // 80.0 for 96px container
+];
 
 /// Spacing between coordinate label and value
 const LABEL_VALUE_SPACING: f32 = 8.0;
@@ -303,20 +304,19 @@ pub fn spawn_coord_pane(
                             ..default()
                         })
                         .with_children(|lines| {
-                            // Horizontal grid lines
-                            for &y_pos in BUTTON_POSITIONS.iter() {
+                            // Horizontal grid lines - aligned with button centers
+                            for &y_pos in BUTTON_CENTER_POSITIONS.iter() {
                                 lines.spawn((
                                     Node {
                                         position_type: PositionType::Absolute,
                                         width: Val::Px(
-                                            BUTTON_POSITIONS[2]
-                                                - BUTTON_POSITIONS[0],
+                                            BUTTON_CENTER_POSITIONS[2] - BUTTON_CENTER_POSITIONS[0],
                                         ),
                                         height: Val::Px(GRID_LINE_WIDTH),
                                         top: Val::Px(
                                             y_pos - GRID_LINE_WIDTH / 2.0,
                                         ),
-                                        left: Val::Px(BUTTON_POSITIONS[0]),
+                                        left: Val::Px(BUTTON_CENTER_POSITIONS[0]),
                                         ..default()
                                     },
                                     BackgroundColor(
@@ -324,20 +324,19 @@ pub fn spawn_coord_pane(
                                     ),
                                 ));
                             }
-                            // Vertical grid lines
-                            for &x_pos in BUTTON_POSITIONS.iter() {
+                            // Vertical grid lines - aligned with button centers
+                            for &x_pos in BUTTON_CENTER_POSITIONS.iter() {
                                 lines.spawn((
                                     Node {
                                         position_type: PositionType::Absolute,
                                         width: Val::Px(GRID_LINE_WIDTH),
                                         height: Val::Px(
-                                            BUTTON_POSITIONS[2]
-                                                - BUTTON_POSITIONS[0],
+                                            BUTTON_CENTER_POSITIONS[2] - BUTTON_CENTER_POSITIONS[0],
                                         ),
                                         left: Val::Px(
                                             x_pos - GRID_LINE_WIDTH / 2.0,
                                         ),
-                                        top: Val::Px(BUTTON_POSITIONS[0]),
+                                        top: Val::Px(BUTTON_CENTER_POSITIONS[0]),
                                         ..default()
                                     },
                                     BackgroundColor(
@@ -347,82 +346,56 @@ pub fn spawn_coord_pane(
                             }
                         });
 
-                    // Quadrant buttons (3x3 grid)
-                    container
-                        .spawn(Node {
-                            position_type: PositionType::Absolute,
-                            display: Display::Grid,
-                            grid_template_columns: vec![
-                                RepeatedGridTrack::fr(1, 1.0),
-                                RepeatedGridTrack::fr(1, 1.0),
-                                RepeatedGridTrack::fr(1, 1.0),
-                            ],
-                            grid_template_rows: vec![
-                                RepeatedGridTrack::fr(1, 1.0),
-                                RepeatedGridTrack::fr(1, 1.0),
-                                RepeatedGridTrack::fr(1, 1.0),
-                            ],
-                            width: Val::Percent(100.0),
-                            height: Val::Percent(100.0),
-                            column_gap: Val::Px(QUADRANT_BUTTON_GAP),
-                            row_gap: Val::Px(QUADRANT_BUTTON_GAP),
-                            ..default()
-                        })
-                        .with_children(|grid| {
-                            let quadrants = [
-                                [
-                                    Quadrant::TopLeft,
-                                    Quadrant::Top,
-                                    Quadrant::TopRight,
-                                ],
-                                [
-                                    Quadrant::Left,
-                                    Quadrant::Center,
-                                    Quadrant::Right,
-                                ],
-                                [
-                                    Quadrant::BottomLeft,
-                                    Quadrant::Bottom,
-                                    Quadrant::BottomRight,
-                                ],
-                            ];
+                    // Quadrant buttons using absolute positioning to align with grid lines
+                    let quadrants_with_positions = [
+                        // Row 0 (Top)
+                        (Quadrant::TopLeft, 0, 0),
+                        (Quadrant::Top, 1, 0),
+                        (Quadrant::TopRight, 2, 0),
+                        // Row 1 (Middle)
+                        (Quadrant::Left, 0, 1),
+                        (Quadrant::Center, 1, 1),
+                        (Quadrant::Right, 2, 1),
+                        // Row 2 (Bottom)
+                        (Quadrant::BottomLeft, 0, 2),
+                        (Quadrant::Bottom, 1, 2),
+                        (Quadrant::BottomRight, 2, 2),
+                    ];
 
-                            for row in quadrants.iter() {
-                                for &quadrant in row.iter() {
-                                    let is_selected =
-                                        quadrant == Quadrant::Center;
+                    for (quadrant, col, row) in quadrants_with_positions.iter() {
+                        let x_center = BUTTON_CENTER_POSITIONS[*col];
+                        let y_center = BUTTON_CENTER_POSITIONS[*row];
+                        let is_selected = *quadrant == Quadrant::Center;
 
-                                    grid.spawn((
-                                        Button,
-                                        Node {
-                                            width: Val::Px(
-                                                QUADRANT_BUTTON_SIZE,
-                                            ),
-                                            height: Val::Px(
-                                                QUADRANT_BUTTON_SIZE,
-                                            ),
-                                            border: UiRect::all(Val::Px(2.0)),
-                                            ..default()
-                                        },
-                                        BackgroundColor(if is_selected {
-                                            PRESSED_BUTTON_COLOR
-                                        } else {
-                                            NORMAL_BUTTON_COLOR
-                                        }),
-                                        BorderColor(if is_selected {
-                                            PRESSED_BUTTON_OUTLINE_COLOR
-                                        } else {
-                                            NORMAL_BUTTON_OUTLINE_COLOR
-                                        }),
-                                        BorderRadius::all(Val::Px(
-                                            theme.theme().ui_border_radius(),
-                                        )),
-                                        UiBorderRadius,
-                                        QuadrantButton(quadrant),
-                                    ));
-                                }
-                            }
-                        });
+                        container.spawn((
+                            Button,
+                            Node {
+                                position_type: PositionType::Absolute,
+                                width: Val::Px(QUADRANT_BUTTON_SIZE),
+                                height: Val::Px(QUADRANT_BUTTON_SIZE),
+                                // Center the button on the grid intersection
+                                left: Val::Px(x_center - QUADRANT_BUTTON_SIZE / 2.0),
+                                top: Val::Px(y_center - QUADRANT_BUTTON_SIZE / 2.0),
+                                border: UiRect::all(Val::Px(2.0)),
+                                ..default()
+                            },
+                            BackgroundColor(if is_selected {
+                                PRESSED_BUTTON_COLOR
+                            } else {
+                                NORMAL_BUTTON_COLOR
+                            }),
+                            BorderColor(if is_selected {
+                                PRESSED_BUTTON_OUTLINE_COLOR
+                            } else {
+                                NORMAL_BUTTON_OUTLINE_COLOR
+                            }),
+                            BorderRadius::all(Val::Px(
+                                theme.theme().ui_border_radius(),
+                            )),
+                            UiBorderRadius,
+                            QuadrantButton(*quadrant),
+                        ));
+                    }
                 });
         });
 }
