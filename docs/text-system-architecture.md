@@ -223,18 +223,39 @@ Positions:   (50,200)     (100,200)   (150,200)   (100,200)
 ## Implementation Status & Migration Plan
 
 ### Current Status (New ECS Architecture) ✅
-The system now uses a clean ECS-based buffer architecture:
+The system now uses a clean ECS-based buffer architecture with major improvements completed:
 
 - **Buffer Entities**: Each text buffer is an ECS entity with dedicated components
 - **Clean Separation**: Sorts contain no buffer metadata, just `BufferMember` references  
 - **ECS Cursor Storage**: Cursor positions stored in `BufferCursor` components
 - **Proper Isolation**: Complete separation via ECS entity relationships
+- **Legacy Code Cleanup**: Removed conflicting dual systems for educational simplicity
 
 ### Architecture Benefits Achieved ✅
 - **Clear separation**: Buffer properties in buffer entities, not sorts
 - **Simplified sorts**: Sorts only contain glyph data and buffer membership
 - **Clean cursor management**: `BufferCursor` components handle cursor storage
 - **Better isolation**: ECS entities provide natural separation between text flows
+- **Educational Ready**: No more confusing legacy systems running in parallel
+
+### Recent Major Improvements (Sept 2025) ✅
+
+#### Text System Cleanup & Bug Fixes
+- **✅ Fixed missing cursor in Insert mode**: Cursor now appears when app starts normally (without `--no-default-buffer`)
+- **✅ Fixed cross-contamination between text buffers**: Replaced legacy `get_text_sort_flow_position` with ECS-based positioning
+- **✅ Fixed cursor visibility logic**: Cursor only shows in Text tool + Insert mode (eliminates visual confusion)
+- **✅ Removed legacy code**: Deleted unused functions (`calculate_legacy_cursor_position`, `handle_unicode_text_input_legacy`)
+- **✅ Buffer visual markers**: Temporarily disabled distracting page icons (code preserved for future use)
+
+#### ECS Buffer System Enhancements
+- **✅ Auto buffer entity creation**: System automatically creates TextBuffer entities for legacy sorts with buffer_id
+- **✅ Active buffer management**: Enhanced system to auto-set active buffer when none is set
+- **✅ BufferMember linking**: Sort entities now properly linked to buffer entities during spawning
+- **✅ ECS positioning system**: New `calculate_buffer_local_position()` function replaces legacy cross-contamination logic
+
+#### Vertical Alignment Fix
+- **✅ Fixed line height calculation**: Corrected formula to match legacy system (`line_height = upm - descender`)
+- **✅ Multi-line positioning**: Proper line break handling for text that spans multiple rows
 
 ### Migration Plan
 
@@ -250,16 +271,79 @@ The system now uses a clean ECS-based buffer architecture:
 - [x] Add TextBufferManagerPlugin for buffer management
 - [x] Update architecture documentation
 
-#### Phase 3: Legacy Cleanup (Next)
-- [ ] Remove `buffer_cursor_position` from SortEntry
-- [ ] Remove `buffer_id` from SortEntry (keep for compatibility initially)
-- [ ] Migrate remaining systems to use buffer entities
-- [ ] Complete RTL text editing functionality with new architecture
+#### Phase 3: Legacy Cleanup ✅ COMPLETED
+- [x] Remove unused legacy functions and clean up dead code
+- [x] Replace legacy positioning with ECS buffer-aware system
+- [x] Fix buffer cross-contamination issues
+- [x] Ensure educational simplicity - no dual systems
 
-### Near-term Focus Areas
-1. **Text Shaping Integration**: Connect HarfRust to rendering pipeline
-2. **Insert Mode**: Improve buffer targeting for insert mode
-3. **RTL Support**: Fix remaining RTL cursor positioning issues
+### Current Working Status
+
+#### ✅ Working Features (LTR Text)
+- **Insert Mode**: Cursor appears correctly, typing works
+- **Arrow Key Navigation**: Left/right/up/down cursor movement
+- **Character Insertion**: Proper positioning and buffer management
+- **Backspace/Delete**: Cursor-based deletion works correctly
+- **Line Breaks**: Enter key creates new lines with proper positioning
+- **Buffer Isolation**: Multiple text buffers work independently
+- **Cursor Visibility**: Only shows when functional (Text tool + Insert mode)
+
+#### ❌ Known Issues
+
+##### RTL Text System Completely Broken
+- **RTL text tools are completely non-functional** - this is a major issue
+- Root cause: RTL positioning logic needs complete rewrite for new ECS architecture
+- Arabic text placement, cursor positioning, and text flow all broken
+- RTL-specific features not migrated to new buffer entity system
+
+##### Minor Issues
+- Legacy functions still exist in `editor.rs` (test functions and unused helpers)
+- Some deprecated fields like `buffer_cursor_position` could be cleaned up
+- Buffer visual markers are disabled (by design, but may want them back eventually)
+
+### Technical Implementation Details (Sept 2025)
+
+#### Key Files Modified
+- **`/src/systems/text_editor_sorts/sort_entities.rs`**: 
+  - Added `calculate_buffer_local_position()` function for ECS-based positioning
+  - Updated `spawn_missing_sort_entities()` to use new positioning
+  - Updated `update_buffer_sort_positions()` to use buffer entities
+  - Added BufferMember component linking during entity creation
+
+- **`/src/systems/text_buffer_manager.rs`**:
+  - Added `create_missing_buffer_entities()` system for legacy compatibility
+  - Enhanced `update_active_buffer()` with fallback logic
+  - Temporarily disabled `render_buffer_markers()` (visual page icons)
+
+- **`/src/systems/text_editor_sorts/sort_rendering.rs`**:
+  - Fixed cursor visibility logic to require Text tool + Insert mode
+  - Removed 150+ lines of unused `calculate_legacy_cursor_position()` function
+
+- **`/src/ui/edit_mode_toolbar/text.rs`**:
+  - Changed default TextPlacementMode from LTRText to Insert for immediate usability
+
+#### ECS Architecture Changes
+```rust
+// NEW: Buffer entity auto-creation from legacy buffer_id
+fn create_missing_buffer_entities() {
+    // Creates TextBuffer entities for sorts with buffer_id but no entity
+}
+
+// NEW: ECS-based positioning (replaces legacy cross-contamination)  
+fn calculate_buffer_local_position() {
+    // Uses BufferMember relationships for proper isolation
+    // Formula: line_height = upm - descender (matches legacy exactly)
+}
+
+// ENHANCED: BufferMember linking during sort creation
+entity_commands.insert(BufferMember::new(buffer_entity, buffer_local_index));
+```
+
+### Next Priority Areas
+1. **🔥 URGENT: Fix RTL text system** - completely non-functional
+2. **Text Shaping Integration**: Connect HarfRust to rendering pipeline for Arabic
+3. **Final legacy cleanup**: Remove remaining deprecated fields from SortEntry
+4. **RTL cursor positioning**: Rewrite RTL logic for new ECS architecture
 
 ## Key Design Decisions
 
