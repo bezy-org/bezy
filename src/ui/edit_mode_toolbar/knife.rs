@@ -131,7 +131,8 @@ impl Plugin for KnifeToolPlugin {
                 Update,
                 (
                     manage_knife_mode_state,
-                    render_knife_preview.after(manage_knife_mode_state),
+                    handle_knife_mouse_events.after(manage_knife_mode_state),
+                    render_knife_preview.after(handle_knife_mouse_events),
                     handle_fontir_knife_cutting,
                 ),
             );
@@ -151,17 +152,37 @@ pub fn handle_knife_mouse_events(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut knife_state: ResMut<KnifeToolState>,
     knife_mode: Option<Res<KnifeModeActive>>,
-    mut app_state: ResMut<AppState>,
-    mut app_state_changed: EventWriter<crate::editing::selection::events::AppStateChanged>,
+    app_state_changed: EventWriter<crate::editing::selection::events::AppStateChanged>,
+    // Query for active sort to get its position
+    active_sort_query: Query<(Entity, &crate::editing::sort::Sort, &Transform), With<crate::editing::sort::ActiveSort>>,
 ) {
-    // Only handle events when in knife mode
-    if let Some(knife_mode) = knife_mode {
-        if !knife_mode.0 {
-            return;
-        }
+    // Check if knife mode is active
+    let knife_is_active = if let Some(knife_mode) = knife_mode {
+        knife_mode.0
     } else {
+        false
+    };
+
+    // IMPORTANT: Knife tool requires an active sort to work (like pen and shapes tools)
+    let active_sort = if let Ok((sort_entity, sort, sort_transform)) = active_sort_query.single() {
+        Some((sort_entity, sort, sort_transform))
+    } else {
+        None
+    };
+
+    // Early exit if knife tool is not active, no active sort, or other conditions
+    if !knife_is_active || active_sort.is_none() {
+        if knife_is_active && active_sort.is_none() {
+            // Only show this message when knife tool is actually trying to be used
+            if mouse_button_input.just_pressed(MouseButton::Left) {
+                info!("🔪 Knife tool: Cannot cut without an active sort. Please select a glyph first.");
+            }
+        }
         return;
     }
+
+    let (_sort_entity, _sort, sort_transform) = active_sort.unwrap();
+    let sort_position = sort_transform.translation.truncate();
 
     let Ok(window) = windows.single() else {
         return;
@@ -175,8 +196,11 @@ pub fn handle_knife_mouse_events(
         return;
     };
 
-    // Convert cursor position to world coordinates
+    // Convert cursor position to world coordinates, then to sort-relative coordinates
     if let Ok(world_position) = camera.viewport_to_world_2d(camera_transform, cursor_position) {
+        // Convert to sort-relative coordinates
+        let sort_relative_position = world_position - sort_position;
+        
         // Update shift lock state
         knife_state.shift_locked =
             keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
@@ -184,30 +208,30 @@ pub fn handle_knife_mouse_events(
         // Handle mouse button press
         if mouse_button_input.just_pressed(MouseButton::Left) {
             knife_state.gesture = KnifeGestureState::Cutting {
-                start: world_position,
-                current: world_position,
+                start: sort_relative_position,
+                current: sort_relative_position,
             };
             knife_state.intersections.clear();
-            info!("🔪 KNIFE_DEBUG: Started cutting at {:?}", world_position);
+            info!("🔪 KNIFE_DEBUG: Started cutting at sort-relative {:?}, world {:?}, sort pos {:?}", 
+                  sort_relative_position, world_position, sort_position);
         }
 
         // Handle mouse movement during cutting
         if let KnifeGestureState::Cutting { start, .. } = knife_state.gesture {
             knife_state.gesture = KnifeGestureState::Cutting {
                 start,
-                current: world_position,
+                current: sort_relative_position,
             };
 
-            // Update intersections for preview
-            update_intersections(&mut knife_state, &app_state, None);
-            debug!("🔪 KNIFE_DEBUG: Dragging to {:?}", world_position);
+            // Intersections will be calculated by the render system
+            debug!("🔪 KNIFE_DEBUG: Dragging to sort-relative {:?}", sort_relative_position);
         }
 
         // Handle mouse button release
         if mouse_button_input.just_released(MouseButton::Left) {
-            if let Some((start, end)) = knife_state.get_cutting_line() {
-                // Perform the cut
-                perform_cut(start, end, &mut app_state, &mut app_state_changed);
+            if let Some((_start, _end)) = knife_state.get_cutting_line() {
+                // The actual cutting is handled by handle_fontir_knife_cutting system
+                info!("🔪 KNIFE_DEBUG: Mouse released - cutting will be handled by FontIR system");
             }
 
             // Reset state
@@ -283,22 +307,48 @@ pub fn render_knife_preview(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    knife_consumer: Res<crate::systems::input_consumer::KnifeInputConsumer>,
+    knife_state: Res<KnifeToolState>, // Use main knife tool state instead of input consumer
     knife_mode: Option<Res<KnifeModeActive>>,
     camera_scale: Res<crate::rendering::zoom_aware_scaling::CameraResponsiveScale>,
     mut knife_entities: Local<Vec<Entity>>,
     theme: Res<crate::ui::themes::CurrentTheme>,
     current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
-    mut update_tracker: Local<Option<crate::systems::input_consumer::KnifeGestureState>>,
+    mut update_tracker: Local<Option<KnifeGestureState>>,
     fontir_state: Option<Res<crate::core::state::FontIRAppState>>,
     mut calc_cache: Local<KnifeCalculationCache>,
+    // Query for active sort to get its position for preview rendering
+    active_sort_query: Query<(Entity, &crate::editing::sort::Sort, &Transform), With<crate::editing::sort::ActiveSort>>,
 ) {
     // Check if tool is active
     let is_knife_active = current_tool.get_current() == Some("knife")
         && knife_mode.as_ref().map(|m| m.0).unwrap_or(false);
 
+    // Knife tool requires an active sort to work
+    let active_sort = if let Ok((sort_entity, sort, sort_transform)) = active_sort_query.single() {
+        Some((sort_entity, sort, sort_transform))
+    } else {
+        None
+    };
+
+    // Don't render if no active sort
+    if is_knife_active && active_sort.is_none() {
+        // Clean up any existing knife entities
+        for entity in knife_entities.drain(..) {
+            if let Ok(mut entity_commands) = commands.get_entity(entity) {
+                entity_commands.despawn();
+            }
+        }
+        return;
+    }
+
+    let sort_position = if let Some((_, _, sort_transform)) = active_sort {
+        sort_transform.translation.truncate()
+    } else {
+        Vec2::ZERO // Fallback, but we return early above if no active sort
+    };
+
     // Only update if gesture state has changed or knife tool became active
-    let gesture_changed = update_tracker.as_ref() != Some(&knife_consumer.gesture);
+    let gesture_changed = update_tracker.as_ref() != Some(&knife_state.gesture);
     let needs_update = gesture_changed || (!knife_entities.is_empty() && !is_knife_active);
 
     if !needs_update {
@@ -306,7 +356,7 @@ pub fn render_knife_preview(
     }
 
     // Update tracking state
-    *update_tracker = Some(knife_consumer.gesture);
+    *update_tracker = Some(knife_state.gesture);
 
     // Clean up previous knife entities
     for entity in knife_entities.drain(..) {
@@ -330,28 +380,32 @@ pub fn render_knife_preview(
     }
 
     // Draw the cutting line
-    if let Some((start, end)) = knife_consumer.get_cutting_line() {
+    if let Some((start, end)) = knife_state.get_cutting_line() {
+        // Convert from sort-relative to world coordinates for rendering
+        let world_start = start + sort_position;
+        let world_end = end + sort_position;
+        
         debug!(
-            "🔪 RENDER_KNIFE_PREVIEW: Drawing cutting line from {:?} to {:?}",
-            start, end
+            "🔪 RENDER_KNIFE_PREVIEW: Drawing cutting line from sort-relative {:?}-{:?} to world {:?}-{:?}",
+            start, end, world_start, world_end
         );
         let line_color = theme.theme().knife_line_color();
 
         // Create dashed line effect with a single batched mesh for performance
-        let direction = (end - start).normalize();
-        let total_length = start.distance(end);
+        let direction = (world_end - world_start).normalize();
+        let total_length = world_start.distance(world_end);
         let dash_length = theme.theme().knife_dash_length() * camera_scale.scale_factor;
         let gap_length = theme.theme().knife_gap_length() * camera_scale.scale_factor;
         let segment_length = dash_length + gap_length;
         let line_width = camera_scale.adjusted_line_width();
 
-        // Batch all dashes into a single mesh
+        // Batch all dashes into a single mesh (use world coordinates)
         let dashed_line_entity = spawn_dashed_line_batched(
             &mut commands,
             &mut meshes,
             &mut materials,
-            start,
-            end,
+            world_start,
+            world_end,
             dash_length,
             gap_length,
             line_width,
@@ -360,21 +414,21 @@ pub fn render_knife_preview(
         );
         knife_entities.push(dashed_line_entity);
 
-        // Draw start point (green circle)
+        // Draw start point (green circle) - use world coordinates
         let start_color = theme.theme().knife_start_point_color();
         let point_size = camera_scale.adjusted_point_size(4.0);
         let point_entity = spawn_knife_point_mesh(
             &mut commands,
             &mut meshes,
             &mut materials,
-            start,
+            world_start,
             point_size,
             start_color,
             19.0, // z-order above line but below intersection points
         );
         knife_entities.push(point_entity);
 
-        // Draw end point (orange cross)
+        // Draw end point (orange cross) - use world coordinates
         let end_color = theme.theme().action_color();
         let cross_size = theme.theme().knife_cross_size() * camera_scale.scale_factor;
         let cross_width = camera_scale.adjusted_line_width();
@@ -384,8 +438,8 @@ pub fn render_knife_preview(
             &mut commands,
             &mut meshes,
             &mut materials,
-            Vec2::new(end.x - cross_size, end.y),
-            Vec2::new(end.x + cross_size, end.y),
+            Vec2::new(world_end.x - cross_size, world_end.y),
+            Vec2::new(world_end.x + cross_size, world_end.y),
             cross_width,
             end_color,
             19.0, // z-order above line but below intersection points
@@ -397,8 +451,8 @@ pub fn render_knife_preview(
             &mut commands,
             &mut meshes,
             &mut materials,
-            Vec2::new(end.x, end.y - cross_size),
-            Vec2::new(end.x, end.y + cross_size),
+            Vec2::new(world_end.x, world_end.y - cross_size),
+            Vec2::new(world_end.x, world_end.y + cross_size),
             cross_width,
             end_color,
             19.0, // z-order above line but below intersection points
@@ -411,16 +465,13 @@ pub fn render_knife_preview(
         );
     } else {
         // Log when we're not drawing
-        if matches!(
-            knife_consumer.gesture,
-            crate::systems::input_consumer::KnifeGestureState::Ready
-        ) {
+        if matches!(knife_state.gesture, KnifeGestureState::Ready) {
             debug!("🔪 RENDER_KNIFE_PREVIEW: No cutting line to draw (Ready state)");
         }
     }
 
     // Calculate and draw intersection points from actual glyph data
-    if let Some((start, end)) = knife_consumer.get_cutting_line() {
+    if let Some((start, end)) = knife_state.get_cutting_line() {
         // Check if we need to recalculate intersections
         let current_glyph = fontir_state
             .as_ref()
@@ -440,17 +491,20 @@ pub fn render_knife_preview(
         let intersection_color = theme.theme().knife_intersection_color();
 
         for &intersection in &calc_cache.cached_intersections {
+            // Convert intersection from sort-relative to world coordinates
+            let world_intersection = intersection + sort_position;
+            
             let cross_size = theme.theme().knife_cross_size() * camera_scale.scale_factor;
             let cross_width = camera_scale.adjusted_line_width();
 
-            // Create X mark with two diagonal lines
+            // Create X mark with two diagonal lines (use world coordinates)
             // Diagonal line from top-left to bottom-right
             let diagonal1_entity = spawn_knife_line_mesh(
                 &mut commands,
                 &mut meshes,
                 &mut materials,
-                Vec2::new(intersection.x - cross_size, intersection.y + cross_size),
-                Vec2::new(intersection.x + cross_size, intersection.y - cross_size),
+                Vec2::new(world_intersection.x - cross_size, world_intersection.y + cross_size),
+                Vec2::new(world_intersection.x + cross_size, world_intersection.y - cross_size),
                 cross_width,
                 intersection_color,
                 20.0, // z-order above everything else
@@ -462,8 +516,8 @@ pub fn render_knife_preview(
                 &mut commands,
                 &mut meshes,
                 &mut materials,
-                Vec2::new(intersection.x + cross_size, intersection.y + cross_size),
-                Vec2::new(intersection.x - cross_size, intersection.y - cross_size),
+                Vec2::new(world_intersection.x + cross_size, world_intersection.y + cross_size),
+                Vec2::new(world_intersection.x - cross_size, world_intersection.y - cross_size),
                 cross_width,
                 intersection_color,
                 20.0, // z-order above everything else
@@ -523,72 +577,6 @@ fn calculate_real_intersections(
     intersections
 }
 
-/// Update intersection points for preview
-fn update_intersections(
-    knife_state: &mut KnifeToolState,
-    app_state: &AppState,
-    fontir_state: Option<&crate::core::state::FontIRAppState>,
-) {
-    knife_state.intersections.clear();
-
-    if let Some((start, end)) = knife_state.get_cutting_line() {
-        // Convert cutting line to kurbo Line for intersection testing
-        let cutting_line = kurbo::Line::new(
-            kurbo::Point::new(start.x as f64, start.y as f64),
-            kurbo::Point::new(end.x as f64, end.y as f64),
-        );
-
-        // Try FontIR state first (preferred)
-        if let Some(fontir_state) = fontir_state {
-            if let Some(ref current_glyph) = fontir_state.current_glyph {
-                if let Some(paths) = fontir_state.get_glyph_paths_with_edits(current_glyph) {
-                    for path in &paths {
-                        let intersections = find_path_intersections_simple(path, &cutting_line);
-                        for intersection in intersections {
-                            knife_state
-                                .intersections
-                                .push(Vec2::new(intersection.x as f32, intersection.y as f32));
-                        }
-                    }
-                    return; // Found paths in FontIR, use those
-                }
-            }
-        }
-
-        // For now, just add a test intersection point for AppState fallback
-        // The AppState uses a different data structure that would need conversion to BezPath
-        let mid_point = (start + end) * 0.5;
-        knife_state.intersections.push(mid_point);
-    }
-}
-
-/// Perform the actual cut operation
-fn perform_cut(
-    start: Vec2,
-    end: Vec2,
-    app_state: &mut AppState,
-    app_state_changed: &mut EventWriter<crate::editing::selection::events::AppStateChanged>,
-) {
-    info!("Performing knife cut from {:?} to {:?}", start, end);
-
-    // Convert cutting line to kurbo Line for intersection testing
-    let cutting_line = kurbo::Line::new(
-        kurbo::Point::new(start.x as f64, start.y as f64),
-        kurbo::Point::new(end.x as f64, end.y as f64),
-    );
-
-    // For now, just trigger a state change to indicate cut was attempted
-    // TODO: Integrate with FontIR working copies when available
-    // This would involve:
-    // 1. Getting the FontIR state as a parameter
-    // 2. Finding the current glyph and creating/accessing its working copy
-    // 3. Using slice_path_with_line on each contour
-    // 4. Updating the working copy with the new paths
-    // 5. Marking the working copy as dirty
-
-    app_state_changed.write(crate::editing::selection::events::AppStateChanged);
-    info!("Knife cut completed - ready for FontIR integration");
-}
 
 /// System to handle actual path cutting with FontIR integration
 #[allow(clippy::too_many_arguments)]
@@ -630,28 +618,8 @@ fn perform_fontir_cut(
     );
 
     if let Some(ref current_glyph) = fontir_state.current_glyph.clone() {
-        // Get or create working copy for this glyph
-        let location = fontir_state.current_location.clone();
-        let key = (current_glyph.clone(), location);
-
-        // Ensure we have a working copy
-        if !fontir_state.working_copies.contains_key(&key) {
-            if let Some(original_paths) = fontir_state.get_glyph_paths(current_glyph) {
-                let working_copy = crate::core::state::fontir_app_state::EditableGlyphInstance {
-                    width: fontir_state.get_glyph_advance_width(current_glyph) as f64,
-                    height: None,
-                    vertical_origin: None,
-                    contours: original_paths,
-                    is_dirty: false,
-                };
-                fontir_state
-                    .working_copies
-                    .insert(key.clone(), working_copy);
-            }
-        }
-
-        // Perform the cut on the working copy
-        if let Some(working_copy) = fontir_state.working_copies.get_mut(&key) {
+        // Get or create a working copy using the proper method (like pen and shapes tools)
+        if let Some(working_copy) = fontir_state.get_or_create_working_copy(current_glyph) {
             let mut new_contours = Vec::new();
             let mut any_cuts_made = false;
 
