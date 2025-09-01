@@ -14,7 +14,7 @@ use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh2d;
 use bevy::sprite::{ColorMaterial, MeshMaterial2d};
-use kurbo::{BezPath, ParamCurve, PathEl, Point};
+use kurbo::{BezPath, ParamCurve, ParamCurveNearest, PathEl, Point};
 
 // Simple path operations are defined at the end of this file
 
@@ -582,7 +582,7 @@ fn calculate_real_intersections(
 #[allow(clippy::too_many_arguments)]
 pub fn handle_fontir_knife_cutting(
     mut fontir_state: Option<ResMut<crate::core::state::FontIRAppState>>,
-    mut knife_consumer: ResMut<crate::systems::input_consumer::KnifeInputConsumer>,
+    mut knife_state: ResMut<KnifeToolState>, // Use main knife state instead of consumer
     mut app_state_changed: EventWriter<crate::editing::selection::events::AppStateChanged>,
     keyboard: Res<ButtonInput<KeyCode>>,
     mouse_input: Res<ButtonInput<MouseButton>>,
@@ -590,12 +590,12 @@ pub fn handle_fontir_knife_cutting(
     // Check if we just finished a cutting gesture
     if mouse_input.just_released(MouseButton::Left) {
         if let Some(ref mut fontir_state) = fontir_state {
-            if let Some((start, end)) = knife_consumer.get_cutting_line() {
+            if let Some((start, end)) = knife_state.get_cutting_line() {
                 perform_fontir_cut(start, end, fontir_state, &mut app_state_changed);
 
                 // Reset the knife gesture state after successful cut
-                knife_consumer.gesture = crate::systems::input_consumer::KnifeGestureState::Ready;
-                knife_consumer.intersections.clear();
+                knife_state.gesture = KnifeGestureState::Ready;
+                knife_state.intersections.clear();
                 info!("🔪 KNIFE CUTTING: Gesture state reset after successful cut");
             }
         }
@@ -997,21 +997,31 @@ fn find_path_intersections_with_parameters(path: &BezPath, cutting_line: &kurbo:
         }
     }
 
-    // Remove duplicate hits
+    // Remove duplicate hits with better tolerance
     hits.dedup_by(|a, b| a.point.distance(b.point) < 1.0);
+    
+    // Sort hits by their position along the knife cutting line for better ordering
+    hits.sort_by(|a, b| {
+        // Calculate position along cutting line for better ordering
+        let cutting_dir = (cutting_line.p1 - cutting_line.p0).normalize();
+        let a_proj = (a.point - cutting_line.p0).dot(cutting_dir);
+        let b_proj = (b.point - cutting_line.p0).dot(cutting_dir);
+        a_proj.partial_cmp(&b_proj).unwrap_or(std::cmp::Ordering::Equal)
+    });
+    
     hits
 }
 
-/// Slice path at specific hit points
-/// This creates two complete closed contours from one closed contour
+/// Slice path at specific hit points using Runebender's recursive algorithm
+/// This can handle any number of intersection points, not just 2
 fn slice_path_at_hits(path: &BezPath, hits: &[Hit]) -> Vec<BezPath> {
     if hits.is_empty() {
         return vec![path.clone()];
     }
 
-    if hits.len() != 2 {
+    if hits.len() < 2 {
         info!(
-            "Knife tool requires exactly 2 intersection points, found {}",
+            "Knife tool requires at least 2 intersection points to cut, found {}",
             hits.len()
         );
         return vec![path.clone()];
@@ -1025,14 +1035,133 @@ fn slice_path_at_hits(path: &BezPath, hits: &[Hit]) -> Vec<BezPath> {
             .then(a.t.partial_cmp(&b.t).unwrap_or(std::cmp::Ordering::Equal))
     });
 
-    let first_hit = &sorted_hits[0];
-    let second_hit = &sorted_hits[1];
-
     info!(
-        "Cutting path between intersection points at segments {} and {}",
-        first_hit.segment_idx, second_hit.segment_idx
+        "Cutting path at {} intersection points using recursive algorithm",
+        sorted_hits.len()
     );
 
+    // Use recursive slicing algorithm (similar to Runebender)
+    slice_path_recursively(path, &sorted_hits)
+
+}
+
+/// Recursive path slicing algorithm based on Runebender's approach
+/// This can handle any number of intersections by recursively slicing paths
+fn slice_path_recursively(path: &BezPath, hits: &[Hit]) -> Vec<BezPath> {
+    if hits.len() < 2 {
+        return vec![path.clone()];
+    }
+
+    if hits.len() == 2 {
+        // Base case: exactly 2 intersections - slice normally
+        return slice_path_with_two_hits(path, &hits[0], &hits[1]);
+    }
+
+    // More than 2 intersections - recursive approach
+    // Take first two intersections and slice, then recursively slice the remaining parts
+    let first_hit = &hits[0];
+    let second_hit = &hits[1];
+    
+    // Slice path at first two intersections
+    let sliced_paths = slice_path_with_two_hits(path, first_hit, second_hit);
+    
+    if sliced_paths.len() != 2 {
+        // If slicing failed, try with remaining intersections
+        return slice_path_recursively(path, &hits[1..]);
+    }
+
+    let mut result_paths = Vec::new();
+    
+    // Check if remaining intersections affect either of the sliced paths
+    let remaining_hits = &hits[2..];
+    
+    for sliced_path in sliced_paths {
+        // Find which remaining hits belong to this path segment
+        let relevant_hits: Vec<Hit> = remaining_hits
+            .iter()
+            .filter(|hit| path_contains_hit(&sliced_path, hit))
+            .cloned()
+            .collect();
+        
+        if relevant_hits.is_empty() {
+            // No more intersections in this path
+            result_paths.push(sliced_path);
+        } else {
+            // Recursively slice this path with its relevant intersections
+            let further_sliced = slice_path_recursively(&sliced_path, &relevant_hits);
+            result_paths.extend(further_sliced);
+        }
+    }
+    
+    info!(
+        "Recursive slicing: {} intersections -> {} final paths",
+        hits.len(), result_paths.len()
+    );
+    
+    result_paths
+}
+
+/// Check if a path segment likely contains a hit point (rough approximation)
+fn path_contains_hit(path: &BezPath, hit: &Hit) -> bool {
+    // Simple heuristic: check if the hit point is close to any part of the path
+    let hit_point = hit.point;
+    const TOLERANCE: f64 = 5.0; // Tighter tolerance for better accuracy
+    
+    let mut current_point = kurbo::Point::ZERO;
+    
+    for element in path.elements() {
+        match element {
+            PathEl::MoveTo(pt) => {
+                current_point = *pt;
+                if hit_point.distance(current_point) < TOLERANCE {
+                    return true;
+                }
+            }
+            PathEl::LineTo(end) => {
+                let line = kurbo::Line::new(current_point, *end);
+                let closest = line.nearest(hit_point, 0.01);
+                let closest_point = line.eval(closest.t);
+                if hit_point.distance(closest_point) < TOLERANCE {
+                    return true;
+                }
+                current_point = *end;
+            }
+            PathEl::CurveTo(c1, c2, end) => {
+                let curve = kurbo::CubicBez::new(current_point, *c1, *c2, *end);
+                let closest = curve.nearest(hit_point, 0.01);
+                let closest_point = curve.eval(closest.t);
+                if hit_point.distance(closest_point) < TOLERANCE {
+                    return true;
+                }
+                current_point = *end;
+            }
+            PathEl::QuadTo(c, end) => {
+                let curve = kurbo::QuadBez::new(current_point, *c, *end);
+                let closest = curve.nearest(hit_point, 0.01);
+                let closest_point = curve.eval(closest.t);
+                if hit_point.distance(closest_point) < TOLERANCE {
+                    return true;
+                }
+                current_point = *end;
+            }
+            PathEl::ClosePath => {
+                if let Some(start) = get_path_start_point_inline(path) {
+                    let line = kurbo::Line::new(current_point, start);
+                    let closest = line.nearest(hit_point, 0.01);
+                    let closest_point = line.eval(closest.t);
+                    if hit_point.distance(closest_point) < TOLERANCE {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    
+    false
+}
+
+/// Slice a path with exactly two intersections (base case for recursion)
+fn slice_path_with_two_hits(path: &BezPath, first_hit: &Hit, second_hit: &Hit) -> Vec<BezPath> {
     // Convert path to segments for easier processing
     let segments = path_to_segments(path);
 
@@ -1364,7 +1493,7 @@ fn curve_line_intersections_simple(curve: &kurbo::CubicBez, line: &kurbo::Line) 
     }
 
     // Remove duplicates with smaller tolerance for accuracy
-    intersections.dedup_by(|a, b| a.distance(*b) < 1.0);
+    intersections.dedup_by(|a, b| a.distance(*b) < 0.5);
     intersections
 }
 
@@ -1390,7 +1519,7 @@ fn quad_line_intersections_simple(curve: &kurbo::QuadBez, line: &kurbo::Line) ->
     }
 
     // Remove duplicates with smaller tolerance for accuracy
-    intersections.dedup_by(|a, b| a.distance(*b) < 1.0);
+    intersections.dedup_by(|a, b| a.distance(*b) < 0.5);
     intersections
 }
 
