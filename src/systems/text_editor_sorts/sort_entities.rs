@@ -6,6 +6,8 @@ use crate::core::state::SortLayoutMode;
 use crate::editing::selection::components::Selected;
 use crate::editing::sort::{ActiveSort, InactiveSort, Sort};
 use bevy::prelude::*;
+use crate::core::state::text_editor::{TextBuffer, BufferMember};
+use crate::core::state::FontMetrics;
 use std::collections::HashMap;
 
 /// Component to track which buffer index this entity represents
@@ -131,6 +133,86 @@ pub fn manage_sort_activation(
     }
 }
 
+/// Modern ECS-based positioning for text sorts using buffer entities
+/// This replaces the legacy get_text_sort_flow_position function to prevent buffer cross-contamination
+fn calculate_buffer_local_position(
+    global_buffer_index: usize,
+    text_editor_state: &TextEditorState,
+    font_metrics: &FontMetrics,
+    buffer_id_to_entity: &std::collections::HashMap<crate::core::state::text_editor::buffer::BufferId, Entity>,
+    buffer_entity_query: &Query<(Entity, &TextBuffer)>,
+) -> Option<Vec2> {
+    // Get the sort entry we're positioning
+    let sort_entry = text_editor_state.buffer.get(global_buffer_index)?;
+    
+    // Get the buffer ID for this sort
+    let buffer_id = sort_entry.buffer_id?;
+    
+    // Find the buffer entity
+    let buffer_entity = buffer_id_to_entity.get(&buffer_id)?;
+    
+    // Get buffer information
+    let (_entity, text_buffer) = buffer_entity_query.iter()
+        .find(|(entity, _)| entity == buffer_entity)?;
+    
+    let root_position = text_buffer.root_position;
+    let _layout_mode = &text_buffer.layout_mode;
+    
+    // Find all sorts that belong to this specific buffer, in order
+    let mut buffer_sorts = Vec::new();
+    for (idx, sort) in text_editor_state.buffer.iter().enumerate() {
+        if sort.buffer_id == Some(buffer_id) {
+            buffer_sorts.push((idx, sort));
+        }
+    }
+    
+    // Find our position within this buffer
+    let buffer_local_index = buffer_sorts.iter()
+        .position(|(idx, _)| *idx == global_buffer_index)?;
+    
+    info!(
+        "🔍 ECS POSITIONING: Sort at global[{}] is buffer-local[{}] in buffer {:?} with {} total sorts",
+        global_buffer_index, buffer_local_index, buffer_id.0, buffer_sorts.len()
+    );
+    
+    // Calculate position based on preceding sorts in THIS buffer only
+    let mut x_offset = 0.0;
+    let mut y_offset = 0.0;
+    
+    // Use font metrics to calculate line height (match legacy system)
+    let upm = font_metrics.units_per_em as f32;
+    let descender = font_metrics.descender.unwrap_or(-256.0) as f32;
+    let line_height = upm - descender;  // Legacy formula: upm - descender (descender is negative)
+    
+    // Calculate position by iterating through preceding sorts in this buffer
+    for i in 0..buffer_local_index {
+        if let Some((_, sort)) = buffer_sorts.get(i) {
+            match &sort.kind {
+                crate::core::state::text_editor::SortKind::Glyph { advance_width, .. } => {
+                    x_offset += advance_width;
+                }
+                crate::core::state::text_editor::SortKind::LineBreak => {
+                    x_offset = 0.0;
+                    y_offset -= line_height;
+                }
+            }
+        }
+    }
+    
+    let final_position = Vec2::new(root_position.x + x_offset, root_position.y + y_offset);
+    
+    info!(
+        "🎯 ECS POSITIONING: buffer-local[{}] '{}' at ({:.1}, {:.1}) (x_offset={:.1})",
+        buffer_local_index,
+        sort_entry.kind.glyph_name(),
+        final_position.x,
+        final_position.y,
+        x_offset
+    );
+    
+    Some(final_position)
+}
+
 /// Spawn missing sort entities for sorts in the text editor buffer
 pub fn spawn_missing_sort_entities(
     mut commands: Commands,
@@ -230,11 +312,16 @@ pub fn spawn_missing_sort_entities(
             let position = match sort_entry.layout_mode {
                 crate::core::state::SortLayoutMode::LTRText
                 | crate::core::state::SortLayoutMode::RTLText => {
-                    // All text sorts use their flow position calculation
-                    let calculated_pos =
-                        text_editor_state.get_text_sort_flow_position(i, &font_metrics, 0.0);
+                    // Use modern ECS-based positioning to prevent buffer cross-contamination
+                    let calculated_pos = calculate_buffer_local_position(
+                        i,
+                        &text_editor_state,
+                        &font_metrics,
+                        &buffer_id_to_entity,
+                        &buffer_entity_query,
+                    );
                     warn!(
-                        "🔍 ENTITY POSITIONING: buffer[{}] calculated at {:?}",
+                        "🔍 ECS ENTITY POSITIONING: buffer[{}] calculated at {:?}",
                         i, calculated_pos
                     );
                     calculated_pos
@@ -332,6 +419,7 @@ pub fn update_buffer_sort_positions(
     fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
     buffer_entities: Res<BufferSortEntities>,
     mut sort_query: Query<&mut Transform, With<BufferSortIndex>>,
+    buffer_entity_query: Query<(Entity, &crate::core::state::text_editor::text_buffer::TextBuffer)>,
 ) {
     // CRITICAL PERFORMANCE FIX: Early return if TextEditorState hasn't changed
     // Prevents O(N²) position calculations every frame
@@ -340,6 +428,12 @@ pub fn update_buffer_sort_positions(
     }
 
     debug!("Buffer position update triggered - TextEditorState changed");
+
+    // Build a mapping from BufferId to buffer Entity for ECS positioning
+    let mut buffer_id_to_entity = std::collections::HashMap::new();
+    for (buffer_entity, text_buffer) in buffer_entity_query.iter() {
+        buffer_id_to_entity.insert(text_buffer.id, buffer_entity);
+    }
 
     // Get font metrics from either AppState or FontIR
     let font_metrics = if let Some(fontir_state) = fontir_app_state.as_ref() {
@@ -376,14 +470,16 @@ pub fn update_buffer_sort_positions(
                 let new_position = match sort.layout_mode {
                     crate::core::state::SortLayoutMode::LTRText
                     | crate::core::state::SortLayoutMode::RTLText => {
-                        // All text sorts use their flow position calculation
-                        let calculated_pos = text_editor_state.get_text_sort_flow_position(
+                        // Use modern ECS-based positioning to prevent buffer cross-contamination
+                        let calculated_pos = calculate_buffer_local_position(
                             buffer_index,
+                            &text_editor_state,
                             &font_metrics,
-                            0.0,
+                            &buffer_id_to_entity,
+                            &buffer_entity_query,
                         );
                         warn!(
-                            "🔍 POSITION UPDATE: buffer[{}] calculated at {:?}",
+                            "🔍 ECS POSITION UPDATE: buffer[{}] calculated at {:?}",
                             buffer_index, calculated_pos
                         );
                         calculated_pos
