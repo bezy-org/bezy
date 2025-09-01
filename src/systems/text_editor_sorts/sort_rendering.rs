@@ -115,10 +115,17 @@ pub fn render_text_editor_cursor(
             })
         });
 
-    // Calculate current cursor position
-    let current_cursor_position = text_editor_state
-        .as_ref()
-        .and_then(|state| calculate_cursor_visual_position(state, &app_state, &fontir_app_state));
+    // Calculate current cursor position using NEW BUFFER ENTITY SYSTEM for consistent change detection
+    let current_cursor_position = text_editor_state.as_ref().and_then(|state| {
+        calculate_simple_cursor_position(
+            state,
+            &sort_query,
+            &app_state,
+            &fontir_app_state,
+            &buffer_query,
+            &active_buffer,
+        )
+    });
 
     // Check if anything changed
     let tool_changed = cursor_state.last_tool.as_deref() != current_tool_name;

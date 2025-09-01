@@ -19,12 +19,15 @@ use bevy::prelude::*;
 /// Handle Unicode character input using Bevy 0.16 keyboard events
 /// This system provides comprehensive Unicode support for global scripts
 pub fn handle_unicode_text_input(
+    mut commands: Commands,
     mut key_evr: EventReader<KeyboardInput>,
     mut text_editor_state: ResMut<TextEditorState>,
     app_state: Option<Res<AppState>>,
     fontir_app_state: Option<Res<FontIRAppState>>,
     current_tool: Res<CurrentTool>,
     current_placement_mode: Res<CurrentTextPlacementMode>,
+    active_buffer: Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
+    mut buffer_query: Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
 ) {
     // EARLY RETURN: Skip all expensive work if no keyboard events
     if key_evr.is_empty() {
@@ -109,10 +112,13 @@ pub fn handle_unicode_text_input(
                     // Handle space character
                     if character == ' ' {
                         handle_space_character(
+                            &mut commands,
                             &mut text_editor_state,
                             &app_state,
                             &fontir_app_state,
                             &current_placement_mode,
+                            &active_buffer,
+                            &mut buffer_query,
                         );
                         continue;
                     }
@@ -128,10 +134,13 @@ pub fn handle_unicode_text_input(
                     debug!("Unicode input: Handling character '{}'", character);
                     handle_unicode_character(
                         character,
+                        &mut commands,
                         &mut text_editor_state,
                         &app_state,
                         &fontir_app_state,
                         &current_placement_mode,
+                        &active_buffer,
+                        &mut buffer_query,
                     );
                     debug!("Unicode input: Completed character '{}'", character);
                 }
@@ -148,10 +157,13 @@ pub fn handle_unicode_text_input(
             }
             Key::Space => {
                 handle_space_character(
+                    &mut commands,
                     &mut text_editor_state,
                     &app_state,
                     &fontir_app_state,
                     &current_placement_mode,
+                    &active_buffer,
+                    &mut buffer_query,
                 );
             }
             _ => {
@@ -164,10 +176,13 @@ pub fn handle_unicode_text_input(
 /// Handle a single Unicode character input
 fn handle_unicode_character(
     character: char,
-    text_editor_state: &mut TextEditorState,
+    commands: &mut Commands,
+    text_editor_state: &mut ResMut<TextEditorState>,
     app_state: &Option<Res<AppState>>,
     fontir_app_state: &Option<Res<FontIRAppState>>,
     current_placement_mode: &CurrentTextPlacementMode,
+    active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
+    buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
 ) {
     // Find glyph name for this Unicode character
     let glyph_name = if let Some(app_state) = app_state.as_ref() {
@@ -192,28 +207,32 @@ fn handle_unicode_character(
         // Text roots should only be created by clicking with the text tool
         // This was causing duplicate sorts - one from clicking, one from typing
 
-        // Insert the character
+        // Insert the character using new buffer entity system
         match current_placement_mode.0 {
             TextPlacementMode::Insert => {
                 info!(
-                    "🔍 DEBUG: About to insert character '{}' as glyph '{}' at cursor position {}",
-                    character, glyph_name, text_editor_state.cursor_position
+                    "🔍 DEBUG: About to insert character '{}' as glyph '{}'",
+                    character, glyph_name
                 );
                 info!(
                     "🔍 DEBUG: Buffer state BEFORE insert: {} sorts",
                     text_editor_state.buffer.len()
                 );
 
-                text_editor_state.insert_sort_at_cursor(
+                // NEW BUFFER ENTITY SYSTEM: Use buffer entities instead of legacy cursor
+                insert_character_at_buffer_cursor(
+                    character,
                     glyph_name.clone(),
                     advance_width,
-                    Some(character),
+                    commands,
+                    text_editor_state,
+                    active_buffer,
+                    buffer_query,
                 );
 
                 info!(
-                    "🔍 DEBUG: Buffer state AFTER insert: {} sorts, cursor at {}",
-                    text_editor_state.buffer.len(),
-                    text_editor_state.cursor_position
+                    "🔍 DEBUG: Buffer state AFTER insert: {} sorts",
+                    text_editor_state.buffer.len()
                 );
                 info!(
                     "Unicode input: Inserted '{}' (U+{:04X}) as glyph '{}' in Insert mode",
@@ -227,23 +246,27 @@ fn handle_unicode_character(
                     "RTL Text"
                 };
 
-                info!("🔍 DEBUG: About to insert character '{}' as glyph '{}' at cursor position {} in {} mode", 
-                      character, glyph_name, text_editor_state.cursor_position, mode_name);
+                info!("🔍 DEBUG: About to insert character '{}' as glyph '{}' in {} mode", 
+                      character, glyph_name, mode_name);
                 info!(
                     "🔍 DEBUG: Buffer state BEFORE insert: {} sorts",
                     text_editor_state.buffer.len()
                 );
 
-                text_editor_state.insert_sort_at_cursor(
+                // NEW BUFFER ENTITY SYSTEM: Use buffer entities instead of legacy cursor
+                insert_character_at_buffer_cursor(
+                    character,
                     glyph_name.clone(),
                     advance_width,
-                    Some(character),
+                    commands,
+                    text_editor_state,
+                    active_buffer,
+                    buffer_query,
                 );
 
                 info!(
-                    "🔍 DEBUG: Buffer state AFTER insert: {} sorts, cursor at {}",
-                    text_editor_state.buffer.len(),
-                    text_editor_state.cursor_position
+                    "🔍 DEBUG: Buffer state AFTER insert: {} sorts",
+                    text_editor_state.buffer.len()
                 );
                 info!(
                     "Unicode input: Inserted '{}' (U+{:04X}) as glyph '{}' in {} mode",
@@ -265,11 +288,15 @@ fn handle_unicode_character(
                 }
             }
             TextPlacementMode::Freeform => {
-                // In freeform mode, characters are placed freely - for now use same logic
-                text_editor_state.insert_sort_at_cursor(
+                // In freeform mode, characters are placed freely - use same buffer entity logic
+                insert_character_at_buffer_cursor(
+                    character,
                     glyph_name.clone(),
                     advance_width,
-                    Some(character),
+                    commands,
+                    text_editor_state,
+                    active_buffer,
+                    buffer_query,
                 );
                 info!(
                     "Unicode input: Inserted '{}' (U+{:04X}) as glyph '{}' in Freeform mode",
@@ -292,10 +319,13 @@ fn handle_unicode_character(
 
 /// Handle space character input
 fn handle_space_character(
-    text_editor_state: &mut TextEditorState,
+    commands: &mut Commands,
+    text_editor_state: &mut ResMut<TextEditorState>,
     app_state: &Option<Res<AppState>>,
     fontir_app_state: &Option<Res<FontIRAppState>>,
     _current_placement_mode: &CurrentTextPlacementMode,
+    active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
+    buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
 ) {
     let glyph_name = "space".to_string();
 
@@ -311,23 +341,28 @@ fn handle_space_character(
     if glyph_exists {
         let advance_width = get_glyph_advance_width(&glyph_name, app_state, fontir_app_state);
 
-        // REMOVED: Automatic text root creation
-        // Text roots should only be created by clicking with the text tool
-        // This was causing duplicate sorts - one from clicking, one from typing
-
-        text_editor_state.insert_sort_at_cursor(
+        // NEW BUFFER ENTITY SYSTEM: Use buffer entities instead of legacy cursor
+        insert_character_at_buffer_cursor(
+            ' ',
             glyph_name,
             advance_width,
-            Some(' '), // We know this is Unicode U+0020 (space character)
+            commands,
+            text_editor_state,
+            active_buffer,
+            buffer_query,
         );
         info!("Unicode input: Inserted space character");
     } else {
         // Fallback: insert a space-width advance without glyph
         let space_width = 250.0; // Default space width
-        text_editor_state.insert_sort_at_cursor(
+        insert_character_at_buffer_cursor(
+            ' ',
             "space".to_string(),
             space_width,
-            Some(' '), // Even in fallback, we know it's U+0020
+            commands,
+            text_editor_state,
+            active_buffer,
+            buffer_query,
         );
         info!("Unicode input: Inserted space character (fallback)");
     }
@@ -492,6 +527,117 @@ fn get_contextual_arabic_glyph_name(
         base_name, position, contextual_name
     );
     Some(contextual_name)
+}
+
+/// Insert a character at the current buffer cursor position using the new buffer entity system
+fn insert_character_at_buffer_cursor(
+    character: char,
+    glyph_name: String,
+    advance_width: f32,
+    _commands: &mut Commands,
+    text_editor_state: &mut ResMut<TextEditorState>,
+    active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
+    buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
+) -> bool {
+    // Get the active buffer entity
+    let Some(active_buffer_res) = active_buffer else {
+        warn!("❌ INSERT: No ActiveTextBuffer resource found");
+        return false;
+    };
+    
+    let Some(buffer_entity) = active_buffer_res.buffer_entity else {
+        warn!("❌ INSERT: No active buffer entity set");
+        return false;
+    };
+    
+    // Get buffer information and cursor position
+    let Ok((text_buffer, mut buffer_cursor)) = buffer_query.get_mut(buffer_entity) else {
+        warn!("❌ INSERT: Could not query active buffer entity {:?}", buffer_entity);
+        return false;
+    };
+    
+    let cursor_position = buffer_cursor.position;
+    let buffer_id = text_buffer.id;
+    let layout_mode = text_buffer.layout_mode.clone();
+    
+    info!(
+        "🔍 INSERT: Character '{}' at buffer cursor position {} in buffer {:?} (layout: {:?})",
+        character, cursor_position, buffer_id.0, layout_mode
+    );
+    
+    // Create the new sort entry
+    use crate::core::state::text_editor::buffer::{SortEntry, SortKind, SortLayoutMode};
+    
+    let new_sort = SortEntry {
+        kind: SortKind::Glyph {
+            codepoint: Some(character),
+            glyph_name: glyph_name.clone(),
+            advance_width,
+        },
+        is_active: false, // Don't make new sorts active by default
+        layout_mode: layout_mode.clone(),
+        root_position: Vec2::ZERO, // Will be calculated by flow
+        is_buffer_root: false,     // New sorts are not buffer roots
+        buffer_cursor_position: None,
+        buffer_id: Some(buffer_id), // Inherit buffer ID from buffer entity
+    };
+    
+    // Find the buffer root for this buffer ID to determine insertion position
+    let mut root_index = None;
+    for i in 0..text_editor_state.buffer.len() {
+        if let Some(sort) = text_editor_state.buffer.get(i) {
+            if sort.buffer_id == Some(buffer_id) && sort.is_buffer_root {
+                root_index = Some(i);
+                break;
+            }
+        }
+    }
+    
+    let Some(root_index) = root_index else {
+        warn!("❌ INSERT: Could not find buffer root for buffer {:?}", buffer_id.0);
+        return false;
+    };
+    
+    // Insert at the cursor position relative to root
+    // cursor_position=0 means "before root", cursor_position=1 means "after root", etc.
+    // For LTR: cursor_position=1 means insert after the root character
+    // CRITICAL FIX: Don't add +1, cursor_position already accounts for this
+    let desired_insert_index = root_index + cursor_position;
+    
+    // BOUNDS CHECK: Ensure we don't insert beyond the buffer length
+    let buffer_length = text_editor_state.buffer.len();
+    let insert_buffer_index = if desired_insert_index > buffer_length {
+        warn!(
+            "❌ INSERT: Cursor position {} would insert at index {} but buffer length is only {}. Clamping to end.",
+            cursor_position, desired_insert_index, buffer_length
+        );
+        buffer_length
+    } else {
+        desired_insert_index
+    };
+    
+    info!(
+        "🔍 INSERT: Inserting at buffer index {} (root at {}, cursor at {}, buffer length: {})",
+        insert_buffer_index, root_index, cursor_position, buffer_length
+    );
+    
+    // Insert the new sort into the text editor buffer
+    text_editor_state.buffer.insert(insert_buffer_index, new_sort);
+    
+    // Update the cursor position in the buffer entity (advance by 1)
+    buffer_cursor.position = cursor_position + 1;
+    
+    info!(
+        "✅ INSERT: Successfully inserted '{}' as glyph '{}', cursor advanced to position {}",
+        character, glyph_name, buffer_cursor.position
+    );
+    
+    // Mark the text editor state as changed to trigger entity spawning
+    use bevy::prelude::DetectChangesMut;
+    text_editor_state.set_changed();
+    
+    // Return true to indicate successful insertion
+    true
 }
 
 /// Legacy function - replaced by handle_unicode_text_input
