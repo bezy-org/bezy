@@ -423,7 +423,7 @@ pub fn render_pen_preview(
 
     // Draw dashed preview line to cursor if we have at least one point
     if let Some(&last_point) = pen_state.current_path.last() {
-        let last_pos = Vec2::new(last_point.x, last_point.y);
+        let last_pos = Vec2::new(last_point.x, last_point.y) + sort_position;
 
         spawn_pen_preview_dashed_line(
             &mut commands,
