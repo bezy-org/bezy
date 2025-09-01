@@ -117,20 +117,20 @@ impl TextEditorState {
             if sort.layout_mode == SortLayoutMode::LTRText
                 || sort.layout_mode == SortLayoutMode::RTLText
             {
-                // Find the active buffer root
+                // Find the FIRST sort with matching buffer ID (the actual buffer root)
                 let mut active_root_index = None;
                 let mut root_position = Vec2::ZERO;
 
-                // Look for the buffer root that matches this sort's buffer ID
+                // Look for the FIRST sort in the entire buffer that matches this sort's buffer ID
                 if let Some(sort_buffer_id) = sort.buffer_id {
-                    for i in (0..=buffer_position).rev() {
+                    // Search forward from the beginning to find the first sort with this buffer ID
+                    for i in 0..self.buffer.len() {
                         if let Some(candidate) = self.buffer.get(i) {
-                            // CRITICAL FIX: Only use sorts that match the current sort's buffer ID
-                            // This ensures complete isolation between different text flows  
                             if candidate.buffer_id == Some(sort_buffer_id) {
+                                // This is the first sort with matching buffer ID - it's the root
                                 active_root_index = Some(i);
                                 root_position = candidate.root_position;
-                                warn!("🔍 ROOT MATCH: Found matching buffer root at buffer[{}] for buffer_id={:?}", i, sort_buffer_id);
+                                warn!("🔍 ROOT MATCH: Found buffer root at buffer[{}] for buffer_id={:?}", i, sort_buffer_id);
                                 println!("🔍 ROOT DEBUG: Using buffer[{}] as root at position ({:.1}, {:.1})", 
                                          i, root_position.x, root_position.y);
                                 break;
@@ -204,20 +204,24 @@ impl TextEditorState {
                             ..
                         } = &current_sort.kind
                         {
-                            if buffer_position == root_index + 1 {
-                                // First character: RIGHT edge at root position
+                            if buffer_position == root_index {
+                                // First character in buffer: RIGHT edge at root position
                                 x_offset = -current_advance;
                                 println!("🔍 RTL CALC: First character '{current_glyph}' advance={current_advance:.1}, RIGHT edge at root, offset={x_offset:.1}");
                             } else {
                                 // Subsequent characters: RIGHT edge at previous character's LEFT edge
                                 // Calculate where the previous character's left edge is
                                 let mut previous_left_edge = 0.0;
-                                for i in (root_index + 1)..buffer_position {
+                                // Only count sorts that belong to the SAME buffer
+                                for i in root_index..buffer_position {
                                     if let Some(sort_entry) = self.buffer.get(i) {
-                                        if let SortKind::Glyph { advance_width, .. } =
-                                            &sort_entry.kind
-                                        {
-                                            previous_left_edge -= advance_width;
+                                        // CRITICAL: Only accumulate if this sort belongs to the same buffer
+                                        if sort_entry.buffer_id == sort.buffer_id {
+                                            if let SortKind::Glyph { advance_width, .. } =
+                                                &sort_entry.kind
+                                            {
+                                                previous_left_edge -= advance_width;
+                                            }
                                         }
                                     }
                                 }
@@ -229,10 +233,28 @@ impl TextEditorState {
                     }
                 } else {
                     // LTR: Standard positioning - accumulate advances of characters BEFORE target
-                    for i in (root_index + 1)..buffer_position {
+                    // Collect all sorts belonging to this buffer IN ORDER
+                    let mut buffer_sorts = Vec::new();
+                    let mut target_index_in_buffer = None;
+                    
+                    for i in 0..self.buffer.len() {
                         if let Some(sort_entry) = self.buffer.get(i) {
-                            if let SortKind::Glyph { advance_width, .. } = &sort_entry.kind {
-                                x_offset += advance_width; // Move RIGHT by this character's width
+                            if sort_entry.buffer_id == sort.buffer_id {
+                                if i == buffer_position {
+                                    target_index_in_buffer = Some(buffer_sorts.len());
+                                }
+                                buffer_sorts.push((i, sort_entry));
+                            }
+                        }
+                    }
+                    
+                    // Now calculate position based on buffer-local index
+                    if let Some(target_idx) = target_index_in_buffer {
+                        for idx in 0..target_idx {
+                            if let Some((_, sort_entry)) = buffer_sorts.get(idx) {
+                                if let SortKind::Glyph { advance_width, .. } = &sort_entry.kind {
+                                    x_offset += advance_width;
+                                }
                             }
                         }
                     }

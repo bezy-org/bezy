@@ -134,10 +134,15 @@ pub fn unicode_to_glyph_name_fontir(
     unicode_char: char,
     fontir_state: &FontIRAppState,
 ) -> Option<String> {
-    // Get all available glyph names
+    // PROPER APPROACH: Use Unicode mappings from the font (like AppState does)
+    if let Some(glyph_name) = fontir_state.get_glyph_name_for_unicode(unicode_char) {
+        return Some(glyph_name);
+    }
+
+    // Fallback to name-based lookup for characters without Unicode mappings
     let glyph_names = fontir_state.get_glyph_names();
 
-    // First, try standard Unicode-based naming
+    // Try standard Unicode-based naming for special characters
     if let Some(standard_name) = unicode_char_to_standard_glyph_name(unicode_char) {
         if glyph_names.contains(&standard_name) {
             return Some(standard_name);

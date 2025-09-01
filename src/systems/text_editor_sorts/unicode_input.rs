@@ -28,6 +28,7 @@ pub fn handle_unicode_text_input(
     current_placement_mode: Res<CurrentTextPlacementMode>,
     active_buffer: Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
     mut buffer_query: Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
+    mut respawn_queue: ResMut<crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
 ) {
     // EARLY RETURN: Skip all expensive work if no keyboard events
     if key_evr.is_empty() {
@@ -119,6 +120,7 @@ pub fn handle_unicode_text_input(
                             &current_placement_mode,
                             &active_buffer,
                             &mut buffer_query,
+                            &mut respawn_queue,
                         );
                         continue;
                     }
@@ -141,6 +143,7 @@ pub fn handle_unicode_text_input(
                         &current_placement_mode,
                         &active_buffer,
                         &mut buffer_query,
+                        &mut respawn_queue,
                     );
                     debug!("Unicode input: Completed character '{}'", character);
                 }
@@ -164,6 +167,7 @@ pub fn handle_unicode_text_input(
                     &current_placement_mode,
                     &active_buffer,
                     &mut buffer_query,
+                    &mut respawn_queue,
                 );
             }
             Key::ArrowLeft => {
@@ -195,6 +199,7 @@ fn handle_unicode_character(
     current_placement_mode: &CurrentTextPlacementMode,
     active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
     buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
+    respawn_queue: &mut ResMut<crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
 ) {
     // Find glyph name for this Unicode character
     let glyph_name = if let Some(app_state) = app_state.as_ref() {
@@ -211,6 +216,9 @@ fn handle_unicode_character(
             "✅ Unicode input: Found glyph '{}' for character '{}' (U+{:04X})",
             glyph_name, character, character as u32
         );
+        
+        // CRITICAL DEBUG: Show exactly what we're inserting
+        info!("🔍 DEBUG: About to insert glyph '{}' for character '{}'", glyph_name, character);
 
         // Get advance width
         let advance_width = get_glyph_advance_width(&glyph_name, app_state, fontir_app_state);
@@ -240,6 +248,7 @@ fn handle_unicode_character(
                     text_editor_state,
                     active_buffer,
                     buffer_query,
+                    respawn_queue,
                 );
 
                 info!(
@@ -274,6 +283,7 @@ fn handle_unicode_character(
                     text_editor_state,
                     active_buffer,
                     buffer_query,
+                    respawn_queue,
                 );
 
                 info!(
@@ -309,6 +319,7 @@ fn handle_unicode_character(
                     text_editor_state,
                     active_buffer,
                     buffer_query,
+                    respawn_queue,
                 );
                 info!(
                     "Unicode input: Inserted '{}' (U+{:04X}) as glyph '{}' in Freeform mode",
@@ -337,7 +348,8 @@ fn handle_space_character(
     fontir_app_state: &Option<Res<FontIRAppState>>,
     _current_placement_mode: &CurrentTextPlacementMode,
     active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
-    buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
+    buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_buffer::BufferCursor)>,
+    respawn_queue: &mut ResMut<crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
 ) {
     let glyph_name = "space".to_string();
 
@@ -362,6 +374,7 @@ fn handle_space_character(
             text_editor_state,
             active_buffer,
             buffer_query,
+            respawn_queue,
         );
         info!("Unicode input: Inserted space character");
     } else {
@@ -375,6 +388,7 @@ fn handle_space_character(
             text_editor_state,
             active_buffer,
             buffer_query,
+            respawn_queue,
         );
         info!("Unicode input: Inserted space character (fallback)");
     }
@@ -550,7 +564,10 @@ fn insert_character_at_buffer_cursor(
     text_editor_state: &mut ResMut<TextEditorState>,
     active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
     buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
+    respawn_queue: &mut ResMut<crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
 ) -> bool {
+    info!("🔍 INSERT DEBUG: character='{}', glyph_name='{}', advance_width={:.1}", 
+          character, glyph_name, advance_width);
     // Get the active buffer entity
     let Some(active_buffer_res) = active_buffer else {
         warn!("❌ INSERT: No ActiveTextBuffer resource found");
@@ -577,6 +594,14 @@ fn insert_character_at_buffer_cursor(
         character, cursor_position, buffer_id.0, layout_mode
     );
     
+    // DEBUG: Show buffer state before insertion
+    info!("🔍 INSERT DEBUG: Buffer state before insertion:");
+    for (i, sort) in text_editor_state.buffer.iter().enumerate() {
+        if sort.buffer_id == Some(buffer_id) {
+            info!("  [{}] glyph='{}', buffer_id={:?}", i, sort.kind.glyph_name(), sort.buffer_id);
+        }
+    }
+    
     // Create the new sort entry
     use crate::core::state::text_editor::buffer::{SortEntry, SortKind, SortLayoutMode};
     
@@ -601,6 +626,9 @@ fn insert_character_at_buffer_cursor(
         buffer_cursor_position: None,
         buffer_id: Some(buffer_id), // Inherit buffer ID from buffer entity
     };
+    
+    info!("🔍 INSERT DEBUG: Created sort with glyph_name='{}' for character='{}'", 
+          new_sort.kind.glyph_name(), character);
     
     // SIMPLE CURSOR-BASED INSERTION: Find where to insert based on cursor position
     
@@ -631,6 +659,23 @@ fn insert_character_at_buffer_cursor(
     
     // Insert the new sort into the text editor buffer
     text_editor_state.buffer.insert(insert_buffer_index, new_sort);
+    
+    // CRITICAL FIX: Queue respawn for all buffer indices that shifted due to insertion
+    // When we insert at index N, all existing entities at indices N and above need respawning
+    // because their buffer indices shifted by +1
+    for i in insert_buffer_index..text_editor_state.buffer.len() {
+        respawn_queue.indices.push(i);
+        info!("🔄 RESPAWN QUEUE: Added buffer index {} to respawn queue due to insertion", i);
+    }
+    
+    // DEBUG: Verify what actually got inserted
+    if let Some(inserted_sort) = text_editor_state.buffer.get(insert_buffer_index) {
+        info!("🔍 INSERT DEBUG: Verified inserted sort at index {}: glyph_name='{}', character codepoint={:?}", 
+              insert_buffer_index, inserted_sort.kind.glyph_name(), 
+              if let crate::core::state::text_editor::buffer::SortKind::Glyph { codepoint, .. } = &inserted_sort.kind {
+                  codepoint.map(|c| format!("'{}'", c))
+              } else { None });
+    }
     
     // Update the cursor position in the buffer entity (advance by 1)
     buffer_cursor.position = cursor_position + 1;

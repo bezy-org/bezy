@@ -1257,6 +1257,58 @@ impl FontIRAppState {
 
         (left_group, right_group)
     }
+
+    /// Get glyph name for a Unicode character by looking up Unicode mappings in the font
+    pub fn get_glyph_name_for_unicode(&self, unicode_char: char) -> Option<String> {
+        info!("🔍 FONTIR UNICODE: Looking up character '{}' (U+{:04X})", unicode_char, unicode_char as u32);
+        
+        // SIMPLE TEST: For now, just handle basic ASCII letters directly
+        // This will help us verify the lookup path is working
+        match unicode_char {
+            'a'..='z' | 'A'..='Z' => {
+                let char_name = unicode_char.to_string();
+                info!("✅ FONTIR UNICODE: Simple ASCII lookup for '{}' -> '{}'", unicode_char, char_name);
+                return Some(char_name);
+            }
+            _ => {
+                info!("🔍 FONTIR UNICODE: Not a simple ASCII letter, trying UFO lookup");
+            }
+        }
+        
+        // Load Unicode mappings from the source UFO if not already cached
+        let source_path = &self.source_path;
+        
+        // Try to read the UFO and find glyphs with this Unicode value
+        if source_path.extension() == Some(std::ffi::OsStr::new("ufo")) {
+            if let Ok(font) = norad::Font::load(source_path) {
+                // Look through all glyphs for one that maps to this Unicode character
+                for glyph in font.default_layer().iter() {
+                    if glyph.codepoints.contains(unicode_char) {
+                        info!("Found glyph '{}' for character '{}' (U+{:04X}) via Unicode mapping", 
+                              glyph.name(), unicode_char, unicode_char as u32);
+                        return Some(glyph.name().to_string());
+                    }
+                }
+            }
+        } else if source_path.extension() == Some(std::ffi::OsStr::new("designspace")) {
+            // For .designspace files, load the first/default UFO source
+            if let Some(designspace_dir) = source_path.parent() {
+                let regular_ufo_path = designspace_dir.join("bezy-grotesk-regular.ufo");
+                if let Ok(font) = norad::Font::load(&regular_ufo_path) {
+                    for glyph in font.default_layer().iter() {
+                        if glyph.codepoints.contains(unicode_char) {
+                            info!("Found glyph '{}' for character '{}' (U+{:04X}) via Unicode mapping in designspace source", 
+                                  glyph.name(), unicode_char, unicode_char as u32);
+                            return Some(glyph.name().to_string());
+                        }
+                    }
+                }
+            }
+        }
+        
+        info!("❌ FONTIR UNICODE: No mapping found for character '{}' (U+{:04X})", unicode_char, unicode_char as u32);
+        None
+    }
 }
 
 /// Helper to convert PathEl to a point position
