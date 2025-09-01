@@ -166,6 +166,18 @@ pub fn handle_unicode_text_input(
                     &mut buffer_query,
                 );
             }
+            Key::ArrowLeft => {
+                handle_arrow_left(&mut text_editor_state, &active_buffer, &mut buffer_query);
+            }
+            Key::ArrowRight => {
+                handle_arrow_right(&mut text_editor_state, &active_buffer, &mut buffer_query);
+            }
+            Key::ArrowUp => {
+                handle_arrow_up(&mut text_editor_state, &active_buffer, &mut buffer_query, &fontir_app_state);
+            }
+            Key::ArrowDown => {
+                handle_arrow_down(&mut text_editor_state, &active_buffer, &mut buffer_query, &fontir_app_state);
+            }
             _ => {
                 // Ignore other special keys
             }
@@ -693,6 +705,289 @@ fn calculate_character_position(
         buffer_root_position.x + x_offset,
         buffer_root_position.y + y_offset,
     )
+}
+
+/// Handle left arrow key press - move cursor left in the active buffer
+fn handle_arrow_left(
+    text_editor_state: &mut ResMut<TextEditorState>,
+    active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
+    buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
+) {
+    let Some(active_buffer) = active_buffer.as_ref() else {
+        debug!("No active buffer for arrow left");
+        return;
+    };
+    
+    let Some(buffer_entity) = active_buffer.buffer_entity else {
+        debug!("No buffer entity for arrow left");
+        return;
+    };
+    
+    let Ok((_text_buffer, mut buffer_cursor)) = buffer_query.get_mut(buffer_entity) else {
+        debug!("Buffer entity not found for arrow left");
+        return;
+    };
+    
+    // Move cursor left if not at the beginning
+    if buffer_cursor.position > 0 {
+        buffer_cursor.position -= 1;
+        info!("⬅️ Moved cursor left to position {}", buffer_cursor.position);
+    } else {
+        debug!("Cursor already at beginning, cannot move left");
+    }
+    
+    // Mark text editor state as changed to trigger cursor rendering update
+    use bevy::prelude::DetectChangesMut;
+    text_editor_state.set_changed();
+}
+
+/// Handle right arrow key press - move cursor right in the active buffer
+fn handle_arrow_right(
+    text_editor_state: &mut ResMut<TextEditorState>,
+    active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
+    buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
+) {
+    let Some(active_buffer) = active_buffer.as_ref() else {
+        debug!("No active buffer for arrow right");
+        return;
+    };
+    
+    let Some(buffer_entity) = active_buffer.buffer_entity else {
+        debug!("No buffer entity for arrow right");
+        return;
+    };
+    
+    let Ok((text_buffer, mut buffer_cursor)) = buffer_query.get_mut(buffer_entity) else {
+        debug!("Buffer entity not found for arrow right");
+        return;
+    };
+    
+    // Count how many sorts belong to this buffer to determine max cursor position
+    let buffer_sort_count = text_editor_state
+        .buffer
+        .iter()
+        .filter(|sort| sort.buffer_id == Some(text_buffer.id))
+        .count();
+    
+    // Move cursor right if not at the end
+    if buffer_cursor.position < buffer_sort_count {
+        buffer_cursor.position += 1;
+        info!("➡️ Moved cursor right to position {}", buffer_cursor.position);
+    } else {
+        debug!("Cursor already at end, cannot move right");
+    }
+    
+    // Mark text editor state as changed to trigger cursor rendering update
+    use bevy::prelude::DetectChangesMut;
+    text_editor_state.set_changed();
+}
+
+/// Handle up arrow key press - move cursor to previous line in the active buffer
+fn handle_arrow_up(
+    text_editor_state: &mut ResMut<TextEditorState>,
+    active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
+    buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
+    fontir_app_state: &Option<Res<crate::core::state::fontir_app_state::FontIRAppState>>,
+) {
+    let Some(active_buffer) = active_buffer.as_ref() else {
+        debug!("No active buffer for arrow up");
+        return;
+    };
+    
+    let Some(buffer_entity) = active_buffer.buffer_entity else {
+        debug!("No buffer entity for arrow up");
+        return;
+    };
+    
+    let Ok((text_buffer, mut buffer_cursor)) = buffer_query.get_mut(buffer_entity) else {
+        debug!("Buffer entity not found for arrow up");
+        return;
+    };
+    
+    let current_position = buffer_cursor.position;
+    
+    // Find the new cursor position using line-aware navigation
+    if let Some(new_position) = calculate_line_navigation_position(
+        text_editor_state,
+        text_buffer.id,
+        current_position,
+        LineNavigation::Up,
+        fontir_app_state,
+    ) {
+        buffer_cursor.position = new_position;
+        info!("⬆️ Moved cursor up from position {} to position {}", current_position, new_position);
+    } else {
+        debug!("Cursor already at top line, cannot move up");
+    }
+    
+    // Mark text editor state as changed to trigger cursor rendering update
+    use bevy::prelude::DetectChangesMut;
+    text_editor_state.set_changed();
+}
+
+/// Handle down arrow key press - move cursor to next line in the active buffer
+fn handle_arrow_down(
+    text_editor_state: &mut ResMut<TextEditorState>,
+    active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
+    buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
+    fontir_app_state: &Option<Res<crate::core::state::fontir_app_state::FontIRAppState>>,
+) {
+    let Some(active_buffer) = active_buffer.as_ref() else {
+        debug!("No active buffer for arrow down");
+        return;
+    };
+    
+    let Some(buffer_entity) = active_buffer.buffer_entity else {
+        debug!("No buffer entity for arrow down");
+        return;
+    };
+    
+    let Ok((text_buffer, mut buffer_cursor)) = buffer_query.get_mut(buffer_entity) else {
+        debug!("Buffer entity not found for arrow down");
+        return;
+    };
+    
+    let current_position = buffer_cursor.position;
+    
+    // Find the new cursor position using line-aware navigation
+    if let Some(new_position) = calculate_line_navigation_position(
+        text_editor_state,
+        text_buffer.id,
+        current_position,
+        LineNavigation::Down,
+        fontir_app_state,
+    ) {
+        buffer_cursor.position = new_position;
+        info!("⬇️ Moved cursor down from position {} to position {}", current_position, new_position);
+    } else {
+        debug!("Cursor already at bottom line, cannot move down");
+    }
+    
+    // Mark text editor state as changed to trigger cursor rendering update
+    use bevy::prelude::DetectChangesMut;
+    text_editor_state.set_changed();
+}
+
+/// Direction for line navigation
+#[derive(Debug, Clone, Copy)]
+enum LineNavigation {
+    Up,
+    Down,
+}
+
+/// Calculate cursor position for up/down line navigation
+/// This function handles line breaks and tries to maintain horizontal position
+fn calculate_line_navigation_position(
+    text_editor_state: &TextEditorState,
+    buffer_id: crate::core::state::text_editor::buffer::BufferId,
+    current_position: usize,
+    direction: LineNavigation,
+    fontir_app_state: &Option<Res<crate::core::state::fontir_app_state::FontIRAppState>>,
+) -> Option<usize> {
+    use crate::core::state::text_editor::buffer::{SortKind, SortLayoutMode};
+    
+    // Get all sorts that belong to this buffer
+    let mut buffer_sorts = Vec::new();
+    for sort in text_editor_state.buffer.iter() {
+        if sort.buffer_id == Some(buffer_id) {
+            buffer_sorts.push(sort);
+        }
+    }
+    
+    if buffer_sorts.is_empty() {
+        return None;
+    }
+    
+    // Build line structure: find line breaks and calculate x positions
+    let mut line_starts = vec![0]; // Line starts at positions in buffer_sorts
+    let mut x_positions = vec![0.0]; // X position for each cursor position
+    
+    let mut current_x = 0.0;
+    for (i, sort) in buffer_sorts.iter().enumerate() {
+        match &sort.kind {
+            SortKind::LineBreak => {
+                // Line break: start new line
+                line_starts.push(i + 1);
+                current_x = 0.0;
+                x_positions.push(current_x);
+            }
+            SortKind::Glyph { advance_width, glyph_name, .. } => {
+                // Get advance width for this glyph
+                let width = if let Some(fontir_state) = fontir_app_state.as_ref() {
+                    fontir_state.get_glyph_advance_width(glyph_name)
+                } else {
+                    *advance_width
+                };
+                
+                // Handle text direction
+                match sort.layout_mode {
+                    SortLayoutMode::LTRText => {
+                        current_x += width;
+                    }
+                    SortLayoutMode::RTLText => {
+                        current_x -= width;
+                    }
+                    SortLayoutMode::Freeform => {
+                        current_x += width; // Treat as LTR for line navigation
+                    }
+                }
+                x_positions.push(current_x);
+            }
+        }
+    }
+    
+    // Find which line the current position is on
+    let mut current_line = 0;
+    for (line_index, &line_start) in line_starts.iter().enumerate() {
+        if current_position >= line_start {
+            current_line = line_index;
+        } else {
+            break;
+        }
+    }
+    
+    // Get the x position of the cursor at current position
+    let current_x = x_positions.get(current_position).copied().unwrap_or(0.0);
+    
+    // Calculate target line
+    let target_line = match direction {
+        LineNavigation::Up => {
+            if current_line == 0 {
+                return None; // Already at top line
+            }
+            current_line - 1
+        }
+        LineNavigation::Down => {
+            if current_line + 1 >= line_starts.len() {
+                return None; // Already at bottom line
+            }
+            current_line + 1
+        }
+    };
+    
+    // Find the position in the target line that's closest to current_x
+    let target_line_start = line_starts[target_line];
+    let target_line_end = if target_line + 1 < line_starts.len() {
+        line_starts[target_line + 1]
+    } else {
+        buffer_sorts.len()
+    };
+    
+    // Find the closest position by x coordinate
+    let mut best_position = target_line_start;
+    let mut best_distance = f32::INFINITY;
+    
+    for position in target_line_start..=target_line_end {
+        if let Some(x) = x_positions.get(position) {
+            let distance = (x - current_x).abs();
+            if distance < best_distance {
+                best_distance = distance;
+                best_position = position;
+            }
+        }
+    }
+    
+    Some(best_position)
 }
 
 /// Legacy function - replaced by handle_unicode_text_input
