@@ -258,7 +258,7 @@ pub fn spawn_missing_sort_entities(
 
                 // Check if this sort should be active based on the text editor state
                 // Only make sorts active if they are explicitly marked as active
-                // Buffer roots are not automatically active anymore - only one sort should be active at a time
+                // Only one sort should be active at a time - no special treatment for first characters
                 let should_be_active = sort_entry.is_active;
                 if should_be_active {
                     entity_commands.insert(ActiveSort);
@@ -406,10 +406,10 @@ pub fn auto_activate_selected_sorts(
                     None
                 };
 
-            // Deactivate all currently active sorts (including buffer roots when another sort is selected)
+            // Deactivate all currently active sorts when another sort is selected
             for active_entity in active_sorts.iter() {
                 // Always deactivate active sorts when a different sort is explicitly selected
-                // This allows buffer roots to become inactive when user clicks other handles
+                // This allows any active sort to become inactive when user clicks other handles
                 if active_entity != selected_sort {
                     commands.entity(active_entity).remove::<ActiveSort>();
                     commands.entity(active_entity).insert(InactiveSort);

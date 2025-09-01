@@ -113,7 +113,7 @@ pub fn handle_sort_placement_input(
 
     // CRITICAL FIX: Deactivate all existing sorts before creating new active sort
     // This prevents multiple active sorts from existing simultaneously
-    // NOTE: Each text flow (LTR/RTL) maintains its own buffer root and text flow chain
+    // NOTE: Each text flow (LTR/RTL) maintains its own buffer and text flow chain
     // Buffer[0] might be LTR, Buffer[1] might be RTL - they are independent text flows
     for i in 0..text_editor_state.buffer.len() {
         if let Some(sort) = text_editor_state.buffer.get_mut(i) {

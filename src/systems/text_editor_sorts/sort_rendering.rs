@@ -115,9 +115,9 @@ pub fn render_text_editor_cursor(
             })
         });
 
-    // Calculate current cursor position using NEW BUFFER ENTITY SYSTEM for consistent change detection
+    // Calculate current cursor position using UNIFIED SYSTEM for consistent change detection
     let current_cursor_position = text_editor_state.as_ref().and_then(|state| {
-        calculate_simple_cursor_position(
+        calculate_cursor_position(
             state,
             &sort_query,
             &app_state,
@@ -171,8 +171,8 @@ pub fn render_text_editor_cursor(
         return;
     };
 
-    // SIMPLE APPROACH: Find the actual sort entity at cursor position and use its Transform
-    if let Some(cursor_world_pos) = calculate_simple_cursor_position(
+    // UNIFIED APPROACH: Calculate cursor position with full feature support (line breaks, etc.)
+    if let Some(cursor_world_pos) = calculate_cursor_position(
         &text_editor_state,
         &sort_query,
         &app_state,
@@ -223,312 +223,129 @@ pub fn render_text_editor_cursor(
     }
 }
 
-/// Calculate the visual world position of the cursor based on text buffer state  
-fn calculate_cursor_visual_position(
+
+/// Unified cursor position calculation using new buffer entity system with full feature support
+fn calculate_cursor_position(
     text_editor_state: &TextEditorState,
-    app_state: &Option<Res<AppState>>,
-    fontir_app_state: &Option<Res<crate::core::state::FontIRAppState>>,
-) -> Option<Vec2> {
-    info!("🔍 CURSOR CALC: Starting cursor position calculation");
-
-    // SIMPLE APPROACH: Find the sort at cursor position and get its actual world position
-    // For RTL: cursor goes at left edge, for LTR: cursor goes at right edge
-
-    // Find the active buffer root
-    let mut active_root_index = None;
-    let mut cursor_pos_in_buffer = 0;
-    let mut root_position = Vec2::ZERO;
-
-    // Look for the active buffer root and get its cursor position
-    for i in 0..text_editor_state.buffer.len() {
-        if let Some(sort) = text_editor_state.buffer.get(i) {
-            if sort.is_active {
-                active_root_index = Some(i);
-                cursor_pos_in_buffer = sort.buffer_cursor_position.unwrap_or(0);
-                root_position = sort.root_position;
-                break;
-            }
-        }
-    }
-
-    // If no active root found, check for any buffer root with cursor position
-    if active_root_index.is_none() {
-        for i in 0..text_editor_state.buffer.len() {
-            if let Some(sort) = text_editor_state.buffer.get(i) {
-                if sort.buffer_cursor_position.is_some() {
-                    active_root_index = Some(i);
-                    cursor_pos_in_buffer = sort.buffer_cursor_position.unwrap_or(0);
-                    root_position = sort.root_position;
-                    break;
-                }
-            }
-        }
-    }
-
-    let root_index = active_root_index?;
-
-    // Get the root sort to check its layout mode
-    let root_sort = text_editor_state.buffer.get(root_index)?;
-    let is_rtl = root_sort.layout_mode == SortLayoutMode::RTLText;
-
-    info!(
-        "🔍 CURSOR CALC: root_index={}, cursor_pos={}, is_rtl={}",
-        root_index, cursor_pos_in_buffer, is_rtl
-    );
-
-    // If cursor at position 0, place at root position
-    if cursor_pos_in_buffer == 0 {
-        info!("🔍 CURSOR CALC: Cursor at position 0, returning root position");
-        return Some(root_position);
-    }
-
-    // Calculate position based on the glyphs in the buffer sequence, handling line breaks
-    let mut x_offset = 0.0;
-    let mut y_offset = 0.0;
-    let mut glyph_count = 0;
-
-    // Get font metrics for line height calculation - try FontIR first, then AppState
-    let (_upm, _descender, line_height) = if let Some(fontir_state) = fontir_app_state.as_ref() {
-        let metrics = fontir_state.get_font_metrics();
-        let upm = metrics.units_per_em;
-        let descender = metrics.descender.unwrap_or(-256.0);
-        (upm, descender, upm - descender)
-    } else if let Some(app_state) = app_state.as_ref() {
-        let font_metrics = &app_state.workspace.info.metrics;
-        let upm = font_metrics.units_per_em as f32;
-        let descender = font_metrics.descender.unwrap_or(-256.0) as f32;
-        (upm, descender, upm - descender)
-    } else {
-        warn!("Text cursor position calculation skipped - Neither FontIR nor AppState available");
-        return Some(root_position); // Fallback to root position
-    };
-
-    // Start from the root and accumulate advances
-    for i in root_index..text_editor_state.buffer.len() {
-        if let Some(sort) = text_editor_state.buffer.get(i) {
-            // Continue processing all sorts in the buffer
-
-            // Count glyphs in this buffer sequence
-            if i == root_index
-                || sort.layout_mode == SortLayoutMode::LTRText
-                || sort.layout_mode == SortLayoutMode::RTLText
-            {
-                // Handle different sort types
-                match &sort.kind {
-                    SortKind::LineBreak => {
-                        // Apply line break first (move to next line)
-                        x_offset = 0.0;
-                        y_offset -= line_height;
-
-                        // If cursor is positioned at this line break index, show it at the start of the new line
-                        if glyph_count == cursor_pos_in_buffer {
-                            return Some(Vec2::new(
-                                root_position.x + x_offset,
-                                root_position.y + y_offset,
-                            ));
-                        }
-                    }
-                    SortKind::Glyph {
-                        glyph_name,
-                        advance_width,
-                        ..
-                    } => {
-                        // Check if cursor should be positioned at this glyph
-                        if glyph_count == cursor_pos_in_buffer {
-                            info!("🎯 CURSOR MATCH: glyph_count={}, cursor_pos={}, x_offset={}, glyph={:?}, advance={}, is_root={}", 
-                                  glyph_count, cursor_pos_in_buffer, x_offset, glyph_name, advance_width, i == root_index);
-
-                            // Place cursor at the appropriate edge based on text direction
-                            if sort.layout_mode == SortLayoutMode::RTLText {
-                                // RTL: cursor at left edge of this glyph
-                                // For RTL text, when glyph_count == 1 (first char after root),
-                                // x_offset is still 0. We need to calculate where this char will be.
-                                // The first RTL character is positioned at -advance_width from root
-                                let cursor_x = if i == root_index {
-                                    // Cursor at root position (shouldn't happen for cursor_pos=1)
-                                    x_offset
-                                } else {
-                                    // For non-root chars in RTL, they're positioned to the left
-                                    // We need to account for the root's advance to find the left edge
-                                    // Get root's advance width
-                                    if let Some(root_sort) =
-                                        text_editor_state.buffer.get(root_index)
-                                    {
-                                        if let SortKind::Glyph {
-                                            advance_width: root_advance,
-                                            ..
-                                        } = &root_sort.kind
-                                        {
-                                            -root_advance // First char is at -root_advance from root
-                                        } else {
-                                            x_offset
-                                        }
-                                    } else {
-                                        x_offset
-                                    }
-                                };
-
-                                info!("🎯 RTL CURSOR: Returning position x={} (root.x={} + cursor_x={})", 
-                                      root_position.x + cursor_x, root_position.x, cursor_x);
-                                return Some(Vec2::new(
-                                    root_position.x + cursor_x,
-                                    root_position.y + y_offset,
-                                ));
-                            } else {
-                                // LTR: cursor at right edge of this glyph
-                                // For LTR, we need to add the advance to get to the right edge
-                                return Some(Vec2::new(
-                                    root_position.x + x_offset + advance_width,
-                                    root_position.y + y_offset,
-                                ));
-                            }
-                        }
-
-                        // Apply advance width for positioning next characters
-                        if sort.layout_mode == SortLayoutMode::RTLText {
-                            x_offset -= advance_width;
-                        } else {
-                            x_offset += advance_width;
-                        }
-                    }
-                }
-
-                glyph_count += 1;
-            }
-        }
-    }
-
-    // Cursor is at or beyond the end, position after last glyph
-    Some(Vec2::new(
-        root_position.x + x_offset,
-        root_position.y + y_offset,
-    ))
-}
-
-/// Simple approach: Find the actual sort entity at cursor position and use its Transform
-fn calculate_simple_cursor_position(
-    text_editor_state: &TextEditorState,
-    sort_query: &Query<(
+    _sort_query: &Query<(
         &Transform,
         &crate::editing::sort::Sort,
         &crate::systems::text_editor_sorts::sort_entities::BufferSortIndex,
     )>,
-    _app_state: &Option<Res<AppState>>,
-    _fontir_app_state: &Option<Res<crate::core::state::FontIRAppState>>,
-    // NEW: Add buffer entity query to use new architecture
+    app_state: &Option<Res<AppState>>,
+    fontir_app_state: &Option<Res<crate::core::state::FontIRAppState>>,
     buffer_query: &Query<(
         &crate::core::state::text_editor::text_buffer::TextBuffer,
         &crate::core::state::text_editor::text_buffer::BufferCursor,
     )>,
     active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
 ) -> Option<Vec2> {
-    info!("🎯 SIMPLE CURSOR: Starting calculation with NEW BUFFER ENTITY ARCHITECTURE");
+    info!("🎯 UNIFIED CURSOR: Starting calculation with buffer entity system");
 
-    // NEW: Use buffer entity system for cursor position
-    let (cursor_pos_in_buffer, is_rtl, buffer_root_position) = if let Some(active_buffer_res) = active_buffer {
+    // Get buffer information from buffer entity system
+    let (cursor_pos_in_buffer, buffer_root_position, layout_mode, buffer_id) = if let Some(active_buffer_res) = active_buffer {
         if let Some(buffer_entity) = active_buffer_res.buffer_entity {
             if let Ok((text_buffer, buffer_cursor)) = buffer_query.get(buffer_entity) {
                 info!(
-                    "🎯 SIMPLE CURSOR: Using NEW buffer entity system - buffer_entity: {:?}, cursor: {}",
-                    buffer_entity, buffer_cursor.position
+                    "🎯 UNIFIED CURSOR: Using buffer entity {:?}, cursor: {}, layout: {:?}",
+                    buffer_entity, buffer_cursor.position, text_buffer.layout_mode
                 );
-                let is_rtl = text_buffer.layout_mode == crate::core::state::text_editor::SortLayoutMode::RTLText;
-                (buffer_cursor.position, is_rtl, text_buffer.root_position)
+                (buffer_cursor.position, text_buffer.root_position, text_buffer.layout_mode.clone(), text_buffer.id)
             } else {
-                info!("🎯 SIMPLE CURSOR: Buffer entity not found in query, falling back to legacy");
-                // Fallback to legacy system
-                return calculate_legacy_cursor_position(text_editor_state, sort_query);
+                warn!("🎯 UNIFIED CURSOR: Buffer entity not found - no cursor to render");
+                return None;
             }
         } else {
-            info!("🎯 SIMPLE CURSOR: No active buffer entity, falling back to legacy");
-            // Fallback to legacy system
-            return calculate_legacy_cursor_position(text_editor_state, sort_query);
+            warn!("🎯 UNIFIED CURSOR: No active buffer entity");
+            return None;
         }
     } else {
-        info!("🎯 SIMPLE CURSOR: No active buffer resource, falling back to legacy");
-        // Fallback to legacy system
-        return calculate_legacy_cursor_position(text_editor_state, sort_query);
+        warn!("🎯 UNIFIED CURSOR: No active buffer resource");
+        return None;
+    };
+
+    // Get font metrics for line height calculation - try FontIR first, then AppState
+    let line_height = if let Some(fontir_state) = fontir_app_state.as_ref() {
+        let metrics = fontir_state.get_font_metrics();
+        let upm = metrics.units_per_em;
+        let descender = metrics.descender.unwrap_or(-256.0);
+        upm - descender
+    } else if let Some(app_state) = app_state.as_ref() {
+        let font_metrics = &app_state.workspace.info.metrics;
+        let upm = font_metrics.units_per_em as f32;
+        let descender = font_metrics.descender.unwrap_or(-256.0) as f32;
+        upm - descender
+    } else {
+        1000.0 // Reasonable fallback for line height
     };
 
     info!(
-        "🎯 SIMPLE CURSOR: NEW SYSTEM - cursor_pos={}, is_rtl={}, root_pos=({:.1}, {:.1})",
-        cursor_pos_in_buffer, is_rtl, buffer_root_position.x, buffer_root_position.y
+        "🎯 UNIFIED CURSOR: cursor_pos={}, layout={:?}, root_pos=({:.1}, {:.1}), line_height={:.1}",
+        cursor_pos_in_buffer, layout_mode, buffer_root_position.x, buffer_root_position.y, line_height
     );
 
-    // For RTL at cursor position 1, we want to be at the LEFT edge of the first character after root
-    // For LTR at cursor position 1, we want to be at the RIGHT edge of the first character after root
-
-    if cursor_pos_in_buffer == 0 {
-        // Cursor at position 0 - should be at the LEFT edge of the root character
-        info!("🎯 SIMPLE CURSOR: Cursor at position 0, using buffer root position");
-        return Some(buffer_root_position);
-    }
-
-    // For cursor position 1 in LTR, we want to be at the RIGHT edge of the first character
-    // For cursor position 1 in RTL, we want to be at the LEFT edge of the first character
-    if cursor_pos_in_buffer == 1 {
-        info!("🎯 SIMPLE CURSOR: Cursor at position 1 - looking for root character entity");
-        
-        // Find the root character entity (buffer index 0)
-        for (transform, _sort, buffer_index) in sort_query.iter() {
-            if buffer_index.0 == 0 {  // Root character is always at buffer index 0
-                let char_pos = transform.translation.truncate();
-                info!(
-                    "🎯 SIMPLE CURSOR: Found root character at position ({:.1}, {:.1})",
-                    char_pos.x, char_pos.y
-                );
-
-                if is_rtl {
-                    // RTL: cursor goes at LEFT edge of the character
-                    let cursor_position = Vec2::new(char_pos.x, char_pos.y);
-                    info!(
-                        "🎯 SIMPLE CURSOR: RTL cursor at LEFT edge ({:.1}, {:.1})",
-                        cursor_position.x, cursor_position.y
-                    );
-                    return Some(cursor_position);
-                } else {
-                    // LTR: cursor goes at RIGHT edge of the character
-                    let advance_width = if let Some(sort_entry) = text_editor_state.buffer.get(0) {
-                        if let crate::core::state::text_editor::SortKind::Glyph {
-                            advance_width, ..
-                        } = &sort_entry.kind
-                        {
-                            info!("🎯 SIMPLE CURSOR: Found advance_width={} for root character", advance_width);
-                            *advance_width
-                        } else {
-                            info!("🎯 SIMPLE CURSOR: Root character is not a glyph, using 0 advance");
-                            0.0
+    // UNIFIED CALCULATION: Accumulate advances and handle line breaks
+    let mut x_offset = 0.0;
+    let mut y_offset = 0.0;
+    let mut buffer_sort_count = 0;
+    
+    // Find all sorts belonging to this buffer and process them in order
+    for sort_entry in text_editor_state.buffer.iter() {
+        if sort_entry.buffer_id == Some(buffer_id) {
+            // Only accumulate advances for sorts BEFORE the cursor position
+            if buffer_sort_count < cursor_pos_in_buffer {
+                match &sort_entry.kind {
+                    crate::core::state::text_editor::SortKind::LineBreak => {
+                        // Handle line breaks: move to next line
+                        x_offset = 0.0;
+                        y_offset -= line_height;
+                        info!("🎯 UNIFIED CURSOR: Line break at sort {}, moved to next line (y_offset: {})", 
+                              buffer_sort_count, y_offset);
+                    }
+                    crate::core::state::text_editor::SortKind::Glyph { advance_width, .. } => {
+                        // Accumulate glyph advances based on text direction
+                        match layout_mode {
+                            crate::core::state::text_editor::SortLayoutMode::LTRText => {
+                                x_offset += advance_width;
+                            }
+                            crate::core::state::text_editor::SortLayoutMode::RTLText => {
+                                x_offset -= advance_width;
+                            }
+                            crate::core::state::text_editor::SortLayoutMode::Freeform => {
+                                x_offset += advance_width; // Shouldn't happen in buffer context
+                            }
                         }
-                    } else {
-                        info!("🎯 SIMPLE CURSOR: Could not find root character in buffer, using 0 advance");
-                        0.0
-                    };
-
-                    let cursor_position = Vec2::new(char_pos.x + advance_width, char_pos.y);
-                    info!(
-                        "🎯 SIMPLE CURSOR: LTR cursor at RIGHT edge ({:.1}, {:.1}) [char_pos.x + advance_width = {:.1} + {:.1}]",
-                        cursor_position.x, cursor_position.y, char_pos.x, advance_width
-                    );
-                    return Some(cursor_position);
+                        info!("🎯 UNIFIED CURSOR: Accumulated advance {} for sort {}, total offset: ({:.1}, {:.1})", 
+                              advance_width, buffer_sort_count, x_offset, y_offset);
+                    }
+                }
+            } else if buffer_sort_count == cursor_pos_in_buffer {
+                // Cursor is positioned AT this sort - check if it's a line break
+                if matches!(&sort_entry.kind, crate::core::state::text_editor::SortKind::LineBreak) {
+                    // Cursor at line break position - show at start of new line
+                    x_offset = 0.0;
+                    y_offset -= line_height;
+                    info!("🎯 UNIFIED CURSOR: Cursor at line break position {}, showing at new line start", buffer_sort_count);
+                    break;
                 }
             }
+            
+            buffer_sort_count += 1;
         }
-        
-        // Fallback if no entity found for root character
-        info!("🎯 SIMPLE CURSOR: No root character entity found, using buffer root position as fallback");
-        return Some(buffer_root_position);
     }
-
-    // For cursor positions beyond 1, we need to find the appropriate character
-    info!("🎯 SIMPLE CURSOR: Cursor at position {} > 1, searching for character entity", cursor_pos_in_buffer);
     
-    // TODO: Handle cursor positions beyond position 1 for multi-character buffers
-    // For now, fallback to root position
-    warn!(
-        "🎯 SIMPLE CURSOR: Cursor position {} not implemented yet, using root position",
-        cursor_pos_in_buffer
+    let cursor_position = Vec2::new(
+        buffer_root_position.x + x_offset,
+        buffer_root_position.y + y_offset,
     );
-    Some(buffer_root_position)
+    
+    info!(
+        "🎯 UNIFIED CURSOR: Final cursor at position {} -> ({:.1}, {:.1}) [root + offset = ({:.1}, {:.1}) + ({:.1}, {:.1})]",
+        cursor_pos_in_buffer, cursor_position.x, cursor_position.y,
+        buffer_root_position.x, buffer_root_position.y, x_offset, y_offset
+    );
+    
+    Some(cursor_position)
 }
 
 /// Legacy cursor calculation system for compatibility

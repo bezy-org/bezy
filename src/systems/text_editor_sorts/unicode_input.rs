@@ -654,12 +654,8 @@ fn calculate_character_position(
         }
     }
     
-    // If this is the first character in the buffer, place it at the buffer root position
-    if buffer_sorts.is_empty() || cursor_position == 0 {
-        return buffer_root_position;
-    }
-    
-    // Calculate cumulative advance width up to cursor position
+    // UNIFIED APPROACH: Calculate cumulative advance width up to cursor position
+    // This works for ALL cursor positions including 0 (no special cases needed)
     let mut x_offset = 0.0;
     let mut y_offset = 0.0; // For future line break support
     
