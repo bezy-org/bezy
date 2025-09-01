@@ -92,6 +92,7 @@ pub fn render_glyphs(
     >,
     app_state: Option<Res<crate::core::state::AppState>>,
     fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
+    text_editor_state: Option<Res<crate::core::state::TextEditorState>>,
     existing_elements: Query<(Entity, &GlyphRenderElement)>,
     // Debug: Check entities with just SortPointEntity
     existing_sort_points: Query<Entity, With<SortPointEntity>>,
@@ -332,6 +333,7 @@ pub fn render_glyphs(
                 &sort_points,
                 &camera_scale,
                 &theme,
+                text_editor_state.as_deref(),
             );
         } else {
             info!(
@@ -648,6 +650,7 @@ fn render_glyph_points(
     sort_points: &[(Entity, Vec2, &GlyphPointReference, &PointType, bool)],
     camera_scale: &CameraResponsiveScale,
     theme: &CurrentTheme,
+    text_editor_state: Option<&crate::core::state::TextEditorState>,
 ) {
     for (point_entity, position, _point_ref, point_type, is_selected) in sort_points {
         // Determine colors and z-depth for two-layer system
@@ -671,10 +674,31 @@ fn render_glyph_points(
             )
         };
 
+        // Check if this sort is a buffer root for special sizing
+        let is_buffer_root = if let Some(text_state) = text_editor_state {
+            let has_buffer_root = text_state.get_text_sorts().iter().any(|(_index, sort_entry)| {
+                // This is a simple approach - in a more complex system, we might need
+                // to match by sort entity ID or glyph name, but for now we check by active status
+                // and buffer root flag
+                sort_entry.is_active && sort_entry.is_buffer_root
+            });
+            
+            if has_buffer_root {
+                info!("🔍 BUFFER ROOT DETECTED: Found active buffer root, applying 1.3x size multiplier to points");
+            }
+            
+            has_buffer_root
+        } else {
+            false
+        };
+
+        // Apply size multiplier for buffer root sorts
+        let root_size_multiplier = if is_buffer_root { 1.3 } else { 1.0 };
+
         // Create the three-layer point shape
         if point_type.is_on_curve && USE_SQUARE_FOR_ON_CURVE {
             // On-curve points: square with three layers
-            let base_size = ON_CURVE_POINT_RADIUS * ON_CURVE_SQUARE_ADJUSTMENT * 2.0;
+            let base_size = ON_CURVE_POINT_RADIUS * ON_CURVE_SQUARE_ADJUSTMENT * 2.0 * root_size_multiplier;
             let size = camera_scale.adjusted_point_size(base_size);
 
             // Layer 1: Base shape (full width) - primary color
@@ -755,9 +779,9 @@ fn render_glyph_points(
         } else {
             // Off-curve points and circular on-curve points: circle with three layers
             let base_radius = if point_type.is_on_curve {
-                ON_CURVE_POINT_RADIUS
+                ON_CURVE_POINT_RADIUS * root_size_multiplier
             } else {
-                OFF_CURVE_POINT_RADIUS
+                OFF_CURVE_POINT_RADIUS * root_size_multiplier
             };
             let radius = camera_scale.adjusted_point_size(base_radius);
 

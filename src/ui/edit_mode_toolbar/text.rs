@@ -43,10 +43,14 @@ pub struct TextModeState {
 /// Text placement modes for the submenu
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Resource)]
 pub enum TextPlacementMode {
-    LTRText,
-    RTLText,
+    /// Place sorts in left-to-right text mode
     #[default]
+    LTRText,
+    /// Place sorts in right-to-left text mode (Arabic/Hebrew)
+    RTLText,
+    /// Insert and edit text within existing text mode sorts  
     Insert,
+    /// Place sorts freely in the design space
     Freeform,
 }
 
@@ -131,7 +135,6 @@ impl EditTool for TextTool {
     fn on_enter(&self) {
         info!("Entered Text tool - Enhanced features:");
         info!("• Click to place sorts, type letters to add glyphs");
-        info!("• Tab to switch Text mode/Freeform modes");
         info!("• 1-9 keys to switch glyphs, F1 for help");
         info!("• Arrow keys for navigation, Ctrl+S to show text mode");
     }
@@ -618,8 +621,8 @@ pub fn render_sort_preview(
 pub fn handle_text_tool_shortcuts(
     mut keyboard_input: ResMut<ButtonInput<KeyCode>>,
     mut current_tool: ResMut<crate::ui::edit_mode_toolbar::CurrentTool>,
-    mut current_placement_mode: ResMut<CurrentTextPlacementMode>,
-    mut text_mode_config: ResMut<TextModeConfig>,
+    current_placement_mode: Res<CurrentTextPlacementMode>,
+    _text_mode_config: ResMut<TextModeConfig>,
     text_editor_state: Option<Res<TextEditorState>>,
     text_mode_active: Res<TextModeActive>,
 ) {
@@ -637,18 +640,6 @@ pub fn handle_text_tool_shortcuts(
         current_tool.switch_to("text");
         info!("Activated text tool via keyboard shortcut");
         keyboard_input.clear_just_pressed(KeyCode::KeyT);
-    }
-    if current_tool.get_current() == Some("text") && keyboard_input.just_pressed(KeyCode::Tab) {
-        let new_mode = match current_placement_mode.0 {
-            TextPlacementMode::LTRText => TextPlacementMode::RTLText,
-            TextPlacementMode::RTLText => TextPlacementMode::Insert,
-            TextPlacementMode::Insert => TextPlacementMode::Freeform,
-            TextPlacementMode::Freeform => TextPlacementMode::LTRText,
-        };
-        current_placement_mode.0 = new_mode;
-        text_mode_config.default_placement_mode = new_mode.to_sort_layout_mode();
-        info!("Switched text placement mode to: {:?}", new_mode);
-        keyboard_input.clear_just_pressed(KeyCode::Tab);
     }
     if current_tool.get_current() == Some("text")
         && keyboard_input.just_pressed(KeyCode::KeyS)
@@ -671,7 +662,6 @@ pub fn handle_text_tool_shortcuts(
     if current_tool.get_current() == Some("text") && keyboard_input.just_pressed(KeyCode::F1) {
         info!("=== TEXT TOOL HELP ===");
         info!("T - Activate text tool");
-        info!("Tab - Switch between Text mode/Insert/Freeform modes");
         info!("TEXT MODE:");
         info!("  • Click to place glyphs");
         info!("  • Type letters to create sorts");

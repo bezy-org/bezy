@@ -56,6 +56,9 @@ pub fn render_text_editor_cursor(
         &crate::editing::sort::Sort,
         &crate::systems::text_editor_sorts::sort_entities::BufferSortIndex,
     )>,
+    // NEW: Query buffer entities for cursor positions
+    buffer_query: Query<(&crate::core::state::text_editor::TextBuffer, &crate::core::state::text_editor::BufferCursor)>,
+    active_buffer: Option<Res<crate::core::state::text_editor::ActiveTextBuffer>>,
 ) {
     info!(
         "CURSOR: System called - tool: {:?}, mode: {:?}",
@@ -97,26 +100,20 @@ pub fn render_text_editor_cursor(
     let current_placement_mode_value = current_placement_mode.0;
     let current_camera_scale = camera_scale.scale_factor;
 
-    // Get current buffer cursor position
-    let current_buffer_cursor_position = text_editor_state.as_ref().and_then(|state| {
-        // Find active buffer root and get cursor position
-        for i in 0..state.buffer.len() {
-            if let Some(sort) = state.buffer.get(i) {
-                if sort.is_buffer_root && sort.is_active {
-                    return sort.buffer_cursor_position;
-                }
-            }
-        }
-        // Fallback: look for any buffer root with cursor position
-        for i in 0..state.buffer.len() {
-            if let Some(sort) = state.buffer.get(i) {
-                if sort.is_buffer_root && sort.buffer_cursor_position.is_some() {
-                    return sort.buffer_cursor_position;
-                }
-            }
-        }
-        None
-    });
+    // NEW BUFFER ENTITY SYSTEM: Get cursor position from active buffer entity
+    let current_buffer_cursor_position = active_buffer
+        .as_ref()
+        .and_then(|active| active.buffer_entity)
+        .and_then(|buffer_entity| {
+            // Query the buffer entity for its cursor position
+            buffer_query.get(buffer_entity).ok().map(|(_buffer, cursor)| {
+                info!(
+                    "🔍 CURSOR: Found active buffer entity {:?} with cursor at position {}",
+                    buffer_entity, cursor.position
+                );
+                cursor.position
+            })
+        });
 
     // Calculate current cursor position
     let current_cursor_position = text_editor_state
@@ -173,6 +170,8 @@ pub fn render_text_editor_cursor(
         &sort_query,
         &app_state,
         &fontir_app_state,
+        &buffer_query,
+        &active_buffer,
     ) {
         // Get font metrics for proper cursor height - try FontIR first, then AppState
         let (upm, descender) = if let Some(fontir_state) = fontir_app_state.as_ref() {
@@ -412,10 +411,134 @@ fn calculate_simple_cursor_position(
     )>,
     _app_state: &Option<Res<AppState>>,
     _fontir_app_state: &Option<Res<crate::core::state::FontIRAppState>>,
+    // NEW: Add buffer entity query to use new architecture
+    buffer_query: &Query<(
+        &crate::core::state::text_editor::text_buffer::TextBuffer,
+        &crate::core::state::text_editor::text_buffer::BufferCursor,
+    )>,
+    active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
 ) -> Option<Vec2> {
-    info!("🎯 SIMPLE CURSOR: Starting calculation");
+    info!("🎯 SIMPLE CURSOR: Starting calculation with NEW BUFFER ENTITY ARCHITECTURE");
 
-    // Find the active buffer root
+    // NEW: Use buffer entity system for cursor position
+    let (cursor_pos_in_buffer, is_rtl, buffer_root_position) = if let Some(active_buffer_res) = active_buffer {
+        if let Some(buffer_entity) = active_buffer_res.buffer_entity {
+            if let Ok((text_buffer, buffer_cursor)) = buffer_query.get(buffer_entity) {
+                info!(
+                    "🎯 SIMPLE CURSOR: Using NEW buffer entity system - buffer_entity: {:?}, cursor: {}",
+                    buffer_entity, buffer_cursor.position
+                );
+                let is_rtl = text_buffer.layout_mode == crate::core::state::text_editor::SortLayoutMode::RTLText;
+                (buffer_cursor.position, is_rtl, text_buffer.root_position)
+            } else {
+                info!("🎯 SIMPLE CURSOR: Buffer entity not found in query, falling back to legacy");
+                // Fallback to legacy system
+                return calculate_legacy_cursor_position(text_editor_state, sort_query);
+            }
+        } else {
+            info!("🎯 SIMPLE CURSOR: No active buffer entity, falling back to legacy");
+            // Fallback to legacy system
+            return calculate_legacy_cursor_position(text_editor_state, sort_query);
+        }
+    } else {
+        info!("🎯 SIMPLE CURSOR: No active buffer resource, falling back to legacy");
+        // Fallback to legacy system
+        return calculate_legacy_cursor_position(text_editor_state, sort_query);
+    };
+
+    info!(
+        "🎯 SIMPLE CURSOR: NEW SYSTEM - cursor_pos={}, is_rtl={}, root_pos=({:.1}, {:.1})",
+        cursor_pos_in_buffer, is_rtl, buffer_root_position.x, buffer_root_position.y
+    );
+
+    // For RTL at cursor position 1, we want to be at the LEFT edge of the first character after root
+    // For LTR at cursor position 1, we want to be at the RIGHT edge of the first character after root
+
+    if cursor_pos_in_buffer == 0 {
+        // Cursor at position 0 - should be at the LEFT edge of the root character
+        info!("🎯 SIMPLE CURSOR: Cursor at position 0, using buffer root position");
+        return Some(buffer_root_position);
+    }
+
+    // For cursor position 1 in LTR, we want to be at the RIGHT edge of the first character
+    // For cursor position 1 in RTL, we want to be at the LEFT edge of the first character
+    if cursor_pos_in_buffer == 1 {
+        info!("🎯 SIMPLE CURSOR: Cursor at position 1 - looking for root character entity");
+        
+        // Find the root character entity (buffer index 0)
+        for (transform, _sort, buffer_index) in sort_query.iter() {
+            if buffer_index.0 == 0 {  // Root character is always at buffer index 0
+                let char_pos = transform.translation.truncate();
+                info!(
+                    "🎯 SIMPLE CURSOR: Found root character at position ({:.1}, {:.1})",
+                    char_pos.x, char_pos.y
+                );
+
+                if is_rtl {
+                    // RTL: cursor goes at LEFT edge of the character
+                    let cursor_position = Vec2::new(char_pos.x, char_pos.y);
+                    info!(
+                        "🎯 SIMPLE CURSOR: RTL cursor at LEFT edge ({:.1}, {:.1})",
+                        cursor_position.x, cursor_position.y
+                    );
+                    return Some(cursor_position);
+                } else {
+                    // LTR: cursor goes at RIGHT edge of the character
+                    let advance_width = if let Some(sort_entry) = text_editor_state.buffer.get(0) {
+                        if let crate::core::state::text_editor::SortKind::Glyph {
+                            advance_width, ..
+                        } = &sort_entry.kind
+                        {
+                            info!("🎯 SIMPLE CURSOR: Found advance_width={} for root character", advance_width);
+                            *advance_width
+                        } else {
+                            info!("🎯 SIMPLE CURSOR: Root character is not a glyph, using 0 advance");
+                            0.0
+                        }
+                    } else {
+                        info!("🎯 SIMPLE CURSOR: Could not find root character in buffer, using 0 advance");
+                        0.0
+                    };
+
+                    let cursor_position = Vec2::new(char_pos.x + advance_width, char_pos.y);
+                    info!(
+                        "🎯 SIMPLE CURSOR: LTR cursor at RIGHT edge ({:.1}, {:.1}) [char_pos.x + advance_width = {:.1} + {:.1}]",
+                        cursor_position.x, cursor_position.y, char_pos.x, advance_width
+                    );
+                    return Some(cursor_position);
+                }
+            }
+        }
+        
+        // Fallback if no entity found for root character
+        info!("🎯 SIMPLE CURSOR: No root character entity found, using buffer root position as fallback");
+        return Some(buffer_root_position);
+    }
+
+    // For cursor positions beyond 1, we need to find the appropriate character
+    info!("🎯 SIMPLE CURSOR: Cursor at position {} > 1, searching for character entity", cursor_pos_in_buffer);
+    
+    // TODO: Handle cursor positions beyond position 1 for multi-character buffers
+    // For now, fallback to root position
+    warn!(
+        "🎯 SIMPLE CURSOR: Cursor position {} not implemented yet, using root position",
+        cursor_pos_in_buffer
+    );
+    Some(buffer_root_position)
+}
+
+/// Legacy cursor calculation system for compatibility
+fn calculate_legacy_cursor_position(
+    text_editor_state: &TextEditorState,
+    sort_query: &Query<(
+        &Transform,
+        &crate::editing::sort::Sort,
+        &crate::systems::text_editor_sorts::sort_entities::BufferSortIndex,
+    )>,
+) -> Option<Vec2> {
+    info!("🎯 LEGACY CURSOR: Falling back to legacy cursor calculation");
+
+    // Find the active buffer root using legacy system
     let mut active_root_index = None;
     let mut cursor_pos_in_buffer = 0;
     let mut is_rtl = false;
@@ -451,12 +574,9 @@ fn calculate_simple_cursor_position(
     let root_index = active_root_index?;
 
     info!(
-        "🎯 SIMPLE CURSOR: root_index={}, cursor_pos={}, is_rtl={}",
+        "🎯 LEGACY CURSOR: root_index={}, cursor_pos={}, is_rtl={}",
         root_index, cursor_pos_in_buffer, is_rtl
     );
-
-    // For RTL at cursor position 1, we want to be at the LEFT edge of the first character after root
-    // For LTR at cursor position 1, we want to be at the RIGHT edge of the first character after root
 
     if cursor_pos_in_buffer == 0 {
         // Cursor at position 0 - find the root sort entity and position at its left edge
@@ -464,7 +584,7 @@ fn calculate_simple_cursor_position(
             if buffer_index.0 == root_index {
                 let root_pos = transform.translation.truncate();
                 info!(
-                    "🎯 SIMPLE CURSOR: Cursor at position 0, found root at ({:.1}, {:.1})",
+                    "🎯 LEGACY CURSOR: Cursor at position 0, found root at ({:.1}, {:.1})",
                     root_pos.x, root_pos.y
                 );
                 return Some(root_pos);
@@ -482,7 +602,7 @@ fn calculate_simple_cursor_position(
     let target_char_index = root_index + cursor_pos_in_buffer;
 
     info!(
-        "🎯 SIMPLE CURSOR: Looking for character sort at buffer index {}",
+        "🎯 LEGACY CURSOR: Looking for character sort at buffer index {}",
         target_char_index
     );
 
@@ -491,7 +611,7 @@ fn calculate_simple_cursor_position(
         if buffer_index.0 == target_char_index {
             let char_pos = transform.translation.truncate();
             info!(
-                "🎯 SIMPLE CURSOR: Found character at buffer[{}] at position ({:.1}, {:.1})",
+                "🎯 LEGACY CURSOR: Found character at buffer[{}] at position ({:.1}, {:.1})",
                 target_char_index, char_pos.x, char_pos.y
             );
 
@@ -499,7 +619,7 @@ fn calculate_simple_cursor_position(
                 // RTL: cursor goes at LEFT edge of the character
                 let cursor_position = Vec2::new(char_pos.x, char_pos.y);
                 info!(
-                    "🎯 SIMPLE CURSOR: RTL cursor at LEFT edge ({:.1}, {:.1})",
+                    "🎯 LEGACY CURSOR: RTL cursor at LEFT edge ({:.1}, {:.1})",
                     cursor_position.x, cursor_position.y
                 );
                 return Some(cursor_position);
@@ -522,7 +642,7 @@ fn calculate_simple_cursor_position(
 
                 let cursor_position = Vec2::new(char_pos.x + advance_width, char_pos.y);
                 info!(
-                    "🎯 SIMPLE CURSOR: LTR cursor at RIGHT edge ({:.1}, {:.1})",
+                    "🎯 LEGACY CURSOR: LTR cursor at RIGHT edge ({:.1}, {:.1})",
                     cursor_position.x, cursor_position.y
                 );
                 return Some(cursor_position);
@@ -532,7 +652,7 @@ fn calculate_simple_cursor_position(
 
     // Fallback: if we can't find the character entity, use the root position
     warn!(
-        "🎯 SIMPLE CURSOR: Character at buffer[{}] not found, using root position",
+        "🎯 LEGACY CURSOR: Character at buffer[{}] not found, using root position",
         target_char_index
     );
     text_editor_state

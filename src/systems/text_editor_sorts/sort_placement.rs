@@ -9,6 +9,7 @@ use bevy::prelude::*;
 
 /// Handle sort placement input (mouse clicks in text modes)
 pub fn handle_sort_placement_input(
+    mut commands: Commands,
     mouse_button_input: Res<ButtonInput<MouseButton>>,
     camera_query: Query<
         (&Camera, &GlobalTransform, &Projection),
@@ -16,7 +17,7 @@ pub fn handle_sort_placement_input(
     >,
     windows: Query<&Window, With<bevy::window::PrimaryWindow>>,
     current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
-    current_placement_mode: ResMut<
+    mut current_placement_mode: ResMut<
         crate::ui::edit_mode_toolbar::text::CurrentTextPlacementMode,
     >,
     mut text_editor_state: ResMut<crate::core::state::TextEditorState>,
@@ -126,17 +127,46 @@ pub fn handle_sort_placement_input(
         }
     }
 
-    // Create a new independent sort (not part of text buffer)
+    // Create a new independent sort with buffer entity
     info!("🖱️ SORT PLACEMENT: About to call create_independent_sort_with_fontir");
-    create_independent_sort_with_fontir(
+    let new_buffer_entity = create_independent_sort_with_fontir(
+        &mut commands,
         &mut text_editor_state,
         snapped_position,
         current_placement_mode.0.to_sort_layout_mode(),
         fontir_app_state.as_deref(),
     );
 
+    // CRITICAL: Update the ActiveTextBuffer resource to point to the new buffer entity
+    commands.insert_resource(crate::core::state::text_editor::text_buffer::ActiveTextBuffer {
+        buffer_entity: Some(new_buffer_entity),
+    });
+    
+    info!("🖱️ SORT PLACEMENT: Set active buffer entity to {:?}", new_buffer_entity);
+
     // CRITICAL: Mark the text editor state as changed to trigger entity spawning
     text_editor_state.set_changed();
+
+    // AUTO-SWITCH TO INSERT MODE: After placing LTR/RTL text buffer sorts, switch to Insert mode
+    // for natural text editing UX. Freeform sorts stay in placement mode for multi-placement.
+    let previous_mode = current_placement_mode.0;
+    match previous_mode {
+        TextPlacementMode::LTRText | TextPlacementMode::RTLText => {
+            current_placement_mode.0 = TextPlacementMode::Insert;
+            info!(
+                "🖱️ SORT PLACEMENT: Auto-switched to Insert mode after placing {:?} text buffer sort",
+                previous_mode
+            );
+        }
+        TextPlacementMode::Freeform => {
+            // Stay in Freeform mode for multi-placement workflow
+            info!("🖱️ SORT PLACEMENT: Staying in Freeform mode for multi-placement");
+        }
+        TextPlacementMode::Insert => {
+            // Already in Insert mode (shouldn't happen in placement, but handle gracefully)
+            info!("🖱️ SORT PLACEMENT: Already in Insert mode");
+        }
+    }
 
     info!("🖱️ SORT PLACEMENT: create_independent_sort_with_fontir completed");
 
@@ -147,15 +177,17 @@ pub fn handle_sort_placement_input(
 }
 
 /// Create an independent sort that can coexist with other sorts
-/// This is different from the text buffer system which creates connected text
+/// This now uses the new buffer entity system for proper buffer management
 fn create_independent_sort_with_fontir(
+    commands: &mut Commands,
     text_editor_state: &mut crate::core::state::TextEditorState,
     world_position: bevy::math::Vec2,
     layout_mode: crate::core::state::text_editor::SortLayoutMode,
     fontir_app_state: Option<&crate::core::state::FontIRAppState>,
-) {
+) -> bevy::prelude::Entity {
     use crate::core::state::text_editor::buffer::BufferId;
     use crate::core::state::text_editor::{SortEntry, SortKind, SortLayoutMode};
+    use crate::systems::text_buffer_manager::{create_text_buffer, add_sort_to_buffer};
 
     info!("🖱️ INSIDE create_independent_sort_with_fontir: Starting function");
 
@@ -175,48 +207,70 @@ fn create_independent_sort_with_fontir(
     // This ensures clean separation between different text placement operations
     // Even if the same layout mode (RTL/LTR) exists, we create a new root for independence
 
+    // NEW BUFFER ENTITY SYSTEM: Create a buffer entity first, then add sort to it
+    
     // Create a new unique buffer ID for complete isolation
     let buffer_id = BufferId::new();
+    
+    // CURSOR POSITIONING: For LTR, cursor goes after the glyph (position 1) for natural typing
+    // For RTL, cursor goes before the glyph (position 0) for natural right-to-left typing
+    let initial_cursor_position = match layout_mode {
+        SortLayoutMode::LTRText => 1, // Cursor after glyph for LTR typing
+        SortLayoutMode::RTLText => 0, // Cursor before glyph for RTL typing
+        SortLayoutMode::Freeform => 1, // Default to end for freeform
+    };
 
-    // Always create a new buffer root for each placement click
-    // This ensures complete separation between different text flows
-    let (is_buffer_root, cursor_position) = (true, Some(0));
+    // Create the buffer entity with cursor storage
+    let buffer_entity = create_text_buffer(
+        commands,
+        buffer_id,
+        layout_mode.clone(),
+        world_position,
+        initial_cursor_position,
+    );
 
-    info!("🖱️ Creating new {} buffer root (ID: {:?}) for independent text flow at position ({:.1}, {:.1})", 
+    info!("🖱️ Creating new {} buffer (Entity: {:?}, ID: {:?}) at position ({:.1}, {:.1})", 
           match layout_mode {
               SortLayoutMode::RTLText => "RTL",
               SortLayoutMode::LTRText => "LTR",
               SortLayoutMode::Freeform => "Freeform", 
           },
+          buffer_entity,
           buffer_id,
           world_position.x, world_position.y);
 
+    // Create the sort entry (still using legacy fields for compatibility)
     let independent_sort = SortEntry {
         kind: SortKind::Glyph {
-            codepoint: Some(placeholder_codepoint), // Use appropriate codepoint for layout mode
+            codepoint: Some(placeholder_codepoint),
             glyph_name: placeholder_glyph,
-            advance_width: 0.0, // CRITICAL FIX: Root sorts should have zero width for positioning
+            advance_width: _advance_width,
         },
         is_active: true, // Automatically activate the new sort
-        layout_mode,     // Use the actual layout mode (RTL, LTR, etc.) not hardcoded Freeform
+        layout_mode,     // Use the actual layout mode (RTL, LTR, etc.)
         root_position: world_position,
-        is_buffer_root, // Only first sort in each layout mode becomes buffer root
-        buffer_cursor_position: cursor_position, // Only buffer roots have cursor position
-        buffer_id: Some(buffer_id), // Assign unique buffer ID for complete isolation
+        is_buffer_root: true, // This is the first (root) sort in the buffer
+        buffer_cursor_position: Some(initial_cursor_position), // LEGACY: Also store in sort for compatibility
+        buffer_id: Some(buffer_id), // Keep for backwards compatibility (will be removed)
     };
 
-    // Insert at the end of the buffer (this creates a new independent sort)
-    let insert_index = text_editor_state.buffer.len();
-    info!("🖱️ Inserting independent sort at index {} into buffer with {} existing entries (is_buffer_root: {})", 
-          insert_index, text_editor_state.buffer.len(), is_buffer_root);
-    text_editor_state
-        .buffer
-        .insert(insert_index, independent_sort);
     info!(
-        "🖱️ Successfully inserted sort, buffer now has {} entries",
-        text_editor_state.buffer.len()
+        "📍 SORT PLACEMENT: Created sort with layout_mode: {:?}, cursor now in buffer entity", 
+        independent_sort.layout_mode
     );
 
-    info!("🖱️ Created independent sort at world position ({:.1}, {:.1}), index: {}, is_buffer_root: {}", 
-          world_position.x, world_position.y, insert_index, is_buffer_root);
+    // Insert at the end of the text editor buffer (for legacy compatibility)
+    let insert_index = text_editor_state.buffer.len();
+    text_editor_state.buffer.insert(insert_index, independent_sort);
+    
+    // TODO: When we have proper ECS entity tracking, we'll create the sort entity here
+    // and link it to the buffer. For now, we'll handle this in the entity sync system.
+    
+    info!(
+        "🖱️ Created new buffer entity {:?} with cursor at position {} at world position ({:.1}, {:.1})",
+        buffer_entity, initial_cursor_position, world_position.x, world_position.y
+    );
+    
+    // Return the buffer entity for the caller to use
+    buffer_entity
 }

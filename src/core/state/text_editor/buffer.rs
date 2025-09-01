@@ -103,8 +103,10 @@ pub struct SortEntry {
     /// Whether this sort is a buffer root (first sort in a text buffer)
     pub is_buffer_root: bool,
     /// Cursor position within this buffer sequence (only for buffer roots)
+    /// DEPRECATED: This field is deprecated. Use BufferCursor component on buffer entities instead.
     pub buffer_cursor_position: Option<usize>,
     /// Buffer ID for text flow isolation (None for freeform sorts)
+    /// NOTE: This field is deprecated and will be removed. Use BufferMember component instead.
     pub buffer_id: Option<BufferId>,
 }
 
