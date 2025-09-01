@@ -184,45 +184,64 @@ pub fn handle_pen_mouse_events(
     pointer_info: Res<PointerInfo>,
     ui_hover_state: Res<UiHoverState>,
     settings: Res<crate::core::settings::BezySettings>,
+    // Query for active sort to get its position
+    active_sort_query: Query<(Entity, &crate::editing::sort::Sort, &Transform), With<crate::editing::sort::ActiveSort>>,
 ) {
     // Check if pen tool is active via multiple methods
     let pen_is_active = pen_mode_active.as_ref().is_some_and(|p| p.0)
         || (current_tool.as_ref().and_then(|t| t.get_current()) == Some("pen"));
 
-    // Debug: Always log current state during mouse button presses (ALWAYS LOG REGARDLESS OF PEN STATE)
+    // IMPORTANT: Pen tool requires an active sort to work
+    let active_sort = if let Ok((sort_entity, sort, sort_transform)) = active_sort_query.single() {
+        Some((sort_entity, sort, sort_transform))
+    } else {
+        None
+    };
+
+    // Debug: Always log current state during mouse button presses
     if mouse_button_input.just_pressed(MouseButton::Left)
         || mouse_button_input.just_pressed(MouseButton::Right)
     {
-        info!("🖊️ PEN TOOL SYSTEM: Mouse button pressed - pen_is_active: {}, pen_mode_active: {:?}, current_tool: {:?}, ui_hovering: {}", 
+        info!("🖊️ PEN TOOL SYSTEM: Mouse button pressed - pen_is_active: {}, active_sort: {}, ui_hovering: {}", 
               pen_is_active,
-              pen_mode_active.as_ref().map(|p| p.0), 
-              current_tool.as_ref().and_then(|t| t.get_current()),
+              active_sort.is_some(),
               ui_hover_state.is_hovering_ui);
     }
 
-    if !pen_is_active || ui_hover_state.is_hovering_ui {
+    // Early exit if pen tool is not active, no active sort, or UI is being hovered
+    if !pen_is_active || active_sort.is_none() || ui_hover_state.is_hovering_ui {
+        if pen_is_active && active_sort.is_none() {
+            // Only show this message when pen tool is actually trying to be used
+            if mouse_button_input.just_pressed(MouseButton::Left) {
+                info!("🖊️ Pen tool: Cannot draw without an active sort. Please select a glyph first.");
+            }
+        }
         return;
     }
+
+    let (_sort_entity, _sort, sort_transform) = active_sort.unwrap();
+    let sort_position = sort_transform.translation.truncate();
 
     info!("Pen tool: Mouse input system active and processing clicks");
 
     if mouse_button_input.just_pressed(MouseButton::Left) {
-        let raw_position = pointer_info.design.to_raw();
+        // Use design space coordinates but make them relative to the active sort
+        let design_position = pointer_info.design;
+        let sort_relative_position = DPoint::from_raw(design_position.to_raw() - sort_position);
 
-        // Calculate final position with grid snap and axis locking
-        let final_position =
-            calculate_final_position(raw_position, &keyboard_input, &pen_state, &settings);
-        let final_dpoint = DPoint::new(final_position.x, final_position.y);
+        // Calculate final position with grid snap and axis locking (relative to sort)
+        let final_dpoint =
+            calculate_final_position_dpoint(sort_relative_position, &keyboard_input, &pen_state, &settings);
 
         info!(
-            "Pen tool: Left click at ({:.1}, {:.1}) -> final ({:.1}, {:.1})",
-            raw_position.x, raw_position.y, final_position.x, final_position.y
+            "Pen tool: Left click at design ({:.1}, {:.1}), sort pos ({:.1}, {:.1}) -> sort-relative ({:.1}, {:.1})",
+            design_position.x, design_position.y, sort_position.x, sort_position.y, final_dpoint.x, final_dpoint.y
         );
 
         // Check if we should close the path
         if pen_state.current_path.len() > 2 {
             if let Some(first_point) = pen_state.current_path.first() {
-                let distance = final_position.distance(first_point.to_raw());
+                let distance = final_dpoint.to_raw().distance(first_point.to_raw());
                 if distance < CLOSE_PATH_THRESHOLD {
                     pen_state.should_close_path = true;
                     info!("Pen tool: Closing path - clicked near start point");
@@ -242,9 +261,9 @@ pub fn handle_pen_mouse_events(
         pen_state.is_drawing = true;
 
         info!(
-            "Pen tool: Added point at ({:.1}, {:.1}), total points: {}",
-            final_position.x,
-            final_position.y,
+            "Pen tool: Added sort-relative point at ({:.1}, {:.1}), total points: {}",
+            final_dpoint.x,
+            final_dpoint.y,
             pen_state.current_path.len()
         );
     }
@@ -300,6 +319,8 @@ pub fn render_pen_preview(
     camera_scale: Res<CameraResponsiveScale>,
     existing_preview_query: Query<Entity, With<PenPreviewElement>>,
     theme: Res<crate::ui::themes::CurrentTheme>,
+    // Query for active sort to get its position for preview rendering
+    active_sort_query: Query<(Entity, &crate::editing::sort::Sort, &Transform), With<crate::editing::sort::ActiveSort>>,
 ) {
     // Clean up existing preview elements
     for entity in existing_preview_query.iter() {
@@ -310,9 +331,19 @@ pub fn render_pen_preview(
     let pen_is_active = pen_mode_active.as_ref().is_some_and(|p| p.0)
         || (current_tool.as_ref().and_then(|t| t.get_current()) == Some("pen"));
 
-    if !pen_is_active {
+    // Pen tool requires an active sort to work
+    let active_sort = if let Ok((sort_entity, sort, sort_transform)) = active_sort_query.single() {
+        Some((sort_entity, sort, sort_transform))
+    } else {
+        None
+    };
+
+    if !pen_is_active || active_sort.is_none() {
         return;
     }
+
+    let (_sort_entity, _sort, sort_transform) = active_sort.unwrap();
+    let sort_position = sort_transform.translation.truncate();
 
     // Debug: Log the current path state
     if !pen_state.current_path.is_empty() {
@@ -328,17 +359,17 @@ pub fn render_pen_preview(
     let line_width = camera_scale.adjusted_line_width() * 2.0;
 
     // Check if cursor is hovering over start point for closure
-    // Use same method as click handler: to_raw()
-    let cursor_pos = pointer_info.design.to_raw();
+    // Convert cursor to sort-relative coordinates
+    let cursor_design = pointer_info.design;
+    let cursor_relative = DPoint::from_raw(cursor_design.to_raw() - sort_position);
 
-    // Calculate final position with grid snap and axis locking for closure check
+    // Calculate final position with grid snap and axis locking for closure check (relative to sort)
     let final_position_for_closure =
-        calculate_final_position(cursor_pos, &keyboard_input, &pen_state, &settings);
+        calculate_final_position_dpoint(cursor_relative, &keyboard_input, &pen_state, &settings);
 
     let hovering_start_point = if pen_state.current_path.len() > 2 {
         if let Some(first_point) = pen_state.current_path.first() {
-            let first_pos = Vec2::new(first_point.x, first_point.y);
-            let distance = final_position_for_closure.distance(first_pos);
+            let distance = final_position_for_closure.to_raw().distance(first_point.to_raw());
             distance < CLOSE_PATH_THRESHOLD
         } else {
             false
@@ -347,9 +378,9 @@ pub fn render_pen_preview(
         false
     };
 
-    // Draw current path points
+    // Draw current path points (convert from sort-relative to world coordinates for rendering)
     for (i, &point) in pen_state.current_path.iter().enumerate() {
-        let pos = Vec2::new(point.x, point.y);
+        let pos = Vec2::new(point.x, point.y) + sort_position;
 
         // Spawn point mesh using orange ACTION color
         spawn_pen_preview_point(
@@ -364,7 +395,7 @@ pub fn render_pen_preview(
         // Draw dashed line to next point
         if i > 0 {
             let prev_point = pen_state.current_path[i - 1];
-            let prev_pos = Vec2::new(prev_point.x, prev_point.y);
+            let prev_pos = Vec2::new(prev_point.x, prev_point.y) + sort_position;
             spawn_pen_preview_dashed_line(
                 &mut commands,
                 &mut meshes,
@@ -378,8 +409,8 @@ pub fn render_pen_preview(
     }
 
     // Always show preview point at cursor position (with grid snap)
-    // Use the already calculated final_position_for_closure (which is grid-snapped)
-    let final_position = final_position_for_closure;
+    // Convert from sort-relative to world coordinates for rendering
+    let final_position = final_position_for_closure.to_raw() + sort_position;
 
     spawn_pen_preview_point(
         &mut commands,
@@ -399,7 +430,7 @@ pub fn render_pen_preview(
             &mut meshes,
             &mut materials,
             last_pos,
-            final_position, // Use the already calculated final_position
+            final_position, // Use the already calculated final_position as Vec2
             action_color.with_alpha(0.5),
             line_width * 0.5,
         );
@@ -408,7 +439,7 @@ pub fn render_pen_preview(
     // Draw green circle outline when hovering over start point for closure
     if hovering_start_point {
         if let Some(first_point) = pen_state.current_path.first() {
-            let first_pos = Vec2::new(first_point.x, first_point.y);
+            let first_pos = Vec2::new(first_point.x, first_point.y) + sort_position;
             spawn_pen_closure_indicator(
                 &mut commands,
                 &mut meshes,
@@ -472,9 +503,12 @@ fn finalize_fontir_path(
     app_state_changed: &mut EventWriter<AppStateChanged>,
 ) {
     // Create a BezPath from the current path
+    // IMPORTANT: FontIR BezPath coordinates should be relative to glyph origin (0,0)
+    // not absolute world/design space coordinates
     let mut bez_path = BezPath::new();
 
     if let Some(&first_point) = pen_state.current_path.first() {
+        // Store coordinates as-is (they're already in design space relative to origin)
         bez_path.move_to(Point::new(first_point.x as f64, first_point.y as f64));
 
         for &point in pen_state.current_path.iter().skip(1) {
@@ -490,30 +524,8 @@ fn finalize_fontir_path(
     if let Some(ref mut fontir_state) = fontir_app_state.as_mut() {
         let current_glyph_name = fontir_state.current_glyph.clone();
         if let Some(current_glyph_name) = current_glyph_name {
-            // Get the current location
-            let location = fontir_state.current_location.clone();
-            let key = (current_glyph_name.clone(), location);
-
-            // Get or create a working copy
-            let working_copy_exists = fontir_state.working_copies.contains_key(&key);
-
-            if !working_copy_exists {
-                // Create working copy from original FontIR data
-                if let Some(fontir_glyph) = fontir_state.glyph_cache.get(&current_glyph_name) {
-                    if let Some((_location, instance)) = fontir_glyph.sources().iter().next() {
-                        let working_copy =
-                            crate::core::state::fontir_app_state::EditableGlyphInstance::from(
-                                instance,
-                            );
-                        fontir_state
-                            .working_copies
-                            .insert(key.clone(), working_copy);
-                    }
-                }
-            }
-
-            // Add the new contour to the working copy
-            if let Some(working_copy) = fontir_state.working_copies.get_mut(&key) {
+            // Get or create a working copy using the proper method
+            if let Some(working_copy) = fontir_state.get_or_create_working_copy(&current_glyph_name) {
                 working_copy.contours.push(bez_path.clone());
                 working_copy.is_dirty = true;
                 app_state_changed.write(AppStateChanged);
@@ -777,20 +789,23 @@ fn spawn_pen_closure_indicator(
 // ================================================================
 
 /// Calculate the final position after applying snap-to-grid and axis locking
-fn calculate_final_position(
-    cursor_pos: Vec2,
+fn calculate_final_position_dpoint(
+    cursor_pos: DPoint,
     keyboard: &Res<ButtonInput<KeyCode>>,
     pen_state: &PenToolState,
     settings: &crate::core::settings::BezySettings,
-) -> Vec2 {
+) -> DPoint {
+    // Convert to Vec2 for grid snap
+    let raw_pos = cursor_pos.to_raw();
+    
     // Apply snap to grid first
-    let snapped_pos = settings.apply_grid_snap(cursor_pos);
+    let snapped_pos = settings.apply_grid_snap(raw_pos);
 
     // Apply axis locking if shift is held and we have points
     let shift_pressed =
         keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
 
-    if shift_pressed && !pen_state.current_path.is_empty() {
+    let final_vec2 = if shift_pressed && !pen_state.current_path.is_empty() {
         if let Some(last_point) = pen_state.current_path.last() {
             axis_lock_position(snapped_pos, last_point.to_raw())
         } else {
@@ -798,7 +813,10 @@ fn calculate_final_position(
         }
     } else {
         snapped_pos
-    }
+    };
+    
+    // Convert back to DPoint
+    DPoint::from_raw(final_vec2)
 }
 
 /// Lock a position to horizontal or vertical axis relative to another point

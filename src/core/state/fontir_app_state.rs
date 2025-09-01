@@ -208,7 +208,7 @@ impl FontIRAppState {
 
     /// Get or create a working copy of a glyph instance for editing
     /// This is optimized for zero-lag performance during editing
-    fn get_or_create_working_copy(
+    pub fn get_or_create_working_copy(
         &mut self,
         glyph_name: &str,
     ) -> Option<&mut EditableGlyphInstance> {
@@ -227,12 +227,23 @@ impl FontIRAppState {
         // Slow path: create working copy from original FontIR data
         if let Some(fontir_glyph) = self.glyph_cache.get(glyph_name) {
             // Get the appropriate instance for our location
-            if let Some((_location, instance)) = fontir_glyph.sources().iter().next() {
+            // Try to find the exact location match first
+            let instance = fontir_glyph.sources()
+                .iter()
+                .find(|(loc, _)| **loc == location)
+                .map(|(_, inst)| inst)
+                .or_else(|| {
+                    // Fallback to first available instance if exact match not found
+                    fontir_glyph.sources().iter().next().map(|(_, inst)| inst)
+                });
+                
+            if let Some(instance) = instance {
                 let working_copy = EditableGlyphInstance::from(instance);
                 info!(
-                    "FontIR: Created new working copy for glyph '{}' with {} contours",
+                    "FontIR: Created new working copy for glyph '{}' with {} contours at location {:?}",
                     glyph_name,
-                    working_copy.contours.len()
+                    working_copy.contours.len(),
+                    location
                 );
                 self.working_copies.insert(key.clone(), working_copy);
                 return self.working_copies.get_mut(&key);
