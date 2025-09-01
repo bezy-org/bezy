@@ -115,7 +115,6 @@ fn create_default_sort_at_position(
         is_active: true,                      // Make it active and ready to edit
         layout_mode: SortLayoutMode::LTRText, // LTR text mode for typing
         root_position: position,
-        is_buffer_root: true, // This is a text root
         buffer_cursor_position: Some(1), // LEGACY: Cursor after the first character (for compatibility)
         buffer_id: Some(buffer_id), // Assign unique buffer ID for isolation
     };

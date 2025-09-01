@@ -37,11 +37,11 @@ impl TextEditorState {
         buffer_sorts
     }
 
-    /// Find the root sort for a specific buffer ID
+    /// Find the first sort for a specific buffer ID
     pub fn find_buffer_root(&self, buffer_id: BufferId) -> Option<(usize, &SortEntry)> {
         for i in 0..self.buffer.len() {
             if let Some(sort) = self.buffer.get(i) {
-                if sort.buffer_id == Some(buffer_id) && sort.is_buffer_root {
+                if sort.buffer_id == Some(buffer_id) {
                     return Some((i, sort));
                 }
             }
@@ -86,7 +86,6 @@ impl TextEditorState {
             is_active: true, // Automatically activate the new sort
             layout_mode: SortLayoutMode::Freeform,
             root_position: position,
-            is_buffer_root: false,
             buffer_cursor_position: None,
             buffer_id: None, // Freeform sorts have no buffer ID
         };
@@ -126,11 +125,9 @@ impl TextEditorState {
                 if let Some(sort_buffer_id) = sort.buffer_id {
                     for i in (0..=buffer_position).rev() {
                         if let Some(candidate) = self.buffer.get(i) {
-                            // CRITICAL FIX: Only use buffer roots that match the current sort's buffer ID
-                            // This ensures complete isolation between different text flows
-                            if candidate.is_buffer_root
-                                && candidate.buffer_id == Some(sort_buffer_id)
-                            {
+                            // CRITICAL FIX: Only use sorts that match the current sort's buffer ID
+                            // This ensures complete isolation between different text flows  
+                            if candidate.buffer_id == Some(sort_buffer_id) {
                                 active_root_index = Some(i);
                                 root_position = candidate.root_position;
                                 warn!("🔍 ROOT MATCH: Found matching buffer root at buffer[{}] for buffer_id={:?}", i, sort_buffer_id);
@@ -186,8 +183,8 @@ impl TextEditorState {
                     } = &entry.kind
                     {
                         warn!(
-                            "🔍   buffer[{}]: '{}' advance={:.1} is_root={}",
-                            i, glyph_name, advance_width, entry.is_buffer_root
+                            "🔍   buffer[{}]: '{}' advance={:.1}",
+                            i, glyph_name, advance_width
                         );
                     }
                 }
@@ -308,7 +305,6 @@ impl TextEditorState {
             is_active: true, // Automatically activate the new text root
             layout_mode: layout_mode.clone(),
             root_position: world_position,
-            is_buffer_root: true,
             // For LTR text, cursor goes after the glyph (position 1)
             // For RTL text, cursor goes before the glyph (position 0)
             buffer_cursor_position: Some(match &layout_mode {
@@ -337,8 +333,8 @@ impl TextEditorState {
         // Verify it was inserted correctly
         if let Some(inserted_root) = self.buffer.get(insert_index) {
             info!(
-                "Verified inserted root at index {}: is_active={}, is_buffer_root={}",
-                insert_index, inserted_root.is_active, inserted_root.is_buffer_root
+                "Verified inserted root at index {}: is_active={}",
+                insert_index, inserted_root.is_active
             );
         }
     }
@@ -368,10 +364,8 @@ impl TextEditorState {
                 SortLayoutMode::LTRText | SortLayoutMode::RTLText => {
                     // Text sorts now use their stored root_position
                     // But we need to calculate relative positions for text flow
-                    if sort.is_buffer_root {
-                        // Text roots use their exact stored position
-                        Some(sort.root_position)
-                    } else {
+                    // All text sorts use their flow position calculation
+                    {
                         // Non-root text sorts flow from their text root
                         self.get_text_sort_flow_position(
                             buffer_position,
@@ -480,10 +474,9 @@ impl TextEditorState {
         if let Some(sort) = self.buffer.get_mut(position) {
             sort.is_active = true;
             info!(
-                "🔥 [activate_sort] Activated sort '{}' at buffer position {} (is_buffer_root: {})",
+                "🔥 [activate_sort] Activated sort '{}' at buffer position {}",
                 sort.kind.glyph_name(),
-                position,
-                sort.is_buffer_root
+                position
             );
             true
         } else {
@@ -635,7 +628,6 @@ impl TextEditorState {
                 is_active: false, // Don't make new sorts active by default
                 layout_mode: root_layout_mode.clone(),
                 root_position: Vec2::ZERO, // Will be calculated by flow
-                is_buffer_root: false,     // New sorts are not buffer roots
                 buffer_cursor_position: None,
                 buffer_id: root_buffer_id, // CRITICAL: Inherit buffer ID from root for isolation
             };
@@ -680,10 +672,7 @@ impl TextEditorState {
             let mut text_sort_count = 0;
             for i in (root_index + 1)..self.buffer.len() {
                 if let Some(sort) = self.buffer.get(i) {
-                    // Stop counting if we hit another buffer root
-                    if sort.is_buffer_root {
-                        break;
-                    }
+                    // Continue counting all text sorts in this buffer
                     // Count text sorts in this sequence
                     if sort.layout_mode == SortLayoutMode::LTRText
                         || sort.layout_mode == SortLayoutMode::RTLText
@@ -725,8 +714,8 @@ impl TextEditorState {
                 } = &entry.kind
                 {
                     info!(
-                        "  Buffer[{}]: glyph='{}', advance_width={:.1}, is_root={}, layout={:?}",
-                        i, glyph_name, advance_width, entry.is_buffer_root, entry.layout_mode
+                        "  Buffer[{}]: glyph='{}', advance_width={:.1}, layout={:?}",
+                        i, glyph_name, advance_width, entry.layout_mode
                     );
                 }
             }
@@ -790,10 +779,7 @@ impl TextEditorState {
                 let mut text_sort_count = 0;
                 for i in (root_index + 1)..self.buffer.len() {
                     if let Some(sort) = self.buffer.get(i) {
-                        // Stop counting if we hit another buffer root
-                        if sort.is_buffer_root {
-                            break;
-                        }
+                        // Continue counting all text sorts in this buffer
                         // Count text sorts in this sequence
                         if sort.layout_mode == SortLayoutMode::LTRText
                             || sort.layout_mode == SortLayoutMode::RTLText
@@ -894,10 +880,11 @@ impl TextEditorState {
     pub fn move_cursor_up(&mut self) {
         // FIXED: In buffer mode, move to previous buffer root
         if let Some(current_root_index) = self.find_active_buffer_root_index() {
-            // Find the previous buffer root
+            // Find the previous buffer by checking buffer_id
             for i in (0..current_root_index).rev() {
                 if let Some(sort) = self.buffer.get(i) {
-                    if sort.is_buffer_root {
+                    // Check if this sort belongs to a different buffer
+                    if sort.buffer_id.is_some() {
                         // Deselect current buffer root and select previous one
                         if let Some(current_root) = self.buffer.get_mut(current_root_index) {
                             current_root.is_active = false;
@@ -924,10 +911,11 @@ impl TextEditorState {
     pub fn move_cursor_down(&mut self) {
         // FIXED: In buffer mode, move to next buffer root
         if let Some(current_root_index) = self.find_active_buffer_root_index() {
-            // Find the next buffer root
+            // Find the next buffer by checking buffer_id
             for i in (current_root_index + 1)..self.buffer.len() {
                 if let Some(sort) = self.buffer.get(i) {
-                    if sort.is_buffer_root {
+                    // Check if this sort belongs to a different buffer
+                    if sort.buffer_id.is_some() {
                         // Deselect current buffer root and select next one
                         if let Some(current_root) = self.buffer.get_mut(current_root_index) {
                             current_root.is_active = false;
@@ -951,47 +939,32 @@ impl TextEditorState {
     /// Helper: Find the index of the active buffer root
     fn find_active_buffer_root_index(&self) -> Option<usize> {
         debug!(
-            "Find root: Searching for active buffer root in {} buffer entries",
+            "Find active sort: Searching for active sort in {} buffer entries",
             self.buffer.len()
         );
-        // Use same logic as insert_sort_at_cursor
-        let mut checked_roots = 0;
+        
+        // Find any active sort
         for i in 0..self.buffer.len() {
             if let Some(sort) = self.buffer.get(i) {
-                if sort.is_buffer_root {
-                    checked_roots += 1;
-                    debug!(
-                        "Checking buffer root at index {}: is_active={}, glyph='{}'",
-                        i,
-                        sort.is_active,
-                        sort.kind.glyph_name()
-                    );
-                    if sort.is_active {
-                        debug!("Found active buffer root at index {}", i);
-                        return Some(i);
-                    }
-                }
-            }
-        }
-        debug!(
-            "No active buffer root found after checking {} roots",
-            checked_roots
-        );
-
-        for i in 0..self.buffer.len() {
-            if let Some(sort) = self.buffer.get(i) {
-                if sort.is_buffer_root && sort.buffer_cursor_position.is_some() {
+                if sort.is_active {
+                    debug!("Found active sort at index {}", i);
                     return Some(i);
                 }
             }
         }
 
-        for i in (0..self.buffer.len()).rev() {
+        // Find sort with cursor position
+        for i in 0..self.buffer.len() {
             if let Some(sort) = self.buffer.get(i) {
-                if sort.is_buffer_root {
+                if sort.buffer_cursor_position.is_some() {
                     return Some(i);
                 }
             }
+        }
+
+        // Return first sort as fallback
+        if !self.buffer.is_empty() {
+            return Some(0);
         }
 
         None
@@ -1002,10 +975,9 @@ impl TextEditorState {
         let mut length = 0;
         for i in root_index..self.buffer.len() {
             if let Some(sort) = self.buffer.get(i) {
-                // A text sequence ends when we hit another buffer root or a non-text sort.
-                if (i > root_index && sort.is_buffer_root)
-                    || (sort.layout_mode != SortLayoutMode::LTRText
-                        && sort.layout_mode != SortLayoutMode::RTLText)
+                // A text sequence ends when we hit a non-text sort.
+                if sort.layout_mode != SortLayoutMode::LTRText
+                    && sort.layout_mode != SortLayoutMode::RTLText
                 {
                     break;
                 }
@@ -1014,7 +986,6 @@ impl TextEditorState {
                 if i == root_index
                     && sort.kind.is_glyph()
                     && sort.kind.glyph_name() == "a"
-                    && sort.is_buffer_root
                 {
                     continue;
                 }
@@ -1048,7 +1019,6 @@ impl TextEditorState {
             is_active: true,
             layout_mode: SortLayoutMode::LTRText,
             root_position: world_position,
-            is_buffer_root: true,
             buffer_cursor_position: Some(1), // Cursor is after the typed character.
             buffer_id: Some(buffer_id),      // Assign unique buffer ID
         };
@@ -1077,7 +1047,6 @@ impl TextEditorState {
                 is_active: false,
                 layout_mode: root_layout_mode,
                 root_position: Vec2::ZERO,
-                is_buffer_root: false,
                 buffer_cursor_position: None,
                 buffer_id: root_buffer_id, // Inherit buffer ID from root
             };
@@ -1357,7 +1326,6 @@ mod tests {
         // Third sort (text root) should be activated
         if let Some(sort) = text_editor.buffer.get(2) {
             assert!(sort.is_active);
-            assert!(sort.is_buffer_root);
             assert_eq!(sort.root_position, Vec2::new(500.0, 600.0));
         } else {
             panic!("Text root should exist at index 2");
@@ -1433,10 +1401,9 @@ mod tests {
         println!("\nBuffer contents:");
         for (i, sort) in text_editor.buffer.iter().enumerate() {
             println!(
-                "  [{}] '{}' (root: {}, active: {}) at ({:.1}, {:.1})",
+                "  [{}] '{}' (active: {}) at ({:.1}, {:.1})",
                 i,
                 sort.kind.glyph_name(),
-                sort.is_buffer_root,
                 sort.is_active,
                 sort.root_position.x,
                 sort.root_position.y

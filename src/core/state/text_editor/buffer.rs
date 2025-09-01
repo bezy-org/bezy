@@ -59,7 +59,7 @@ pub enum SortKind {
 }
 
 /// Unified buffer of all sorts (both text and freeform) using gap buffer for efficient editing
-/// Text sorts are grouped by their root sort (marked with is_buffer_root=true), while freeform sorts exist independently
+/// Text sorts are grouped by their buffer ID, while freeform sorts exist independently
 /// This allows switching between text/freeform modes and managing all glyphs in one consistent structure
 #[derive(Clone)]
 pub struct SortBuffer {
@@ -100,8 +100,6 @@ pub struct SortEntry {
     pub layout_mode: SortLayoutMode,
     /// Root position (used for text buffer roots); for freeform sorts, use freeform_position
     pub root_position: Vec2,
-    /// Whether this sort is a buffer root (first sort in a text buffer)
-    pub is_buffer_root: bool,
     /// Cursor position within this buffer sequence (only for buffer roots)
     /// DEPRECATED: This field is deprecated. Use BufferCursor component on buffer entities instead.
     pub buffer_cursor_position: Option<usize>,
@@ -146,7 +144,6 @@ impl Default for SortEntry {
             is_active: false,
             layout_mode: SortLayoutMode::LTRText,
             root_position: Vec2::ZERO,
-            is_buffer_root: false,
             buffer_cursor_position: None,
             buffer_id: None, // Default to no buffer ID (freeform)
         }

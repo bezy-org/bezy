@@ -53,8 +53,6 @@ The system now uses **ECS entities for each text buffer** instead of storing buf
 - ✅ **Same positioning behavior** - no special coordinate handling
 
 The only differences are:
-- 🏷️ **Metadata**: `is_buffer_root: true` for identification
-- 🎨 **Handle rendering**: Slightly bigger/special handle to indicate buffer root status
 - 🎯 **Buffer properties UI**: Can be right-clicked to edit buffer-wide properties
 
 **IMPORTANT**: The root sort **changes dynamically**:

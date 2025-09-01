@@ -242,7 +242,7 @@ fn calculate_cursor_visual_position(
     // Look for the active buffer root and get its cursor position
     for i in 0..text_editor_state.buffer.len() {
         if let Some(sort) = text_editor_state.buffer.get(i) {
-            if sort.is_buffer_root && sort.is_active {
+            if sort.is_active {
                 active_root_index = Some(i);
                 cursor_pos_in_buffer = sort.buffer_cursor_position.unwrap_or(0);
                 root_position = sort.root_position;
@@ -255,7 +255,7 @@ fn calculate_cursor_visual_position(
     if active_root_index.is_none() {
         for i in 0..text_editor_state.buffer.len() {
             if let Some(sort) = text_editor_state.buffer.get(i) {
-                if sort.is_buffer_root && sort.buffer_cursor_position.is_some() {
+                if sort.buffer_cursor_position.is_some() {
                     active_root_index = Some(i);
                     cursor_pos_in_buffer = sort.buffer_cursor_position.unwrap_or(0);
                     root_position = sort.root_position;
@@ -306,10 +306,7 @@ fn calculate_cursor_visual_position(
     // Start from the root and accumulate advances
     for i in root_index..text_editor_state.buffer.len() {
         if let Some(sort) = text_editor_state.buffer.get(i) {
-            // Stop if we hit another buffer root
-            if i != root_index && sort.is_buffer_root {
-                break;
-            }
+            // Continue processing all sorts in the buffer
 
             // Count glyphs in this buffer sequence
             if i == root_index
@@ -553,7 +550,7 @@ fn calculate_legacy_cursor_position(
     // Look for the active buffer root and get its cursor position
     for i in 0..text_editor_state.buffer.len() {
         if let Some(sort) = text_editor_state.buffer.get(i) {
-            if sort.is_buffer_root && sort.is_active {
+            if sort.is_active {
                 active_root_index = Some(i);
                 cursor_pos_in_buffer = sort.buffer_cursor_position.unwrap_or(0);
                 is_rtl =
@@ -567,7 +564,7 @@ fn calculate_legacy_cursor_position(
     if active_root_index.is_none() {
         for i in 0..text_editor_state.buffer.len() {
             if let Some(sort) = text_editor_state.buffer.get(i) {
-                if sort.is_buffer_root && sort.buffer_cursor_position.is_some() {
+                if sort.buffer_cursor_position.is_some() {
                     active_root_index = Some(i);
                     cursor_pos_in_buffer = sort.buffer_cursor_position.unwrap_or(0);
                     is_rtl = sort.layout_mode

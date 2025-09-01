@@ -195,7 +195,7 @@ fn create_independent_sort_with_fontir(
     let (placeholder_glyph, placeholder_codepoint) =
         crate::core::state::text_editor::editor::get_default_glyph_for_direction(&layout_mode);
 
-    let _advance_width = if let Some(fontir_state) = fontir_app_state {
+    let advance_width = if let Some(fontir_state) = fontir_app_state {
         fontir_state.get_glyph_advance_width(&placeholder_glyph)
     } else {
         // Fallback to reasonable default if FontIR not available
@@ -203,22 +203,17 @@ fn create_independent_sort_with_fontir(
     };
 
     // BUFFER SEPARATION POLICY:
-    // Each click with the text tool creates a NEW independent text flow (buffer root)
+    // Each click with the text tool creates a NEW independent text flow
     // This ensures clean separation between different text placement operations
-    // Even if the same layout mode (RTL/LTR) exists, we create a new root for independence
+    // Even if the same layout mode (RTL/LTR) exists, we create a new buffer for independence
 
     // NEW BUFFER ENTITY SYSTEM: Create a buffer entity first, then add sort to it
     
     // Create a new unique buffer ID for complete isolation
     let buffer_id = BufferId::new();
     
-    // CURSOR POSITIONING: For LTR, cursor goes after the glyph (position 1) for natural typing
-    // For RTL, cursor goes before the glyph (position 0) for natural right-to-left typing
-    let initial_cursor_position = match layout_mode {
-        SortLayoutMode::LTRText => 1, // Cursor after glyph for LTR typing
-        SortLayoutMode::RTLText => 0, // Cursor before glyph for RTL typing
-        SortLayoutMode::Freeform => 1, // Default to end for freeform
-    };
+    // CURSOR POSITIONING: Start cursor after initial character for natural typing flow
+    let initial_cursor_position = 1;
 
     // Create the buffer entity with cursor storage
     let buffer_entity = create_text_buffer(
@@ -239,36 +234,32 @@ fn create_independent_sort_with_fontir(
           buffer_id,
           world_position.x, world_position.y);
 
-    // Create the sort entry (still using legacy fields for compatibility)
-    let independent_sort = SortEntry {
+    // CREATE INITIAL CHARACTER SORT: This provides a clear visual starting point
+    // This is NOT a "root sort" - just the first character in the buffer like any other
+    let initial_sort = SortEntry {
         kind: SortKind::Glyph {
+            glyph_name: placeholder_glyph.clone(),
             codepoint: Some(placeholder_codepoint),
-            glyph_name: placeholder_glyph,
-            advance_width: _advance_width,
+            advance_width,
         },
-        is_active: true, // Automatically activate the new sort
-        layout_mode,     // Use the actual layout mode (RTL, LTR, etc.)
+        layout_mode: layout_mode.clone(),
+        is_active: true, // Make this sort active for immediate editing
         root_position: world_position,
-        is_buffer_root: true, // This is the first (root) sort in the buffer
-        buffer_cursor_position: Some(initial_cursor_position), // LEGACY: Also store in sort for compatibility
-        buffer_id: Some(buffer_id), // Keep for backwards compatibility (will be removed)
+        buffer_cursor_position: None, // Deprecated field - cursor stored in buffer entity now
+        buffer_id: Some(buffer_id), // For compatibility, though deprecated
     };
 
+    // Insert the initial sort into the text editor buffer at index 0
+    text_editor_state.buffer.insert(0, initial_sort);
+    
     info!(
-        "📍 SORT PLACEMENT: Created sort with layout_mode: {:?}, cursor now in buffer entity", 
-        independent_sort.layout_mode
+        "📍 SORT PLACEMENT: Created buffer entity {:?} with layout_mode: {:?}, added initial '{}' character at index 0", 
+        buffer_entity, layout_mode, placeholder_glyph
     );
-
-    // Insert at the end of the text editor buffer (for legacy compatibility)
-    let insert_index = text_editor_state.buffer.len();
-    text_editor_state.buffer.insert(insert_index, independent_sort);
-    
-    // TODO: When we have proper ECS entity tracking, we'll create the sort entity here
-    // and link it to the buffer. For now, we'll handle this in the entity sync system.
     
     info!(
-        "🖱️ Created new buffer entity {:?} with cursor at position {} at world position ({:.1}, {:.1})",
-        buffer_entity, initial_cursor_position, world_position.x, world_position.y
+        "🖱️ Created new buffer entity {:?} with cursor at position {} and initial character '{}' at world position ({:.1}, {:.1})",
+        buffer_entity, initial_cursor_position, placeholder_glyph, world_position.x, world_position.y
     );
     
     // Return the buffer entity for the caller to use

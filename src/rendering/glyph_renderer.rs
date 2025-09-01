@@ -650,7 +650,7 @@ fn render_glyph_points(
     sort_points: &[(Entity, Vec2, &GlyphPointReference, &PointType, bool)],
     camera_scale: &CameraResponsiveScale,
     theme: &CurrentTheme,
-    text_editor_state: Option<&crate::core::state::TextEditorState>,
+    _text_editor_state: Option<&crate::core::state::TextEditorState>,
 ) {
     for (point_entity, position, _point_ref, point_type, is_selected) in sort_points {
         // Determine colors and z-depth for two-layer system
@@ -674,26 +674,8 @@ fn render_glyph_points(
             )
         };
 
-        // Check if this sort is a buffer root for special sizing
-        let is_buffer_root = if let Some(text_state) = text_editor_state {
-            let has_buffer_root = text_state.get_text_sorts().iter().any(|(_index, sort_entry)| {
-                // This is a simple approach - in a more complex system, we might need
-                // to match by sort entity ID or glyph name, but for now we check by active status
-                // and buffer root flag
-                sort_entry.is_active && sort_entry.is_buffer_root
-            });
-            
-            if has_buffer_root {
-                info!("🔍 BUFFER ROOT DETECTED: Found active buffer root, applying 1.3x size multiplier to points");
-            }
-            
-            has_buffer_root
-        } else {
-            false
-        };
-
-        // Apply size multiplier for buffer root sorts
-        let root_size_multiplier = if is_buffer_root { 1.3 } else { 1.0 };
+        // All sorts use the same sizing now
+        let root_size_multiplier = 1.0;
 
         // Create the three-layer point shape
         if point_type.is_on_curve && USE_SQUARE_FOR_ON_CURVE {

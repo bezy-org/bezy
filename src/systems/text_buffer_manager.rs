@@ -11,6 +11,14 @@ use crate::core::state::text_editor::{
 use crate::core::state::text_editor::buffer::BufferId;
 use crate::editing::sort::{Sort, ActiveSort};
 
+/// Visual marker component for text buffer entities
+/// This creates a small page icon to show where text flows begin
+#[derive(Component, Debug)]
+pub struct BufferVisualMarker {
+    /// The layout mode of this buffer (for styling the marker)
+    pub layout_mode: SortLayoutMode,
+}
+
 /// Plugin for text buffer management
 pub struct TextBufferManagerPlugin;
 
@@ -26,6 +34,7 @@ impl Plugin for TextBufferManagerPlugin {
             .add_systems(Update, (
                 sync_buffer_membership.in_set(BufferSystemSet::SyncMembership),
                 update_active_buffer.in_set(BufferSystemSet::UpdateBuffers),
+                render_buffer_markers.in_set(BufferSystemSet::RenderBuffers),
             ));
     }
 }
@@ -41,6 +50,7 @@ pub fn create_text_buffer(
     let buffer_entity = commands.spawn((
         TextBuffer::new(id, layout_mode.clone(), root_position),
         BufferCursor::new(initial_cursor_position),
+        BufferVisualMarker { layout_mode: layout_mode.clone() },
         Name::new(format!("TextBuffer-{:?}-{:?}", id.0, layout_mode)),
     )).id();
     
@@ -139,4 +149,61 @@ pub fn set_buffer_cursor_position(
         "🔍 CURSOR UPDATE: Buffer {:?} cursor set to position {}",
         buffer_entity, new_position
     );
+}
+
+/// System to render visual markers for text buffer entities
+pub fn render_buffer_markers(
+    _commands: Commands,
+    mut gizmos: Gizmos,
+    buffer_query: Query<(Entity, &TextBuffer, &BufferVisualMarker)>,
+) {
+    for (_entity, text_buffer, marker) in buffer_query.iter() {
+        let position = text_buffer.root_position;
+        
+        // Draw a small page icon to represent the text buffer
+        let icon_size = 16.0;
+        let color = match marker.layout_mode {
+            SortLayoutMode::LTRText => Color::srgb(0.2, 0.6, 1.0), // Light blue for LTR
+            SortLayoutMode::RTLText => Color::srgb(1.0, 0.6, 0.2), // Orange for RTL
+            SortLayoutMode::Freeform => Color::srgb(0.6, 1.0, 0.2), // Green for Freeform
+        };
+        
+        // Simple page icon: rectangle with a folded corner
+        let half_size = icon_size / 2.0;
+        let corner_size = 4.0;
+        
+        // Main page rectangle
+        gizmos.rect_2d(
+            position + Vec2::new(-2.0, 2.0), // Slightly offset so it doesn't overlap with sorts
+            Vec2::new(icon_size * 0.8, icon_size),
+            color,
+        );
+        
+        // Folded corner (small triangle in top-right)
+        let corner_pos = position + Vec2::new(half_size * 0.8 - corner_size, half_size + corner_size);
+        gizmos.line_2d(corner_pos, corner_pos + Vec2::new(corner_size, 0.0), color);
+        gizmos.line_2d(corner_pos + Vec2::new(corner_size, 0.0), corner_pos + Vec2::new(0.0, -corner_size), color);
+        gizmos.line_2d(corner_pos + Vec2::new(0.0, -corner_size), corner_pos, color);
+        
+        // Small text indicator based on layout mode
+        let text_offset = Vec2::new(-half_size * 0.6, -half_size * 1.2);
+        match marker.layout_mode {
+            SortLayoutMode::LTRText => {
+                // Arrow pointing right for LTR
+                gizmos.line_2d(position + text_offset, position + text_offset + Vec2::new(8.0, 0.0), color);
+                gizmos.line_2d(position + text_offset + Vec2::new(8.0, 0.0), position + text_offset + Vec2::new(4.0, -3.0), color);
+                gizmos.line_2d(position + text_offset + Vec2::new(8.0, 0.0), position + text_offset + Vec2::new(4.0, 3.0), color);
+            }
+            SortLayoutMode::RTLText => {
+                // Arrow pointing left for RTL
+                gizmos.line_2d(position + text_offset + Vec2::new(8.0, 0.0), position + text_offset, color);
+                gizmos.line_2d(position + text_offset, position + text_offset + Vec2::new(4.0, -3.0), color);
+                gizmos.line_2d(position + text_offset, position + text_offset + Vec2::new(4.0, 3.0), color);
+            }
+            SortLayoutMode::Freeform => {
+                // Simple dot for freeform
+                gizmos.circle_2d(position + text_offset + Vec2::new(4.0, 0.0), 2.0, color);
+            }
+        }
+    }
 }

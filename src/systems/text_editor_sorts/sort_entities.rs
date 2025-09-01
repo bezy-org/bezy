@@ -150,10 +150,9 @@ pub fn spawn_missing_sort_entities(
         for i in 0..text_editor_state.buffer.len() {
             if let Some(sort) = text_editor_state.buffer.get(i) {
                 info!(
-                    "  📋 Buffer[{}]: glyph='{}', is_buffer_root={}, is_active={}, layout_mode={:?}, pos=({:.1},{:.1})",
+                    "  📋 Buffer[{}]: glyph='{}', is_active={}, layout_mode={:?}, pos=({:.1},{:.1})",
                     i,
                     sort.kind.glyph_name(),
-                    sort.is_buffer_root,
                     sort.is_active,
                     sort.layout_mode,
                     sort.root_position.x, sort.root_position.y
@@ -223,19 +222,14 @@ pub fn spawn_missing_sort_entities(
             let position = match sort_entry.layout_mode {
                 crate::core::state::SortLayoutMode::LTRText
                 | crate::core::state::SortLayoutMode::RTLText => {
-                    if sort_entry.is_buffer_root {
-                        // Text roots use their exact stored position
-                        Some(sort_entry.root_position)
-                    } else {
-                        // Non-root text sorts flow from their text root using actual font metrics
-                        let calculated_pos =
-                            text_editor_state.get_text_sort_flow_position(i, &font_metrics, 0.0);
-                        warn!(
-                            "🔍 ENTITY POSITIONING: buffer[{}] calculated at {:?}",
-                            i, calculated_pos
-                        );
-                        calculated_pos
-                    }
+                    // All text sorts use their flow position calculation
+                    let calculated_pos =
+                        text_editor_state.get_text_sort_flow_position(i, &font_metrics, 0.0);
+                    warn!(
+                        "🔍 ENTITY POSITIONING: buffer[{}] calculated at {:?}",
+                        i, calculated_pos
+                    );
+                    calculated_pos
                 }
                 crate::core::state::SortLayoutMode::Freeform => Some(sort_entry.root_position),
             };
@@ -268,12 +262,12 @@ pub fn spawn_missing_sort_entities(
                 let should_be_active = sort_entry.is_active;
                 if should_be_active {
                     entity_commands.insert(ActiveSort);
-                    warn!("🟢 Spawned ACTIVE sort entity for buffer index {} at position ({:.1}, {:.1}) - glyph '{}' (is_active: {}, is_buffer_root: {})", 
-                           i, position.x, position.y, sort_entry.kind.glyph_name(), sort_entry.is_active, sort_entry.is_buffer_root);
+                    warn!("🟢 Spawned ACTIVE sort entity for buffer index {} at position ({:.1}, {:.1}) - glyph '{}' (is_active: {})", 
+                           i, position.x, position.y, sort_entry.kind.glyph_name(), sort_entry.is_active);
                 } else {
                     entity_commands.insert(InactiveSort);
-                    warn!("🔴 Spawned INACTIVE sort entity for buffer index {} at position ({:.1}, {:.1}) - glyph '{}' (is_active: {}, is_buffer_root: {})", 
-                           i, position.x, position.y, sort_entry.kind.glyph_name(), sort_entry.is_active, sort_entry.is_buffer_root);
+                    warn!("🔴 Spawned INACTIVE sort entity for buffer index {} at position ({:.1}, {:.1}) - glyph '{}' (is_active: {})", 
+                           i, position.x, position.y, sort_entry.kind.glyph_name(), sort_entry.is_active);
                 }
 
                 let entity = entity_commands.id();
@@ -347,22 +341,17 @@ pub fn update_buffer_sort_positions(
                 let new_position = match sort.layout_mode {
                     crate::core::state::SortLayoutMode::LTRText
                     | crate::core::state::SortLayoutMode::RTLText => {
-                        if sort.is_buffer_root {
-                            // Text roots use their exact stored position
-                            Some(sort.root_position)
-                        } else {
-                            // Non-root text sorts flow from their text root using actual font metrics
-                            let calculated_pos = text_editor_state.get_text_sort_flow_position(
-                                buffer_index,
-                                &font_metrics,
-                                0.0,
-                            );
-                            warn!(
-                                "🔍 POSITION UPDATE: buffer[{}] calculated at {:?}",
-                                buffer_index, calculated_pos
-                            );
-                            calculated_pos
-                        }
+                        // All text sorts use their flow position calculation
+                        let calculated_pos = text_editor_state.get_text_sort_flow_position(
+                            buffer_index,
+                            &font_metrics,
+                            0.0,
+                        );
+                        warn!(
+                            "🔍 POSITION UPDATE: buffer[{}] calculated at {:?}",
+                            buffer_index, calculated_pos
+                        );
+                        calculated_pos
                     }
                     crate::core::state::SortLayoutMode::Freeform => Some(sort.root_position),
                 };
@@ -428,19 +417,12 @@ pub fn auto_activate_selected_sorts(
                     // Update text editor state to deactivate the sort
                     if let Ok(buffer_index) = buffer_index_query.get(active_entity) {
                         if let Some(sort) = text_editor_state.buffer.get_mut(buffer_index.0) {
-                            let is_root = sort.is_buffer_root;
                             info!(
-                                "🔻 Deactivating buffer sort {} - glyph '{}' (was_root: {})",
+                                "🔻 Deactivating buffer sort {} - glyph '{}'",
                                 buffer_index.0,
-                                sort.kind.glyph_name(),
-                                sort.is_buffer_root
+                                sort.kind.glyph_name()
                             );
                             sort.is_active = false;
-
-                            // CRITICAL DEBUG: Track root sort deactivation specifically
-                            if is_root {
-                                warn!("ROOT SORT DEACTIVATION: Entity {:?} (buffer index {}) is being deactivated and should show filled rendering!", active_entity, buffer_index.0);
-                            }
                         }
                     }
                 }

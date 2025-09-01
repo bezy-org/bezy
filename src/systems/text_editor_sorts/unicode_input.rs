@@ -568,6 +568,15 @@ fn insert_character_at_buffer_cursor(
     // Create the new sort entry
     use crate::core::state::text_editor::buffer::{SortEntry, SortKind, SortLayoutMode};
     
+    // Calculate the world position for the new character based on text flow
+    let new_position = calculate_character_position(
+        &text_editor_state,
+        buffer_id,
+        cursor_position,
+        text_buffer.root_position,
+        &layout_mode,
+    );
+    
     let new_sort = SortEntry {
         kind: SortKind::Glyph {
             codepoint: Some(character),
@@ -576,49 +585,36 @@ fn insert_character_at_buffer_cursor(
         },
         is_active: false, // Don't make new sorts active by default
         layout_mode: layout_mode.clone(),
-        root_position: Vec2::ZERO, // Will be calculated by flow
-        is_buffer_root: false,     // New sorts are not buffer roots
+        root_position: new_position, // Calculated position based on text flow
         buffer_cursor_position: None,
         buffer_id: Some(buffer_id), // Inherit buffer ID from buffer entity
     };
     
-    // Find the buffer root for this buffer ID to determine insertion position
-    let mut root_index = None;
-    for i in 0..text_editor_state.buffer.len() {
-        if let Some(sort) = text_editor_state.buffer.get(i) {
-            if sort.buffer_id == Some(buffer_id) && sort.is_buffer_root {
-                root_index = Some(i);
-                break;
-            }
+    // SIMPLE CURSOR-BASED INSERTION: Find where to insert based on cursor position
+    
+    // Find all sorts that belong to this buffer (in order they appear in the buffer)
+    let mut buffer_sort_indices = Vec::new();
+    for (i, sort) in text_editor_state.buffer.iter().enumerate() {
+        if sort.buffer_id == Some(buffer_id) {
+            buffer_sort_indices.push(i);
         }
     }
     
-    let Some(root_index) = root_index else {
-        warn!("❌ INSERT: Could not find buffer root for buffer {:?}", buffer_id.0);
-        return false;
-    };
-    
-    // Insert at the cursor position relative to root
-    // cursor_position=0 means "before root", cursor_position=1 means "after root", etc.
-    // For LTR: cursor_position=1 means insert after the root character
-    // CRITICAL FIX: Don't add +1, cursor_position already accounts for this
-    let desired_insert_index = root_index + cursor_position;
-    
-    // BOUNDS CHECK: Ensure we don't insert beyond the buffer length
-    let buffer_length = text_editor_state.buffer.len();
-    let insert_buffer_index = if desired_insert_index > buffer_length {
-        warn!(
-            "❌ INSERT: Cursor position {} would insert at index {} but buffer length is only {}. Clamping to end.",
-            cursor_position, desired_insert_index, buffer_length
-        );
-        buffer_length
+    // Insert at cursor position within this buffer's sequence
+    let insert_buffer_index = if buffer_sort_indices.is_empty() {
+        // First sort for this buffer - insert at the end of all sorts
+        text_editor_state.buffer.len()
+    } else if cursor_position >= buffer_sort_indices.len() {
+        // Cursor is at or beyond the end - insert after the last sort of this buffer
+        buffer_sort_indices.last().unwrap() + 1
     } else {
-        desired_insert_index
+        // Insert at the cursor position within this buffer's sequence
+        buffer_sort_indices[cursor_position]
     };
     
     info!(
-        "🔍 INSERT: Inserting at buffer index {} (root at {}, cursor at {}, buffer length: {})",
-        insert_buffer_index, root_index, cursor_position, buffer_length
+        "🔍 INSERT: Inserting character '{}' at buffer index {} (buffer has {} existing sorts, cursor at {})",
+        character, insert_buffer_index, buffer_sort_indices.len(), cursor_position
     );
     
     // Insert the new sort into the text editor buffer
@@ -638,6 +634,69 @@ fn insert_character_at_buffer_cursor(
     
     // Return true to indicate successful insertion
     true
+}
+
+/// Calculate the world position for a new character based on text flow
+fn calculate_character_position(
+    text_editor_state: &crate::core::state::TextEditorState,
+    buffer_id: crate::core::state::text_editor::buffer::BufferId,
+    cursor_position: usize,
+    buffer_root_position: bevy::math::Vec2,
+    layout_mode: &crate::core::state::text_editor::buffer::SortLayoutMode,
+) -> bevy::math::Vec2 {
+    use crate::core::state::text_editor::buffer::{SortKind, SortLayoutMode};
+    
+    // Find all sorts that belong to this buffer in order
+    let mut buffer_sorts = Vec::new();
+    for sort in text_editor_state.buffer.iter() {
+        if sort.buffer_id == Some(buffer_id) {
+            buffer_sorts.push(sort);
+        }
+    }
+    
+    // If this is the first character in the buffer, place it at the buffer root position
+    if buffer_sorts.is_empty() || cursor_position == 0 {
+        return buffer_root_position;
+    }
+    
+    // Calculate cumulative advance width up to cursor position
+    let mut x_offset = 0.0;
+    let mut y_offset = 0.0; // For future line break support
+    
+    for (i, sort) in buffer_sorts.iter().enumerate() {
+        if i >= cursor_position {
+            break; // Don't include sorts after cursor position
+        }
+        
+        match &sort.kind {
+            SortKind::Glyph { advance_width, .. } => {
+                match layout_mode {
+                    SortLayoutMode::LTRText => {
+                        // LTR: accumulate advances to the right
+                        x_offset += advance_width;
+                    }
+                    SortLayoutMode::RTLText => {
+                        // RTL: accumulate advances to the left
+                        x_offset -= advance_width;
+                    }
+                    SortLayoutMode::Freeform => {
+                        // Freeform sorts shouldn't use this function, but handle gracefully
+                        x_offset += advance_width;
+                    }
+                }
+            }
+            SortKind::LineBreak => {
+                // Future: handle line breaks
+                x_offset = 0.0;
+                y_offset -= 1000.0; // Simple line height for now
+            }
+        }
+    }
+    
+    bevy::math::Vec2::new(
+        buffer_root_position.x + x_offset,
+        buffer_root_position.y + y_offset,
+    )
 }
 
 /// Legacy function - replaced by handle_unicode_text_input
