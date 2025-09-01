@@ -193,23 +193,42 @@ pub fn handle_shape_mouse_events(
     shapes_mode: Option<Res<ShapesModeActive>>,
     current_tool: Option<Res<crate::ui::edit_mode_toolbar::CurrentTool>>,
     settings: Res<BezySettings>,
+    // Query for active sort to get its position
+    active_sort_query: Query<(Entity, &crate::editing::sort::Sort, &Transform), With<crate::editing::sort::ActiveSort>>,
 ) {
-    // Check if shapes mode is active via multiple methods (same as preview system)
+    // Check if shapes mode is active via multiple methods
     let shapes_is_active = shapes_mode.as_ref().is_some_and(|s| s.0)
-        || (current_tool.as_ref().and_then(|t| t.get_current()) == Some("shapes")); // Main shapes tool is selected
+        || (current_tool.as_ref().and_then(|t| t.get_current()) == Some("shapes"));
+
+    // IMPORTANT: Shapes tool requires an active sort to work (like pen tool)
+    let active_sort = if let Ok((sort_entity, sort, sort_transform)) = active_sort_query.single() {
+        Some((sort_entity, sort, sort_transform))
+    } else {
+        None
+    };
 
     // Debug: Always log when this system runs
     debug!(
-        "SHAPES INPUT: handle_shape_tool_input called - shapes_is_active: {}, current_tool: {:?}",
+        "SHAPES INPUT: handle_shape_tool_input called - shapes_is_active: {}, active_sort: {}, current_tool: {:?}",
         shapes_is_active,
+        active_sort.is_some(),
         current_tool.as_ref().and_then(|t| t.get_current())
     );
 
-    // Only handle input if shapes tool is active
-    if !shapes_is_active {
-        debug!("SHAPES INPUT: Shapes not active, exiting");
+    // Early exit if shapes tool is not active, no active sort, or other conditions
+    if !shapes_is_active || active_sort.is_none() {
+        if shapes_is_active && active_sort.is_none() {
+            // Only show this message when shapes tool is actually trying to be used
+            if mouse_button_input.just_pressed(MouseButton::Left) {
+                info!("🔳 Shapes tool: Cannot draw without an active sort. Please select a glyph first.");
+            }
+        }
+        debug!("SHAPES INPUT: Shapes not active or no active sort, exiting");
         return;
     }
+
+    let (_sort_entity, _sort, sort_transform) = active_sort.unwrap();
+    let sort_position = sort_transform.translation.truncate();
 
     let Ok(window) = windows.single() else {
         return;
@@ -223,10 +242,13 @@ pub fn handle_shape_mouse_events(
         return;
     };
 
-    // Convert cursor position to world coordinates
+    // Convert cursor position to world coordinates, then to sort-relative coordinates
     if let Ok(world_position) = camera.viewport_to_world_2d(camera_transform, cursor_position) {
-        // Apply grid snapping
-        let mut snapped_position = settings.apply_grid_snap(world_position);
+        // Convert to sort-relative coordinates
+        let sort_relative_position = world_position - sort_position;
+        
+        // Apply grid snapping to sort-relative coordinates
+        let mut snapped_position = settings.apply_grid_snap(sort_relative_position);
 
         // Apply shift-key constraints for squares/circles
         if keyboard_input.pressed(KeyCode::ShiftLeft) || keyboard_input.pressed(KeyCode::ShiftRight)
@@ -240,8 +262,8 @@ pub fn handle_shape_mouse_events(
         // Handle mouse button press
         if mouse_button_input.just_pressed(MouseButton::Left) {
             info!(
-                "SHAPES TOOL: Starting to draw {:?} at ({:.1}, {:.1}), shapes_is_active: {}",
-                current_shape_type.0, snapped_position.x, snapped_position.y, shapes_is_active
+                "SHAPES TOOL: Starting to draw {:?} at sort-relative ({:.1}, {:.1}), world ({:.1}, {:.1}), sort pos ({:.1}, {:.1})",
+                current_shape_type.0, snapped_position.x, snapped_position.y, world_position.x, world_position.y, sort_position.x, sort_position.y
             );
             active_drawing.is_drawing = true;
             active_drawing.shape_type = current_shape_type.0;
@@ -253,7 +275,7 @@ pub fn handle_shape_mouse_events(
         if active_drawing.is_drawing {
             active_drawing.current_position = Some(snapped_position);
             debug!(
-                "SHAPES TOOL: Mouse drag update - current_position: ({:.1}, {:.1})",
+                "SHAPES TOOL: Mouse drag update - sort-relative position: ({:.1}, {:.1})",
                 snapped_position.x, snapped_position.y
             );
         }
@@ -306,6 +328,8 @@ pub fn render_active_shape_drawing_with_dimensions(
     existing_preview_query: Query<Entity, With<ShapePreviewElement>>,
     theme: Res<CurrentTheme>,
     asset_server: Res<AssetServer>,
+    // Query for active sort to get its position for preview rendering
+    active_sort_query: Query<(Entity, &crate::editing::sort::Sort, &Transform), With<crate::editing::sort::ActiveSort>>,
 ) {
     // Clean up existing preview elements
     for entity in existing_preview_query.iter() {
@@ -314,20 +338,31 @@ pub fn render_active_shape_drawing_with_dimensions(
 
     // Check if shapes mode is active via multiple methods (same as input handling)
     let shapes_is_active = shapes_mode.as_ref().is_some_and(|s| s.0)
-        || (current_tool.as_ref().and_then(|t| t.get_current()) == Some("shapes")); // Main shapes tool is selected
+        || (current_tool.as_ref().and_then(|t| t.get_current()) == Some("shapes"));
+
+    // Shapes tool requires an active sort to work
+    let active_sort = if let Ok((sort_entity, sort, sort_transform)) = active_sort_query.single() {
+        Some((sort_entity, sort, sort_transform))
+    } else {
+        None
+    };
 
     // Debug: Always log when this system runs
-    debug!("SHAPES PREVIEW: System running - shapes_mode_active: {:?}, current_tool: {:?}, is_drawing: {}, shapes_is_active: {}", 
-           shapes_mode.as_ref().map(|s| s.0), 
+    debug!("SHAPES PREVIEW: System running - shapes_mode_active: {:?}, active_sort: {}, current_tool: {:?}, is_drawing: {}, shapes_is_active: {}", 
+           shapes_mode.as_ref().map(|s| s.0),
+           active_sort.is_some(), 
            current_tool.as_ref().and_then(|t| t.get_current()),
            active_drawing.is_drawing,
            shapes_is_active);
 
-    // Only render if shapes tool is active
-    if !shapes_is_active {
-        debug!("SHAPES PREVIEW: Shapes mode not active, exiting");
+    // Only render if shapes tool is active and there's an active sort
+    if !shapes_is_active || active_sort.is_none() {
+        debug!("SHAPES PREVIEW: Shapes mode not active or no active sort, exiting");
         return;
     }
+
+    let (_sort_entity, _sort, sort_transform) = active_sort.unwrap();
+    let sort_position = sort_transform.translation.truncate();
 
     if !active_drawing.is_drawing {
         debug!("SHAPES PREVIEW: Not drawing, exiting");
@@ -335,8 +370,16 @@ pub fn render_active_shape_drawing_with_dimensions(
     }
 
     if let Some(rect) = active_drawing.get_rect() {
-        info!("SHAPES PREVIEW: Drawing preview! Rect: ({:.1}, {:.1}) to ({:.1}, {:.1}), shape_type: {:?}", 
-              rect.min.x, rect.min.y, rect.max.x, rect.max.y, active_drawing.shape_type);
+        // Convert sort-relative rect to world coordinates for rendering
+        let world_rect = Rect {
+            min: rect.min + sort_position,
+            max: rect.max + sort_position,
+        };
+        
+        info!("SHAPES PREVIEW: Drawing preview! Sort-relative rect: ({:.1}, {:.1}) to ({:.1}, {:.1}), world rect: ({:.1}, {:.1}) to ({:.1}, {:.1}), shape_type: {:?}", 
+              rect.min.x, rect.min.y, rect.max.x, rect.max.y,
+              world_rect.min.x, world_rect.min.y, world_rect.max.x, world_rect.max.y,
+              active_drawing.shape_type);
 
         let preview_color = theme.theme().action_color(); // Orange action color like pen tool
         let line_width = camera_scale.adjusted_line_width() * 2.0;
@@ -348,7 +391,7 @@ pub fn render_active_shape_drawing_with_dimensions(
                     &mut commands,
                     &mut meshes,
                     &mut materials,
-                    rect,
+                    world_rect, // Use world coordinates for rendering
                     preview_color,
                     line_width,
                 );
@@ -359,7 +402,7 @@ pub fn render_active_shape_drawing_with_dimensions(
                     &mut commands,
                     &mut meshes,
                     &mut materials,
-                    rect,
+                    world_rect, // Use world coordinates for rendering
                     preview_color,
                     line_width,
                 );
@@ -372,7 +415,7 @@ pub fn render_active_shape_drawing_with_dimensions(
             &mut commands,
             &mut meshes,
             &mut materials,
-            rect,
+            world_rect, // Use world coordinates for rendering
             &camera_scale,
             &theme,
             &asset_server,
@@ -471,28 +514,8 @@ fn create_shape_fontir(
         ShapeType::RoundedRectangle => create_rounded_rectangle_bezpath(rect, corner_radius),
     };
 
-    // Get the current location
-    let location = fontir_app_state.current_location.clone();
-    let key = (current_glyph_name.clone(), location);
-
-    // Get or create a working copy
-    let working_copy_exists = fontir_app_state.working_copies.contains_key(&key);
-
-    if !working_copy_exists {
-        // Create working copy from original FontIR data
-        if let Some(fontir_glyph) = fontir_app_state.glyph_cache.get(&current_glyph_name) {
-            if let Some((_location, instance)) = fontir_glyph.sources().iter().next() {
-                let working_copy =
-                    crate::core::state::fontir_app_state::EditableGlyphInstance::from(instance);
-                fontir_app_state
-                    .working_copies
-                    .insert(key.clone(), working_copy);
-            }
-        }
-    }
-
-    // Add the new contour to the working copy
-    if let Some(working_copy) = fontir_app_state.working_copies.get_mut(&key) {
+    // Get or create a working copy using the proper method (like pen tool)
+    if let Some(working_copy) = fontir_app_state.get_or_create_working_copy(&current_glyph_name) {
         working_copy.contours.push(bez_path.clone());
         working_copy.is_dirty = true;
         app_state_changed.write(AppStateChanged);
