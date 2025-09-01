@@ -35,7 +35,8 @@ impl Plugin for TextBufferManagerPlugin {
                 create_missing_buffer_entities.in_set(BufferSystemSet::UpdateBuffers),
                 sync_buffer_membership.in_set(BufferSystemSet::SyncMembership),
                 update_active_buffer.in_set(BufferSystemSet::UpdateBuffers),
-                render_buffer_markers.in_set(BufferSystemSet::RenderBuffers),
+                // TEMPORARILY DISABLED: Buffer visual markers (page icons with direction arrows)
+                // render_buffer_markers.in_set(BufferSystemSet::RenderBuffers),
             ));
     }
 }

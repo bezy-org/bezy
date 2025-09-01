@@ -66,13 +66,14 @@ pub fn render_text_editor_cursor(
         current_placement_mode.0
     );
 
-    // Only render cursor when in Insert mode (the only mode where cursor is functional)
-    let should_show_cursor = matches!(current_placement_mode.0, crate::ui::edit_mode_toolbar::text::TextPlacementMode::Insert);
+    // Only render cursor when Text tool is active AND in Insert mode (the only mode where cursor is functional)
+    let should_show_cursor = current_tool.get_current() == Some("text") 
+        && matches!(current_placement_mode.0, crate::ui::edit_mode_toolbar::text::TextPlacementMode::Insert);
         
     if !should_show_cursor {
         info!(
-            "CURSOR: Not rendering - not in Insert mode (current mode: {:?})",
-            current_placement_mode.0
+            "CURSOR: Not rendering - need Text tool + Insert mode (tool: {:?}, mode: {:?})",
+            current_tool.get_current(), current_placement_mode.0
         );
         // Clear cursor entities when not in Insert mode
         entity_pools.return_cursor_entities(&mut commands);
