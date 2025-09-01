@@ -151,12 +151,12 @@ impl TextEditorState {
 
                 // Calculate position using same logic as cursor positioning
                 let mut x_offset = 0.0;
-                let y_offset = 0.0;
+                let mut y_offset = 0.0;
 
                 // Get font metrics for line height calculation
-                let _upm = font_metrics.units_per_em as f32;
-                let _descender = font_metrics.descender.unwrap_or(-256.0) as f32;
-                let _line_height = _upm - _descender;
+                let upm = font_metrics.units_per_em as f32;
+                let descender = font_metrics.descender.unwrap_or(-256.0) as f32;
+                let line_height = upm - descender;
 
                 // Determine text direction from target sort's layout mode
                 let target_sort = self.buffer.get(buffer_position);
@@ -252,8 +252,16 @@ impl TextEditorState {
                     if let Some(target_idx) = target_index_in_buffer {
                         for idx in 0..target_idx {
                             if let Some((_, sort_entry)) = buffer_sorts.get(idx) {
-                                if let SortKind::Glyph { advance_width, .. } = &sort_entry.kind {
-                                    x_offset += advance_width;
+                                match &sort_entry.kind {
+                                    SortKind::Glyph { advance_width, .. } => {
+                                        x_offset += advance_width;
+                                    }
+                                    SortKind::LineBreak => {
+                                        // Line break: reset x to start of line, move y down by line height
+                                        x_offset = 0.0;
+                                        y_offset -= line_height;
+                                        println!("🔍 LTR LINEBREAK: Reset x_offset=0, y_offset={:.1} (line_height={:.1})", y_offset, line_height);
+                                    }
                                 }
                             }
                         }

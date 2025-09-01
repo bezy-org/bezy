@@ -44,11 +44,11 @@ pub struct TextModeState {
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Resource)]
 pub enum TextPlacementMode {
     /// Place sorts in left-to-right text mode
-    #[default]
     LTRText,
     /// Place sorts in right-to-left text mode (Arabic/Hebrew)
     RTLText,
     /// Insert and edit text within existing text mode sorts  
+    #[default]
     Insert,
     /// Place sorts freely in the design space
     Freeform,

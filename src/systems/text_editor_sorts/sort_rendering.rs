@@ -66,34 +66,25 @@ pub fn render_text_editor_cursor(
         current_placement_mode.0
     );
 
-    // Only render cursor when text tool is active and in Insert mode
-    if current_tool.get_current() != Some("text") {
+    // Only render cursor when in Insert mode (the only mode where cursor is functional)
+    let should_show_cursor = matches!(current_placement_mode.0, crate::ui::edit_mode_toolbar::text::TextPlacementMode::Insert);
+        
+    if !should_show_cursor {
         info!(
-            "CURSOR: Not rendering - text tool not active (current: {:?})",
-            current_tool.get_current()
-        );
-        // Clear cursor entities when tool is not text
-        entity_pools.return_cursor_entities(&mut commands);
-        return;
-    }
-
-    // Only show cursor when in Insert mode or text placement modes (RTL/LTR)
-    if !matches!(
-        current_placement_mode.0,
-        crate::ui::edit_mode_toolbar::text::TextPlacementMode::Insert
-            | crate::ui::edit_mode_toolbar::text::TextPlacementMode::RTLText
-            | crate::ui::edit_mode_toolbar::text::TextPlacementMode::LTRText
-    ) {
-        info!(
-            "CURSOR: Not rendering - not in a text input mode (current mode: {:?})",
+            "CURSOR: Not rendering - not in Insert mode (current mode: {:?})",
             current_placement_mode.0
         );
-        // Clear cursor entities when not in text input modes
+        // Clear cursor entities when not in Insert mode
         entity_pools.return_cursor_entities(&mut commands);
         return;
     }
+    
+    info!(
+        "CURSOR: Rendering cursor - mode: {:?}",
+        current_placement_mode.0
+    );
 
-    info!("CURSOR: Proceeding to render cursor (all checks passed)");
+    info!("CURSOR: Proceeding to render cursor (Insert mode confirmed)");
 
     // CHANGE DETECTION: Check if cursor needs updating
     let current_tool_name = current_tool.get_current();

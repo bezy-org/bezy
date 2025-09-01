@@ -140,6 +140,7 @@ pub fn spawn_missing_sort_entities(
     app_state: Option<Res<AppState>>,
     fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
     _existing_active_sorts: Query<Entity, With<crate::editing::sort::ActiveSort>>,
+    buffer_entity_query: Query<(Entity, &crate::core::state::text_editor::text_buffer::TextBuffer)>,
 ) {
     // Debug: Log buffer state (only when buffer has content to reduce spam)
     if !text_editor_state.buffer.is_empty() {
@@ -161,6 +162,13 @@ pub fn spawn_missing_sort_entities(
         }
     }
     // Silently skip logging when buffer is empty to reduce spam
+
+    // Build a mapping from BufferId to buffer Entity
+    let mut buffer_id_to_entity = std::collections::HashMap::new();
+    for (buffer_entity, text_buffer) in buffer_entity_query.iter() {
+        buffer_id_to_entity.insert(text_buffer.id, buffer_entity);
+        info!("🔗 BUFFER MAPPING: BufferId {:?} -> Entity {:?}", text_buffer.id.0, buffer_entity);
+    }
 
     // Handle respawn requests first
     for &index in &respawn_queue.indices {
@@ -271,6 +279,33 @@ pub fn spawn_missing_sort_entities(
                 }
 
                 let entity = entity_commands.id();
+
+                // Add BufferMember component to link this sort to its buffer entity
+                if let Some(buffer_id) = sort_entry.buffer_id {
+                    if let Some(&buffer_entity) = buffer_id_to_entity.get(&buffer_id) {
+                        // Calculate buffer-local index by counting sorts with the same buffer_id up to this point
+                        let mut buffer_local_index = 0;
+                        for idx in 0..i {
+                            if let Some(sort) = text_editor_state.buffer.get(idx) {
+                                if sort.buffer_id == Some(buffer_id) {
+                                    buffer_local_index += 1;
+                                }
+                            }
+                        }
+
+                        entity_commands.insert(crate::core::state::text_editor::text_buffer::BufferMember::new(
+                            buffer_entity, 
+                            buffer_local_index
+                        ));
+
+                        info!("🔗 BUFFER MEMBERSHIP: Linked sort entity {:?} to buffer entity {:?} at buffer-local index {}", 
+                              entity, buffer_entity, buffer_local_index);
+                    } else {
+                        warn!("❌ No buffer entity found for buffer_id {:?} - sort will not have BufferMember component", buffer_id.0);
+                    }
+                } else {
+                    info!("ℹ️ Sort at buffer[{}] has no buffer_id - adding as freeform sort (no BufferMember)", i);
+                }
 
                 // Track the entity
                 buffer_entities.entities.insert(i, entity);

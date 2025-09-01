@@ -32,6 +32,7 @@ impl Plugin for TextBufferManagerPlugin {
                 BufferSystemSet::RenderBuffers,
             ).chain())
             .add_systems(Update, (
+                create_missing_buffer_entities.in_set(BufferSystemSet::UpdateBuffers),
                 sync_buffer_membership.in_set(BufferSystemSet::SyncMembership),
                 update_active_buffer.in_set(BufferSystemSet::UpdateBuffers),
                 render_buffer_markers.in_set(BufferSystemSet::RenderBuffers),
@@ -77,6 +78,49 @@ pub fn add_sort_to_buffer(
     );
 }
 
+/// System to create missing buffer entities for sorts that have buffer_id but no buffer entity
+/// This fixes the startup system which creates legacy sorts without buffer entities
+pub fn create_missing_buffer_entities(
+    mut commands: Commands,
+    text_editor_state: Option<Res<TextEditorState>>,
+    buffer_query: Query<&TextBuffer, With<TextBuffer>>,
+    _sort_query: Query<&Sort, (With<Sort>, With<crate::systems::text_editor_sorts::sort_entities::BufferSortIndex>)>,
+) {
+    let Some(text_state) = text_editor_state else { return };
+    
+    // Build a map of existing buffer entities by BufferId
+    let mut existing_buffer_ids = std::collections::HashSet::new();
+    for text_buffer in buffer_query.iter() {
+        existing_buffer_ids.insert(text_buffer.id);
+    }
+    
+    // Check all sorts in the text editor state for missing buffer entities
+    let mut missing_buffer_ids: std::collections::HashMap<BufferId, (SortLayoutMode, Vec2)> = std::collections::HashMap::new();
+    for (index, sort_entry) in text_state.buffer.iter().enumerate() {
+        if let Some(buffer_id) = sort_entry.buffer_id {
+            if !existing_buffer_ids.contains(&buffer_id) {
+                missing_buffer_ids.insert(buffer_id, (sort_entry.layout_mode.clone(), sort_entry.root_position));
+                info!("🔍 MISSING BUFFER: Found sort at buffer[{}] with buffer_id {:?} but no corresponding buffer entity", 
+                      index, buffer_id.0);
+            }
+        }
+    }
+    
+    // Create missing buffer entities
+    for (buffer_id, (layout_mode, root_position)) in missing_buffer_ids {
+        let buffer_entity = create_text_buffer(
+            &mut commands,
+            buffer_id,
+            layout_mode.clone(),
+            root_position,
+            1, // Start cursor after the first character (matching startup behavior)
+        );
+        
+        info!("🆕 AUTO-CREATED: Buffer entity {:?} for buffer_id {:?} at position ({:.1}, {:.1})", 
+              buffer_entity, buffer_id.0, root_position.x, root_position.y);
+    }
+}
+
 /// System to sync buffer membership and maintain consistency
 pub fn sync_buffer_membership(
     _commands: Commands,
@@ -113,7 +157,8 @@ pub fn sync_buffer_membership(
 pub fn update_active_buffer(
     mut active_buffer: ResMut<ActiveTextBuffer>,
     active_sort_query: Query<&BufferMember, (With<ActiveSort>, Changed<ActiveSort>)>,
-    _buffer_query: Query<&mut TextBuffer>,
+    all_active_sort_query: Query<&BufferMember, With<ActiveSort>>,
+    buffer_query: Query<Entity, With<TextBuffer>>,
 ) {
     // If an active sort changed, update the active buffer
     if let Ok(buffer_member) = active_sort_query.single() {
@@ -125,6 +170,32 @@ pub fn update_active_buffer(
                 "🎯 ACTIVE BUFFER CHANGED: {:?} -> {:?}",
                 old_active, active_buffer.buffer_entity
             );
+        }
+        return;
+    }
+    
+    // If no active buffer is set but there are active sorts, try to set one
+    if active_buffer.buffer_entity.is_none() {
+        if let Ok(buffer_member) = all_active_sort_query.single() {
+            active_buffer.buffer_entity = Some(buffer_member.buffer_entity);
+            info!(
+                "🎯 AUTO-SET ACTIVE BUFFER: Set to {:?} based on existing active sort",
+                active_buffer.buffer_entity
+            );
+            return;
+        }
+        
+        // If no sorts have buffer members yet, but there's at least one buffer entity,
+        // we might be in startup mode - this will be handled by the spawn_missing_sort_entities system
+        if buffer_query.iter().count() > 0 {
+            let first_buffer = buffer_query.iter().next();
+            if let Some(buffer_entity) = first_buffer {
+                active_buffer.buffer_entity = Some(buffer_entity);
+                info!(
+                    "🎯 STARTUP FALLBACK: Set active buffer to first available buffer entity {:?}",
+                    buffer_entity
+                );
+            }
         }
     }
 }

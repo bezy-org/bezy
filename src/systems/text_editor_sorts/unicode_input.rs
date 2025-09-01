@@ -157,7 +157,7 @@ pub fn handle_unicode_text_input(
                 handle_delete(&mut text_editor_state, &current_placement_mode, &active_buffer, &mut buffer_query, &mut respawn_queue);
             }
             Key::Enter => {
-                handle_newline_character(&mut text_editor_state, &current_placement_mode);
+                handle_newline_character(&mut text_editor_state, &current_placement_mode, &active_buffer, &mut buffer_query, &mut respawn_queue);
             }
             Key::Space => {
                 handle_space_character(
@@ -397,21 +397,21 @@ fn handle_space_character(
 
 /// Handle newline character input
 fn handle_newline_character(
-    text_editor_state: &mut TextEditorState,
+    text_editor_state: &mut ResMut<TextEditorState>,
     current_placement_mode: &CurrentTextPlacementMode,
+    active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
+    buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
+    respawn_queue: &mut ResMut<crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
 ) {
     match current_placement_mode.0 {
-        TextPlacementMode::Insert => {
-            text_editor_state.insert_line_break_at_cursor();
-            info!("Unicode input: Inserted line break in Insert mode");
-        }
-        TextPlacementMode::LTRText | TextPlacementMode::RTLText => {
-            // In Text mode, newlines might move to next line in grid
-            text_editor_state.insert_line_break_at_cursor();
-            let mode_name = if matches!(current_placement_mode.0, TextPlacementMode::LTRText) {
-                "LTR Text"
-            } else {
-                "RTL Text"
+        TextPlacementMode::Insert | TextPlacementMode::LTRText | TextPlacementMode::RTLText => {
+            // Use buffer cursor system to insert line break at correct position
+            insert_line_break_at_buffer_cursor(text_editor_state, active_buffer, buffer_query, respawn_queue);
+            let mode_name = match current_placement_mode.0 {
+                TextPlacementMode::Insert => "Insert",
+                TextPlacementMode::LTRText => "LTR Text", 
+                TextPlacementMode::RTLText => "RTL Text",
+                _ => "Unknown"
             };
             info!("Unicode input: Inserted line break in {} mode", mode_name);
         }
@@ -420,6 +420,69 @@ fn handle_newline_character(
             info!("Unicode input: Newline ignored in Freeform mode");
         }
     }
+}
+
+/// Insert line break at buffer cursor position with proper respawn queue management
+fn insert_line_break_at_buffer_cursor(
+    text_editor_state: &mut ResMut<TextEditorState>,
+    active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
+    buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
+    respawn_queue: &mut ResMut<crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
+) -> bool {
+    // Get the active buffer entity
+    let Some(active_buffer_res) = active_buffer else {
+        warn!("⚠️ LINEBREAK: No active buffer found");
+        return false;
+    };
+
+    let Some(buffer_entity) = active_buffer_res.buffer_entity else {
+        warn!("⚠️ LINEBREAK: Active buffer has no entity");
+        return false;
+    };
+    let Ok((_text_buffer, mut buffer_cursor)) = buffer_query.get_mut(buffer_entity) else {
+        warn!("⚠️ LINEBREAK: Could not access buffer cursor for entity {:?}", buffer_entity);
+        return false;
+    };
+
+    let cursor_position = buffer_cursor.position;
+    let buffer_id = _text_buffer.id;
+    let layout_mode = _text_buffer.layout_mode.clone();
+    let insert_buffer_index = cursor_position;
+
+    info!("📝 LINEBREAK: Inserting line break at buffer index {} (cursor at {}) in buffer {:?} (layout: {:?})", 
+          insert_buffer_index, cursor_position, buffer_id.0, layout_mode);
+
+    // Create line break entry
+    let new_line_break = crate::core::state::text_editor::buffer::SortEntry {
+        kind: crate::core::state::text_editor::buffer::SortKind::LineBreak,
+        is_active: false,
+        layout_mode: layout_mode,
+        root_position: bevy::prelude::Vec2::ZERO,
+        buffer_cursor_position: None,
+        buffer_id: Some(buffer_id),
+    };
+
+    // Insert the line break into the text editor buffer
+    text_editor_state.buffer.insert(insert_buffer_index, new_line_break);
+    
+    // CRITICAL: Queue respawn for all buffer indices that shifted due to insertion
+    // When we insert at index N, all existing entities at indices N and above need respawning
+    // because their buffer indices shifted by +1
+    for i in insert_buffer_index..text_editor_state.buffer.len() {
+        respawn_queue.indices.push(i);
+        info!("🔄 RESPAWN QUEUE: Added buffer index {} to respawn queue due to line break insertion", i);
+    }
+
+    // Update the cursor position in the buffer entity (advance by 1 to position after line break)
+    buffer_cursor.position = cursor_position + 1;
+    
+    // Mark text editor state as changed for rendering updates
+    text_editor_state.set_changed();
+
+    info!("✅ LINEBREAK: Successfully inserted line break at buffer index {}, cursor moved to position {}", 
+          insert_buffer_index, buffer_cursor.position);
+    
+    true
 }
 
 /// Handle backspace key
