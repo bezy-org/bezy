@@ -1330,7 +1330,9 @@ fn line_line_intersection_simple(line1: &kurbo::Line, line2: &kurbo::Line) -> Op
     let t = ((p1.x - p3.x) * (p3.y - p4.y) - (p1.y - p3.y) * (p3.x - p4.x)) / denom;
     let u = -((p1.x - p2.x) * (p1.y - p3.y) - (p1.y - p2.y) * (p1.x - p3.x)) / denom;
 
-    if (0.0..=1.0).contains(&u) {
+    // IMPORTANT: Check that both t and u are within [0,1] for line segment intersection
+    // t is the parameter for line1 (cutting line), u is for line2 (path segment)
+    if (0.0..=1.0).contains(&t) && (0.0..=1.0).contains(&u) {
         Some(Point::new(
             p1.x + t * (p2.x - p1.x),
             p1.y + t * (p2.y - p1.y),
@@ -1353,7 +1355,12 @@ fn curve_line_intersections_simple(curve: &kurbo::CubicBez, line: &kurbo::Line) 
     for intersection in curve_intersections {
         // Calculate the intersection point using segment_t
         let point = curve.eval(intersection.segment_t);
-        intersections.push(point);
+        
+        // IMPORTANT: Check if intersection point lies within the knife line segment
+        // kurbo finds intersections with infinite line, but we want line segment only
+        if point_lies_on_line_segment(point, line) {
+            intersections.push(point);
+        }
     }
 
     // Remove duplicates with smaller tolerance for accuracy
@@ -1374,12 +1381,48 @@ fn quad_line_intersections_simple(curve: &kurbo::QuadBez, line: &kurbo::Line) ->
     for intersection in curve_intersections {
         // Calculate the intersection point using segment_t
         let point = curve.eval(intersection.segment_t);
-        intersections.push(point);
+        
+        // IMPORTANT: Check if intersection point lies within the knife line segment
+        // kurbo finds intersections with infinite line, but we want line segment only
+        if point_lies_on_line_segment(point, line) {
+            intersections.push(point);
+        }
     }
 
     // Remove duplicates with smaller tolerance for accuracy
     intersections.dedup_by(|a, b| a.distance(*b) < 1.0);
     intersections
+}
+
+/// Check if a point lies on a line segment (not just the infinite line)
+fn point_lies_on_line_segment(point: Point, line: &kurbo::Line) -> bool {
+    // Calculate the parameter t for the point on the line
+    let dx = line.p1.x - line.p0.x;
+    let dy = line.p1.y - line.p0.y;
+    
+    // Handle near-vertical and near-horizontal lines appropriately
+    let t = if dx.abs() > dy.abs() {
+        // Use x coordinate for parameter calculation
+        if dx.abs() < 1e-10 {
+            // Vertical line
+            return (point.x - line.p0.x).abs() < 1e-6 
+                && point.y >= line.p0.y.min(line.p1.y) - 1e-6
+                && point.y <= line.p0.y.max(line.p1.y) + 1e-6;
+        }
+        (point.x - line.p0.x) / dx
+    } else {
+        // Use y coordinate for parameter calculation
+        if dy.abs() < 1e-10 {
+            // Horizontal line
+            return (point.y - line.p0.y).abs() < 1e-6 
+                && point.x >= line.p0.x.min(line.p1.x) - 1e-6
+                && point.x <= line.p0.x.max(line.p1.x) + 1e-6;
+        }
+        (point.y - line.p0.y) / dy
+    };
+    
+    // Check if t is within [0, 1] (point lies on line segment)
+    (0.0..=1.0).contains(&t)
 }
 
 fn get_path_start_point_inline(path: &BezPath) -> Option<Point> {
