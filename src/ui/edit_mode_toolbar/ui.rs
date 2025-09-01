@@ -468,6 +468,8 @@ pub fn update_hover_text_visibility(
     mut hover_text_query: Query<(Entity, &mut Text, &mut Node), With<ButtonHoverText>>,
     tool_registry: Res<ToolRegistry>,
     asset_server: Res<AssetServer>,
+    // Get camera for zoom level
+    camera_query: Query<&Projection, With<crate::rendering::cameras::DesignCamera>>,
 ) {
     let mut hovered_text: Option<String> = None;
 
@@ -538,17 +540,39 @@ pub fn update_hover_text_visibility(
         base_offset
     };
 
+    // Determine what text to show
+    let display_text = if let Some(text_content) = hovered_text {
+        // Show tool name when hovering
+        text_content
+    } else {
+        // Show zoom level when not hovering
+        if let Ok(projection) = camera_query.single() {
+            // Get the actual zoom scale from the orthographic projection
+            let zoom_scale = match projection {
+                Projection::Orthographic(ortho) => ortho.scale,
+                _ => 1.0,
+            };
+            // Invert the scale since smaller scale = zoomed in
+            let zoom_percentage = ((1.0 / zoom_scale) * 100.0) as i32;
+            format!("Zoom: {}%", zoom_percentage)
+        } else {
+            String::new()
+        }
+    };
+
     // Create or update hover text
-    if let Some(text_content) = hovered_text {
-        if let Ok((_, mut text, mut style)) = hover_text_query.single_mut() {
+    if !display_text.is_empty() {
+        // Try to get a single hover text entity
+        let query_result = hover_text_query.single_mut();
+        if let Ok((_, mut text, mut style)) = query_result {
             // Update existing hover text
-            text.0 = text_content;
+            text.0 = display_text;
             style.top = Val::Px(vertical_offset);
             style.display = Display::Flex;
         } else {
             // Create new hover text if none exists
             commands.spawn((
-                Text::new(text_content),
+                Text::new(display_text),
                 TextFont {
                     font: asset_server.load(MONO_FONT_PATH),
                     font_size: WIDGET_TEXT_FONT_SIZE,
@@ -566,7 +590,7 @@ pub fn update_hover_text_visibility(
             ));
         }
     } else {
-        // Hide hover text when nothing is hovered
+        // Hide hover text when there's nothing to display
         for (_hover_entity, _text, mut style) in hover_text_query.iter_mut() {
             style.display = Display::None;
         }
