@@ -15,6 +15,7 @@ use crate::ui::edit_mode_toolbar::CurrentTool;
 use bevy::input::keyboard::{Key, KeyboardInput};
 use bevy::input::ButtonState;
 use bevy::prelude::*;
+use bevy::prelude::DetectChangesMut;
 
 /// Handle Unicode character input using Bevy 0.16 keyboard events
 /// This system provides comprehensive Unicode support for global scripts
@@ -150,10 +151,10 @@ pub fn handle_unicode_text_input(
             }
             // Handle special keys
             Key::Backspace => {
-                handle_backspace(&mut text_editor_state, &current_placement_mode);
+                handle_backspace(&mut text_editor_state, &current_placement_mode, &active_buffer, &mut buffer_query, &mut respawn_queue);
             }
             Key::Delete => {
-                handle_delete(&mut text_editor_state, &current_placement_mode);
+                handle_delete(&mut text_editor_state, &current_placement_mode, &active_buffer, &mut buffer_query, &mut respawn_queue);
             }
             Key::Enter => {
                 handle_newline_character(&mut text_editor_state, &current_placement_mode);
@@ -423,39 +424,153 @@ fn handle_newline_character(
 
 /// Handle backspace key
 fn handle_backspace(
-    text_editor_state: &mut TextEditorState,
+    text_editor_state: &mut ResMut<TextEditorState>,
     current_placement_mode: &CurrentTextPlacementMode,
+    active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
+    buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
+    respawn_queue: &mut ResMut<crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
 ) {
     match current_placement_mode.0 {
-        TextPlacementMode::Insert => {
-            text_editor_state.delete_sort_at_cursor();
-            info!("Unicode input: Backspace in Insert mode");
-        }
-        TextPlacementMode::LTRText | TextPlacementMode::RTLText => {
-            // delete_sort_at_cursor already handles deleting to the left of cursor and updating cursor position
-            text_editor_state.delete_sort_at_cursor();
-            let mode_name = if matches!(current_placement_mode.0, TextPlacementMode::LTRText) {
-                "LTR Text"
-            } else {
-                "RTL Text"
+        TextPlacementMode::Insert | TextPlacementMode::LTRText | TextPlacementMode::Freeform => {
+            // For LTR text and Insert mode: backspace deletes character to the LEFT of cursor
+            delete_character_at_buffer_cursor(text_editor_state, active_buffer, buffer_query, respawn_queue, true);
+            let mode_name = match current_placement_mode.0 {
+                TextPlacementMode::Insert => "Insert",
+                TextPlacementMode::LTRText => "LTR Text", 
+                TextPlacementMode::Freeform => "Freeform",
+                _ => "Unknown"
             };
             info!("Unicode input: Backspace in {} mode", mode_name);
         }
-        TextPlacementMode::Freeform => {
-            // delete_sort_at_cursor already handles deleting to the left of cursor and updating cursor position
-            text_editor_state.delete_sort_at_cursor();
-            info!("Unicode input: Backspace in Freeform mode");
+        TextPlacementMode::RTLText => {
+            // For RTL text: backspace deletes character to the RIGHT of cursor
+            delete_character_at_buffer_cursor(text_editor_state, active_buffer, buffer_query, respawn_queue, false);
+            info!("Unicode input: Backspace in RTL Text mode");
         }
     }
 }
 
 /// Handle delete key
 fn handle_delete(
-    text_editor_state: &mut TextEditorState,
-    _current_placement_mode: &CurrentTextPlacementMode,
+    text_editor_state: &mut ResMut<TextEditorState>,
+    current_placement_mode: &CurrentTextPlacementMode,
+    active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
+    buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
+    respawn_queue: &mut ResMut<crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
 ) {
-    text_editor_state.delete_sort_at_cursor();
-    info!("Unicode input: Delete key pressed");
+    match current_placement_mode.0 {
+        TextPlacementMode::Insert | TextPlacementMode::LTRText | TextPlacementMode::Freeform => {
+            // For LTR text and Insert mode: delete key deletes character to the RIGHT of cursor
+            delete_character_at_buffer_cursor(text_editor_state, active_buffer, buffer_query, respawn_queue, false);
+            let mode_name = match current_placement_mode.0 {
+                TextPlacementMode::Insert => "Insert",
+                TextPlacementMode::LTRText => "LTR Text", 
+                TextPlacementMode::Freeform => "Freeform",
+                _ => "Unknown"
+            };
+            info!("Unicode input: Delete in {} mode", mode_name);
+        }
+        TextPlacementMode::RTLText => {
+            // For RTL text: delete key deletes character to the LEFT of cursor  
+            delete_character_at_buffer_cursor(text_editor_state, active_buffer, buffer_query, respawn_queue, true);
+            info!("Unicode input: Delete in RTL Text mode");
+        }
+    }
+}
+
+/// Delete character at buffer cursor position with proper respawn queue management
+fn delete_character_at_buffer_cursor(
+    text_editor_state: &mut ResMut<TextEditorState>,
+    active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
+    buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
+    respawn_queue: &mut ResMut<crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
+    delete_to_left: bool, // true = backspace (delete left), false = delete key (delete right)
+) -> bool {
+    // Get the active buffer entity
+    let Some(active_buffer_res) = active_buffer else {
+        warn!("⚠️ DELETE: No active buffer found");
+        return false;
+    };
+
+    let Some(buffer_entity) = active_buffer_res.buffer_entity else {
+        warn!("⚠️ DELETE: Active buffer has no entity");
+        return false;
+    };
+    let Ok((_text_buffer, mut buffer_cursor)) = buffer_query.get_mut(buffer_entity) else {
+        warn!("⚠️ DELETE: Could not access buffer cursor for entity {:?}", buffer_entity);
+        return false;
+    };
+
+    let cursor_position = buffer_cursor.position;
+    
+    // Calculate which buffer index to delete based on direction
+    let delete_buffer_index = if delete_to_left {
+        // Backspace: delete character to the left of cursor (cursor_position - 1)
+        if cursor_position == 0 {
+            warn!("⚠️ DELETE: Cannot delete to left of cursor at position 0");
+            return false; // Can't delete before beginning
+        }
+        cursor_position - 1
+    } else {
+        // Delete key: delete character at cursor position (cursor_position)
+        if cursor_position >= text_editor_state.buffer.len() {
+            warn!("⚠️ DELETE: Cannot delete at/past end of buffer (cursor: {}, buffer len: {})", 
+                  cursor_position, text_editor_state.buffer.len());
+            return false; // Can't delete past end
+        }
+        cursor_position
+    };
+
+    // Verify the buffer index is valid
+    if delete_buffer_index >= text_editor_state.buffer.len() {
+        warn!("⚠️ DELETE: Invalid delete index {} (buffer len: {})", 
+              delete_buffer_index, text_editor_state.buffer.len());
+        return false;
+    }
+
+    // Get info about what we're deleting for logging
+    let deleted_glyph_name = if let Some(sort) = text_editor_state.buffer.get(delete_buffer_index) {
+        sort.kind.glyph_name().to_string()
+    } else {
+        "unknown".to_string()
+    };
+
+    info!("🗑️ DELETE: Deleting character '{}' at buffer index {} (cursor at {}, delete_to_left: {})", 
+          deleted_glyph_name, delete_buffer_index, cursor_position, delete_to_left);
+
+    // Delete from the buffer
+    let deleted_sort = text_editor_state.buffer.delete(delete_buffer_index);
+    if deleted_sort.is_none() {
+        warn!("⚠️ DELETE: Failed to delete from buffer at index {}", delete_buffer_index);
+        return false;
+    }
+
+    // CRITICAL: Queue respawn for all buffer indices that shifted due to deletion
+    // When we delete at index N, all existing entities at indices N+1 and above need respawning
+    // because their buffer indices shifted by -1
+    for i in delete_buffer_index..text_editor_state.buffer.len() {
+        respawn_queue.indices.push(i);
+        info!("🔄 RESPAWN QUEUE: Added buffer index {} to respawn queue due to deletion", i);
+    }
+
+    // Update cursor position based on deletion direction
+    if delete_to_left {
+        // Backspace: cursor moves left by 1
+        buffer_cursor.position = cursor_position - 1;
+        info!("⬅️ DELETE: Cursor moved left to position {}", buffer_cursor.position);
+    } else {
+        // Delete key: cursor stays in same position (but content shifted left)
+        // No cursor position change needed
+        info!("➡️ DELETE: Cursor remains at position {}", cursor_position);
+    }
+
+    // Mark text editor state as changed for rendering updates
+    text_editor_state.set_changed();
+
+    info!("✅ DELETE: Successfully deleted character '{}' from buffer index {}", 
+          deleted_glyph_name, delete_buffer_index);
+    
+    true
 }
 
 /// Get advance width for a glyph from either AppState or FontIR
