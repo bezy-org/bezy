@@ -190,21 +190,26 @@ pub fn render_measure_preview(
         let line_color = theme.theme().active_color(); // Use bright active green for measure line
         let line_width = camera_scale.adjusted_line_width();
 
-        // Create solid line for measuring
-        let line_entity = spawn_measure_line_mesh(
+        // Create dashed line for measuring (like knife tool)
+        let dash_length = camera_scale.scale_factor * 8.0; // Match knife tool dash length
+        let gap_length = camera_scale.scale_factor * 4.0; // Match knife tool gap length
+        
+        let dashed_line_entity = spawn_dashed_measure_line(
             &mut commands,
             &mut meshes,
             &mut materials,
             start,
             end,
+            dash_length,
+            gap_length,
             line_width,
             line_color,
             18.0, // z-order (below intersection points but above other elements)
         );
-        measure_entities.push(line_entity);
+        measure_entities.push(dashed_line_entity);
 
-        // Draw start point (bright active green circle)
-        let start_color = theme.theme().active_color();
+        // Draw start point (yellow circle like intersection markers)
+        let point_color = theme.theme().selected_color(); // Use yellow selection color
         let point_size = camera_scale.adjusted_point_size(4.0);
         let point_entity = spawn_measure_point_mesh(
             &mut commands,
@@ -212,20 +217,19 @@ pub fn render_measure_preview(
             &mut materials,
             start,
             point_size,
-            start_color,
+            point_color,
             19.0, // z-order above line but below intersection points
         );
         measure_entities.push(point_entity);
 
-        // Draw end point (bright active green circle)
-        let end_color = theme.theme().active_color();
+        // Draw end point (yellow circle like intersection markers)
         let end_point_entity = spawn_measure_point_mesh(
             &mut commands,
             &mut meshes,
             &mut materials,
             end,
             point_size,
-            end_color,
+            point_color,
             19.0, // z-order above line but below intersection points
         );
         measure_entities.push(end_point_entity);
@@ -248,11 +252,11 @@ pub fn render_measure_preview(
     if let Some((start, end)) = measure_consumer.get_measuring_line() {
         let intersections = calculate_measure_intersections(start, end, &fontir_state);
 
-        let intersection_color = theme.theme().action_color(); // Use orange action color for intersection points
+        let intersection_color = theme.theme().selected_color(); // Use yellow selection color for intersection points
 
         for &intersection in &intersections {
-            // Create orange filled circles for intersection points
-            let intersection_size = camera_scale.adjusted_point_size(3.0);
+            // Create yellow filled circles for intersection points (doubled size)
+            let intersection_size = camera_scale.adjusted_point_size(6.0); // Doubled from 3.0 to 6.0
             let intersection_entity = spawn_measure_point_mesh(
                 &mut commands,
                 &mut meshes,
@@ -265,30 +269,61 @@ pub fn render_measure_preview(
             measure_entities.push(intersection_entity);
         }
 
-        // Calculate and display distance measurement
+        // Calculate and display distance measurements for ALL consecutive pairs
         if intersections.len() >= 2 {
-            let distance = intersections[0].distance(intersections[1]);
-            let midpoint = (intersections[0] + intersections[1]) * 0.5;
-
-            // Format distance value appropriately
-            let distance_text = format!("{distance:.1}");
-
-            // Spawn pill-shaped background for text with higher z-orders
-            let pill_entities = spawn_measure_text_with_pill_background(
-                &mut commands,
-                &mut meshes,
-                &mut materials,
-                midpoint,
-                &distance_text,
-                &theme,
-                &camera_scale,
-            );
-            measure_entities.extend(pill_entities);
-
             info!(
-                "📏 MEASURE: Distance between intersection points: {} units",
-                distance_text
+                "📏 MEASURE: Found {} intersection points, calculating {} segment distances",
+                intersections.len(),
+                intersections.len() - 1
             );
+            
+            // Sort intersections by position along the measuring line
+            let mut sorted_intersections = intersections.clone();
+            let measuring_line = kurbo::Line::new(
+                kurbo::Point::new(start.x as f64, start.y as f64),
+                kurbo::Point::new(end.x as f64, end.y as f64),
+            );
+            
+            sorted_intersections.sort_by(|a, b| {
+                let cutting_dir = (measuring_line.p1 - measuring_line.p0).normalize();
+                let a_proj = (kurbo::Point::new(a.x as f64, a.y as f64) - measuring_line.p0).dot(cutting_dir);
+                let b_proj = (kurbo::Point::new(b.x as f64, b.y as f64) - measuring_line.p0).dot(cutting_dir);
+                a_proj.partial_cmp(&b_proj).unwrap_or(std::cmp::Ordering::Equal)
+            });
+            
+            // Create distance measurements for each consecutive pair
+            for i in 0..(sorted_intersections.len() - 1) {
+                let point1 = sorted_intersections[i];
+                let point2 = sorted_intersections[i + 1];
+                let distance = point1.distance(point2);
+                let midpoint = (point1 + point2) * 0.5;
+
+                // Format distance value appropriately - show integers without decimals
+                let distance_text = if distance.fract().abs() < 1e-6 {
+                    // It's essentially a whole number
+                    format!("{:.0}", distance)
+                } else {
+                    // Show one decimal place
+                    format!("{:.1}", distance)
+                };
+
+                // Spawn pill-shaped background for text with higher z-orders
+                let pill_entities = spawn_measure_text_with_pill_background(
+                    &mut commands,
+                    &mut meshes,
+                    &mut materials,
+                    midpoint,
+                    &distance_text,
+                    &theme,
+                    &camera_scale,
+                );
+                measure_entities.extend(pill_entities);
+
+                info!(
+                    "📏 MEASURE: Segment {}: Distance between points {:?} and {:?} = {} units",
+                    i + 1, point1, point2, distance_text
+                );
+            }
         }
     }
 }
@@ -410,7 +445,9 @@ fn line_line_intersection_simple(line1: &kurbo::Line, line2: &kurbo::Line) -> Op
     let t = ((p1.x - p3.x) * (p3.y - p4.y) - (p1.y - p3.y) * (p3.x - p4.x)) / denom;
     let u = -((p1.x - p2.x) * (p1.y - p3.y) - (p1.y - p2.y) * (p1.x - p3.x)) / denom;
 
-    if (0.0..=1.0).contains(&u) {
+    // IMPORTANT: Check that both t and u are within [0,1] for line segment intersection
+    // t is the parameter for the measuring line, u is for the path segment
+    if (0.0..=1.0).contains(&t) && (0.0..=1.0).contains(&u) {
         Some(kurbo::Point::new(
             p1.x + t * (p2.x - p1.x),
             p1.y + t * (p2.y - p1.y),
@@ -430,7 +467,12 @@ fn curve_line_intersections_simple(
 
     for intersection in curve_intersections {
         let point = curve.eval(intersection.segment_t);
-        intersections.push(point);
+        
+        // IMPORTANT: Check if intersection point lies within the measuring line segment
+        // kurbo finds intersections with infinite line, but we want line segment only
+        if point_lies_on_line_segment(point, line) {
+            intersections.push(point);
+        }
     }
 
     intersections.dedup_by(|a, b| a.distance(*b) < 1.0);
@@ -444,7 +486,12 @@ fn quad_line_intersections_simple(curve: &kurbo::QuadBez, line: &kurbo::Line) ->
 
     for intersection in curve_intersections {
         let point = curve.eval(intersection.segment_t);
-        intersections.push(point);
+        
+        // IMPORTANT: Check if intersection point lies within the measuring line segment
+        // kurbo finds intersections with infinite line, but we want line segment only
+        if point_lies_on_line_segment(point, line) {
+            intersections.push(point);
+        }
     }
 
     intersections.dedup_by(|a, b| a.distance(*b) < 1.0);
@@ -458,6 +505,129 @@ fn get_path_start_point(path: &kurbo::BezPath) -> Option<kurbo::Point> {
         }
     }
     None
+}
+
+/// Check if a point lies on a line segment (not just the infinite line)
+fn point_lies_on_line_segment(point: kurbo::Point, line: &kurbo::Line) -> bool {
+    // Calculate the parameter t for the point on the line
+    let dx = line.p1.x - line.p0.x;
+    let dy = line.p1.y - line.p0.y;
+    
+    // Handle near-vertical and near-horizontal lines appropriately
+    let t = if dx.abs() > dy.abs() {
+        // Use x coordinate for parameter calculation
+        if dx.abs() < 1e-10 {
+            // Vertical line
+            return (point.x - line.p0.x).abs() < 1e-6 
+                && point.y >= line.p0.y.min(line.p1.y) - 1e-6
+                && point.y <= line.p0.y.max(line.p1.y) + 1e-6;
+        }
+        (point.x - line.p0.x) / dx
+    } else {
+        // Use y coordinate for parameter calculation
+        if dy.abs() < 1e-10 {
+            // Horizontal line
+            return (point.y - line.p0.y).abs() < 1e-6 
+                && point.x >= line.p0.x.min(line.p1.x) - 1e-6
+                && point.x <= line.p0.x.max(line.p1.x) + 1e-6;
+        }
+        (point.y - line.p0.y) / dy
+    };
+    
+    // Check if t is within [0, 1] (point lies on line segment)
+    (0.0..=1.0).contains(&t)
+}
+
+/// Spawn a dashed line mesh for the measure tool (similar to knife tool)
+#[allow(clippy::too_many_arguments)]
+fn spawn_dashed_measure_line(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<bevy::render::mesh::Mesh>>,
+    materials: &mut ResMut<Assets<bevy::sprite::ColorMaterial>>,
+    start: Vec2,
+    end: Vec2,
+    dash_length: f32,
+    gap_length: f32,
+    width: f32,
+    color: bevy::color::Color,
+    z: f32,
+) -> Entity {
+    use bevy::render::mesh::{Indices, PrimitiveTopology};
+
+    let direction = (end - start).normalize();
+    let perpendicular = Vec2::new(-direction.y, direction.x) * width * 0.5;
+    let total_length = start.distance(end);
+    let segment_length = dash_length + gap_length;
+
+    let mut vertices = Vec::new();
+    let mut indices = Vec::new();
+    let mut vertex_count = 0u32;
+
+    // Generate all dash segments in a single mesh
+    let mut current_pos = 0.0;
+    while current_pos < total_length {
+        let dash_start = start + direction * current_pos;
+        let dash_end_pos = (current_pos + dash_length).min(total_length);
+        let dash_end = start + direction * dash_end_pos;
+
+        // Add vertices for this dash segment
+        vertices.push([
+            dash_start.x - perpendicular.x,
+            dash_start.y - perpendicular.y,
+            z,
+        ]);
+        vertices.push([
+            dash_start.x + perpendicular.x,
+            dash_start.y + perpendicular.y,
+            z,
+        ]);
+        vertices.push([
+            dash_end.x + perpendicular.x,
+            dash_end.y + perpendicular.y,
+            z,
+        ]);
+        vertices.push([
+            dash_end.x - perpendicular.x,
+            dash_end.y - perpendicular.y,
+            z,
+        ]);
+
+        // Add indices for this dash segment
+        indices.extend_from_slice(&[
+            vertex_count,
+            vertex_count + 1,
+            vertex_count + 2,
+            vertex_count,
+            vertex_count + 2,
+            vertex_count + 3,
+        ]);
+
+        vertex_count += 4;
+        current_pos += segment_length;
+    }
+
+    if vertices.is_empty() {
+        // Create a dummy entity if no dashes were created
+        return commands.spawn_empty().id();
+    }
+
+    let mut mesh = bevy::render::mesh::Mesh::new(
+        PrimitiveTopology::TriangleList,
+        bevy::render::render_asset::RenderAssetUsages::default(),
+    );
+    mesh.insert_attribute(bevy::render::mesh::Mesh::ATTRIBUTE_POSITION, vertices);
+    mesh.insert_indices(Indices::U32(indices));
+
+    let mesh_handle = meshes.add(mesh);
+    let material_handle = materials.add(bevy::sprite::ColorMaterial::from(color));
+
+    commands
+        .spawn((
+            bevy::render::mesh::Mesh2d(mesh_handle),
+            bevy::sprite::MeshMaterial2d(material_handle),
+            Transform::from_translation(Vec3::new(0.0, 0.0, z)),
+        ))
+        .id()
 }
 
 /// Spawn a line mesh for the measure tool

@@ -463,6 +463,20 @@ pub fn update_hover_text_visibility(
             Without<crate::ui::edit_mode_toolbar::text::TextModeButton>,
         ),
     >,
+    // AI submenu buttons
+    ai_button_query: Query<
+        (
+            &Interaction,
+            &crate::tools::ai::AiOperationButton,
+        ),
+        (
+            With<Button>,
+            Without<ToolButtonData>,
+            Without<crate::ui::edit_mode_toolbar::pen::PenModeButton>,
+            Without<crate::ui::edit_mode_toolbar::text::TextModeButton>,
+            Without<crate::ui::edit_mode_toolbar::shapes::ShapeModeButton>,
+        ),
+    >,
     // Check submenu visibility by name (exclude hover text entities)
     submenu_query: Query<(&Node, &Name), Without<ButtonHoverText>>,
     mut hover_text_query: Query<(Entity, &mut Text, &mut Node), With<ButtonHoverText>>,
@@ -513,6 +527,16 @@ pub fn update_hover_text_visibility(
         }
     }
 
+    // Check AI submenu buttons
+    if hovered_text.is_none() {
+        for (interaction, ai_operation_button) in ai_button_query.iter() {
+            if *interaction == Interaction::Hovered {
+                hovered_text = Some(ai_operation_button.operation.display_name().to_string());
+                break;
+            }
+        }
+    }
+
     // Calculate vertical position based on submenu visibility
     // Use grid spacing for consistent layout - smaller gap for better visual connection
     let base_offset = TOOLBAR_CONTAINER_MARGIN + TOOLBAR_BUTTON_SIZE + TOOLBAR_GRID_SPACING * 2.0;
@@ -522,7 +546,8 @@ pub fn update_hover_text_visibility(
     for (node, name) in submenu_query.iter() {
         if (name.as_str() == "PenSubMenu"
             || name.as_str() == "TextSubMenu"
-            || name.as_str() == "ShapesSubMenu")
+            || name.as_str() == "ShapesSubMenu"
+            || name.as_str() == "AiSubMenu")
             && node.display != Display::None
         {
             submenu_visible = true;

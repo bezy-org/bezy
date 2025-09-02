@@ -414,50 +414,31 @@ pub fn render_knife_preview(
         );
         knife_entities.push(dashed_line_entity);
 
-        // Draw start point (green circle) - use world coordinates
-        let start_color = theme.theme().knife_start_point_color();
+        // Draw start point (yellow circle like measure tool) - use world coordinates
+        let point_color = theme.theme().selected_color(); // Use yellow selection color
         let point_size = camera_scale.adjusted_point_size(4.0);
-        let point_entity = spawn_knife_point_mesh(
+        let start_entity = spawn_knife_point_mesh(
             &mut commands,
             &mut meshes,
             &mut materials,
             world_start,
             point_size,
-            start_color,
+            point_color,
             19.0, // z-order above line but below intersection points
         );
-        knife_entities.push(point_entity);
+        knife_entities.push(start_entity);
 
-        // Draw end point (orange cross) - use world coordinates
-        let end_color = theme.theme().action_color();
-        let cross_size = theme.theme().knife_cross_size() * camera_scale.scale_factor;
-        let cross_width = camera_scale.adjusted_line_width();
-
-        // Horizontal line of cross
-        let cross_h_entity = spawn_knife_line_mesh(
+        // Draw end point (yellow circle like measure tool) - use world coordinates
+        let end_entity = spawn_knife_point_mesh(
             &mut commands,
             &mut meshes,
             &mut materials,
-            Vec2::new(world_end.x - cross_size, world_end.y),
-            Vec2::new(world_end.x + cross_size, world_end.y),
-            cross_width,
-            end_color,
+            world_end,
+            point_size,
+            point_color,
             19.0, // z-order above line but below intersection points
         );
-        knife_entities.push(cross_h_entity);
-
-        // Vertical line of cross
-        let cross_v_entity = spawn_knife_line_mesh(
-            &mut commands,
-            &mut meshes,
-            &mut materials,
-            Vec2::new(world_end.x, world_end.y - cross_size),
-            Vec2::new(world_end.x, world_end.y + cross_size),
-            cross_width,
-            end_color,
-            19.0, // z-order above line but below intersection points
-        );
-        knife_entities.push(cross_v_entity);
+        knife_entities.push(end_entity);
 
         debug!(
             "🔪 RENDER_KNIFE_PREVIEW: Created {} visual entities for knife preview",
@@ -488,41 +469,24 @@ pub fn render_knife_preview(
             calc_cache.last_glyph = current_glyph;
         }
 
-        let intersection_color = theme.theme().knife_intersection_color();
+        let intersection_color = theme.theme().selected_color(); // Use yellow selection color
 
         for &intersection in &calc_cache.cached_intersections {
             // Convert intersection from sort-relative to world coordinates
             let world_intersection = intersection + sort_position;
             
-            let cross_size = theme.theme().knife_cross_size() * camera_scale.scale_factor;
-            let cross_width = camera_scale.adjusted_line_width();
-
-            // Create X mark with two diagonal lines (use world coordinates)
-            // Diagonal line from top-left to bottom-right
-            let diagonal1_entity = spawn_knife_line_mesh(
+            // Create yellow filled circles for intersection points (like measure tool)
+            let intersection_size = camera_scale.adjusted_point_size(6.0); // Same size as measure tool
+            let circle_entity = spawn_knife_point_mesh(
                 &mut commands,
                 &mut meshes,
                 &mut materials,
-                Vec2::new(world_intersection.x - cross_size, world_intersection.y + cross_size),
-                Vec2::new(world_intersection.x + cross_size, world_intersection.y - cross_size),
-                cross_width,
+                world_intersection,
+                intersection_size,
                 intersection_color,
                 20.0, // z-order above everything else
             );
-            knife_entities.push(diagonal1_entity);
-
-            // Diagonal line from top-right to bottom-left
-            let diagonal2_entity = spawn_knife_line_mesh(
-                &mut commands,
-                &mut meshes,
-                &mut materials,
-                Vec2::new(world_intersection.x + cross_size, world_intersection.y + cross_size),
-                Vec2::new(world_intersection.x - cross_size, world_intersection.y - cross_size),
-                cross_width,
-                intersection_color,
-                20.0, // z-order above everything else
-            );
-            knife_entities.push(diagonal2_entity);
+            knife_entities.push(circle_entity);
         }
     }
 }
