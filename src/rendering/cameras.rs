@@ -76,10 +76,7 @@ fn zoom_camera(
 }
 
 /// Handles keyboard shortcuts for camera control
-fn toggle_camera_controls(
-    mut query: Query<&mut PanCam>,
-    keys: Res<ButtonInput<KeyCode>>,
-) {
+fn toggle_camera_controls(mut query: Query<&mut PanCam>, keys: Res<ButtonInput<KeyCode>>) {
     // Handle zoom to cursor toggle
     if keys.just_pressed(KeyCode::KeyT) {
         for mut pancam in query.iter_mut() {
@@ -117,16 +114,11 @@ mod camera_and_pointer_tests {
 
         // Place marquee at the center of the visible area
         let marquee_center = camera_center;
-        let marquee_start =
-            DPoint::from_raw(marquee_center - marquee_size / 2.0);
+        let marquee_start = DPoint::from_raw(marquee_center - marquee_size / 2.0);
         let marquee_end = DPoint::from_raw(marquee_center + marquee_size / 2.0);
 
         // Is the point inside the marquee?
-        SelectionCoordinateSystem::is_point_in_rectangle(
-            &point_pos,
-            &marquee_start,
-            &marquee_end,
-        )
+        SelectionCoordinateSystem::is_point_in_rectangle(&point_pos, &marquee_start, &marquee_end)
     }
 
     #[test]
@@ -195,7 +187,10 @@ mod camera_and_pointer_tests {
             "[test_camera_centered_on_glyph_with_zoom] selectable={}",
             selectable
         );
-        assert!(selectable, "Point at -900 should be selectable when camera is centered and zoomed");
+        assert!(
+            selectable,
+            "Point at -900 should be selectable when camera is centered and zoomed"
+        );
     }
 
     #[test]
@@ -206,9 +201,11 @@ mod camera_and_pointer_tests {
         let window_size = Vec2::new(1000.0, 1000.0);
         let screen_pos = Vec2::new(500.0, 500.0); // Center of window
                                                   // Convert screen to design space
-        let design_space_pos =
-            camera_center + (screen_pos - window_size / 2.0) * camera_scale;
-        println!("[test_screen_to_design_space_conversion] screen_pos={:?}, design_space_pos={:?}", screen_pos, design_space_pos);
+        let design_space_pos = camera_center + (screen_pos - window_size / 2.0) * camera_scale;
+        println!(
+            "[test_screen_to_design_space_conversion] screen_pos={:?}, design_space_pos={:?}",
+            screen_pos, design_space_pos
+        );
         assert_eq!(
             design_space_pos, camera_center,
             "Screen center should map to camera center in design space"

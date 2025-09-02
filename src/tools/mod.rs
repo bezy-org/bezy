@@ -102,5 +102,5 @@ pub trait EditTool: Send + Sync {
 
 // ✅ NEW SYSTEM: Tools are now automatically registered from toolbar_config.rs
 // No need for manual registration - just add tools to the config and they appear in the toolbar!
-// 
+//
 // ❌ OLD SYSTEM (DEPRECATED): Manual adapters in adapters.rs - no longer needed

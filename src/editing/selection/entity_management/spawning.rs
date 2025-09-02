@@ -3,13 +3,10 @@
 use crate::core::state::font_data::PointTypeData;
 use crate::core::state::AppState;
 use crate::editing::selection::components::{
-    FontIRPointReference, GlyphPointReference, PointType, Selectable, Selected,
-    SelectionState,
+    FontIRPointReference, GlyphPointReference, PointType, Selectable, Selected, SelectionState,
 };
 use crate::editing::sort::{ActiveSortState, Sort};
-use crate::geometry::bezpath_editing::{
-    extract_editable_points, PathPointType,
-};
+use crate::geometry::bezpath_editing::{extract_editable_points, PathPointType};
 use crate::geometry::point::EditPoint;
 use crate::systems::sort_manager::SortPointEntity;
 use bevy::prelude::*;
@@ -26,9 +23,7 @@ pub fn spawn_active_sort_points(
 ) {
     // Only spawn points if there's an active sort
     if let Some(active_sort_entity) = active_sort_state.active_sort_entity {
-        if let Ok((sort_entity, sort, transform)) =
-            sort_query.get(active_sort_entity)
-        {
+        if let Ok((sort_entity, sort, transform)) = sort_query.get(active_sort_entity) {
             // Check if points already exist for this sort
             let existing_points = point_entities.iter().any(|_entity| {
                 // Simplified check - in real implementation you'd check if points exist for this specific sort
@@ -69,9 +64,7 @@ pub fn spawn_active_sort_points(
             warn!("[spawn_active_sort_points] Active sort entity not found in sort query");
         }
     } else {
-        debug!(
-            "[spawn_active_sort_points] No active sort, skipping point spawn"
-        );
+        debug!("[spawn_active_sort_points] No active sort, skipping point spawn");
     }
 }
 
@@ -84,18 +77,23 @@ pub fn despawn_inactive_sort_points(
 ) {
     // Despawn points for sorts that are no longer active
     for (entity, sort_point) in point_entities.iter() {
-        let is_active = active_sort_state.active_sort_entity
-            == Some(sort_point.sort_entity);
+        let is_active = active_sort_state.active_sort_entity == Some(sort_point.sort_entity);
 
         if !is_active {
             // Remove from selection state if selected
             if selection_state.selected.contains(&entity) {
                 selection_state.selected.remove(&entity);
-                info!("[despawn_inactive_sort_points] Removed despawned entity {:?} from selection", entity);
+                info!(
+                    "[despawn_inactive_sort_points] Removed despawned entity {:?} from selection",
+                    entity
+                );
             }
 
             commands.entity(entity).despawn();
-            debug!("[despawn_inactive_sort_points] Despawned point entity {:?} for inactive sort {:?}", entity, sort_point.sort_entity);
+            debug!(
+                "[despawn_inactive_sort_points] Despawned point entity {:?} for inactive sort {:?}",
+                entity, sort_point.sort_entity
+            );
         }
     }
 }
@@ -147,9 +145,7 @@ fn spawn_fontir_points(
                             position: editable_point.position,
                             point_type: match editable_point.point_type {
                                 PathPointType::OnCurve => PointTypeData::Line, // Simplified mapping
-                                PathPointType::OffCurve => {
-                                    PointTypeData::OffCurve
-                                }
+                                PathPointType::OffCurve => PointTypeData::OffCurve,
                             },
                         },
                         fontir_point_ref,
@@ -159,9 +155,7 @@ fn spawn_fontir_points(
                                 PathPointType::OnCurve
                             ),
                         },
-                        Transform::from_translation(
-                            point_world_pos.extend(0.0),
-                        ),
+                        Transform::from_translation(point_world_pos.extend(0.0)),
                         Visibility::Visible,
                         InheritedVisibility::default(),
                         ViewVisibility::default(),
@@ -171,7 +165,10 @@ fn spawn_fontir_points(
                     .id();
             }
         }
-        info!("[spawn_fontir_points] Successfully spawned {} FontIR point entities", point_count);
+        info!(
+            "[spawn_fontir_points] Successfully spawned {} FontIR point entities",
+            point_count
+        );
     } else {
         warn!(
             "[spawn_fontir_points] No FontIR paths found for glyph '{}'",
@@ -193,12 +190,10 @@ fn spawn_appstate_points(
         if let Some(outline) = &glyph_data.outline {
             let mut point_count = 0;
 
-            for (contour_index, contour) in outline.contours.iter().enumerate()
-            {
+            for (contour_index, contour) in outline.contours.iter().enumerate() {
                 for (point_index, point) in contour.points.iter().enumerate() {
                     // Calculate world position: sort position + point offset
-                    let point_world_pos =
-                        position + Vec2::new(point.x as f32, point.y as f32);
+                    let point_world_pos = position + Vec2::new(point.x as f32, point.y as f32);
                     point_count += 1;
 
                     // Debug: Print first few point positions
@@ -228,9 +223,7 @@ fn spawn_appstate_points(
                                         | PointTypeData::Curve
                                 ),
                             },
-                            Transform::from_translation(
-                                point_world_pos.extend(0.0),
-                            ),
+                            Transform::from_translation(point_world_pos.extend(0.0)),
                             Visibility::Visible,
                             InheritedVisibility::default(),
                             ViewVisibility::default(),
@@ -240,7 +233,10 @@ fn spawn_appstate_points(
                         .id();
                 }
             }
-            info!("[spawn_appstate_points] Successfully spawned {} point entities", point_count);
+            info!(
+                "[spawn_appstate_points] Successfully spawned {} point entities",
+                point_count
+            );
         } else {
             warn!(
                 "[spawn_appstate_points] No outline found for glyph '{}'",

@@ -3,9 +3,7 @@
 //! This tool provides selection and manipulation functionality for objects in the design space.
 //! It's typically the default tool and allows users to select, move, and modify existing elements.
 
-use crate::ui::toolbars::edit_mode_toolbar::{
-    EditModeSystem, EditTool, ToolRegistry,
-};
+use crate::ui::edit_mode_toolbar::{EditModeSystem, EditTool, ToolRegistry};
 use bevy::prelude::*;
 
 /// Plugin to register selection mode systems
@@ -24,7 +22,7 @@ pub struct SelectModeActive(pub bool);
 pub struct SelectTool;
 
 impl EditTool for SelectTool {
-    fn id(&self) -> crate::ui::toolbars::edit_mode_toolbar::ToolId {
+    fn id(&self) -> crate::ui::edit_mode_toolbar::ToolId {
         "select"
     }
 
@@ -92,7 +90,7 @@ fn register_select_tool(mut tool_registry: ResMut<ToolRegistry>) {
 
 /// System to deactivate select mode when another tool is selected
 pub fn reset_select_mode_when_inactive(
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     mut commands: Commands,
 ) {
     if current_tool.get_current() != Some("select") {
@@ -109,7 +107,7 @@ pub fn reset_select_mode_when_inactive(
 
 /// System to ensure select mode is active by default
 pub fn ensure_select_mode_active(
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     mut commands: Commands,
 ) {
     // If no tool is currently selected, default to select

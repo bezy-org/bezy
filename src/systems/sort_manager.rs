@@ -10,9 +10,7 @@ use crate::editing::selection::components::{
     GlyphPointReference, PointType, Selectable, Selected, SelectionState,
 };
 use crate::editing::selection::nudge::PointCoordinates;
-use crate::editing::sort::{
-    ActiveSort, ActiveSortState, InactiveSort, Sort, SortEvent,
-};
+use crate::editing::sort::{ActiveSort, ActiveSortState, InactiveSort, Sort, SortEvent};
 #[allow(unused_imports)]
 use crate::rendering::cameras::DesignCamera;
 
@@ -26,11 +24,7 @@ use std::collections::HashMap;
 /// Helper to calculate the desired position of the crosshair.
 /// Places it at the lower-left of the sort's metrics box, offset inward by 64 units.
 #[allow(dead_code)]
-fn get_crosshair_position(
-    _sort: &Sort,
-    transform: &Transform,
-    app_state: &AppState,
-) -> Vec2 {
+fn get_crosshair_position(_sort: &Sort, transform: &Transform, app_state: &AppState) -> Vec2 {
     let metrics = &app_state.workspace.info.metrics;
 
     // Get the descender (bottom of the metrics box)
@@ -84,13 +78,14 @@ pub fn handle_sort_events(
                 position,
                 layout_mode,
             } => {
-                info!("Handling CreateSort event for '{}' at {:?} with layout mode {:?}", glyph_name, position, layout_mode);
+                info!(
+                    "Handling CreateSort event for '{}' at {:?} with layout mode {:?}",
+                    glyph_name, position, layout_mode
+                );
 
                 // Get advance width from the virtual font
                 let advance_width = if let Some(state) = app_state.as_ref() {
-                    if let Some(glyph_data) =
-                        state.workspace.font.get_glyph(glyph_name)
-                    {
+                    if let Some(glyph_data) = state.workspace.font.get_glyph(glyph_name) {
                         glyph_data.advance_width as f32
                     } else {
                         600.0 // Default fallback
@@ -115,9 +110,7 @@ pub fn handle_sort_events(
                 // Only activate if it's not already active
                 if active_sort_state.active_sort_entity != Some(*entity) {
                     // Deactivate current active sort
-                    if let Some(current_active) =
-                        active_sort_state.active_sort_entity
-                    {
+                    if let Some(current_active) = active_sort_state.active_sort_entity {
                         commands
                             .entity(current_active)
                             .remove::<ActiveSort>()
@@ -215,10 +208,7 @@ pub fn respawn_sort_points_on_glyph_change(
     // mut selection_state: ResMut<SelectionState>,
     _app_state: Option<Res<AppState>>,
     mut _local_previous_glyphs: Local<HashMap<Entity, String>>,
-    _newly_spawned_crosshairs: Query<
-        &SortCrosshair,
-        With<NewlySpawnedCrosshair>,
-    >,
+    _newly_spawned_crosshairs: Query<&SortCrosshair, With<NewlySpawnedCrosshair>>,
 ) {
     // TODO: Re-enable when selection is working
     /*
@@ -277,13 +267,10 @@ pub fn spawn_point_entities_for_sort(
     selection_state: &mut ResMut<SelectionState>,
 ) {
     // Get the glyph from the virtual font using our current architecture
-    if let Some(glyph_data) =
-        app_state.workspace.font.get_glyph(&sort.glyph_name)
-    {
+    if let Some(glyph_data) = app_state.workspace.font.get_glyph(&sort.glyph_name) {
         if let Some(outline) = &glyph_data.outline {
             for (contour_idx, contour) in outline.contours.iter().enumerate() {
-                for (point_idx, point_data) in contour.points.iter().enumerate()
-                {
+                for (point_idx, point_data) in contour.points.iter().enumerate() {
                     let is_on_curve = matches!(
                         point_data.point_type,
                         crate::core::state::PointTypeData::Move
@@ -305,11 +292,7 @@ pub fn spawn_point_entities_for_sort(
                     let was_selected = false;
 
                     let mut entity_cmds = commands.spawn((
-                        Transform::from_translation(Vec3::new(
-                            point_pos.x,
-                            point_pos.y,
-                            0.0,
-                        )),
+                        Transform::from_translation(Vec3::new(point_pos.x, point_pos.y, 0.0)),
                         GlobalTransform::default(),
                         Visibility::default(),
                         InheritedVisibility::default(),
@@ -461,9 +444,7 @@ pub fn spawn_current_glyph_sort(
 
     if let Some(glyph_name) = current_glyph_name {
         // Check if a sort already exists for this glyph
-        let sort_exists = sorts_query
-            .iter()
-            .any(|sort| sort.glyph_name == glyph_name);
+        let sort_exists = sorts_query.iter().any(|sort| sort.glyph_name == glyph_name);
 
         if !sort_exists {
             info!(
@@ -475,7 +456,7 @@ pub fn spawn_current_glyph_sort(
             let entity = create_sort(
                 &mut commands,
                 glyph_name.clone(),
-                Vec2::ZERO, // Center of design space
+                Vec2::ZERO,                                   // Center of design space
                 0.0, // Advance width (not used in new structure)
                 crate::core::state::SortLayoutMode::Freeform, // Not part of text buffer
             );

@@ -26,11 +26,7 @@ impl SelectionCoordinateSystem {
 
     /// Check if a point in entity coordinates is inside a rectangle in design coordinates
     /// Both coordinates are in the same world coordinate system, so we can compare directly
-    pub fn is_point_in_rectangle(
-        point: &Vec2,
-        rect_start: &DPoint,
-        rect_end: &DPoint,
-    ) -> bool {
+    pub fn is_point_in_rectangle(point: &Vec2, rect_start: &DPoint, rect_end: &DPoint) -> bool {
         // Convert design space coordinates to Vec2 for comparison
         let rect_start_vec = rect_start.to_raw();
         let rect_end_vec = rect_end.to_raw();

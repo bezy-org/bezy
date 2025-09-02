@@ -6,26 +6,26 @@
 //! proper ordering and visual feedback. To add a new tool, implement the
 //! `EditTool` trait and register it with `ToolRegistry::register_tool()`.
 //!
-//! ## Unified Button Rendering System
+//! ## Consistent Button Rendering System
 //!
-//! This module provides a comprehensive unified button rendering system that ensures
+//! This module provides a comprehensive button rendering system that ensures
 //! consistent visual appearance across all toolbar buttons (main toolbar and submenus).
 //!
 //! ### Key Features
-//! 
-//! - **Consistent Button Creation**: `create_unified_toolbar_button()` creates buttons with
+//!
+//! - **Consistent Button Creation**: `create_toolbar_button()` creates buttons with
 //!   identical styling, sizing, borders, and color handling
-//! - **Unified Color System**: `update_unified_button_colors()` ensures all buttons use
+//! - **Consistent Color System**: `update_toolbar_button_colors()` ensures all buttons use
 //!   the same color states (normal, hovered, pressed/active)
 //! - **Icon Alignment**: `create_button_icon_text()` provides consistent icon centering
 //!   and font sizing across all buttons
 //!
 //! ### For Submenu Developers
 //!
-//! When creating submenu buttons, always use the unified system:
+//! When creating submenu buttons, always use the consistent system:
 //! ```rust,ignore
 //! // 1. Create the button with consistent styling
-//! create_unified_toolbar_button(
+//! create_toolbar_button(
 //!     parent,
 //!     icon_string,
 //!     (YourSubMenuButton, YourModeButton { mode }),
@@ -34,7 +34,7 @@
 //! );
 //!
 //! // 2. Handle background/border color updates
-//! update_unified_button_colors(
+//! update_toolbar_button_colors(
 //!     interaction,
 //!     is_active,
 //!     &mut background_color,
@@ -42,7 +42,7 @@
 //! );
 //!
 //! // 3. Handle icon text color updates (for bright white active icons)
-//! update_unified_button_text_colors(
+//! update_toolbar_button_text_colors(
 //!     entity,
 //!     is_active,
 //!     &children_query,
@@ -54,16 +54,14 @@
 //! making it easy to maintain a professional, unified interface.
 
 use crate::ui::theme::{
-    BUTTON_ICON_SIZE, GROTESK_FONT_PATH, HOVERED_BUTTON_COLOR,
-    HOVERED_BUTTON_OUTLINE_COLOR, MONO_FONT_PATH, NORMAL_BUTTON_COLOR,
-    NORMAL_BUTTON_OUTLINE_COLOR, PRESSED_BUTTON_COLOR,
-    PRESSED_BUTTON_ICON_COLOR, PRESSED_BUTTON_OUTLINE_COLOR,
-    TOOLBAR_BORDER_WIDTH, TOOLBAR_BUTTON_SIZE, TOOLBAR_CONTAINER_MARGIN,
-    TOOLBAR_ICON_COLOR, TOOLBAR_ITEM_SPACING, TOOLBAR_PADDING,
-    WIDGET_TEXT_FONT_SIZE,
+    BUTTON_ICON_SIZE, GROTESK_FONT_PATH, HOVERED_BUTTON_COLOR, HOVERED_BUTTON_OUTLINE_COLOR,
+    MONO_FONT_PATH, NORMAL_BUTTON_COLOR, NORMAL_BUTTON_OUTLINE_COLOR, PRESSED_BUTTON_COLOR,
+    PRESSED_BUTTON_ICON_COLOR, PRESSED_BUTTON_OUTLINE_COLOR, TOOLBAR_BORDER_WIDTH,
+    TOOLBAR_BUTTON_SIZE, TOOLBAR_CONTAINER_MARGIN, TOOLBAR_ICON_COLOR, TOOLBAR_GRID_SPACING,
+    TOOLBAR_ITEM_SPACING, TOOLBAR_PADDING, WIDGET_TEXT_FONT_SIZE,
 };
 use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
-use crate::ui::toolbars::edit_mode_toolbar::*;
+use crate::ui::edit_mode_toolbar::*;
 use bevy::prelude::*;
 
 // COMPONENTS ------------------------------------------------------------------
@@ -134,14 +132,13 @@ fn create_tool_button(
 ) {
     parent
         .spawn(Node {
-            margin: UiRect::all(Val::Px(TOOLBAR_ITEM_SPACING)),
+            margin: UiRect::all(Val::Px(TOOLBAR_GRID_SPACING)),
             ..default()
         })
         .with_children(|button_container| {
             create_button_entity(button_container, tool, asset_server, theme);
         });
 }
-
 
 /// Creates the button entity with all required components
 fn create_button_entity(
@@ -213,21 +210,28 @@ pub fn create_button_icon_text(
     ));
 }
 
-/// Creates a unified toolbar button with consistent styling and returns a builder for adding components
-/// This should be used by all toolbar buttons (main toolbar and submenus) for visual consistency
-pub fn create_unified_toolbar_button<T: Bundle>(
+/// Creates a standard button with consistent styling and returns a builder for adding components
+/// This should be used by most toolbar buttons (main toolbar and submenus) for visual consistency
+pub fn create_toolbar_button<T: Bundle>(
     parent: &mut ChildSpawnerCommands,
     icon: &str,
     additional_components: T,
     asset_server: &AssetServer,
     theme: &Res<CurrentTheme>,
 ) {
-    create_unified_toolbar_button_with_hover_text(parent, icon, None, additional_components, asset_server, theme);
+    create_toolbar_button_with_hover_text(
+        parent,
+        icon,
+        None,
+        additional_components,
+        asset_server,
+        theme,
+    );
 }
 
-/// Creates a unified toolbar button with hover text support
+/// Creates a standard button with hover text support
 /// This version allows specifying the hover text to display when the button is hovered
-pub fn create_unified_toolbar_button_with_hover_text<T: Bundle>(
+pub fn create_toolbar_button_with_hover_text<T: Bundle>(
     parent: &mut ChildSpawnerCommands,
     icon: &str,
     _hover_text: Option<&str>,
@@ -238,7 +242,7 @@ pub fn create_unified_toolbar_button_with_hover_text<T: Bundle>(
     // Note: _hover_text parameter is now ignored since hover text is handled dynamically
     parent
         .spawn(Node {
-            margin: UiRect::all(Val::Px(TOOLBAR_ITEM_SPACING)),
+            margin: UiRect::all(Val::Px(TOOLBAR_GRID_SPACING)),
             ..default()
         })
         .with_children(|button_container| {
@@ -258,10 +262,9 @@ pub fn create_unified_toolbar_button_with_hover_text<T: Bundle>(
         });
 }
 
-
-/// Updates button colors using the unified color system
-/// This should be used by all button color update systems for consistency
-pub fn update_unified_button_colors(
+/// Updates standard button colors with consistent styling
+/// This should be used by all standard button color update systems for consistency
+pub fn update_toolbar_button_colors(
     interaction: Interaction,
     is_active: bool,
     background_color: &mut BackgroundColor,
@@ -271,12 +274,8 @@ pub fn update_unified_button_colors(
         (Interaction::Pressed, _) | (_, true) => {
             (PRESSED_BUTTON_COLOR, PRESSED_BUTTON_OUTLINE_COLOR)
         }
-        (Interaction::Hovered, false) => {
-            (HOVERED_BUTTON_COLOR, HOVERED_BUTTON_OUTLINE_COLOR)
-        }
-        (Interaction::None, false) => {
-            (NORMAL_BUTTON_COLOR, NORMAL_BUTTON_OUTLINE_COLOR)
-        }
+        (Interaction::Hovered, false) => (HOVERED_BUTTON_COLOR, HOVERED_BUTTON_OUTLINE_COLOR),
+        (Interaction::None, false) => (NORMAL_BUTTON_COLOR, NORMAL_BUTTON_OUTLINE_COLOR),
     };
 
     *background_color = BackgroundColor(bg_color);
@@ -285,7 +284,7 @@ pub fn update_unified_button_colors(
 
 /// Updates button text (icon) colors using the unified color system
 /// This should be used by all button text color update systems for consistency
-pub fn update_unified_button_text_colors(
+pub fn update_toolbar_button_text_colors(
     entity: Entity,
     is_active: bool,
     children_query: &Query<&Children>,
@@ -297,9 +296,9 @@ pub fn update_unified_button_text_colors(
     };
 
     let new_color = if is_active {
-        PRESSED_BUTTON_ICON_COLOR  // Bright white for active buttons
+        PRESSED_BUTTON_ICON_COLOR // Bright white for active buttons
     } else {
-        TOOLBAR_ICON_COLOR         // Light gray for normal buttons
+        TOOLBAR_ICON_COLOR // Light gray for normal buttons
     };
 
     // Update text colors for all children of this button
@@ -324,12 +323,11 @@ pub fn handle_toolbar_mode_selection(
 ) {
     for (interaction, tool_button) in interaction_query.iter() {
         if *interaction == Interaction::Pressed {
-            println!("🖊️ PEN_DEBUG: Button pressed for tool: {}", tool_button.tool_id);
-            switch_to_tool(
-                tool_button.tool_id,
-                &mut current_tool,
-                &tool_registry,
+            println!(
+                "🖊️ PEN_DEBUG: Button pressed for tool: {}",
+                tool_button.tool_id
             );
+            switch_to_tool(tool_button.tool_id, &mut current_tool, &tool_registry);
         }
     }
 }
@@ -351,13 +349,8 @@ pub fn update_toolbar_button_appearances(
     current_tool: Res<CurrentTool>,
 ) {
     let current_tool_id = current_tool.get_current();
-    for (
-        interaction,
-        mut background_color,
-        mut border_color,
-        tool_button,
-        entity,
-    ) in interaction_query
+    for (interaction, mut background_color, mut border_color, tool_button, entity) in
+        interaction_query
     {
         let is_current_tool = current_tool_id == Some(tool_button.tool_id);
         update_button_colors(
@@ -366,12 +359,7 @@ pub fn update_toolbar_button_appearances(
             &mut background_color,
             &mut border_color,
         );
-        update_button_text_color(
-            entity,
-            is_current_tool,
-            &children_query,
-            &mut text_query,
-        );
+        update_button_text_color(entity, is_current_tool, &children_query, &mut text_query);
     }
 }
 
@@ -389,10 +377,7 @@ fn switch_to_tool(
 }
 
 /// Exits the currently active tool
-fn exit_current_tool(
-    current_tool: &mut ResMut<CurrentTool>,
-    tool_registry: &Res<ToolRegistry>,
-) {
+fn exit_current_tool(current_tool: &mut ResMut<CurrentTool>, tool_registry: &Res<ToolRegistry>) {
     if let Some(current_id) = current_tool.get_current() {
         if let Some(current_tool_impl) = tool_registry.get_tool(current_id) {
             current_tool_impl.on_exit();
@@ -422,8 +407,8 @@ fn update_button_colors(
     background_color: &mut BackgroundColor,
     border_color: &mut BorderColor,
 ) {
-    // Use the unified color system for consistency
-    update_unified_button_colors(interaction, is_current_tool, background_color, border_color);
+    // Use consistent color system
+    update_toolbar_button_colors(interaction, is_current_tool, background_color, border_color);
 }
 
 /// Updates text color for button children based on current tool state
@@ -433,8 +418,8 @@ fn update_button_text_color(
     children_query: &Query<&Children>,
     text_query: &mut Query<&mut TextColor>,
 ) {
-    // Use the unified text color system for consistency
-    update_unified_button_text_colors(entity, is_current_tool, children_query, text_query);
+    // Use consistent text color system
+    update_toolbar_button_text_colors(entity, is_current_tool, children_query, text_query);
 }
 
 /// Updates hover text visibility based on button interaction states
@@ -446,19 +431,62 @@ pub fn update_hover_text_visibility(
     // Main toolbar buttons
     toolbar_button_query: Query<(&Interaction, Entity, &ToolButtonData), With<Button>>,
     // Pen submenu buttons
-    pen_button_query: Query<(&Interaction, &crate::ui::toolbars::edit_mode_toolbar::pen::PenModeButton), (With<Button>, Without<ToolButtonData>)>,
+    pen_button_query: Query<
+        (
+            &Interaction,
+            &crate::ui::edit_mode_toolbar::pen::PenModeButton,
+        ),
+        (With<Button>, Without<ToolButtonData>),
+    >,
     // Text submenu buttons
-    text_button_query: Query<(&Interaction, &crate::ui::toolbars::edit_mode_toolbar::text::TextModeButton), (With<Button>, Without<ToolButtonData>, Without<crate::ui::toolbars::edit_mode_toolbar::pen::PenModeButton>)>,
+    text_button_query: Query<
+        (
+            &Interaction,
+            &crate::ui::edit_mode_toolbar::text::TextModeButton,
+        ),
+        (
+            With<Button>,
+            Without<ToolButtonData>,
+            Without<crate::ui::edit_mode_toolbar::pen::PenModeButton>,
+        ),
+    >,
     // Shapes submenu buttons
-    shapes_button_query: Query<(&Interaction, &crate::ui::toolbars::edit_mode_toolbar::shapes::ShapeModeButton), (With<Button>, Without<ToolButtonData>, Without<crate::ui::toolbars::edit_mode_toolbar::pen::PenModeButton>, Without<crate::ui::toolbars::edit_mode_toolbar::text::TextModeButton>)>,
+    shapes_button_query: Query<
+        (
+            &Interaction,
+            &crate::ui::edit_mode_toolbar::shapes::ShapeModeButton,
+        ),
+        (
+            With<Button>,
+            Without<ToolButtonData>,
+            Without<crate::ui::edit_mode_toolbar::pen::PenModeButton>,
+            Without<crate::ui::edit_mode_toolbar::text::TextModeButton>,
+        ),
+    >,
+    // AI submenu buttons
+    ai_button_query: Query<
+        (
+            &Interaction,
+            &crate::tools::ai::AiOperationButton,
+        ),
+        (
+            With<Button>,
+            Without<ToolButtonData>,
+            Without<crate::ui::edit_mode_toolbar::pen::PenModeButton>,
+            Without<crate::ui::edit_mode_toolbar::text::TextModeButton>,
+            Without<crate::ui::edit_mode_toolbar::shapes::ShapeModeButton>,
+        ),
+    >,
     // Check submenu visibility by name (exclude hover text entities)
     submenu_query: Query<(&Node, &Name), Without<ButtonHoverText>>,
     mut hover_text_query: Query<(Entity, &mut Text, &mut Node), With<ButtonHoverText>>,
     tool_registry: Res<ToolRegistry>,
     asset_server: Res<AssetServer>,
+    // Get camera for zoom level
+    camera_query: Query<&Projection, With<crate::rendering::cameras::DesignCamera>>,
 ) {
     let mut hovered_text: Option<String> = None;
-    
+
     // Check main toolbar buttons
     for (interaction, _button_entity, tool_data) in toolbar_button_query.iter() {
         if *interaction == Interaction::Hovered {
@@ -468,7 +496,7 @@ pub fn update_hover_text_visibility(
             }
         }
     }
-    
+
     // Check pen submenu buttons
     if hovered_text.is_none() {
         for (interaction, pen_mode_button) in pen_button_query.iter() {
@@ -478,7 +506,7 @@ pub fn update_hover_text_visibility(
             }
         }
     }
-    
+
     // Check text submenu buttons
     if hovered_text.is_none() {
         for (interaction, text_mode_button) in text_button_query.iter() {
@@ -488,7 +516,7 @@ pub fn update_hover_text_visibility(
             }
         }
     }
-    
+
     // Check shapes submenu buttons
     if hovered_text.is_none() {
         for (interaction, shape_mode_button) in shapes_button_query.iter() {
@@ -498,57 +526,96 @@ pub fn update_hover_text_visibility(
             }
         }
     }
-    
+
+    // Check AI submenu buttons
+    if hovered_text.is_none() {
+        for (interaction, ai_operation_button) in ai_button_query.iter() {
+            if *interaction == Interaction::Hovered {
+                hovered_text = Some(ai_operation_button.operation.display_name().to_string());
+                break;
+            }
+        }
+    }
+
     // Calculate vertical position based on submenu visibility
-    let base_offset = TOOLBAR_BUTTON_SIZE + TOOLBAR_PADDING * 2.0 + 32.0; // Distance below bottom buttons
-    
+    // Use grid spacing for consistent layout - smaller gap for better visual connection
+    let base_offset = TOOLBAR_CONTAINER_MARGIN + TOOLBAR_BUTTON_SIZE + TOOLBAR_GRID_SPACING * 2.0;
+
     // Check if any submenu is visible
     let mut submenu_visible = false;
     for (node, name) in submenu_query.iter() {
-        if (name.as_str() == "PenSubMenu" || name.as_str() == "TextSubMenu" || name.as_str() == "ShapesSubMenu") && node.display != Display::None {
+        if (name.as_str() == "PenSubMenu"
+            || name.as_str() == "TextSubMenu"
+            || name.as_str() == "ShapesSubMenu"
+            || name.as_str() == "AiSubMenu")
+            && node.display != Display::None
+        {
             submenu_visible = true;
             break;
         }
     }
-    
+
     // Calculate position: if submenu visible, position below submenu; otherwise below main toolbar
     let vertical_offset = if submenu_visible {
-        // Position below submenu: main toolbar height + submenu height + consistent spacing
-        (TOOLBAR_BUTTON_SIZE + TOOLBAR_PADDING * 2.0) + (TOOLBAR_BUTTON_SIZE + TOOLBAR_PADDING * 2.0) + 32.0
+        // Position below submenu: container margin + main toolbar + spacing + submenu + smaller spacing
+        TOOLBAR_CONTAINER_MARGIN + TOOLBAR_BUTTON_SIZE + TOOLBAR_GRID_SPACING * 2.0
+            + TOOLBAR_BUTTON_SIZE + TOOLBAR_GRID_SPACING * 2.0
     } else {
         // Position below main toolbar with consistent spacing
         base_offset
     };
-    
+
+    // Determine what text to show
+    let display_text = if let Some(text_content) = hovered_text {
+        // Show tool name when hovering
+        text_content
+    } else {
+        // Show zoom level when not hovering
+        if let Ok(projection) = camera_query.single() {
+            // Get the actual zoom scale from the orthographic projection
+            let zoom_scale = match projection {
+                Projection::Orthographic(ortho) => ortho.scale,
+                _ => 1.0,
+            };
+            // Invert the scale since smaller scale = zoomed in
+            let zoom_percentage = ((1.0 / zoom_scale) * 100.0) as i32;
+            format!("Zoom: {}%", zoom_percentage)
+        } else {
+            String::new()
+        }
+    };
+
     // Create or update hover text
-    if let Some(text_content) = hovered_text {
-        if let Ok((_, mut text, mut style)) = hover_text_query.single_mut() {
+    if !display_text.is_empty() {
+        // Try to get a single hover text entity
+        let query_result = hover_text_query.single_mut();
+        if let Ok((_, mut text, mut style)) = query_result {
             // Update existing hover text
-            text.0 = text_content;
+            text.0 = display_text;
             style.top = Val::Px(vertical_offset);
             style.display = Display::Flex;
         } else {
             // Create new hover text if none exists
             commands.spawn((
-                Text::new(text_content),
+                Text::new(display_text),
                 TextFont {
                     font: asset_server.load(MONO_FONT_PATH),
                     font_size: WIDGET_TEXT_FONT_SIZE,
                     ..default()
                 },
-                TextColor(PRESSED_BUTTON_COLOR), // Orange active color
+                TextColor(TOOLBAR_ICON_COLOR), // Light gray color to match unselected icons
                 Node {
                     position_type: PositionType::Absolute,
                     top: Val::Px(vertical_offset),
-                    left: Val::Px(TOOLBAR_CONTAINER_MARGIN + 8.0), // Add extra left margin
-                    display: Display::Flex, // Show immediately
+                    left: Val::Px(TOOLBAR_CONTAINER_MARGIN + TOOLBAR_GRID_SPACING), // Align with button left edge
+                    display: Display::Flex,                        // Show immediately
                     ..default()
                 },
                 ButtonHoverText,
             ));
         }
     } else {
-        // Hide hover text when nothing is hovered
+        // Hide hover text when there's nothing to display
         for (_hover_entity, _text, mut style) in hover_text_query.iter_mut() {
             style.display = Display::None;
         }

@@ -7,9 +7,7 @@ use crate::editing::selection::components::{
     GlyphPointReference, PointType, Selectable, Selected, SelectionState,
 };
 use crate::editing::selection::nudge::PointCoordinates;
-use crate::editing::sort::{
-    ActiveSort, ActiveSortState, InactiveSort, Sort, SortEvent,
-};
+use crate::editing::sort::{ActiveSort, ActiveSortState, InactiveSort, Sort, SortEvent};
 use crate::rendering::cameras::DesignCamera;
 use crate::rendering::sort_renderer::{
     manage_sort_labels, update_sort_label_colors, update_sort_label_positions,

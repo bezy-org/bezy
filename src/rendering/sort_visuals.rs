@@ -8,7 +8,7 @@
 
 use crate::core::state::FontIRAppState;
 use crate::editing::selection::components::Selected;
-use crate::rendering::camera_responsive::CameraResponsiveScale;
+use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
 use crate::systems::sort_manager::SortPointEntity;
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh2d;
@@ -74,11 +74,7 @@ fn spawn_box_outline_handle(
             },
             Mesh2d(meshes.add(top_mesh)),
             MeshMaterial2d(materials.add(ColorMaterial::from_color(color))),
-            Transform::from_xyz(
-                position.x,
-                position.y + half_size - line_width / 2.0,
-                15.0,
-            ),
+            Transform::from_xyz(position.x, position.y + half_size - line_width / 2.0, 15.0),
             GlobalTransform::default(),
             Visibility::Visible,
             InheritedVisibility::default(),
@@ -98,11 +94,7 @@ fn spawn_box_outline_handle(
             },
             Mesh2d(meshes.add(bottom_mesh)),
             MeshMaterial2d(materials.add(ColorMaterial::from_color(color))),
-            Transform::from_xyz(
-                position.x,
-                position.y - half_size + line_width / 2.0,
-                15.0,
-            ),
+            Transform::from_xyz(position.x, position.y - half_size + line_width / 2.0, 15.0),
             GlobalTransform::default(),
             Visibility::Visible,
             InheritedVisibility::default(),
@@ -122,11 +114,7 @@ fn spawn_box_outline_handle(
             },
             Mesh2d(meshes.add(left_mesh)),
             MeshMaterial2d(materials.add(ColorMaterial::from_color(color))),
-            Transform::from_xyz(
-                position.x - half_size + line_width / 2.0,
-                position.y,
-                15.0,
-            ),
+            Transform::from_xyz(position.x - half_size + line_width / 2.0, position.y, 15.0),
             GlobalTransform::default(),
             Visibility::Visible,
             InheritedVisibility::default(),
@@ -146,11 +134,7 @@ fn spawn_box_outline_handle(
             },
             Mesh2d(meshes.add(right_mesh)),
             MeshMaterial2d(materials.add(ColorMaterial::from_color(color))),
-            Transform::from_xyz(
-                position.x + half_size - line_width / 2.0,
-                position.y,
-                15.0,
-            ),
+            Transform::from_xyz(position.x + half_size - line_width / 2.0, position.y, 15.0),
             GlobalTransform::default(),
             Visibility::Visible,
             InheritedVisibility::default(),
@@ -182,7 +166,7 @@ pub fn render_mesh_sort_handles(
     selected_query: Query<Entity, With<Selected>>,
     fontir_app_state: Option<Res<FontIRAppState>>,
     camera_scale: Res<CameraResponsiveScale>,
-    presentation_mode: Option<Res<crate::ui::toolbars::edit_mode_toolbar::PresentationMode>>,
+    presentation_mode: Option<Res<crate::ui::edit_mode_toolbar::PresentationMode>>,
 ) {
     // Clear existing handles with entity existence checks
     for entity in existing_handles.iter() {
@@ -191,7 +175,7 @@ pub fn render_mesh_sort_handles(
         }
     }
     handle_entities.handles.clear();
-    
+
     // Hide sort handles in presentation mode
     let presentation_active = presentation_mode.is_some_and(|pm| pm.active);
     if presentation_active {
@@ -203,16 +187,14 @@ pub fn render_mesh_sort_handles(
         let fontir_metrics = fontir_state.get_font_metrics();
         let descender = fontir_metrics.descender.unwrap_or(-200.0);
 
-        for (sort_entity, sort_transform, _sort, active, _inactive) in
-            sort_query.iter()
-        {
+        for (sort_entity, sort_transform, _sort, active, _inactive) in sort_query.iter() {
             let position = sort_transform.translation.truncate();
 
             // Position handle at lower left corner of the metrics box
             // The handle should be at the bottom (descender) and left edge (x=0 relative to sort)
             let handle_size = 32.0; // Fixed size for the handle box
-            let handle_position = position
-                + Vec2::new(handle_size / 2.0, descender + handle_size / 2.0);
+            let handle_position =
+                position + Vec2::new(handle_size / 2.0, descender + handle_size / 2.0);
 
             // Check if this sort is selected
             let is_selected = selected_query.iter().any(|e| e == sort_entity);
@@ -256,16 +238,10 @@ pub fn render_mesh_sort_handles(
                             handle_type: SortHandleType::Square,
                         },
                         Mesh2d(meshes.add(Circle::new(center_radius))),
-                        MeshMaterial2d(materials.add(
-                            ColorMaterial::from_color(Color::srgb(
-                                1.0, 1.0, 0.0,
-                            )),
-                        )), // Yellow
-                        Transform::from_xyz(
-                            handle_position.x,
-                            handle_position.y,
-                            16.0,
-                        ), // Above the outline
+                        MeshMaterial2d(
+                            materials.add(ColorMaterial::from_color(Color::srgb(1.0, 1.0, 0.0))),
+                        ), // Yellow
+                        Transform::from_xyz(handle_position.x, handle_position.y, 16.0), // Above the outline
                         GlobalTransform::default(),
                         Visibility::Visible,
                         InheritedVisibility::default(),
@@ -287,10 +263,7 @@ pub fn render_mesh_sort_handles(
 pub fn handle_sort_selection_and_drag_start(
     mut commands: Commands,
     mouse_button_input: Res<ButtonInput<MouseButton>>,
-    camera_query: Query<
-        (&Camera, &GlobalTransform),
-        With<crate::rendering::cameras::DesignCamera>,
-    >,
+    camera_query: Query<(&Camera, &GlobalTransform), With<crate::rendering::cameras::DesignCamera>>,
     windows: Query<&Window, With<bevy::window::PrimaryWindow>>,
     handle_query: Query<(&Transform, &SortHandle), With<SortHandle>>,
     sort_query: Query<
@@ -302,16 +275,11 @@ pub fn handle_sort_selection_and_drag_start(
         With<crate::editing::sort::Sort>,
     >,
     _active_sorts: Query<Entity, With<crate::editing::sort::ActiveSort>>,
-    selected_sorts: Query<
-        Entity,
-        (With<crate::editing::sort::Sort>, With<Selected>),
-    >,
+    selected_sorts: Query<Entity, (With<crate::editing::sort::Sort>, With<Selected>)>,
     ui_hover_state: Res<crate::systems::ui_interaction::UiHoverState>,
     mut drag_state: ResMut<SortHandleDragState>,
     mut active_sort_state: ResMut<crate::editing::sort::ActiveSortState>,
-    mut text_editor_state: Option<
-        ResMut<crate::core::state::text_editor::TextEditorState>,
-    >,
+    mut text_editor_state: Option<ResMut<crate::core::state::text_editor::TextEditorState>>,
     buffer_index_query: Query<(
         Entity,
         &crate::systems::text_editor_sorts::sort_entities::BufferSortIndex,
@@ -341,9 +309,7 @@ pub fn handle_sort_selection_and_drag_start(
         return;
     };
 
-    let Ok(world_position) =
-        camera.viewport_to_world_2d(camera_transform, cursor_position)
-    else {
+    let Ok(world_position) = camera.viewport_to_world_2d(camera_transform, cursor_position) else {
         return;
     };
 
@@ -381,12 +347,13 @@ pub fn handle_sort_selection_and_drag_start(
             if !is_multi_select {
                 for selected_entity in selected_sorts.iter() {
                     if selected_entity != sort_entity {
-                        if let Ok(mut entity_commands) =
-                            commands.get_entity(selected_entity)
-                        {
+                        if let Ok(mut entity_commands) = commands.get_entity(selected_entity) {
                             entity_commands.remove::<Selected>();
                         } else {
-                            debug!("Skipping selection removal for non-existent entity {:?}", selected_entity);
+                            debug!(
+                                "Skipping selection removal for non-existent entity {:?}",
+                                selected_entity
+                            );
                         }
                     }
                 }
@@ -396,9 +363,7 @@ pub fn handle_sort_selection_and_drag_start(
             let was_selected = selected_sorts.iter().any(|e| e == sort_entity);
             if is_multi_select && was_selected {
                 // In multi-select mode, clicking a selected item deselects it
-                if let Ok(mut entity_commands) =
-                    commands.get_entity(sort_entity)
-                {
+                if let Ok(mut entity_commands) = commands.get_entity(sort_entity) {
                     entity_commands.remove::<Selected>();
                     info!(
                         "Deselected sort {:?} via handle click (multi-select)",
@@ -414,9 +379,7 @@ pub fn handle_sort_selection_and_drag_start(
                 continue;
             } else {
                 // Select the clicked sort
-                if let Ok(mut entity_commands) =
-                    commands.get_entity(sort_entity)
-                {
+                if let Ok(mut entity_commands) = commands.get_entity(sort_entity) {
                     entity_commands.insert(Selected);
                     info!("Selected sort {:?} via handle click", sort_entity);
                 } else {
@@ -434,15 +397,13 @@ pub fn handle_sort_selection_and_drag_start(
             for (entity, _, active_component) in sort_query.iter() {
                 if active_component.is_some() && entity != sort_entity {
                     // Deactivate other sorts with entity existence check
-                    if let Ok(mut entity_commands) = commands.get_entity(entity)
-                    {
+                    if let Ok(mut entity_commands) = commands.get_entity(entity) {
                         entity_commands
                             .remove::<crate::editing::sort::ActiveSort>()
                             .insert(crate::editing::sort::InactiveSort);
 
                         // Check if this is a buffer sort and specifically track root sort deactivation
-                        if let Ok(buffer_index) = buffer_index_query.get(entity)
-                        {
+                        if let Ok(buffer_index) = buffer_index_query.get(entity) {
                             warn!("HANDLE SYSTEM: Deactivated BUFFER sort {:?} (index {}) - should show filled rendering!", entity, buffer_index.0);
                         } else {
                             info!("HANDLE DEBUG: Deactivated non-buffer sort {:?} via handle selection", entity);
@@ -484,23 +445,16 @@ pub fn handle_sort_selection_and_drag_start(
                 // Ensure all other buffer sorts are marked as inactive in text editor state
                 for i in 0..text_editor_state.buffer.len() {
                     if i != buffer_index.0 {
-                        if let Some(sort_entry) =
-                            text_editor_state.buffer.get_mut(i)
-                        {
+                        if let Some(sort_entry) = text_editor_state.buffer.get_mut(i) {
                             sort_entry.is_active = false;
                         }
                     }
                 }
 
                 // Activate the selected sort in text editor state
-                if let Some(sort_entry) =
-                    text_editor_state.buffer.get_mut(buffer_index.0)
-                {
+                if let Some(sort_entry) = text_editor_state.buffer.get_mut(buffer_index.0) {
                     sort_entry.is_active = true;
-                    info!(
-                        "Activated buffer sort {} via handle click",
-                        buffer_index.0
-                    );
+                    info!("Activated buffer sort {} via handle click", buffer_index.0);
                 }
             }
 
@@ -527,15 +481,10 @@ pub fn handle_sort_selection_and_drag_start(
 /// System to handle sort dragging updates
 pub fn handle_sort_drag_update(
     mut sort_query: Query<&mut Transform, With<crate::editing::sort::Sort>>,
-    camera_query: Query<
-        (&Camera, &GlobalTransform),
-        With<crate::rendering::cameras::DesignCamera>,
-    >,
+    camera_query: Query<(&Camera, &GlobalTransform), With<crate::rendering::cameras::DesignCamera>>,
     windows: Query<&Window, With<bevy::window::PrimaryWindow>>,
     drag_state: Res<SortHandleDragState>,
-    text_editor_state: Option<
-        Res<crate::core::state::text_editor::TextEditorState>,
-    >,
+    text_editor_state: Option<Res<crate::core::state::text_editor::TextEditorState>>,
     buffer_index_query: Query<(
         Entity,
         &crate::systems::text_editor_sorts::sort_entities::BufferSortIndex,
@@ -555,8 +504,7 @@ pub fn handle_sort_drag_update(
             return;
         };
 
-        let Ok(world_position) =
-            camera.viewport_to_world_2d(camera_transform, cursor_position)
+        let Ok(world_position) = camera.viewport_to_world_2d(camera_transform, cursor_position)
         else {
             return;
         };
@@ -573,28 +521,25 @@ pub fn handle_sort_drag_update(
                 text_editor_state.as_ref(),
                 buffer_index_query.get(dragging_sort),
             ) {
-                if let Some(sort_entry) =
-                    text_editor_state.buffer.get(buffer_index.0)
-                {
+                if let Some(sort_entry) = text_editor_state.buffer.get(buffer_index.0) {
                     // Check if this is a text sort (LTR or RTL)
                     match sort_entry.layout_mode {
                         crate::core::state::SortLayoutMode::LTRText
                         | crate::core::state::SortLayoutMode::RTLText => {
                             // Move all other text sorts by the same delta
-                            for (other_entity, other_buffer_index) in
-                                buffer_index_query.iter()
-                            {
+                            for (other_entity, other_buffer_index) in buffer_index_query.iter() {
                                 if other_entity != dragging_sort {
-                                    if let Some(other_sort) = text_editor_state
-                                        .buffer
-                                        .get(other_buffer_index.0)
+                                    if let Some(other_sort) =
+                                        text_editor_state.buffer.get(other_buffer_index.0)
                                     {
                                         // Check if the other sort is also a text sort
                                         match other_sort.layout_mode {
-                                            crate::core::state::SortLayoutMode::LTRText |
-                                            crate::core::state::SortLayoutMode::RTLText => {
+                                            crate::core::state::SortLayoutMode::LTRText
+                                            | crate::core::state::SortLayoutMode::RTLText => {
                                                 // Check entity exists before updating transform
-                                                if let Ok(mut other_transform) = sort_query.get_mut(other_entity) {
+                                                if let Ok(mut other_transform) =
+                                                    sort_query.get_mut(other_entity)
+                                                {
                                                     other_transform.translation.x += delta.x;
                                                     other_transform.translation.y += delta.y;
                                                 } else {
@@ -606,10 +551,7 @@ pub fn handle_sort_drag_update(
                                     }
                                 }
                             }
-                            info!(
-                                "Moved text sort group by delta: {:?}",
-                                delta
-                            );
+                            info!("Moved text sort group by delta: {:?}", delta);
                         }
                         crate::core::state::SortLayoutMode::Freeform => {
                             // Freeform sorts move individually
@@ -625,34 +567,24 @@ pub fn handle_sort_drag_update(
 pub fn handle_sort_drag_release(
     mouse_button_input: Res<ButtonInput<MouseButton>>,
     mut drag_state: ResMut<SortHandleDragState>,
-    mut text_editor_state: Option<
-        ResMut<crate::core::state::text_editor::TextEditorState>,
-    >,
+    mut text_editor_state: Option<ResMut<crate::core::state::text_editor::TextEditorState>>,
     sort_query: Query<&Transform, With<crate::editing::sort::Sort>>,
     buffer_index_query: Query<(
         Entity,
         &crate::systems::text_editor_sorts::sort_entities::BufferSortIndex,
     )>,
 ) {
-    if drag_state.dragging_sort.is_some()
-        && mouse_button_input.just_released(MouseButton::Left)
-    {
+    if drag_state.dragging_sort.is_some() && mouse_button_input.just_released(MouseButton::Left) {
         if let Some(dragging_sort) = drag_state.dragging_sort.take() {
             info!("Stopped dragging sort {:?}", dragging_sort);
 
             // Update the text editor state with the new position if applicable
-            if let (
-                Some(text_editor_state),
-                Ok((_, buffer_index)),
-                Ok(transform),
-            ) = (
+            if let (Some(text_editor_state), Ok((_, buffer_index)), Ok(transform)) = (
                 text_editor_state.as_mut(),
                 buffer_index_query.get(dragging_sort),
                 sort_query.get(dragging_sort),
             ) {
-                if let Some(sort_entry) =
-                    text_editor_state.buffer.get_mut(buffer_index.0)
-                {
+                if let Some(sort_entry) = text_editor_state.buffer.get_mut(buffer_index.0) {
                     let new_position = transform.translation.truncate();
                     sort_entry.root_position = new_position;
                     info!(

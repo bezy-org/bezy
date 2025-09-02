@@ -24,8 +24,8 @@ use bevy::input::mouse::MouseWheel;
 
 use crate::systems::ui_interaction::UiHoverState;
 use bevy::input::gamepad::{
-    GamepadAxis, GamepadAxisChangedEvent, GamepadButton,
-    GamepadButtonChangedEvent, GamepadConnection,
+    GamepadAxis, GamepadAxisChangedEvent, GamepadButton, GamepadButtonChangedEvent,
+    GamepadConnection,
 };
 use std::collections::HashMap;
 
@@ -215,10 +215,7 @@ impl Default for InputPriority {
                 "hyper_tool".to_string(),
                 "sort_interaction".to_string(),
             ],
-            low_priority: vec![
-                "camera_control".to_string(),
-                "default_actions".to_string(),
-            ],
+            low_priority: vec!["camera_control".to_string(), "default_actions".to_string()],
         }
     }
 }
@@ -285,7 +282,10 @@ fn update_input_state(
     // Update input mode from resource (CRITICAL: This was missing!)
     if let Some(input_mode) = input_mode_resource {
         if _input_state.mode != *input_mode {
-            println!("🖊️ PEN_DEBUG: Input mode changed from {:?} to {:?}", _input_state.mode, *input_mode);
+            println!(
+                "🖊️ PEN_DEBUG: Input mode changed from {:?} to {:?}",
+                _input_state.mode, *input_mode
+            );
             _input_state.mode = *input_mode;
         }
     }
@@ -349,16 +349,14 @@ fn update_keyboard_state(
     keyboard_state.text_buffer.clear();
 
     // Update modifier states
-    keyboard_state.modifiers.shift = keyboard_input.pressed(KeyCode::ShiftLeft)
-        || keyboard_input.pressed(KeyCode::ShiftRight);
-    keyboard_state.modifiers.ctrl = keyboard_input
-        .pressed(KeyCode::ControlLeft)
+    keyboard_state.modifiers.shift =
+        keyboard_input.pressed(KeyCode::ShiftLeft) || keyboard_input.pressed(KeyCode::ShiftRight);
+    keyboard_state.modifiers.ctrl = keyboard_input.pressed(KeyCode::ControlLeft)
         || keyboard_input.pressed(KeyCode::ControlRight);
-    keyboard_state.modifiers.alt = keyboard_input.pressed(KeyCode::AltLeft)
-        || keyboard_input.pressed(KeyCode::AltRight);
-    keyboard_state.modifiers.super_key = keyboard_input
-        .pressed(KeyCode::SuperLeft)
-        || keyboard_input.pressed(KeyCode::SuperRight);
+    keyboard_state.modifiers.alt =
+        keyboard_input.pressed(KeyCode::AltLeft) || keyboard_input.pressed(KeyCode::AltRight);
+    keyboard_state.modifiers.super_key =
+        keyboard_input.pressed(KeyCode::SuperLeft) || keyboard_input.pressed(KeyCode::SuperRight);
 }
 
 /// Update gamepad state (placeholder for future implementation)
@@ -384,10 +382,7 @@ fn process_input_events(
 }
 
 /// Process mouse events and create InputEvent instances
-fn process_mouse_events(
-    input_state: &InputState,
-    input_events: &mut EventWriter<InputEvent>,
-) {
+fn process_mouse_events(input_state: &InputState, input_events: &mut EventWriter<InputEvent>) {
     let mouse = &input_state.mouse;
     let _modifiers = &input_state.keyboard.modifiers;
 
@@ -428,8 +423,7 @@ fn generate_mouse_drag_events(
             );
             info!(
                 "Mouse position details: screen={:?}, design={:?}",
-                input_state.mouse.screen_position,
-                input_state.mouse.design_position
+                input_state.mouse.screen_position, input_state.mouse.design_position
             );
             *drag_state = Some((*button, position));
             input_events.write(InputEvent::MouseClick {
@@ -460,9 +454,7 @@ fn generate_mouse_drag_events(
 
         // Check for ongoing drag (MouseDrag events)
         if let Some((drag_button, start_pos)) = *drag_state {
-            if mouse_button_input.pressed(drag_button)
-                && input_state.mouse.motion != Vec2::ZERO
-            {
+            if mouse_button_input.pressed(drag_button) && input_state.mouse.motion != Vec2::ZERO {
                 input_events.write(InputEvent::MouseDrag {
                     button: drag_button,
                     start_position: start_pos,
@@ -499,10 +491,7 @@ fn process_keyboard_events(
 }
 
 /// Process gamepad events and create InputEvent instances
-fn process_gamepad_events(
-    _input_state: &InputState,
-    _input_events: &mut EventWriter<InputEvent>,
-) {
+fn process_gamepad_events(_input_state: &InputState, _input_events: &mut EventWriter<InputEvent>) {
     // TODO: Implement gamepad event processing
 }
 
@@ -514,11 +503,7 @@ fn clear_input_events(_input_events: EventWriter<InputEvent>) {
 /// Helper trait for input consumers to check if they should handle input
 pub trait InputConsumer {
     /// Check if this consumer should handle the given input event
-    fn should_handle_input(
-        &self,
-        event: &InputEvent,
-        input_state: &InputState,
-    ) -> bool;
+    fn should_handle_input(&self, event: &InputEvent, input_state: &InputState) -> bool;
 
     /// Handle the input event
     fn handle_input(&mut self, event: &InputEvent, input_state: &InputState);
@@ -532,28 +517,19 @@ pub mod helpers {
     // since we removed the stored ButtonInput from InputState to avoid Clone issues
 
     /// Check if a mouse button is currently pressed
-    pub fn is_mouse_pressed(
-        _input_state: &InputState,
-        _button: MouseButton,
-    ) -> bool {
+    pub fn is_mouse_pressed(_input_state: &InputState, _button: MouseButton) -> bool {
         // This would need to be called with the actual ButtonInput<MouseButton> resource
         false // Placeholder
     }
 
     /// Check if a mouse button was just pressed
-    pub fn is_mouse_just_pressed(
-        _input_state: &InputState,
-        _button: MouseButton,
-    ) -> bool {
+    pub fn is_mouse_just_pressed(_input_state: &InputState, _button: MouseButton) -> bool {
         // This would need to be called with the actual ButtonInput<MouseButton> resource
         false // Placeholder
     }
 
     /// Check if a mouse button was just released
-    pub fn is_mouse_just_released(
-        _input_state: &InputState,
-        _button: MouseButton,
-    ) -> bool {
+    pub fn is_mouse_just_released(_input_state: &InputState, _button: MouseButton) -> bool {
         // This would need to be called with the actual ButtonInput<MouseButton> resource
         false // Placeholder
     }
@@ -565,19 +541,13 @@ pub mod helpers {
     }
 
     /// Check if a key was just pressed
-    pub fn is_key_just_pressed(
-        _input_state: &InputState,
-        _key: KeyCode,
-    ) -> bool {
+    pub fn is_key_just_pressed(_input_state: &InputState, _key: KeyCode) -> bool {
         // This would need to be called with the actual ButtonInput<KeyCode> resource
         false // Placeholder
     }
 
     /// Check if a key was just released
-    pub fn is_key_just_released(
-        _input_state: &InputState,
-        _key: KeyCode,
-    ) -> bool {
+    pub fn is_key_just_released(_input_state: &InputState, _key: KeyCode) -> bool {
         // This would need to be called with the actual ButtonInput<KeyCode> resource
         false // Placeholder
     }
@@ -604,9 +574,7 @@ pub mod helpers {
     }
 
     /// Get the current mouse position in design space
-    pub fn get_mouse_design_position(
-        input_state: &InputState,
-    ) -> Option<DPoint> {
+    pub fn get_mouse_design_position(input_state: &InputState) -> Option<DPoint> {
         input_state.mouse.design_position
     }
 

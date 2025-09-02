@@ -140,7 +140,7 @@ impl CliArgs {
     pub fn default_for_web() -> Self {
         Self {
             ufo_path: Some(PathBuf::from(DEFAULT_UFO_PATH)),
-            theme: None, // Use default theme for web builds
+            theme: None,              // Use default theme for web builds
             no_default_buffer: false, // Enable default buffer for web builds
         }
     }

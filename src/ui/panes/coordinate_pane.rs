@@ -25,15 +25,16 @@ const QUADRANT_SELECTOR_SIZE: f32 = 96.0;
 /// Size of each quadrant button
 const QUADRANT_BUTTON_SIZE: f32 = 24.0;
 
-/// Gap between quadrant buttons
-const QUADRANT_BUTTON_GAP: f32 = 4.0;
-
 /// Width of grid lines
 const GRID_LINE_WIDTH: f32 = 2.0;
 
-/// Positions where buttons are placed in the grid
-/// Adjust these if the grid lines don't align with button centers
-const BUTTON_POSITIONS: [f32; 3] = [12.0, 44.0, 76.0];
+/// Button center positions - grid lines will align with these
+/// Using absolute positioning to ensure perfect alignment
+const BUTTON_CENTER_POSITIONS: [f32; 3] = [
+    QUADRANT_SELECTOR_SIZE * 0.5 / 3.0, // 16.0 for 96px container
+    QUADRANT_SELECTOR_SIZE * 0.5,       // 48.0 (center)
+    QUADRANT_SELECTOR_SIZE * 2.5 / 3.0, // 80.0 for 96px container
+];
 
 /// Spacing between coordinate label and value
 const LABEL_VALUE_SPACING: f32 = 8.0;
@@ -62,7 +63,7 @@ pub struct CoordinateSelection {
 
 /// Component marker for the coordinate pane
 #[derive(Component, Default)]
-pub struct CoordPane;
+pub struct CoordinatePane;
 
 /// Component markers for coordinate value text
 #[derive(Component, Default)]
@@ -98,7 +99,7 @@ impl Plugin for CoordinatePanePlugin {
         app.register_type::<CoordinateSelection>()
             .register_type::<Quadrant>()
             .init_resource::<CoordinateSelection>()
-            .add_systems(Startup, spawn_coord_pane)
+            .add_systems(Startup, spawn_coordinate_pane)
             .add_systems(
                 Update,
                 (
@@ -116,7 +117,7 @@ impl Plugin for CoordinatePanePlugin {
 // ============================================================================
 
 /// Spawns the coordinate pane in the bottom-right corner
-pub fn spawn_coord_pane(
+pub fn spawn_coordinate_pane(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     theme: Res<CurrentTheme>,
@@ -134,8 +135,8 @@ pub fn spawn_coord_pane(
             &theme,
             PositionType::Absolute,
             position,
-            CoordPane,
-            "CoordPane",
+            CoordinatePane,
+            "CoordinatePane",
         ))
         .with_children(|parent| {
             // ============ COORDINATE ROWS ============
@@ -303,126 +304,88 @@ pub fn spawn_coord_pane(
                             ..default()
                         })
                         .with_children(|lines| {
-                            // Horizontal grid lines
-                            for &y_pos in BUTTON_POSITIONS.iter() {
+                            // Horizontal grid lines - aligned with button centers
+                            for &y_pos in BUTTON_CENTER_POSITIONS.iter() {
                                 lines.spawn((
                                     Node {
                                         position_type: PositionType::Absolute,
                                         width: Val::Px(
-                                            BUTTON_POSITIONS[2]
-                                                - BUTTON_POSITIONS[0],
+                                            BUTTON_CENTER_POSITIONS[2] - BUTTON_CENTER_POSITIONS[0],
                                         ),
                                         height: Val::Px(GRID_LINE_WIDTH),
-                                        top: Val::Px(
-                                            y_pos - GRID_LINE_WIDTH / 2.0,
-                                        ),
-                                        left: Val::Px(BUTTON_POSITIONS[0]),
+                                        top: Val::Px(y_pos - GRID_LINE_WIDTH / 2.0),
+                                        left: Val::Px(BUTTON_CENTER_POSITIONS[0]),
                                         ..default()
                                     },
-                                    BackgroundColor(
-                                        NORMAL_BUTTON_OUTLINE_COLOR,
-                                    ),
+                                    BackgroundColor(NORMAL_BUTTON_OUTLINE_COLOR),
                                 ));
                             }
-                            // Vertical grid lines
-                            for &x_pos in BUTTON_POSITIONS.iter() {
+                            // Vertical grid lines - aligned with button centers
+                            for &x_pos in BUTTON_CENTER_POSITIONS.iter() {
                                 lines.spawn((
                                     Node {
                                         position_type: PositionType::Absolute,
                                         width: Val::Px(GRID_LINE_WIDTH),
                                         height: Val::Px(
-                                            BUTTON_POSITIONS[2]
-                                                - BUTTON_POSITIONS[0],
+                                            BUTTON_CENTER_POSITIONS[2] - BUTTON_CENTER_POSITIONS[0],
                                         ),
-                                        left: Val::Px(
-                                            x_pos - GRID_LINE_WIDTH / 2.0,
-                                        ),
-                                        top: Val::Px(BUTTON_POSITIONS[0]),
+                                        left: Val::Px(x_pos - GRID_LINE_WIDTH / 2.0),
+                                        top: Val::Px(BUTTON_CENTER_POSITIONS[0]),
                                         ..default()
                                     },
-                                    BackgroundColor(
-                                        NORMAL_BUTTON_OUTLINE_COLOR,
-                                    ),
+                                    BackgroundColor(NORMAL_BUTTON_OUTLINE_COLOR),
                                 ));
                             }
                         });
 
-                    // Quadrant buttons (3x3 grid)
-                    container
-                        .spawn(Node {
-                            position_type: PositionType::Absolute,
-                            display: Display::Grid,
-                            grid_template_columns: vec![
-                                RepeatedGridTrack::fr(1, 1.0),
-                                RepeatedGridTrack::fr(1, 1.0),
-                                RepeatedGridTrack::fr(1, 1.0),
-                            ],
-                            grid_template_rows: vec![
-                                RepeatedGridTrack::fr(1, 1.0),
-                                RepeatedGridTrack::fr(1, 1.0),
-                                RepeatedGridTrack::fr(1, 1.0),
-                            ],
-                            width: Val::Percent(100.0),
-                            height: Val::Percent(100.0),
-                            column_gap: Val::Px(QUADRANT_BUTTON_GAP),
-                            row_gap: Val::Px(QUADRANT_BUTTON_GAP),
-                            ..default()
-                        })
-                        .with_children(|grid| {
-                            let quadrants = [
-                                [
-                                    Quadrant::TopLeft,
-                                    Quadrant::Top,
-                                    Quadrant::TopRight,
-                                ],
-                                [
-                                    Quadrant::Left,
-                                    Quadrant::Center,
-                                    Quadrant::Right,
-                                ],
-                                [
-                                    Quadrant::BottomLeft,
-                                    Quadrant::Bottom,
-                                    Quadrant::BottomRight,
-                                ],
-                            ];
+                    // Quadrant buttons using absolute positioning to align with grid lines
+                    let quadrants_with_positions = [
+                        // Row 0 (Top)
+                        (Quadrant::TopLeft, 0, 0),
+                        (Quadrant::Top, 1, 0),
+                        (Quadrant::TopRight, 2, 0),
+                        // Row 1 (Middle)
+                        (Quadrant::Left, 0, 1),
+                        (Quadrant::Center, 1, 1),
+                        (Quadrant::Right, 2, 1),
+                        // Row 2 (Bottom)
+                        (Quadrant::BottomLeft, 0, 2),
+                        (Quadrant::Bottom, 1, 2),
+                        (Quadrant::BottomRight, 2, 2),
+                    ];
 
-                            for row in quadrants.iter() {
-                                for &quadrant in row.iter() {
-                                    let is_selected =
-                                        quadrant == Quadrant::Center;
+                    for (quadrant, col, row) in quadrants_with_positions.iter() {
+                        let x_center = BUTTON_CENTER_POSITIONS[*col];
+                        let y_center = BUTTON_CENTER_POSITIONS[*row];
+                        let is_selected = *quadrant == Quadrant::Center;
 
-                                    grid.spawn((
-                                        Button,
-                                        Node {
-                                            width: Val::Px(
-                                                QUADRANT_BUTTON_SIZE,
-                                            ),
-                                            height: Val::Px(
-                                                QUADRANT_BUTTON_SIZE,
-                                            ),
-                                            border: UiRect::all(Val::Px(2.0)),
-                                            ..default()
-                                        },
-                                        BackgroundColor(if is_selected {
-                                            PRESSED_BUTTON_COLOR
-                                        } else {
-                                            NORMAL_BUTTON_COLOR
-                                        }),
-                                        BorderColor(if is_selected {
-                                            PRESSED_BUTTON_OUTLINE_COLOR
-                                        } else {
-                                            NORMAL_BUTTON_OUTLINE_COLOR
-                                        }),
-                                        BorderRadius::all(Val::Px(
-                                            theme.theme().ui_border_radius(),
-                                        )),
-                                        UiBorderRadius,
-                                        QuadrantButton(quadrant),
-                                    ));
-                                }
-                            }
-                        });
+                        container.spawn((
+                            Button,
+                            Node {
+                                position_type: PositionType::Absolute,
+                                width: Val::Px(QUADRANT_BUTTON_SIZE),
+                                height: Val::Px(QUADRANT_BUTTON_SIZE),
+                                // Center the button on the grid intersection
+                                left: Val::Px(x_center - QUADRANT_BUTTON_SIZE / 2.0),
+                                top: Val::Px(y_center - QUADRANT_BUTTON_SIZE / 2.0),
+                                border: UiRect::all(Val::Px(2.0)),
+                                ..default()
+                            },
+                            BackgroundColor(if is_selected {
+                                PRESSED_BUTTON_COLOR
+                            } else {
+                                NORMAL_BUTTON_COLOR
+                            }),
+                            BorderColor(if is_selected {
+                                PRESSED_BUTTON_OUTLINE_COLOR
+                            } else {
+                                NORMAL_BUTTON_OUTLINE_COLOR
+                            }),
+                            BorderRadius::all(Val::Px(theme.theme().ui_border_radius())),
+                            UiBorderRadius,
+                            QuadrantButton(*quadrant),
+                        ));
+                    }
                 });
         });
 }
@@ -433,7 +396,7 @@ pub fn spawn_coord_pane(
 
 /// Updates coordinate selection based on selected entities
 fn update_coordinate_selection(
-    mut coord_selection: ResMut<CoordinateSelection>,
+    mut coordinate_selection: ResMut<CoordinateSelection>,
     selected_query: Query<
         (
             &GlobalTransform,
@@ -444,10 +407,10 @@ fn update_coordinate_selection(
     sort_transforms: Query<&GlobalTransform, With<crate::editing::sort::Sort>>,
 ) {
     let selected_count = selected_query.iter().count();
-    coord_selection.count = selected_count;
+    coordinate_selection.count = selected_count;
 
     if selected_count == 0 {
-        coord_selection.frame = Rect::default();
+        coordinate_selection.frame = Rect::default();
         return;
     }
 
@@ -455,9 +418,7 @@ fn update_coordinate_selection(
     let mut sort_baseline = Vec2::ZERO;
     for (_, sort_point) in selected_query.iter() {
         if let Some(sort_point) = sort_point {
-            if let Ok(sort_transform) =
-                sort_transforms.get(sort_point.sort_entity)
-            {
+            if let Ok(sort_transform) = sort_transforms.get(sort_point.sort_entity) {
                 sort_baseline = sort_transform.translation().truncate();
                 break;
             }
@@ -475,13 +436,13 @@ fn update_coordinate_selection(
         max = max.max(relative_pos);
     }
 
-    coord_selection.frame = Rect::from_corners(min, max);
+    coordinate_selection.frame = Rect::from_corners(min, max);
 }
 
 /// Updates the displayed coordinate values
 #[allow(clippy::type_complexity)]
 fn update_coordinate_display(
-    coord_selection: Res<CoordinateSelection>,
+    coordinate_selection: Res<CoordinateSelection>,
     mut queries: ParamSet<(
         Query<&mut Text, With<XValue>>,
         Query<&mut Text, With<YValue>>,
@@ -489,12 +450,12 @@ fn update_coordinate_display(
         Query<&mut Text, With<HeightValue>>,
     )>,
 ) {
-    if coord_selection.count == 0 {
+    if coordinate_selection.count == 0 {
         return;
     }
 
     let reference_point =
-        get_quadrant_point(&coord_selection.frame, coord_selection.quadrant);
+        get_quadrant_point(&coordinate_selection.frame, coordinate_selection.quadrant);
 
     // Update X
     if let Ok(mut text) = queries.p0().single_mut() {
@@ -508,31 +469,24 @@ fn update_coordinate_display(
 
     // Update Width
     if let Ok(mut text) = queries.p2().single_mut() {
-        *text = Text::new(format!("{}", coord_selection.frame.width() as i32));
+        *text = Text::new(format!("{}", coordinate_selection.frame.width() as i32));
     }
 
     // Update Height
     if let Ok(mut text) = queries.p3().single_mut() {
-        *text = Text::new(format!("{}", coord_selection.frame.height() as i32));
+        *text = Text::new(format!("{}", coordinate_selection.frame.height() as i32));
     }
 }
 
 /// Handles quadrant button interactions
 fn handle_quadrant_buttons(
-    mut interaction_query: Query<
-        (&Interaction, &QuadrantButton),
-        Changed<Interaction>,
-    >,
-    mut coord_selection: ResMut<CoordinateSelection>,
-    mut all_buttons: Query<(
-        &QuadrantButton,
-        &mut BackgroundColor,
-        &mut BorderColor,
-    )>,
+    mut interaction_query: Query<(&Interaction, &QuadrantButton), Changed<Interaction>>,
+    mut coordinate_selection: ResMut<CoordinateSelection>,
+    mut all_buttons: Query<(&QuadrantButton, &mut BackgroundColor, &mut BorderColor)>,
 ) {
     for (interaction, button) in interaction_query.iter() {
         if *interaction == Interaction::Pressed {
-            coord_selection.quadrant = button.0;
+            coordinate_selection.quadrant = button.0;
 
             // Update all button states
             for (other_button, mut bg, mut border) in all_buttons.iter_mut() {
@@ -554,12 +508,12 @@ fn handle_quadrant_buttons(
 
 /// Shows/hides the coordinate pane based on selection
 fn toggle_pane_visibility(
-    coord_selection: Res<CoordinateSelection>,
-    mut coord_pane: Query<&mut Visibility, With<CoordPane>>,
+    coordinate_selection: Res<CoordinateSelection>,
+    mut coordinate_pane: Query<&mut Visibility, With<CoordinatePane>>,
 ) {
-    let should_show = coord_selection.count > 0;
+    let should_show = coordinate_selection.count > 0;
 
-    for mut visibility in coord_pane.iter_mut() {
+    for mut visibility in coordinate_pane.iter_mut() {
         *visibility = if should_show {
             Visibility::Visible
         } else {

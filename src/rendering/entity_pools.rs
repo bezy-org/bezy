@@ -64,18 +64,12 @@ pub enum PooledEntityType {
 
 impl EntityPools {
     /// Get or create an outline entity pool for a specific sort
-    pub fn get_outline_pool(
-        &mut self,
-        sort_entity: Entity,
-    ) -> &mut OutlineEntityPool {
+    pub fn get_outline_pool(&mut self, sort_entity: Entity) -> &mut OutlineEntityPool {
         self.outline_pools.entry(sort_entity).or_default()
     }
 
     /// Get or create a metrics entity pool for a specific sort
-    pub fn get_metrics_pool(
-        &mut self,
-        sort_entity: Entity,
-    ) -> &mut MetricsEntityPool {
+    pub fn get_metrics_pool(&mut self, sort_entity: Entity) -> &mut MetricsEntityPool {
         self.metrics_pools.entry(sort_entity).or_default()
     }
 
@@ -112,11 +106,7 @@ impl EntityPools {
     }
 
     /// Get an outline entity from the pool for a specific sort
-    pub fn get_outline_entity(
-        &mut self,
-        commands: &mut Commands,
-        sort_entity: Entity,
-    ) -> Entity {
+    pub fn get_outline_entity(&mut self, commands: &mut Commands, sort_entity: Entity) -> Entity {
         let pool = self.get_outline_pool(sort_entity);
 
         // Try to reuse an available entity
@@ -155,11 +145,7 @@ impl EntityPools {
     }
 
     /// Get a metrics entity from the pool for a specific sort
-    pub fn get_metrics_entity(
-        &mut self,
-        commands: &mut Commands,
-        sort_entity: Entity,
-    ) -> Entity {
+    pub fn get_metrics_entity(&mut self, commands: &mut Commands, sort_entity: Entity) -> Entity {
         let pool = self.get_metrics_pool(sort_entity);
 
         // Try to reuse an available entity
@@ -217,11 +203,7 @@ impl EntityPools {
     }
 
     /// Return outline entities for a specific sort to the available pool
-    pub fn return_outline_entities(
-        &mut self,
-        commands: &mut Commands,
-        sort_entity: Entity,
-    ) {
+    pub fn return_outline_entities(&mut self, commands: &mut Commands, sort_entity: Entity) {
         if let Some(pool) = self.outline_pools.get_mut(&sort_entity) {
             // Only log if returning significant number of entities to avoid debug noise
             if pool.in_use.len() > 5 {
@@ -242,11 +224,7 @@ impl EntityPools {
     }
 
     /// Return metrics entities for a specific sort to the available pool
-    pub fn return_metrics_entities(
-        &mut self,
-        commands: &mut Commands,
-        sort_entity: Entity,
-    ) {
+    pub fn return_metrics_entities(&mut self, commands: &mut Commands, sort_entity: Entity) {
         if let Some(pool) = self.metrics_pools.get_mut(&sort_entity) {
             // Only log if returning significant number of entities to avoid debug noise
             if pool.in_use.len() > 10 {
@@ -275,15 +253,13 @@ impl EntityPools {
         self.return_cursor_entities(commands);
 
         // Return outline entities for all sorts
-        let sort_entities: Vec<Entity> =
-            self.outline_pools.keys().copied().collect();
+        let sort_entities: Vec<Entity> = self.outline_pools.keys().copied().collect();
         for sort_entity in sort_entities {
             self.return_outline_entities(commands, sort_entity);
         }
 
         // Return metrics entities for all sorts
-        let sort_entities: Vec<Entity> =
-            self.metrics_pools.keys().copied().collect();
+        let sort_entities: Vec<Entity> = self.metrics_pools.keys().copied().collect();
         for sort_entity in sort_entities {
             self.return_metrics_entities(commands, sort_entity);
         }
@@ -314,14 +290,12 @@ impl EntityPools {
     /// Clean up pools for deleted sorts (remove empty pools)
     pub fn cleanup_empty_pools(&mut self) {
         // Remove outline pools that have no entities
-        self.outline_pools.retain(|_, pool| {
-            !pool.available.is_empty() || !pool.in_use.is_empty()
-        });
+        self.outline_pools
+            .retain(|_, pool| !pool.available.is_empty() || !pool.in_use.is_empty());
 
         // Remove metrics pools that have no entities
-        self.metrics_pools.retain(|_, pool| {
-            !pool.available.is_empty() || !pool.in_use.is_empty()
-        });
+        self.metrics_pools
+            .retain(|_, pool| !pool.available.is_empty() || !pool.in_use.is_empty());
     }
 
     /// Get statistics about pool usage for monitoring
@@ -453,10 +427,8 @@ impl Plugin for EntityPoolingPlugin {
         app.init_resource::<EntityPools>().add_systems(
             Update,
             (
-                log_pool_stats
-                    .run_if(on_timer(std::time::Duration::from_secs(5))),
-                cleanup_pools
-                    .run_if(on_timer(std::time::Duration::from_secs(10))),
+                log_pool_stats.run_if(on_timer(std::time::Duration::from_secs(5))),
+                cleanup_pools.run_if(on_timer(std::time::Duration::from_secs(10))),
             ),
         );
     }

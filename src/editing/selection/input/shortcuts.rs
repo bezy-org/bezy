@@ -18,12 +18,8 @@ pub fn handle_selection_shortcuts(
     selectable_query: Query<Entity, With<Selectable>>,
     mut selection_state: ResMut<SelectionState>,
     mut event_writer: EventWriter<EditEvent>,
-    select_mode: Option<
-        Res<crate::ui::toolbars::edit_mode_toolbar::select::SelectModeActive>,
-    >,
-    knife_mode: Option<
-        Res<crate::ui::toolbars::edit_mode_toolbar::knife::KnifeModeActive>,
-    >,
+    select_mode: Option<Res<crate::ui::edit_mode_toolbar::select::SelectModeActive>>,
+    knife_mode: Option<Res<crate::ui::edit_mode_toolbar::knife::KnifeModeActive>>,
     text_editor_state: Option<Res<crate::core::state::TextEditorState>>,
 ) {
     // Skip processing shortcuts if knife mode is active
@@ -101,8 +97,7 @@ pub fn handle_key_releases(
         KeyCode::ArrowDown,
     ];
 
-    let any_arrow_pressed =
-        arrow_keys.iter().any(|key| keyboard_input.pressed(*key));
+    let any_arrow_pressed = arrow_keys.iter().any(|key| keyboard_input.pressed(*key));
 
     if !any_arrow_pressed {
         nudge_state.is_nudging = false;
@@ -140,9 +135,7 @@ pub fn handle_selection_key_press(
 
                 for (entity, _, _, _) in selectable_query.iter() {
                     // Check if this entity belongs to the active sort
-                    if let Ok(sort_point_entity) =
-                        sort_point_entities.get(entity)
-                    {
+                    if let Ok(sort_point_entity) = sort_point_entities.get(entity) {
                         if sort_point_entity.sort_entity != active_sort_entity {
                             continue; // Skip points that don't belong to the active sort
                         }

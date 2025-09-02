@@ -27,7 +27,7 @@ pub fn render_selection_marquee(
     drag_state: Res<DragSelectionState>,
     marquee_query: Query<&SelectionRect>,
     theme: Res<CurrentTheme>,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
 ) {
     // Only render marquee when in select mode
     if current_tool.get_current() != Some("select") {
@@ -97,9 +97,7 @@ pub fn render_selected_entities(
     mut gizmos: Gizmos,
     selected_query: Query<(&GlobalTransform, &PointType), With<Selected>>,
     drag_point_state: Res<DragPointState>,
-    knife_mode: Option<
-        Res<crate::ui::toolbars::edit_mode_toolbar::knife::KnifeModeActive>,
-    >,
+    knife_mode: Option<Res<crate::ui::edit_mode_toolbar::knife::KnifeModeActive>>,
     _nudge_state: Res<NudgeState>,
 ) {
     // Always render selected points - no dual-mode rendering
@@ -132,8 +130,7 @@ pub fn render_selected_entities(
         // Draw selection indicator with same shape and size as unselected points
         let point_radius = if point_type.is_on_curve {
             if USE_SQUARE_FOR_ON_CURVE {
-                let adjusted_radius =
-                    ON_CURVE_POINT_RADIUS * ON_CURVE_SQUARE_ADJUSTMENT;
+                let adjusted_radius = ON_CURVE_POINT_RADIUS * ON_CURVE_SQUARE_ADJUSTMENT;
                 gizmos.rect_2d(
                     position_2d,
                     Vec2::splat(adjusted_radius * 2.0),
@@ -141,20 +138,12 @@ pub fn render_selected_entities(
                 );
                 adjusted_radius
             } else {
-                gizmos.circle_2d(
-                    position_2d,
-                    ON_CURVE_POINT_RADIUS,
-                    selection_color,
-                );
+                gizmos.circle_2d(position_2d, ON_CURVE_POINT_RADIUS, selection_color);
                 ON_CURVE_POINT_RADIUS
             }
         } else {
             // Off-curve point - always a circle
-            gizmos.circle_2d(
-                position_2d,
-                OFF_CURVE_POINT_RADIUS,
-                selection_color,
-            );
+            gizmos.circle_2d(position_2d, OFF_CURVE_POINT_RADIUS, selection_color);
             OFF_CURVE_POINT_RADIUS
         };
 
@@ -200,10 +189,7 @@ pub fn render_all_point_entities(
     >,
     selected_query: Query<Entity, With<Selected>>,
     _nudge_state: Res<NudgeState>,
-    camera_query: Query<
-        (&Camera, &GlobalTransform, &Projection),
-        With<Camera2d>,
-    >,
+    camera_query: Query<(&Camera, &GlobalTransform, &Projection), With<Camera2d>>,
 ) {
     // Always render all points - no dual-mode rendering
 
@@ -211,9 +197,7 @@ pub fn render_all_point_entities(
 
     // Debug camera information only when we have points to render
     if point_count > 0 {
-        if let Ok((_camera, camera_transform, projection)) =
-            camera_query.single()
-        {
+        if let Ok((_camera, camera_transform, projection)) = camera_query.single() {
             let camera_pos = camera_transform.translation();
             let camera_scale = match projection {
                 Projection::Orthographic(ortho) => ortho.scale,
@@ -226,9 +210,7 @@ pub fn render_all_point_entities(
         }
     }
 
-    for (i, (entity, transform, point_type)) in
-        point_entities.iter().enumerate()
-    {
+    for (i, (entity, transform, point_type)) in point_entities.iter().enumerate() {
         // Skip if selected (already rendered by render_selected_entities)
         if selected_query.get(entity).is_ok() {
             continue;
@@ -237,8 +219,10 @@ pub fn render_all_point_entities(
         let position = transform.translation().truncate();
 
         if i < 5 {
-            info!("[render_all_point_entities] Rendering point {} at ({:.1}, {:.1}), is_on_curve={}", 
-                i, position.x, position.y, point_type.is_on_curve);
+            info!(
+                "[render_all_point_entities] Rendering point {} at ({:.1}, {:.1}), is_on_curve={}",
+                i, position.x, position.y, point_type.is_on_curve
+            );
         }
 
         // Point rendering is now handled by mesh-based system in point_backgrounds.rs

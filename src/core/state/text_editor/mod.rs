@@ -7,9 +7,15 @@
 
 pub mod buffer;
 pub mod editor;
+pub mod text_buffer;
 
 // Re-export main types for public API compatibility
 pub use buffer::{
-    ActiveSortEntity, GridConfig, SortBuffer, SortEntry, SortKind,
-    SortLayoutMode, TextEditorState, TextModeConfig,
+    ActiveSortEntity, GridConfig, SortBuffer, SortEntry, SortKind, SortLayoutMode, TextEditorState,
+    TextModeConfig,
+};
+
+// Re-export new buffer-level types
+pub use text_buffer::{
+    TextBuffer, BufferCursor, BufferMember, ActiveTextBuffer, BufferSystemSet,
 };

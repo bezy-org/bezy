@@ -21,7 +21,9 @@ impl GlyphData {
         };
 
         // Convert components from norad format
-        let components = norad_glyph.components.iter()
+        let components = norad_glyph
+            .components
+            .iter()
             .map(ComponentData::from_norad_component)
             .collect();
 
@@ -51,7 +53,9 @@ impl GlyphData {
         }
 
         // Convert components back to norad format
-        glyph.components = self.components.iter()
+        glyph.components = self
+            .components
+            .iter()
             .map(ComponentData::to_norad_component)
             .collect();
 
@@ -77,9 +81,11 @@ impl ComponentData {
 
     /// Convert back to norad component
     pub fn to_norad_component(&self) -> norad::Component {
-        let base_name: norad::Name = self.base_glyph.parse()
+        let base_name: norad::Name = self
+            .base_glyph
+            .parse()
             .unwrap_or_else(|_| "a".parse().unwrap()); // Fallback to 'a' if invalid name
-        
+
         let transform = norad::AffineTransform {
             x_scale: self.transform[0],
             xy_scale: self.transform[1],
@@ -123,8 +129,7 @@ impl ContourData {
     }
 
     pub fn to_norad_contour(&self) -> norad::Contour {
-        let points =
-            self.points.iter().map(PointData::to_norad_point).collect();
+        let points = self.points.iter().map(PointData::to_norad_point).collect();
 
         // Use constructor with required arguments
         norad::Contour::new(points, None)

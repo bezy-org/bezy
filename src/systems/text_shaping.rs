@@ -72,7 +72,6 @@ impl From<SortLayoutMode> for TextDirection {
     }
 }
 
-
 /// System to perform text shaping for Arabic and complex scripts
 pub fn shape_arabic_text_system(
     _shaping_cache: ResMut<TextShapingCache>,
@@ -187,7 +186,6 @@ pub fn needs_complex_shaping(text: &str) -> bool {
         (0xFE70..=0xFEFF).contains(&code)
     })
 }
-
 
 /// Plugin to register the Arabic text shaping system
 pub struct TextShapingPlugin;

@@ -7,9 +7,7 @@ use anyhow::{ensure, Context};
 use bevy::prelude::*;
 use std::path::PathBuf;
 
-use crate::core::errors::{
-    validate_finite_coords, validate_ufo_path, BezyContext, BezyResult,
-};
+use crate::core::errors::{validate_finite_coords, validate_ufo_path, BezyContext, BezyResult};
 use crate::core::state::font_data::{FontData, PointData};
 use crate::core::state::font_metrics::FontInfo;
 use crate::{contour_out_of_bounds, glyph_not_found, point_out_of_bounds};
@@ -69,8 +67,7 @@ impl AppState {
             .context("No file path set - use Save As first")?;
 
         // Convert our internal data back to norad and save
-        let norad_font =
-            self.workspace.font.to_norad_font(&self.workspace.info);
+        let norad_font = self.workspace.font.to_norad_font(&self.workspace.info);
         norad_font.save(path).with_file_context("save", path)?;
 
         info!("Saved font to {:?}", path);
@@ -83,8 +80,7 @@ impl AppState {
     /// path reference for future save operations.
     pub fn save_font_as(&mut self, path: PathBuf) -> BezyResult<()> {
         // Convert our internal data back to norad and save
-        let norad_font =
-            self.workspace.font.to_norad_font(&self.workspace.info);
+        let norad_font = self.workspace.font.to_norad_font(&self.workspace.info);
         norad_font.save(&path).with_file_context("save", &path)?;
 
         // Update our stored path
@@ -133,10 +129,12 @@ impl AppState {
         validate_finite_coords(new_point.x, new_point.y)?;
 
         // Validate glyph exists
-        let glyph =
-            self.workspace.font.glyphs.get(glyph_name).ok_or_else(|| {
-                glyph_not_found!(glyph_name, self.workspace.font.glyphs.len())
-            })?;
+        let glyph = self
+            .workspace
+            .font
+            .glyphs
+            .get(glyph_name)
+            .ok_or_else(|| glyph_not_found!(glyph_name, self.workspace.font.glyphs.len()))?;
 
         // Validate outline exists
         let outline = glyph
@@ -147,23 +145,14 @@ impl AppState {
         // Validate contour exists
         ensure!(
             contour_idx < outline.contours.len(),
-            contour_out_of_bounds!(
-                glyph_name,
-                contour_idx,
-                outline.contours.len()
-            )
+            contour_out_of_bounds!(glyph_name, contour_idx, outline.contours.len())
         );
 
         // Validate point exists
         let contour = &outline.contours[contour_idx];
         ensure!(
             point_idx < contour.points.len(),
-            point_out_of_bounds!(
-                glyph_name,
-                contour_idx,
-                point_idx,
-                contour.points.len()
-            )
+            point_out_of_bounds!(glyph_name, contour_idx, point_idx, contour.points.len())
         );
 
         // Update the point (we know it exists after validation)
@@ -205,9 +194,7 @@ impl AppState {
         delta_x: f64,
         delta_y: f64,
     ) -> bool {
-        if let Some(point) =
-            self.get_point_mut(glyph_name, contour_idx, point_idx)
-        {
+        if let Some(point) = self.get_point_mut(glyph_name, contour_idx, point_idx) {
             point.x += delta_x;
             point.y += delta_y;
             true
@@ -225,9 +212,7 @@ impl AppState {
         x: f64,
         y: f64,
     ) -> bool {
-        if let Some(point) =
-            self.get_point_mut(glyph_name, contour_idx, point_idx)
-        {
+        if let Some(point) = self.get_point_mut(glyph_name, contour_idx, point_idx) {
             point.x = x;
             point.y = y;
             true
@@ -268,11 +253,7 @@ impl AppState {
 
     /// Get the number of points in a specific contour
     #[allow(dead_code)]
-    pub fn get_point_count(
-        &self,
-        glyph_name: &str,
-        contour_idx: usize,
-    ) -> Option<usize> {
+    pub fn get_point_count(&self, glyph_name: &str, contour_idx: usize) -> Option<usize> {
         self.workspace
             .font
             .glyphs

@@ -41,12 +41,18 @@ pub fn create_startup_layout(
 
     // Get the current glyph from FontIR state or use 'a' as fallback
     let glyph_name = if let Some(state) = &fontir_state {
-        state.current_glyph.clone().unwrap_or_else(|| "a".to_string())
+        state
+            .current_glyph
+            .clone()
+            .unwrap_or_else(|| "a".to_string())
     } else {
         "a".to_string()
     };
 
-    info!("Creating startup layout with default LTR text sort for glyph '{}'", glyph_name);
+    info!(
+        "Creating startup layout with default LTR text sort for glyph '{}'",
+        glyph_name
+    );
 
     // Get advance width from FontIR if available
     let advance_width = if let Some(state) = &fontir_state {
@@ -68,20 +74,22 @@ pub fn create_startup_layout(
     // TEMPORARY: Center camera on the visual center of the default glyph
     // TO REVERT: Simply comment out the camera centering resource creation below
     let visual_center_x = advance_width / 2.25;
-    
+
     // For vertical centering, estimate the visual center of lowercase 'a'
     // MANUAL ADJUSTMENT: Change this value to move camera up/down
-    let visual_center_y = 328.0;  // <-- ADJUST THIS VALUE: Higher = camera moves up
-    
+    let visual_center_y = 328.0; // <-- ADJUST THIS VALUE: Higher = camera moves up
+
     // Insert a marker resource to trigger camera centering in the next frame
     commands.insert_resource(CenterCameraOnDefaultSort {
         center_x: visual_center_x,
         center_y: visual_center_y,
         advance_width,
     });
-    
-    info!("Startup layout created. Camera will center at ({}, {})", 
-          visual_center_x, visual_center_y);
+
+    info!(
+        "Startup layout created. Camera will center at ({}, {})",
+        visual_center_x, visual_center_y
+    );
 }
 
 /// Helper function to create a single sort at a specific position
@@ -92,35 +100,41 @@ fn create_default_sort_at_position(
     glyph_name: &str,
     advance_width: f32,
 ) {
-    use crate::core::state::text_editor::{SortEntry, SortKind, SortLayoutMode};
     use crate::core::state::text_editor::buffer::BufferId;
-    
+    use crate::core::state::text_editor::{SortEntry, SortKind, SortLayoutMode};
+
     // Create a new buffer ID for this LTR text flow
     let buffer_id = BufferId::new();
-    
+
     let sort = SortEntry {
         kind: SortKind::Glyph {
             codepoint: Some('a'), // Default to 'a'
             glyph_name: glyph_name.to_string(),
-            advance_width,
+            advance_width, // Use actual advance width for cursor positioning
         },
-        is_active: true, // Make it active and ready to edit
-        layout_mode: SortLayoutMode::LTRText,  // LTR text mode for typing
+        is_active: true,                      // Make it active and ready to edit
+        layout_mode: SortLayoutMode::LTRText, // LTR text mode for typing
         root_position: position,
-        is_buffer_root: true, // This is a text root so cursor can appear
-        buffer_cursor_position: Some(1), // Cursor after the first character
+        buffer_cursor_position: Some(1), // LEGACY: Cursor after the first character (for compatibility)
         buffer_id: Some(buffer_id), // Assign unique buffer ID for isolation
     };
+
+    info!(
+        "📍 STARTUP: Created sort with buffer_id: {:?} (cursor now managed by buffer entities)",
+        sort.buffer_id
+    );
 
     // Add to the text editor buffer
     let insert_index = text_editor_state.buffer.len();
     text_editor_state.buffer.insert(insert_index, sort);
-    
+
     // Mark as changed using Bevy's change detection
     // The ResMut wrapper automatically tracks changes when we modify the resource
-    
-    info!("Created default sort '{}' at position ({:.1}, {:.1})", 
-          glyph_name, position.x, position.y);
+
+    info!(
+        "Created default sort '{}' at position ({:.1}, {:.1})",
+        glyph_name, position.x, position.y
+    );
 }
 
 /// System to center the camera on the startup layout
@@ -135,11 +149,13 @@ pub fn center_camera_on_startup_layout(
         for mut transform in camera_query.iter_mut() {
             transform.translation.x = center.center_x;
             transform.translation.y = center.center_y;
-            
-            info!("Centered camera on startup layout at ({}, {})", 
-                  center.center_x, center.center_y);
+
+            info!(
+                "Centered camera on startup layout at ({}, {})",
+                center.center_x, center.center_y
+            );
         }
-        
+
         // Remove the resource so this only happens once
         commands.remove_resource::<CenterCameraOnDefaultSort>();
     }

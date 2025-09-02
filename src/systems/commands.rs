@@ -121,9 +121,7 @@ fn handle_open_file(
                 }
             }
         } else {
-            warn!(
-                "Open file requested but AppState not available (using FontIR)"
-            );
+            warn!("Open file requested but AppState not available (using FontIR)");
         }
     }
 }
@@ -143,9 +141,7 @@ fn handle_save_file(
                 }
             }
         } else {
-            warn!(
-                "Save file requested but AppState not available (using FontIR)"
-            );
+            warn!("Save file requested but AppState not available (using FontIR)");
         }
     }
 }
@@ -233,14 +229,17 @@ fn handle_cycle_codepoint(
             warn!("Codepoint cycling requested but neither AppState nor FontIRAppState available");
             return;
         };
-        
+
         if available_codepoints.is_empty() {
             debug!("No codepoints found in font");
             return;
         }
 
         let current_codepoint = glyph_navigation.get_codepoint_string();
-        debug!("Current codepoint: '{}', available: {:?}", current_codepoint, available_codepoints);
+        debug!(
+            "Current codepoint: '{}', available: {:?}",
+            current_codepoint, available_codepoints
+        );
 
         // Calculate next codepoint
         let current_index = available_codepoints
@@ -264,14 +263,17 @@ fn handle_cycle_codepoint(
             }
         } else {
             // If current codepoint not found, start from first
-            warn!("Current codepoint '{}' not found in available list, using first available", current_codepoint);
+            warn!(
+                "Current codepoint '{}' not found in available list, using first available",
+                current_codepoint
+            );
             available_codepoints.first().cloned()
         };
 
         // Set the new codepoint if found
         if let Some(new_codepoint) = next_codepoint {
             glyph_navigation.set_codepoint(new_codepoint.clone());
-            
+
             // Update all active sorts to use the new glyph
             for mut sort in active_sorts.iter_mut() {
                 let old_glyph = sort.glyph_name.clone();
@@ -281,7 +283,7 @@ fn handle_cycle_codepoint(
                     old_glyph, new_codepoint
                 );
             }
-            
+
             debug!(
                 "Switched to codepoint: {}",
                 glyph_navigation.get_codepoint_string()
@@ -304,7 +306,7 @@ pub fn handle_codepoint_cycling(
             direction: CodepointDirection::Next,
         });
     }
-    
+
     // Check for End key to go to previous codepoint (like in Glyphs.app)
     if keyboard.just_pressed(KeyCode::End) {
         debug!("Detected End key, cycling to previous codepoint");
@@ -312,17 +314,15 @@ pub fn handle_codepoint_cycling(
             direction: CodepointDirection::Previous,
         });
     }
-    
+
     // Keep the existing Shift+Plus/Minus shortcuts as alternatives
-    let shift_pressed = keyboard.pressed(KeyCode::ShiftLeft)
-        || keyboard.pressed(KeyCode::ShiftRight);
+    let shift_pressed =
+        keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
 
     if shift_pressed {
         // Check for Shift+= (Plus) to move to next codepoint
         if keyboard.just_pressed(KeyCode::Equal) {
-            debug!(
-                "Detected Shift+= key combination, cycling to next codepoint"
-            );
+            debug!("Detected Shift+= key combination, cycling to next codepoint");
             cycle_event.write(CycleCodepointEvent {
                 direction: CodepointDirection::Next,
             });
@@ -369,9 +369,7 @@ fn handle_create_contour(
         debug!("Handling CreateContourEvent");
 
         // Get the glyph name first
-        if let (Some(state), Some(nav)) =
-            (app_state.as_ref(), glyph_navigation.as_ref())
-        {
+        if let (Some(state), Some(nav)) = (app_state.as_ref(), glyph_navigation.as_ref()) {
             if let Some(glyph_name) = nav.find_glyph(state) {
                 // Try to add the contour to the glyph
                 // Note: This will need to be implemented when we have the full glyph editing system
@@ -409,6 +407,9 @@ pub fn handle_checkerboard_toggle(
             "disabled"
         };
         info!("Checkerboard grid {}", status);
-        debug!("Detected Command+G / Ctrl+G key combination, toggling checkerboard to: {}", status);
+        debug!(
+            "Detected Command+G / Ctrl+G key combination, toggling checkerboard to: {}",
+            status
+        );
     }
 }

@@ -67,15 +67,6 @@ impl TextPlacementMode {
         }
     }
 
-    /// Cycle to the next mode (for Tab key)
-    pub fn cycle_next(&self) -> Self {
-        match self {
-            TextPlacementMode::LTRText => TextPlacementMode::RTLText,
-            TextPlacementMode::RTLText => TextPlacementMode::Insert,
-            TextPlacementMode::Insert => TextPlacementMode::Freeform,
-            TextPlacementMode::Freeform => TextPlacementMode::LTRText,
-        }
-    }
 }
 
 /// Component to mark text submenu buttons
@@ -101,7 +92,7 @@ impl EditTool for TextTool {
             name: "text",
             display_name: "Text",
             icon: "\u{E017}", // Text icon
-            tooltip: "Place text and create sorts (Tab for modes)",
+            tooltip: "Place text and create sorts",
             shortcut: Some(KeyCode::KeyT),
         }
     }
@@ -112,7 +103,6 @@ impl EditTool for TextTool {
 
         info!("Text tool activated - Enhanced features:");
         info!("• Click to place sorts, type letters to add glyphs");
-        info!("• Tab to switch Text/Insert/Freeform modes");
         info!("• 1-9 keys to switch glyphs, F1 for help");
         info!("• Arrow keys for navigation, Ctrl+S to show text mode");
     }

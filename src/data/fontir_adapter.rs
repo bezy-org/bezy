@@ -11,9 +11,7 @@ use anyhow::Result;
 use bevy::prelude::*;
 use kurbo::BezPath;
 
-use crate::core::state::{
-    ContourData, FontData, OutlineData, PointData, PointTypeData,
-};
+use crate::core::state::{ContourData, FontData, OutlineData, PointData, PointTypeData};
 
 /// Thread-safe wrapper around FontIR data
 ///

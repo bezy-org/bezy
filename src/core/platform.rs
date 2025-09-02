@@ -31,9 +31,7 @@ pub fn handle_error(error: anyhow::Error) {
     }
     #[cfg(target_arch = "wasm32")]
     {
-        web_sys::console::error_1(
-            &format!("Error starting Bezy: {}", error).into(),
-        );
+        web_sys::console::error_1(&format!("Error starting Bezy: {}", error).into());
     }
 }
 

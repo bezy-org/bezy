@@ -7,9 +7,7 @@ use bevy::gizmos::{config::DefaultGizmoConfigGroup, config::GizmoConfigStore};
 use bevy::prelude::*;
 
 use crate::editing::sort_plugin::SortPlugin;
-use crate::ui::theme::{
-    GIZMO_LINE_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH,
-};
+use crate::ui::theme::{GIZMO_LINE_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH};
 use crate::utils::setup::setup;
 
 /// Configure default Bevy plugins for the application

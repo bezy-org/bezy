@@ -12,8 +12,7 @@
 
 use crate::core::settings::BezySettings;
 use crate::core::state::{
-    AppState, FontIRAppState, GlyphNavigation, SortLayoutMode, TextEditorState,
-    TextModeConfig,
+    AppState, FontIRAppState, GlyphNavigation, SortLayoutMode, TextEditorState, TextModeConfig,
 };
 use bevy::input::ButtonState;
 use bevy::log::info;
@@ -26,7 +25,7 @@ use crate::rendering::checkerboard::calculate_dynamic_grid_size;
 use crate::ui::theme::*;
 use crate::ui::theme::{PRESSED_BUTTON_COLOR, SORT_ACTIVE_METRICS_COLOR};
 use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
-use crate::ui::toolbars::edit_mode_toolbar::{EditTool, ToolRegistry};
+use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
 
 /// Resource to track if text mode is active
 #[derive(Resource, Default)]
@@ -44,10 +43,14 @@ pub struct TextModeState {
 /// Text placement modes for the submenu
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Resource)]
 pub enum TextPlacementMode {
+    /// Place sorts in left-to-right text mode
     LTRText,
+    /// Place sorts in right-to-left text mode (Arabic/Hebrew)
     RTLText,
+    /// Insert and edit text within existing text mode sorts  
     #[default]
     Insert,
+    /// Place sorts freely in the design space
     Freeform,
 }
 
@@ -101,7 +104,7 @@ pub struct CurrentTextPlacementMode(pub TextPlacementMode);
 pub struct TextTool;
 
 impl EditTool for TextTool {
-    fn id(&self) -> crate::ui::toolbars::edit_mode_toolbar::ToolId {
+    fn id(&self) -> crate::ui::edit_mode_toolbar::ToolId {
         "text"
     }
 
@@ -132,7 +135,6 @@ impl EditTool for TextTool {
     fn on_enter(&self) {
         info!("Entered Text tool - Enhanced features:");
         info!("• Click to place sorts, type letters to add glyphs");
-        info!("• Tab to switch Text mode/Freeform modes");
         info!("• 1-9 keys to switch glyphs, F1 for help");
         info!("• Arrow keys for navigation, Ctrl+S to show text mode");
     }
@@ -194,7 +196,7 @@ fn spawn_text_mode_button(
     theme: &Res<CurrentTheme>,
 ) {
     // Use the unified toolbar button creation system for consistent styling with hover text
-    crate::ui::toolbars::edit_mode_toolbar::ui::create_unified_toolbar_button_with_hover_text(
+    crate::ui::edit_mode_toolbar::ui::create_toolbar_button_with_hover_text(
         parent,
         mode.get_icon(),
         Some(mode.display_name()), // Show the mode name on hover
@@ -217,10 +219,11 @@ pub fn spawn_text_submenu(
     ];
 
     // Create the parent submenu node (left-aligned to match main toolbar)
+    // Position below main toolbar using consistent helper
     let submenu_node = Node {
         position_type: PositionType::Absolute,
-        top: Val::Px(TOOLBAR_CONTAINER_MARGIN + 74.0),
-        left: Val::Px(TOOLBAR_CONTAINER_MARGIN),  // Now on the left to match toolbar
+        top: Val::Px(toolbar_submenu_top_position()),
+        left: Val::Px(TOOLBAR_CONTAINER_MARGIN), // Now on the left to match toolbar
         flex_direction: FlexDirection::Row,
         padding: UiRect::all(Val::Px(TOOLBAR_PADDING)),
         margin: UiRect::all(Val::ZERO),
@@ -257,28 +260,25 @@ pub fn handle_text_mode_selection(
     children_query: Query<&Children>,
     mut text_query: Query<&mut TextColor>,
 ) {
-    for (interaction, mut color, mut border_color, mode_button, entity) in
-        &mut interaction_query
-    {
+    for (interaction, mut color, mut border_color, mode_button, entity) in &mut interaction_query {
         let is_current_mode = current_mode.0 == mode_button.mode;
 
         if *interaction == Interaction::Pressed && !is_current_mode {
             current_mode.0 = mode_button.mode;
-            text_mode_config.default_placement_mode =
-                mode_button.mode.to_sort_layout_mode();
+            text_mode_config.default_placement_mode = mode_button.mode.to_sort_layout_mode();
             info!("Switched to text placement mode: {:?}", mode_button.mode);
         }
 
         // Use the unified button color system for consistent appearance with main toolbar
-        crate::ui::toolbars::edit_mode_toolbar::ui::update_unified_button_colors(
+        crate::ui::edit_mode_toolbar::ui::update_toolbar_button_colors(
             *interaction,
             is_current_mode,
             &mut color,
             &mut border_color,
         );
-        
+
         // Use the unified text color system for consistent icon colors with main toolbar
-        crate::ui::toolbars::edit_mode_toolbar::ui::update_unified_button_text_colors(
+        crate::ui::edit_mode_toolbar::ui::update_toolbar_button_text_colors(
             entity,
             is_current_mode,
             &children_query,
@@ -289,7 +289,7 @@ pub fn handle_text_mode_selection(
 
 pub fn toggle_text_submenu_visibility(
     mut submenu_query: Query<(&mut Node, &Name)>,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
 ) {
     let is_text_tool_active = current_tool.get_current() == Some("text");
     for (mut style, name) in submenu_query.iter_mut() {
@@ -305,7 +305,7 @@ pub fn toggle_text_submenu_visibility(
 
 pub fn update_text_mode_active(
     mut text_mode_active: ResMut<TextModeActive>,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
 ) {
     let is_text_mode = current_tool.get_current() == Some("text");
     if text_mode_active.0 != is_text_mode {
@@ -332,8 +332,7 @@ pub fn handle_text_mode_cursor(
     let cursor_moved = !cursor_moved_events.is_empty();
     cursor_moved_events.clear();
     let raw_cursor_world_pos = pointer_info.design.to_raw();
-    let position_changed =
-        text_mode_state.cursor_position != Some(raw_cursor_world_pos);
+    let position_changed = text_mode_state.cursor_position != Some(raw_cursor_world_pos);
     text_mode_state.cursor_position = Some(raw_cursor_world_pos);
     text_mode_state.showing_preview = true;
     if cursor_moved || position_changed {
@@ -350,7 +349,7 @@ pub fn handle_text_mode_cursor(
 pub fn handle_text_mode_mouse_clicks(
     mouse_button_input: Res<ButtonInput<MouseButton>>,
     text_mode_active: Res<TextModeActive>,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     ui_hover_state: Res<crate::systems::ui_interaction::UiHoverState>,
     pointer_info: Res<crate::core::io::pointer::PointerInfo>,
     mut current_placement_mode: ResMut<CurrentTextPlacementMode>,
@@ -361,37 +360,37 @@ pub fn handle_text_mode_mouse_clicks(
     mut camera_query: Query<&mut Projection, With<DesignCamera>>,
 ) {
     // Check which state is available
-    let (using_fontir, glyph_names, advance_width) = if let Some(fontir_state) =
-        fontir_app_state.as_ref()
-    {
-        let names = fontir_state.get_glyph_names();
-        let advance = fontir_state.get_glyph_advance_width("a"); // Default glyph for advance
-        (true, names, advance)
-    } else if let Some(app_state) = app_state.as_ref() {
-        let names: Vec<String> =
-            app_state.workspace.font.glyphs.keys().cloned().collect();
-        let advance = app_state
-            .workspace
-            .font
-            .glyphs
-            .get("a")
-            .map(|g| g.advance_width as f32)
-            .unwrap_or(600.0);
-        (false, names, advance)
-    } else {
-        warn!("Text mode mouse clicks disabled - neither AppState nor FontIR available");
-        return;
-    };
+    let (using_fontir, glyph_names, advance_width) =
+        if let Some(fontir_state) = fontir_app_state.as_ref() {
+            let names = fontir_state.get_glyph_names();
+            let advance = fontir_state.get_glyph_advance_width("a"); // Default glyph for advance
+            (true, names, advance)
+        } else if let Some(app_state) = app_state.as_ref() {
+            let names: Vec<String> = app_state.workspace.font.glyphs.keys().cloned().collect();
+            let advance = app_state
+                .workspace
+                .font
+                .glyphs
+                .get("a")
+                .map(|g| g.advance_width as f32)
+                .unwrap_or(600.0);
+            (false, names, advance)
+        } else {
+            warn!("Text mode mouse clicks disabled - neither AppState nor FontIR available");
+            return;
+        };
 
     // Debug text mode state
-    debug!("Text mode click handler: text_mode_active={}, current_tool={:?}, ui_hover={}", 
-           text_mode_active.0, current_tool.get_current(), ui_hover_state.is_hovering_ui);
+    debug!(
+        "Text mode click handler: text_mode_active={}, current_tool={:?}, ui_hover={}",
+        text_mode_active.0,
+        current_tool.get_current(),
+        ui_hover_state.is_hovering_ui
+    );
 
     // Only handle clicks when text mode is active and we're the active tool
     if !text_mode_active.0 || current_tool.get_current() != Some("text") {
-        debug!(
-            "Text mode click handler: early return - not active or wrong tool"
-        );
+        debug!("Text mode click handler: early return - not active or wrong tool");
         return;
     }
 
@@ -433,13 +432,11 @@ pub fn handle_text_mode_mouse_clicks(
 
         let font_metrics_ref = font_metrics.as_ref();
 
-        if let Some(clicked_sort_index) = text_editor_state
-            .find_sort_handle_at_position(
-                world_position,
-                handle_tolerance,
-                font_metrics_ref,
-            )
-        {
+        if let Some(clicked_sort_index) = text_editor_state.find_sort_handle_at_position(
+            world_position,
+            handle_tolerance,
+            font_metrics_ref,
+        ) {
             info!(
                 "Clicked on sort handle at index {}, letting selection system handle activation",
                 clicked_sort_index
@@ -501,11 +498,12 @@ pub fn render_sort_preview(
     fontir_app_state: Option<Res<FontIRAppState>>,
     pointer_info: Res<crate::core::io::pointer::PointerInfo>,
     camera_query: Query<&Projection, With<DesignCamera>>,
-    mut preview_metrics_state: ResMut<
-        crate::rendering::metrics::PreviewMetricsState,
-    >,
+    mut preview_metrics_state: ResMut<crate::rendering::metrics::PreviewMetricsState>,
 ) {
-    info!("[PREVIEW] Entered render_sort_preview - text_mode_active: {}, placement_mode: {:?}", text_mode_active.0, current_placement_mode.0);
+    info!(
+        "[PREVIEW] Entered render_sort_preview - text_mode_active: {}, placement_mode: {:?}",
+        text_mode_active.0, current_placement_mode.0
+    );
     if !text_mode_active.0 {
         preview_metrics_state.active = false;
         debug!("[PREVIEW] Early return: text_mode_active is false - disabled metrics preview");
@@ -528,8 +526,7 @@ pub fn render_sort_preview(
         })
         .unwrap_or(1.0);
     let grid_size = calculate_dynamic_grid_size(zoom_scale);
-    let snapped_position =
-        (pointer_info.design.to_raw() / grid_size).round() * grid_size;
+    let snapped_position = (pointer_info.design.to_raw() / grid_size).round() * grid_size;
     debug!(
         "[PREVIEW] Placement mode: {:?}, snapped_position: ({:.1}, {:.1})",
         current_placement_mode.0, snapped_position.x, snapped_position.y
@@ -540,17 +537,21 @@ pub fn render_sort_preview(
     // Determine the appropriate preview glyph based on placement mode
     let preview_glyph_name = match current_placement_mode.0 {
         TextPlacementMode::RTLText => "alef-ar".to_string(), // Arabic Alef for RTL
-        _ => glyph_navigation.current_glyph.clone().unwrap_or_else(|| "a".to_string()), // Current glyph or 'a' for LTR
+        _ => glyph_navigation
+            .current_glyph
+            .clone()
+            .unwrap_or_else(|| "a".to_string()), // Current glyph or 'a' for LTR
     };
-    
-    debug!("[PREVIEW] Using preview glyph: {} (placement mode: {:?})", preview_glyph_name, current_placement_mode.0);
+
+    debug!(
+        "[PREVIEW] Using preview glyph: {} (placement mode: {:?})",
+        preview_glyph_name, current_placement_mode.0
+    );
 
     // Try FontIR first, then fall back to AppState
     if let Some(fontir_state) = &fontir_app_state {
         debug!("[PREVIEW] Using FontIR for preview");
-        if let Some(_glyph_paths) =
-            fontir_state.get_glyph_paths_with_edits(&preview_glyph_name)
-        {
+        if let Some(_glyph_paths) = fontir_state.get_glyph_paths_with_edits(&preview_glyph_name) {
             debug!(
                 "[PREVIEW] Drawing FontIR preview for glyph '{}' at ({:.1}, {:.1})",
                 preview_glyph_name, snapped_position.x, snapped_position.y
@@ -560,14 +561,12 @@ pub fn render_sort_preview(
             // For now, just show metrics without glyph outline
 
             // Update mesh-based preview metrics state for FontIR
-            let advance_width =
-                fontir_state.get_glyph_advance_width(&preview_glyph_name);
+            let advance_width = fontir_state.get_glyph_advance_width(&preview_glyph_name);
             preview_metrics_state.active = true;
             preview_metrics_state.position = snapped_position;
             preview_metrics_state.glyph_name = preview_glyph_name.clone();
             preview_metrics_state.advance_width = advance_width;
-            preview_metrics_state.color =
-                PRESSED_BUTTON_COLOR.with_alpha(0.8);
+            preview_metrics_state.color = PRESSED_BUTTON_COLOR.with_alpha(0.8);
             debug!(
                 "[PREVIEW] Updated mesh-based preview metrics for '{}' at ({:.1}, {:.1})",
                 preview_glyph_name, snapped_position.x, snapped_position.y
@@ -582,9 +581,7 @@ pub fn render_sort_preview(
         }
     } else if let Some(app_state) = &app_state {
         debug!("[PREVIEW] Using AppState for preview");
-        if let Some(glyph_data) =
-            app_state.workspace.font.glyphs.get(&preview_glyph_name)
-        {
+        if let Some(glyph_data) = app_state.workspace.font.glyphs.get(&preview_glyph_name) {
             debug!(
                 "[PREVIEW] Drawing AppState preview for glyph '{}' at ({:.1}, {:.1})",
                 preview_glyph_name, snapped_position.x, snapped_position.y
@@ -599,8 +596,7 @@ pub fn render_sort_preview(
             preview_metrics_state.position = snapped_position;
             preview_metrics_state.glyph_name = preview_glyph_name.clone();
             preview_metrics_state.advance_width = advance_width;
-            preview_metrics_state.color =
-                PRESSED_BUTTON_COLOR.with_alpha(0.8);
+            preview_metrics_state.color = PRESSED_BUTTON_COLOR.with_alpha(0.8);
             debug!(
                 "[PREVIEW] Updated mesh-based preview metrics for '{}' at ({:.1}, {:.1})",
                 preview_glyph_name, snapped_position.x, snapped_position.y
@@ -624,11 +620,9 @@ pub fn render_sort_preview(
 
 pub fn handle_text_tool_shortcuts(
     mut keyboard_input: ResMut<ButtonInput<KeyCode>>,
-    mut current_tool: ResMut<
-        crate::ui::toolbars::edit_mode_toolbar::CurrentTool,
-    >,
-    mut current_placement_mode: ResMut<CurrentTextPlacementMode>,
-    mut text_mode_config: ResMut<TextModeConfig>,
+    mut current_tool: ResMut<crate::ui::edit_mode_toolbar::CurrentTool>,
+    current_placement_mode: Res<CurrentTextPlacementMode>,
+    _text_mode_config: ResMut<TextModeConfig>,
     text_editor_state: Option<Res<TextEditorState>>,
     text_mode_active: Res<TextModeActive>,
 ) {
@@ -637,7 +631,7 @@ pub fn handle_text_tool_shortcuts(
         Some(&text_mode_active),
         Some(&current_placement_mode),
     );
-    
+
     // Only activate text tool with 'T' key when not in insert mode
     if keyboard_input.just_pressed(KeyCode::KeyT)
         && current_tool.get_current() != Some("text")
@@ -646,21 +640,6 @@ pub fn handle_text_tool_shortcuts(
         current_tool.switch_to("text");
         info!("Activated text tool via keyboard shortcut");
         keyboard_input.clear_just_pressed(KeyCode::KeyT);
-    }
-    if current_tool.get_current() == Some("text")
-        && keyboard_input.just_pressed(KeyCode::Tab)
-    {
-        let new_mode = match current_placement_mode.0 {
-            TextPlacementMode::LTRText => TextPlacementMode::RTLText,
-            TextPlacementMode::RTLText => TextPlacementMode::Insert,
-            TextPlacementMode::Insert => TextPlacementMode::Freeform,
-            TextPlacementMode::Freeform => TextPlacementMode::LTRText,
-        };
-        current_placement_mode.0 = new_mode;
-        text_mode_config.default_placement_mode =
-            new_mode.to_sort_layout_mode();
-        info!("Switched text placement mode to: {:?}", new_mode);
-        keyboard_input.clear_just_pressed(KeyCode::Tab);
     }
     if current_tool.get_current() == Some("text")
         && keyboard_input.just_pressed(KeyCode::KeyS)
@@ -680,12 +659,9 @@ pub fn handle_text_tool_shortcuts(
             info!("Current mode: {:?}", current_placement_mode.0);
         }
     }
-    if current_tool.get_current() == Some("text")
-        && keyboard_input.just_pressed(KeyCode::F1)
-    {
+    if current_tool.get_current() == Some("text") && keyboard_input.just_pressed(KeyCode::F1) {
         info!("=== TEXT TOOL HELP ===");
         info!("T - Activate text tool");
-        info!("Tab - Switch between Text mode/Insert/Freeform modes");
         info!("TEXT MODE:");
         info!("  • Click to place glyphs");
         info!("  • Type letters to create sorts");
@@ -705,9 +681,7 @@ pub fn handle_text_tool_shortcuts(
         info!("F1 - Show this help");
         info!("====================");
     }
-    if current_tool.get_current() == Some("text")
-        && keyboard_input.just_pressed(KeyCode::Escape)
-    {
+    if current_tool.get_current() == Some("text") && keyboard_input.just_pressed(KeyCode::Escape) {
         if let Some(previous_tool) = current_tool.get_previous() {
             current_tool.switch_to(previous_tool);
             info!(
@@ -741,28 +715,21 @@ pub fn handle_text_mode_keyboard(
     fontir_app_state: Option<Res<FontIRAppState>>,
     mut glyph_navigation: ResMut<GlyphNavigation>,
     _text_mode_state: Res<TextModeState>,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     // Add query to check for selected points
-    selected_points: Query<
-        Entity,
-        With<crate::editing::selection::components::Selected>,
-    >,
+    selected_points: Query<Entity, With<crate::editing::selection::components::Selected>>,
 ) {
     if !text_mode_active.0 || current_tool.get_current() != Some("text") {
         return;
     }
 
     // Get font data from either AppState or FontIR
-    let font_has_glyph: Box<dyn Fn(&str) -> bool> = if let Some(app_state) =
-        app_state.as_ref()
-    {
+    let font_has_glyph: Box<dyn Fn(&str) -> bool> = if let Some(app_state) = app_state.as_ref() {
         Box::new(move |glyph_name: &str| -> bool {
             app_state.workspace.font.glyphs.contains_key(glyph_name)
         })
     } else if let Some(fontir_state) = fontir_app_state.as_ref() {
-        Box::new(move |glyph_name: &str| -> bool {
-            fontir_state.get_glyph(glyph_name).is_some()
-        })
+        Box::new(move |glyph_name: &str| -> bool { fontir_state.get_glyph(glyph_name).is_some() })
     } else {
         warn!("Text mode keyboard disabled - neither AppState nor FontIR available");
         return;
@@ -772,7 +739,10 @@ pub fn handle_text_mode_keyboard(
     // This gives priority to the nudge system
     let has_selected_points = !selected_points.is_empty();
     if has_selected_points {
-        debug!("[TEXT_TOOLBAR] Skipping arrow key handling - {} selected points found", selected_points.iter().count());
+        debug!(
+            "[TEXT_TOOLBAR] Skipping arrow key handling - {} selected points found",
+            selected_points.iter().count()
+        );
         return;
     }
 
@@ -912,14 +882,13 @@ pub fn handle_text_mode_keyboard(
     {
         if keyboard_input.just_pressed(*key) {
             // Get available glyphs from either source
-            let glyph_names: Vec<String> =
-                if let Some(app_state) = app_state.as_ref() {
-                    app_state.workspace.font.glyphs.keys().cloned().collect()
-                } else if let Some(fontir_state) = fontir_app_state.as_ref() {
-                    fontir_state.get_glyph_names()
-                } else {
-                    vec![]
-                };
+            let glyph_names: Vec<String> = if let Some(app_state) = app_state.as_ref() {
+                app_state.workspace.font.glyphs.keys().cloned().collect()
+            } else if let Some(fontir_state) = fontir_app_state.as_ref() {
+                fontir_state.get_glyph_names()
+            } else {
+                vec![]
+            };
             if let Some(glyph_name) = glyph_names.get(i) {
                 glyph_navigation.current_glyph = Some(glyph_name.clone());
                 info!(
@@ -945,9 +914,7 @@ pub fn handle_text_mode_keyboard(
                 "a".to_string()
             } else {
                 // Get first available glyph
-                let glyph_names: Vec<String> = if let Some(app_state) =
-                    app_state.as_ref()
-                {
+                let glyph_names: Vec<String> = if let Some(app_state) = app_state.as_ref() {
                     app_state.workspace.font.glyphs.keys().cloned().collect()
                 } else if let Some(fontir_state) = fontir_app_state.as_ref() {
                     fontir_state.get_glyph_names()

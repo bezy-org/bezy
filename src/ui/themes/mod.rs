@@ -102,20 +102,14 @@ impl ThemeRegistry {
                 let path = entry.path();
 
                 if path.extension().and_then(|s| s.to_str()) == Some("json") {
-                    if let Some(stem) =
-                        path.file_stem().and_then(|s| s.to_str())
-                    {
+                    if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
                         match json_theme::JsonTheme::load_from_file(&path) {
                             Ok(theme) => {
                                 info!("Loaded JSON theme: {}", theme.name);
-                                self.themes
-                                    .insert(stem.to_string(), Box::new(theme));
+                                self.themes.insert(stem.to_string(), Box::new(theme));
                             }
                             Err(e) => {
-                                error!(
-                                    "Failed to load JSON theme from {:?}: {}",
-                                    path, e
-                                );
+                                error!("Failed to load JSON theme from {:?}: {}", path, e);
                             }
                         }
                     }
@@ -130,10 +124,8 @@ impl ThemeRegistry {
 
         self.themes
             .insert("darkmode".to_string(), Box::new(darkmode::DarkModeTheme));
-        self.themes.insert(
-            "lightmode".to_string(),
-            Box::new(lightmode::LightModeTheme),
-        );
+        self.themes
+            .insert("lightmode".to_string(), Box::new(lightmode::LightModeTheme));
         self.themes.insert(
             "strawberry".to_string(),
             Box::new(strawberry::StrawberryTheme),
@@ -162,9 +154,7 @@ impl ThemeRegistry {
         if let Some(_theme) = self.themes.get(name) {
             // Try to reload from JSON file first
             let json_path = format!("src/ui/themes/{}.json", name);
-            if let Ok(json_theme) =
-                json_theme::JsonTheme::load_from_file(&json_path)
-            {
+            if let Ok(json_theme) = json_theme::JsonTheme::load_from_file(&json_path) {
                 return Some(Box::new(json_theme));
             }
 
@@ -183,10 +173,7 @@ impl ThemeRegistry {
     }
 
     /// Register a new theme (for dynamic registration)
-    pub fn register_theme<T: BezyTheme + Default + 'static>(
-        &mut self,
-        name: String,
-    ) {
+    pub fn register_theme<T: BezyTheme + Default + 'static>(&mut self, name: String) {
         self.themes.insert(name, Box::new(T::default()));
     }
 }
@@ -673,9 +660,7 @@ impl CurrentTheme {
 
         // Try to load from JSON first
         let json_path = format!("src/ui/themes/{}.json", variant.name());
-        let theme = if let Ok(json_theme) =
-            json_theme::JsonTheme::load_from_file(&json_path)
-        {
+        let theme = if let Ok(json_theme) = json_theme::JsonTheme::load_from_file(&json_path) {
             Box::new(json_theme) as Box<dyn BezyTheme>
         } else {
             // Fallback to registry or default

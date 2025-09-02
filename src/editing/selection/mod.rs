@@ -81,12 +81,11 @@ impl Plugin for SelectionPlugin {
             .init_resource::<DragSelectionState>()
             .init_resource::<DragPointState>()
             // TEMP FIX: Manually initialize SelectModeActive since it's not being created
-            .insert_resource(crate::ui::toolbars::edit_mode_toolbar::select::SelectModeActive(true))
+            .insert_resource(crate::ui::edit_mode_toolbar::select::SelectModeActive(true))
             // Configure system sets for proper ordering
             .configure_sets(
                 Update,
-                (SelectionSystemSet::Input, SelectionSystemSet::Processing)
-                    .chain(),
+                (SelectionSystemSet::Input, SelectionSystemSet::Processing).chain(),
             )
             .configure_sets(PostUpdate, (SelectionSystemSet::Render,))
             // Input systems - the process_selection_input_events system handles the actual selection logic
@@ -137,8 +136,7 @@ impl Plugin for SelectionPlugin {
         #[cfg(debug_assertions)]
         app.add_systems(
             PostUpdate,
-            utils::debug_validate_point_entity_uniqueness
-                .after(SelectionSystemSet::Render),
+            utils::debug_validate_point_entity_uniqueness.after(SelectionSystemSet::Render),
         );
     }
 }
@@ -162,9 +160,7 @@ pub fn sync_selected_components(
     entities: Query<Entity>,
 ) {
     // Only log when there are changes to synchronize to avoid spam
-    if !selection_state.selected.is_empty()
-        || selected_entities.iter().count() > 0
-    {
+    if !selection_state.selected.is_empty() || selected_entities.iter().count() > 0 {
         debug!(
             "Synchronizing Selected components with SelectionState (current: {})",
             selection_state.selected.len()
@@ -187,7 +183,10 @@ pub fn sync_selected_components(
     for entity in &selected_entities {
         if !selection_state.selected.contains(&entity) {
             commands.entity(entity).remove::<Selected>();
-            info!("Removing Selected component from entity {:?} not in selection state", entity);
+            info!(
+                "Removing Selected component from entity {:?} not in selection state",
+                entity
+            );
         }
     }
 }

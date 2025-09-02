@@ -9,21 +9,22 @@ use bevy::prelude::*;
 
 /// Handle sort placement input (mouse clicks in text modes)
 pub fn handle_sort_placement_input(
+    mut commands: Commands,
     mouse_button_input: Res<ButtonInput<MouseButton>>,
     camera_query: Query<
         (&Camera, &GlobalTransform, &Projection),
         With<crate::rendering::cameras::DesignCamera>,
     >,
     windows: Query<&Window, With<bevy::window::PrimaryWindow>>,
-    current_tool: Res<crate::ui::toolbars::edit_mode_toolbar::CurrentTool>,
-    current_placement_mode: ResMut<
-        crate::ui::toolbars::edit_mode_toolbar::text::CurrentTextPlacementMode,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
+    mut current_placement_mode: ResMut<
+        crate::ui::edit_mode_toolbar::text::CurrentTextPlacementMode,
     >,
     mut text_editor_state: ResMut<crate::core::state::TextEditorState>,
     ui_hover_state: Res<crate::systems::ui_interaction::UiHoverState>,
     fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
 ) {
-    use crate::ui::toolbars::edit_mode_toolbar::text::TextPlacementMode;
+    use crate::ui::edit_mode_toolbar::text::TextPlacementMode;
 
     // Only handle input when text tool is active
     let current_tool_name = current_tool.get_current();
@@ -34,7 +35,7 @@ pub fn handle_sort_placement_input(
         }
         return;
     }
-    
+
     info!("🖱️ SORT PLACEMENT: ✅ Text tool is active, checking other conditions...");
 
     // Only handle text placement modes, not insert mode
@@ -45,8 +46,12 @@ pub fn handle_sort_placement_input(
         }
         TextPlacementMode::Insert | TextPlacementMode::Freeform => {
             // These modes don't place sorts on click
-            if mouse_button_input.just_pressed(MouseButton::Left) && !ui_hover_state.is_hovering_ui {
-                info!("🖱️ SORT PLACEMENT: Click ignored - in {:?} mode (not placement mode)", current_placement_mode.0);
+            if mouse_button_input.just_pressed(MouseButton::Left) && !ui_hover_state.is_hovering_ui
+            {
+                info!(
+                    "🖱️ SORT PLACEMENT: Click ignored - in {:?} mode (not placement mode)",
+                    current_placement_mode.0
+                );
             }
             return;
         }
@@ -64,14 +69,13 @@ pub fn handle_sort_placement_input(
     if !mouse_button_input.just_pressed(MouseButton::Left) {
         return;
     }
-    
+
     info!("🖱️ SORT PLACEMENT: ✅ Left mouse click detected, UI not hovering");
 
     info!("🖱️ SORT PLACEMENT: Left mouse click detected - processing placement");
 
     // Get camera, transform, and projection
-    let Ok((camera, camera_transform, projection)) = camera_query.single()
-    else {
+    let Ok((camera, camera_transform, projection)) = camera_query.single() else {
         return;
     };
 
@@ -83,8 +87,7 @@ pub fn handle_sort_placement_input(
         return;
     };
 
-    let Ok(raw_world_position) =
-        camera.viewport_to_world_2d(camera_transform, cursor_position)
+    let Ok(raw_world_position) = camera.viewport_to_world_2d(camera_transform, cursor_position)
     else {
         return;
     };
@@ -103,58 +106,96 @@ pub fn handle_sort_placement_input(
     // Always create a new sort when clicking in placement mode
     // This allows placing multiple sorts of the same glyph or different glyphs
     let existing_sorts_count = text_editor_state.get_text_sorts().len();
-    info!("🖱️ SORT PLACEMENT: Creating new sort at position ({:.1}, {:.1}), existing sorts: {}", 
-          snapped_position.x, snapped_position.y, existing_sorts_count);
-    
+    info!(
+        "🖱️ SORT PLACEMENT: Creating new sort at position ({:.1}, {:.1}), existing sorts: {}",
+        snapped_position.x, snapped_position.y, existing_sorts_count
+    );
+
     // CRITICAL FIX: Deactivate all existing sorts before creating new active sort
     // This prevents multiple active sorts from existing simultaneously
-    // NOTE: Each text flow (LTR/RTL) maintains its own buffer root and text flow chain
+    // NOTE: Each text flow (LTR/RTL) maintains its own buffer and text flow chain
     // Buffer[0] might be LTR, Buffer[1] might be RTL - they are independent text flows
     for i in 0..text_editor_state.buffer.len() {
         if let Some(sort) = text_editor_state.buffer.get_mut(i) {
             if sort.is_active {
-                info!("🔻 SORT PLACEMENT: Deactivating existing sort - glyph '{}'", sort.kind.glyph_name());
+                info!(
+                    "🔻 SORT PLACEMENT: Deactivating existing sort - glyph '{}'",
+                    sort.kind.glyph_name()
+                );
                 sort.is_active = false;
             }
         }
     }
-    
-    // Create a new independent sort (not part of text buffer)
+
+    // Create a new independent sort with buffer entity
     info!("🖱️ SORT PLACEMENT: About to call create_independent_sort_with_fontir");
-    create_independent_sort_with_fontir(
+    let new_buffer_entity = create_independent_sort_with_fontir(
+        &mut commands,
         &mut text_editor_state,
         snapped_position,
         current_placement_mode.0.to_sort_layout_mode(),
         fontir_app_state.as_deref(),
     );
+
+    // CRITICAL: Update the ActiveTextBuffer resource to point to the new buffer entity
+    commands.insert_resource(crate::core::state::text_editor::text_buffer::ActiveTextBuffer {
+        buffer_entity: Some(new_buffer_entity),
+    });
     
+    info!("🖱️ SORT PLACEMENT: Set active buffer entity to {:?}", new_buffer_entity);
+
     // CRITICAL: Mark the text editor state as changed to trigger entity spawning
     text_editor_state.set_changed();
-    
+
+    // AUTO-SWITCH TO INSERT MODE: After placing LTR/RTL text buffer sorts, switch to Insert mode
+    // for natural text editing UX. Freeform sorts stay in placement mode for multi-placement.
+    let previous_mode = current_placement_mode.0;
+    match previous_mode {
+        TextPlacementMode::LTRText | TextPlacementMode::RTLText => {
+            current_placement_mode.0 = TextPlacementMode::Insert;
+            info!(
+                "🖱️ SORT PLACEMENT: Auto-switched to Insert mode after placing {:?} text buffer sort",
+                previous_mode
+            );
+        }
+        TextPlacementMode::Freeform => {
+            // Stay in Freeform mode for multi-placement workflow
+            info!("🖱️ SORT PLACEMENT: Staying in Freeform mode for multi-placement");
+        }
+        TextPlacementMode::Insert => {
+            // Already in Insert mode (shouldn't happen in placement, but handle gracefully)
+            info!("🖱️ SORT PLACEMENT: Already in Insert mode");
+        }
+    }
+
     info!("🖱️ SORT PLACEMENT: create_independent_sort_with_fontir completed");
 
-    info!("🖱️ SORT PLACEMENT: Created new sort, total sorts now: {}", 
-          text_editor_state.get_text_sorts().len());
+    info!(
+        "🖱️ SORT PLACEMENT: Created new sort, total sorts now: {}",
+        text_editor_state.get_text_sorts().len()
+    );
 }
 
 /// Create an independent sort that can coexist with other sorts
-/// This is different from the text buffer system which creates connected text
+/// This now uses the new buffer entity system for proper buffer management
 fn create_independent_sort_with_fontir(
+    commands: &mut Commands,
     text_editor_state: &mut crate::core::state::TextEditorState,
     world_position: bevy::math::Vec2,
     layout_mode: crate::core::state::text_editor::SortLayoutMode,
     fontir_app_state: Option<&crate::core::state::FontIRAppState>,
-) {
-    use crate::core::state::text_editor::{SortEntry, SortKind, SortLayoutMode};
+) -> bevy::prelude::Entity {
     use crate::core::state::text_editor::buffer::BufferId;
-    
+    use crate::core::state::text_editor::{SortEntry, SortKind, SortLayoutMode};
+    use crate::systems::text_buffer_manager::{create_text_buffer, add_sort_to_buffer};
+
     info!("🖱️ INSIDE create_independent_sort_with_fontir: Starting function");
 
     // Choose appropriate default glyph based on layout mode
-    let (placeholder_glyph, placeholder_codepoint) = 
+    let (placeholder_glyph, placeholder_codepoint) =
         crate::core::state::text_editor::editor::get_default_glyph_for_direction(&layout_mode);
-    
-    let _advance_width = if let Some(fontir_state) = fontir_app_state {
+
+    let advance_width = if let Some(fontir_state) = fontir_app_state {
         fontir_state.get_glyph_advance_width(&placeholder_glyph)
     } else {
         // Fallback to reasonable default if FontIR not available
@@ -162,47 +203,65 @@ fn create_independent_sort_with_fontir(
     };
 
     // BUFFER SEPARATION POLICY:
-    // Each click with the text tool creates a NEW independent text flow (buffer root)
+    // Each click with the text tool creates a NEW independent text flow
     // This ensures clean separation between different text placement operations
-    // Even if the same layout mode (RTL/LTR) exists, we create a new root for independence
+    // Even if the same layout mode (RTL/LTR) exists, we create a new buffer for independence
+
+    // NEW BUFFER ENTITY SYSTEM: Create a buffer entity first, then add sort to it
     
     // Create a new unique buffer ID for complete isolation
     let buffer_id = BufferId::new();
     
-    // Always create a new buffer root for each placement click
-    // This ensures complete separation between different text flows
-    let (is_buffer_root, cursor_position) = (true, Some(0));
-    
-    info!("🖱️ Creating new {} buffer root (ID: {:?}) for independent text flow at position ({:.1}, {:.1})", 
+    // CURSOR POSITIONING: Start cursor after initial character for natural typing flow
+    let initial_cursor_position = 1;
+
+    // Create the buffer entity with cursor storage
+    let buffer_entity = create_text_buffer(
+        commands,
+        buffer_id,
+        layout_mode.clone(),
+        world_position,
+        initial_cursor_position,
+    );
+
+    info!("🖱️ Creating new {} buffer (Entity: {:?}, ID: {:?}) at position ({:.1}, {:.1})", 
           match layout_mode {
               SortLayoutMode::RTLText => "RTL",
               SortLayoutMode::LTRText => "LTR",
               SortLayoutMode::Freeform => "Freeform", 
           },
+          buffer_entity,
           buffer_id,
           world_position.x, world_position.y);
 
-    let independent_sort = SortEntry {
+    // CREATE INITIAL CHARACTER SORT: This provides a clear visual starting point
+    // This is NOT a "root sort" - just the first character in the buffer like any other
+    let initial_sort = SortEntry {
         kind: SortKind::Glyph {
-            codepoint: Some(placeholder_codepoint), // Use appropriate codepoint for layout mode
-            glyph_name: placeholder_glyph,
-            advance_width: 0.0, // CRITICAL FIX: Root sorts should have zero width for positioning
+            glyph_name: placeholder_glyph.clone(),
+            codepoint: Some(placeholder_codepoint),
+            advance_width,
         },
-        is_active: true, // Automatically activate the new sort
-        layout_mode, // Use the actual layout mode (RTL, LTR, etc.) not hardcoded Freeform
+        layout_mode: layout_mode.clone(),
+        is_active: true, // Make this sort active for immediate editing
         root_position: world_position,
-        is_buffer_root, // Only first sort in each layout mode becomes buffer root
-        buffer_cursor_position: cursor_position, // Only buffer roots have cursor position
-        buffer_id: Some(buffer_id), // Assign unique buffer ID for complete isolation
+        buffer_cursor_position: None, // Deprecated field - cursor stored in buffer entity now
+        buffer_id: Some(buffer_id), // For compatibility, though deprecated
     };
 
-    // Insert at the end of the buffer (this creates a new independent sort)  
-    let insert_index = text_editor_state.buffer.len();
-    info!("🖱️ Inserting independent sort at index {} into buffer with {} existing entries (is_buffer_root: {})", 
-          insert_index, text_editor_state.buffer.len(), is_buffer_root);
-    text_editor_state.buffer.insert(insert_index, independent_sort);
-    info!("🖱️ Successfully inserted sort, buffer now has {} entries", text_editor_state.buffer.len());
-
-    info!("🖱️ Created independent sort at world position ({:.1}, {:.1}), index: {}, is_buffer_root: {}", 
-          world_position.x, world_position.y, insert_index, is_buffer_root);
+    // Insert the initial sort into the text editor buffer at index 0
+    text_editor_state.buffer.insert(0, initial_sort);
+    
+    info!(
+        "📍 SORT PLACEMENT: Created buffer entity {:?} with layout_mode: {:?}, added initial '{}' character at index 0", 
+        buffer_entity, layout_mode, placeholder_glyph
+    );
+    
+    info!(
+        "🖱️ Created new buffer entity {:?} with cursor at position {} and initial character '{}' at world position ({:.1}, {:.1})",
+        buffer_entity, initial_cursor_position, placeholder_glyph, world_position.x, world_position.y
+    );
+    
+    // Return the buffer entity for the caller to use
+    buffer_entity
 }

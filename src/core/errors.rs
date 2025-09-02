@@ -22,11 +22,7 @@ pub trait BezyContext<T> {
 
     /// Add glyph operation context to an error
     #[allow(dead_code)]
-    fn with_glyph_context(
-        self,
-        operation: &str,
-        glyph_name: &str,
-    ) -> BezyResult<T>;
+    fn with_glyph_context(self, operation: &str, glyph_name: &str) -> BezyResult<T>;
 
     /// Add point operation context to an error
     #[allow(dead_code)]
@@ -48,20 +44,12 @@ where
         operation: &str,
         path: P,
     ) -> BezyResult<T> {
-        self.with_context(|| {
-            format!("Failed to {} file: {}", operation, path.as_ref().display())
-        })
+        self.with_context(|| format!("Failed to {} file: {}", operation, path.as_ref().display()))
     }
 
-    fn with_glyph_context(
-        self,
-        operation: &str,
-        glyph_name: &str,
-    ) -> BezyResult<T> {
+    fn with_glyph_context(self, operation: &str, glyph_name: &str) -> BezyResult<T> {
         self.with_context(|| {
-            format!(
-                "Failed to {operation} glyph '{glyph_name}': Operation failed"
-            )
+            format!("Failed to {operation} glyph '{glyph_name}': Operation failed")
         })
     }
 

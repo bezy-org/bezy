@@ -7,7 +7,7 @@
 
 use crate::editing::selection::components::{PointType, Selected};
 use crate::editing::sort::ActiveSort;
-use crate::rendering::camera_responsive::CameraResponsiveScale;
+use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
 use crate::systems::sort_manager::SortPointEntity;
 use crate::ui::theme::*;
 use crate::ui::themes::CurrentTheme;
@@ -61,9 +61,7 @@ pub fn render_points_with_meshes(
     }
 
     // Render all points using meshes
-    for (point_entity, transform, point_type, selected) in
-        all_point_entities.iter()
-    {
+    for (point_entity, transform, point_type, selected) in all_point_entities.iter() {
         let position = transform.translation().truncate();
 
         // Determine colors for two-layer system
@@ -87,8 +85,7 @@ pub fn render_points_with_meshes(
         // Create the three-layer point shape
         if point_type.is_on_curve && USE_SQUARE_FOR_ON_CURVE {
             // On-curve points: square with three layers
-            let base_size =
-                ON_CURVE_POINT_RADIUS * ON_CURVE_SQUARE_ADJUSTMENT * 2.0;
+            let base_size = ON_CURVE_POINT_RADIUS * ON_CURVE_SQUARE_ADJUSTMENT * 2.0;
 
             // Layer 1: Base shape (full width) - primary color
             commands.spawn((
@@ -162,9 +159,7 @@ pub fn render_points_with_meshes(
                     is_outer: true,
                 },
                 Mesh2d(meshes.add(Circle::new(base_radius))),
-                MeshMaterial2d(
-                    materials.add(ColorMaterial::from_color(primary_color)),
-                ),
+                MeshMaterial2d(materials.add(ColorMaterial::from_color(primary_color))),
                 Transform::from_translation(position.extend(10.0)), // Above outlines
                 GlobalTransform::default(),
                 Visibility::Visible,
@@ -180,9 +175,7 @@ pub fn render_points_with_meshes(
                     is_outer: false,
                 },
                 Mesh2d(meshes.add(Circle::new(secondary_radius))),
-                MeshMaterial2d(
-                    materials.add(ColorMaterial::from_color(secondary_color)),
-                ),
+                MeshMaterial2d(materials.add(ColorMaterial::from_color(secondary_color))),
                 Transform::from_translation(position.extend(11.0)), // Above base
                 GlobalTransform::default(),
                 Visibility::Visible,
@@ -204,9 +197,7 @@ pub fn render_points_with_meshes(
                         is_outer: false,
                     },
                     Mesh2d(meshes.add(Circle::new(center_radius))),
-                    MeshMaterial2d(
-                        materials.add(ColorMaterial::from_color(primary_color)),
-                    ),
+                    MeshMaterial2d(materials.add(ColorMaterial::from_color(primary_color))),
                     Transform::from_translation(position.extend(12.0)), // Above secondary
                     GlobalTransform::default(),
                     Visibility::Visible,

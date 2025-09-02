@@ -117,14 +117,14 @@ pub fn handle_nudge_input(
             // Collect all point updates first
             let mut point_updates = Vec::new();
 
-            for (entity, transform, point_ref, sort_point_entity_opt) in
-                queries.p0().iter()
-            {
+            for (entity, transform, point_ref, sort_point_entity_opt) in queries.p0().iter() {
                 let old_pos = transform.translation.truncate();
                 let new_pos = old_pos + nudge_direction;
 
-                debug!("[NUDGE] Preparing update for point {:?} from ({:.1}, {:.1}) to ({:.1}, {:.1})", 
-                       entity, old_pos.x, old_pos.y, new_pos.x, new_pos.y);
+                debug!(
+                    "[NUDGE] Preparing update for point {:?} from ({:.1}, {:.1}) to ({:.1}, {:.1})",
+                    entity, old_pos.x, old_pos.y, new_pos.x, new_pos.y
+                );
 
                 // Collect point data for both FontIR and Transform updates
                 if let Some(sort_point_entity) = sort_point_entity_opt {
@@ -139,19 +139,21 @@ pub fn handle_nudge_input(
 
             // STEP 1: Update Transform components FIRST (for immediate point rendering)
             for (entity, _point_ref, _sort_entity, new_pos) in &point_updates {
-                if let Ok((_, mut transform, _, _)) =
-                    queries.p0().get_mut(*entity)
-                {
+                if let Ok((_, mut transform, _, _)) = queries.p0().get_mut(*entity) {
                     transform.translation.x = new_pos.x;
                     transform.translation.y = new_pos.y;
-                    debug!("[NUDGE] Transform: Updated position for {:?} to ({:.1}, {:.1})", 
-                           entity, new_pos.x, new_pos.y);
+                    debug!(
+                        "[NUDGE] Transform: Updated position for {:?} to ({:.1}, {:.1})",
+                        entity, new_pos.x, new_pos.y
+                    );
                 }
             }
 
             // STEP 2: Skip FontIR working copy updates during active nudging
             // Working copy will be updated when nudging completes to avoid timing issues
-            debug!("[NUDGE] Skipping FontIR updates during active nudging - will sync on completion");
+            debug!(
+                "[NUDGE] Skipping FontIR updates during active nudging - will sync on completion"
+            );
 
             // Create an edit event for undo/redo
             event_writer.write(EditEvent {
@@ -171,9 +173,7 @@ pub fn handle_nudge_input(
 
 /// System to reset nudge state after a short delay
 pub fn reset_nudge_state(mut nudge_state: ResMut<NudgeState>, time: Res<Time>) {
-    if nudge_state.is_nudging
-        && time.elapsed_secs() - nudge_state.last_nudge_time > 0.5
-    {
+    if nudge_state.is_nudging && time.elapsed_secs() - nudge_state.last_nudge_time > 0.5 {
         debug!("[NUDGE] Resetting nudge state after timeout");
         nudge_state.is_nudging = false;
     }
@@ -204,27 +204,24 @@ pub fn sync_nudged_points_on_completion(
 
         for (transform, point_ref, sort_point_entity_opt) in query.iter() {
             // Calculate relative position from sort entity
-            let (relative_x, relative_y) =
-                if let Some(sort_point_entity) = sort_point_entity_opt {
-                    if let Ok((_sort, sort_transform)) =
-                        sort_query.get(sort_point_entity.sort_entity)
-                    {
-                        let world_pos = transform.translation.truncate();
-                        let sort_pos = sort_transform.translation.truncate();
-                        let rel = world_pos - sort_pos;
-                        (rel.x as f64, rel.y as f64)
-                    } else {
-                        (
-                            transform.translation.x as f64,
-                            transform.translation.y as f64,
-                        )
-                    }
+            let (relative_x, relative_y) = if let Some(sort_point_entity) = sort_point_entity_opt {
+                if let Ok((_sort, sort_transform)) = sort_query.get(sort_point_entity.sort_entity) {
+                    let world_pos = transform.translation.truncate();
+                    let sort_pos = sort_transform.translation.truncate();
+                    let rel = world_pos - sort_pos;
+                    (rel.x as f64, rel.y as f64)
                 } else {
                     (
                         transform.translation.x as f64,
                         transform.translation.y as f64,
                     )
-                };
+                }
+            } else {
+                (
+                    transform.translation.x as f64,
+                    transform.translation.y as f64,
+                )
+            };
 
             // Try FontIR first, then fallback to UFO AppState (same pattern as drag system)
             let mut handled = false;
@@ -241,8 +238,10 @@ pub fn sync_nudged_points_on_completion(
                         if was_updated {
                             sync_count += 1;
                             handled = true;
-                            debug!("[NUDGE] FontIR: Updated point {} in glyph '{}'", 
-                                  point_ref.point_index, point_ref.glyph_name);
+                            debug!(
+                                "[NUDGE] FontIR: Updated point {} in glyph '{}'",
+                                point_ref.point_index, point_ref.glyph_name
+                            );
                         }
                     }
                     Err(e) => {

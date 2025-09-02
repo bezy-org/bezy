@@ -10,16 +10,16 @@ use bevy::prelude::*;
 pub enum FontEditorSets {
     /// Handle keyboard and mouse input
     Input,
-    
+
     /// Update text buffer state (add/remove characters)
     TextBuffer,
-    
+
     /// Synchronize ECS entities with buffer state (spawn/despawn sorts)
     EntitySync,
-    
+
     /// Create visual elements (metrics, outlines, points)
     Rendering,
-    
+
     /// Clean up orphaned entities and resources
     Cleanup,
 }
@@ -29,14 +29,18 @@ pub struct FontEditorSystemSetsPlugin;
 
 impl Plugin for FontEditorSystemSetsPlugin {
     fn build(&self, app: &mut App) {
-        app.configure_sets(Update, (
-            FontEditorSets::Input,
-            FontEditorSets::TextBuffer,
-            FontEditorSets::EntitySync,
-            FontEditorSets::Rendering,
-            FontEditorSets::Cleanup,
-        ).chain());
-        
+        app.configure_sets(
+            Update,
+            (
+                FontEditorSets::Input,
+                FontEditorSets::TextBuffer,
+                FontEditorSets::EntitySync,
+                FontEditorSets::Rendering,
+                FontEditorSets::Cleanup,
+            )
+                .chain(),
+        );
+
         info!("FontEditor system sets configured with guaranteed execution order");
     }
 }

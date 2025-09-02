@@ -6,6 +6,8 @@ use crate::core::state::SortLayoutMode;
 use crate::editing::selection::components::Selected;
 use crate::editing::sort::{ActiveSort, InactiveSort, Sort};
 use bevy::prelude::*;
+use crate::core::state::text_editor::{TextBuffer, BufferMember};
+use crate::core::state::FontMetrics;
 use std::collections::HashMap;
 
 /// Component to track which buffer index this entity represents
@@ -36,10 +38,7 @@ pub fn initialize_text_editor_sorts(mut commands: Commands) {
 pub fn manage_sort_activation(
     mut commands: Commands,
     mouse_button_input: Res<ButtonInput<MouseButton>>,
-    camera_query: Query<
-        (&Camera, &GlobalTransform),
-        With<crate::rendering::cameras::DesignCamera>,
-    >,
+    camera_query: Query<(&Camera, &GlobalTransform), With<crate::rendering::cameras::DesignCamera>>,
     windows: Query<&Window, With<bevy::window::PrimaryWindow>>,
     sort_query: Query<(Entity, &Transform, &Sort, Option<&BufferSortIndex>)>,
     _active_sort_query: Query<Entity, With<crate::editing::sort::ActiveSort>>,
@@ -70,15 +69,16 @@ pub fn manage_sort_activation(
         return;
     };
 
-    info!("[manage_sort_activation] Left mouse button pressed at screen pos: {:?}", window.cursor_position());
+    info!(
+        "[manage_sort_activation] Left mouse button pressed at screen pos: {:?}",
+        window.cursor_position()
+    );
 
     let Some(cursor_position) = window.cursor_position() else {
         return;
     };
 
-    let Ok(world_position) =
-        camera.viewport_to_world_2d(camera_transform, cursor_position)
-    else {
+    let Ok(world_position) = camera.viewport_to_world_2d(camera_transform, cursor_position) else {
         debug!("[manage_sort_activation] Failed to convert cursor to world position");
         return;
     };
@@ -109,11 +109,12 @@ pub fn manage_sort_activation(
             // For now, implement single-select behavior (clear others, select this one)
 
             // Clear selection from all other sorts
-            let all_sorts =
-                sort_query.iter().map(|(e, _, _, _)| e).collect::<Vec<_>>();
+            let all_sorts = sort_query.iter().map(|(e, _, _, _)| e).collect::<Vec<_>>();
             for other_entity in all_sorts {
                 if other_entity != entity {
-                    commands.entity(other_entity).remove::<crate::editing::selection::components::Selected>();
+                    commands
+                        .entity(other_entity)
+                        .remove::<crate::editing::selection::components::Selected>();
                 }
             }
 
@@ -132,6 +133,86 @@ pub fn manage_sort_activation(
     }
 }
 
+/// Modern ECS-based positioning for text sorts using buffer entities
+/// This replaces the legacy get_text_sort_flow_position function to prevent buffer cross-contamination
+fn calculate_buffer_local_position(
+    global_buffer_index: usize,
+    text_editor_state: &TextEditorState,
+    font_metrics: &FontMetrics,
+    buffer_id_to_entity: &std::collections::HashMap<crate::core::state::text_editor::buffer::BufferId, Entity>,
+    buffer_entity_query: &Query<(Entity, &TextBuffer)>,
+) -> Option<Vec2> {
+    // Get the sort entry we're positioning
+    let sort_entry = text_editor_state.buffer.get(global_buffer_index)?;
+    
+    // Get the buffer ID for this sort
+    let buffer_id = sort_entry.buffer_id?;
+    
+    // Find the buffer entity
+    let buffer_entity = buffer_id_to_entity.get(&buffer_id)?;
+    
+    // Get buffer information
+    let (_entity, text_buffer) = buffer_entity_query.iter()
+        .find(|(entity, _)| entity == buffer_entity)?;
+    
+    let root_position = text_buffer.root_position;
+    let _layout_mode = &text_buffer.layout_mode;
+    
+    // Find all sorts that belong to this specific buffer, in order
+    let mut buffer_sorts = Vec::new();
+    for (idx, sort) in text_editor_state.buffer.iter().enumerate() {
+        if sort.buffer_id == Some(buffer_id) {
+            buffer_sorts.push((idx, sort));
+        }
+    }
+    
+    // Find our position within this buffer
+    let buffer_local_index = buffer_sorts.iter()
+        .position(|(idx, _)| *idx == global_buffer_index)?;
+    
+    info!(
+        "🔍 ECS POSITIONING: Sort at global[{}] is buffer-local[{}] in buffer {:?} with {} total sorts",
+        global_buffer_index, buffer_local_index, buffer_id.0, buffer_sorts.len()
+    );
+    
+    // Calculate position based on preceding sorts in THIS buffer only
+    let mut x_offset = 0.0;
+    let mut y_offset = 0.0;
+    
+    // Use font metrics to calculate line height (match legacy system)
+    let upm = font_metrics.units_per_em as f32;
+    let descender = font_metrics.descender.unwrap_or(-256.0) as f32;
+    let line_height = upm - descender;  // Legacy formula: upm - descender (descender is negative)
+    
+    // Calculate position by iterating through preceding sorts in this buffer
+    for i in 0..buffer_local_index {
+        if let Some((_, sort)) = buffer_sorts.get(i) {
+            match &sort.kind {
+                crate::core::state::text_editor::SortKind::Glyph { advance_width, .. } => {
+                    x_offset += advance_width;
+                }
+                crate::core::state::text_editor::SortKind::LineBreak => {
+                    x_offset = 0.0;
+                    y_offset -= line_height;
+                }
+            }
+        }
+    }
+    
+    let final_position = Vec2::new(root_position.x + x_offset, root_position.y + y_offset);
+    
+    info!(
+        "🎯 ECS POSITIONING: buffer-local[{}] '{}' at ({:.1}, {:.1}) (x_offset={:.1})",
+        buffer_local_index,
+        sort_entry.kind.glyph_name(),
+        final_position.x,
+        final_position.y,
+        x_offset
+    );
+    
+    Some(final_position)
+}
+
 /// Spawn missing sort entities for sorts in the text editor buffer
 pub fn spawn_missing_sort_entities(
     mut commands: Commands,
@@ -140,10 +221,8 @@ pub fn spawn_missing_sort_entities(
     mut respawn_queue: ResMut<BufferSortRespawnQueue>,
     app_state: Option<Res<AppState>>,
     fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
-    _existing_active_sorts: Query<
-        Entity,
-        With<crate::editing::sort::ActiveSort>,
-    >,
+    _existing_active_sorts: Query<Entity, With<crate::editing::sort::ActiveSort>>,
+    buffer_entity_query: Query<(Entity, &crate::core::state::text_editor::text_buffer::TextBuffer)>,
 ) {
     // Debug: Log buffer state (only when buffer has content to reduce spam)
     if !text_editor_state.buffer.is_empty() {
@@ -154,10 +233,9 @@ pub fn spawn_missing_sort_entities(
         for i in 0..text_editor_state.buffer.len() {
             if let Some(sort) = text_editor_state.buffer.get(i) {
                 info!(
-                    "  📋 Buffer[{}]: glyph='{}', is_buffer_root={}, is_active={}, layout_mode={:?}, pos=({:.1},{:.1})",
+                    "  📋 Buffer[{}]: glyph='{}', is_active={}, layout_mode={:?}, pos=({:.1},{:.1})",
                     i,
                     sort.kind.glyph_name(),
-                    sort.is_buffer_root,
                     sort.is_active,
                     sort.layout_mode,
                     sort.root_position.x, sort.root_position.y
@@ -167,10 +245,20 @@ pub fn spawn_missing_sort_entities(
     }
     // Silently skip logging when buffer is empty to reduce spam
 
+    // Build a mapping from BufferId to buffer Entity
+    let mut buffer_id_to_entity = std::collections::HashMap::new();
+    for (buffer_entity, text_buffer) in buffer_entity_query.iter() {
+        buffer_id_to_entity.insert(text_buffer.id, buffer_entity);
+        info!("🔗 BUFFER MAPPING: BufferId {:?} -> Entity {:?}", text_buffer.id.0, buffer_entity);
+    }
+
     // Handle respawn requests first
     for &index in &respawn_queue.indices {
         if let Some(entity) = buffer_entities.entities.remove(&index) {
-            info!("🔄 Respawning entity for buffer index {} due to content change", index);
+            info!(
+                "🔄 Respawning entity for buffer index {} due to content change",
+                index
+            );
             commands.entity(entity).despawn();
         }
     }
@@ -183,23 +271,18 @@ pub fn spawn_missing_sort_entities(
             warn!("🔄 spawn_missing_sort_entities: Entity already exists for buffer index {} - SKIPPING", i);
             continue;
         }
-        
+
         warn!("🆕 spawn_missing_sort_entities: No entity exists for buffer index {} - SPAWNING NEW ENTITY", i);
 
         if let Some(sort_entry) = text_editor_state.buffer.get(i) {
             // Skip spawning entities for line breaks - they are invisible
             if sort_entry.kind.is_line_break() {
-                debug!(
-                    "Skipping entity spawn for line break at buffer index {}",
-                    i
-                );
+                debug!("Skipping entity spawn for line break at buffer index {}", i);
                 continue;
             }
 
             // Get font metrics from either FontIR or AppState
-            let font_metrics = if let Some(fontir_state) =
-                fontir_app_state.as_ref()
-            {
+            let font_metrics = if let Some(fontir_state) = fontir_app_state.as_ref() {
                 let fontir_metrics = fontir_state.get_font_metrics();
                 crate::core::state::FontMetrics {
                     units_per_em: fontir_metrics.units_per_em as f64,
@@ -229,28 +312,26 @@ pub fn spawn_missing_sort_entities(
             let position = match sort_entry.layout_mode {
                 crate::core::state::SortLayoutMode::LTRText
                 | crate::core::state::SortLayoutMode::RTLText => {
-                    if sort_entry.is_buffer_root {
-                        // Text roots use their exact stored position
-                        Some(sort_entry.root_position)
-                    } else {
-                        // Non-root text sorts flow from their text root using actual font metrics
-                        let calculated_pos = text_editor_state.get_text_sort_flow_position(
-                            i,
-                            &font_metrics,
-                            0.0,
-                        );
-                        warn!("🔍 ENTITY POSITIONING: buffer[{}] calculated at {:?}", i, calculated_pos);
-                        calculated_pos
-                    }
+                    // Use modern ECS-based positioning to prevent buffer cross-contamination
+                    let calculated_pos = calculate_buffer_local_position(
+                        i,
+                        &text_editor_state,
+                        &font_metrics,
+                        &buffer_id_to_entity,
+                        &buffer_entity_query,
+                    );
+                    warn!(
+                        "🔍 ECS ENTITY POSITIONING: buffer[{}] calculated at {:?}",
+                        i, calculated_pos
+                    );
+                    calculated_pos
                 }
-                crate::core::state::SortLayoutMode::Freeform => {
-                    Some(sort_entry.root_position)
-                }
+                crate::core::state::SortLayoutMode::Freeform => Some(sort_entry.root_position),
             };
 
             if let Some(position) = position {
                 warn!("🎯 spawn_missing_sort_entities: Got position ({:.1}, {:.1}) for buffer index {}", position.x, position.y, i);
-                
+
                 // Create Sort component
                 let sort = Sort {
                     glyph_name: sort_entry.kind.glyph_name().to_string(),
@@ -272,26 +353,58 @@ pub fn spawn_missing_sort_entities(
 
                 // Check if this sort should be active based on the text editor state
                 // Only make sorts active if they are explicitly marked as active
-                // Buffer roots are not automatically active anymore - only one sort should be active at a time
+                // Only one sort should be active at a time - no special treatment for first characters
                 let should_be_active = sort_entry.is_active;
                 if should_be_active {
                     entity_commands.insert(ActiveSort);
-                    warn!("🟢 Spawned ACTIVE sort entity for buffer index {} at position ({:.1}, {:.1}) - glyph '{}' (is_active: {}, is_buffer_root: {})", 
-                           i, position.x, position.y, sort_entry.kind.glyph_name(), sort_entry.is_active, sort_entry.is_buffer_root);
+                    warn!("🟢 Spawned ACTIVE sort entity for buffer index {} at position ({:.1}, {:.1}) - glyph '{}' (is_active: {})", 
+                           i, position.x, position.y, sort_entry.kind.glyph_name(), sort_entry.is_active);
                 } else {
                     entity_commands.insert(InactiveSort);
-                    warn!("🔴 Spawned INACTIVE sort entity for buffer index {} at position ({:.1}, {:.1}) - glyph '{}' (is_active: {}, is_buffer_root: {})", 
-                           i, position.x, position.y, sort_entry.kind.glyph_name(), sort_entry.is_active, sort_entry.is_buffer_root);
+                    warn!("🔴 Spawned INACTIVE sort entity for buffer index {} at position ({:.1}, {:.1}) - glyph '{}' (is_active: {})", 
+                           i, position.x, position.y, sort_entry.kind.glyph_name(), sort_entry.is_active);
                 }
 
                 let entity = entity_commands.id();
+
+                // Add BufferMember component to link this sort to its buffer entity
+                if let Some(buffer_id) = sort_entry.buffer_id {
+                    if let Some(&buffer_entity) = buffer_id_to_entity.get(&buffer_id) {
+                        // Calculate buffer-local index by counting sorts with the same buffer_id up to this point
+                        let mut buffer_local_index = 0;
+                        for idx in 0..i {
+                            if let Some(sort) = text_editor_state.buffer.get(idx) {
+                                if sort.buffer_id == Some(buffer_id) {
+                                    buffer_local_index += 1;
+                                }
+                            }
+                        }
+
+                        entity_commands.insert(crate::core::state::text_editor::text_buffer::BufferMember::new(
+                            buffer_entity, 
+                            buffer_local_index
+                        ));
+
+                        info!("🔗 BUFFER MEMBERSHIP: Linked sort entity {:?} to buffer entity {:?} at buffer-local index {}", 
+                              entity, buffer_entity, buffer_local_index);
+                    } else {
+                        warn!("❌ No buffer entity found for buffer_id {:?} - sort will not have BufferMember component", buffer_id.0);
+                    }
+                } else {
+                    info!("ℹ️ Sort at buffer[{}] has no buffer_id - adding as freeform sort (no BufferMember)", i);
+                }
 
                 // Track the entity
                 buffer_entities.entities.insert(i, entity);
 
                 // Debug logging
-                info!("✅ Spawned buffer sort entity {} for glyph '{}' at position ({:.1}, {:.1})", 
-                    i, sort_entry.kind.glyph_name(), position.x, position.y);
+                info!(
+                    "✅ Spawned buffer sort entity {} for glyph '{}' at position ({:.1}, {:.1})",
+                    i,
+                    sort_entry.kind.glyph_name(),
+                    position.x,
+                    position.y
+                );
             } else {
                 warn!("❌ spawn_missing_sort_entities: Failed to get position for buffer sort index {} - SKIPPING ENTITY SPAWN", i);
             }
@@ -306,6 +419,7 @@ pub fn update_buffer_sort_positions(
     fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
     buffer_entities: Res<BufferSortEntities>,
     mut sort_query: Query<&mut Transform, With<BufferSortIndex>>,
+    buffer_entity_query: Query<(Entity, &crate::core::state::text_editor::text_buffer::TextBuffer)>,
 ) {
     // CRITICAL PERFORMANCE FIX: Early return if TextEditorState hasn't changed
     // Prevents O(N²) position calculations every frame
@@ -314,6 +428,12 @@ pub fn update_buffer_sort_positions(
     }
 
     debug!("Buffer position update triggered - TextEditorState changed");
+
+    // Build a mapping from BufferId to buffer Entity for ECS positioning
+    let mut buffer_id_to_entity = std::collections::HashMap::new();
+    for (buffer_entity, text_buffer) in buffer_entity_query.iter() {
+        buffer_id_to_entity.insert(text_buffer.id, buffer_entity);
+    }
 
     // Get font metrics from either AppState or FontIR
     let font_metrics = if let Some(fontir_state) = fontir_app_state.as_ref() {
@@ -350,23 +470,21 @@ pub fn update_buffer_sort_positions(
                 let new_position = match sort.layout_mode {
                     crate::core::state::SortLayoutMode::LTRText
                     | crate::core::state::SortLayoutMode::RTLText => {
-                        if sort.is_buffer_root {
-                            // Text roots use their exact stored position
-                            Some(sort.root_position)
-                        } else {
-                            // Non-root text sorts flow from their text root using actual font metrics
-                            let calculated_pos = text_editor_state.get_text_sort_flow_position(
-                                buffer_index,
-                                &font_metrics,
-                                0.0,
-                            );
-                            warn!("🔍 POSITION UPDATE: buffer[{}] calculated at {:?}", buffer_index, calculated_pos);
-                            calculated_pos
-                        }
+                        // Use modern ECS-based positioning to prevent buffer cross-contamination
+                        let calculated_pos = calculate_buffer_local_position(
+                            buffer_index,
+                            &text_editor_state,
+                            &font_metrics,
+                            &buffer_id_to_entity,
+                            &buffer_entity_query,
+                        );
+                        warn!(
+                            "🔍 ECS POSITION UPDATE: buffer[{}] calculated at {:?}",
+                            buffer_index, calculated_pos
+                        );
+                        calculated_pos
                     }
-                    crate::core::state::SortLayoutMode::Freeform => {
-                        Some(sort.root_position)
-                    }
+                    crate::core::state::SortLayoutMode::Freeform => Some(sort.root_position),
                 };
 
                 if let Some(new_pos) = new_position {
@@ -412,37 +530,30 @@ pub fn auto_activate_selected_sorts(
         // Exactly one sort is selected - activate it
         if let Ok(selected_sort) = selected_sorts.single() {
             // Find the buffer index of the selected sort
-            let selected_buffer_index = if let Ok(buffer_index) =
-                buffer_index_query.get(selected_sort)
-            {
-                Some(buffer_index.0)
-            } else {
-                None
-            };
+            let selected_buffer_index =
+                if let Ok(buffer_index) = buffer_index_query.get(selected_sort) {
+                    Some(buffer_index.0)
+                } else {
+                    None
+                };
 
-            // Deactivate all currently active sorts (including buffer roots when another sort is selected)
+            // Deactivate all currently active sorts when another sort is selected
             for active_entity in active_sorts.iter() {
                 // Always deactivate active sorts when a different sort is explicitly selected
-                // This allows buffer roots to become inactive when user clicks other handles
+                // This allows any active sort to become inactive when user clicks other handles
                 if active_entity != selected_sort {
                     commands.entity(active_entity).remove::<ActiveSort>();
                     commands.entity(active_entity).insert(InactiveSort);
 
                     // Update text editor state to deactivate the sort
-                    if let Ok(buffer_index) =
-                        buffer_index_query.get(active_entity)
-                    {
-                        if let Some(sort) =
-                            text_editor_state.buffer.get_mut(buffer_index.0)
-                        {
-                            let is_root = sort.is_buffer_root;
-                            info!("🔻 Deactivating buffer sort {} - glyph '{}' (was_root: {})", buffer_index.0, sort.kind.glyph_name(), sort.is_buffer_root);
+                    if let Ok(buffer_index) = buffer_index_query.get(active_entity) {
+                        if let Some(sort) = text_editor_state.buffer.get_mut(buffer_index.0) {
+                            info!(
+                                "🔻 Deactivating buffer sort {} - glyph '{}'",
+                                buffer_index.0,
+                                sort.kind.glyph_name()
+                            );
                             sort.is_active = false;
-
-                            // CRITICAL DEBUG: Track root sort deactivation specifically
-                            if is_root {
-                                warn!("ROOT SORT DEACTIVATION: Entity {:?} (buffer index {}) is being deactivated and should show filled rendering!", active_entity, buffer_index.0);
-                            }
                         }
                     }
                 }
@@ -454,7 +565,10 @@ pub fn auto_activate_selected_sorts(
 
             // Update text editor state to activate the sort
             if let Some(buffer_index) = selected_buffer_index {
-                info!("🔼 Activating buffer sort {} via auto_activate_selected_sorts", buffer_index);
+                info!(
+                    "🔼 Activating buffer sort {} via auto_activate_selected_sorts",
+                    buffer_index
+                );
                 text_editor_state.activate_sort(buffer_index);
             }
 
@@ -488,31 +602,39 @@ pub fn sync_buffer_sort_activation_state(
         return;
     }
 
-    debug!("🔄 sync_buffer_sort_activation_state: Syncing activation state from buffer to entities");
+    debug!(
+        "🔄 sync_buffer_sort_activation_state: Syncing activation state from buffer to entities"
+    );
 
     // Iterate through all tracked entities and sync their activation state
     for (&buffer_index, &entity) in buffer_entities.entities.iter() {
         if let Some(sort_entry) = text_editor_state.buffer.get(buffer_index) {
             let should_be_active = sort_entry.is_active;
-            
+
             // Check current entity state
             let is_currently_active = active_sort_query.get(entity).is_ok();
             let is_currently_inactive = inactive_sort_query.get(entity).is_ok();
-            
+
             if should_be_active && !is_currently_active {
                 // Should be active but isn't - activate it
                 if is_currently_inactive {
                     commands.entity(entity).remove::<InactiveSort>();
                 }
                 commands.entity(entity).insert(ActiveSort);
-                info!("🟢 ACTIVATION SYNC: Activated entity for buffer[{}] - glyph '{}'", 
-                      buffer_index, sort_entry.kind.glyph_name());
+                info!(
+                    "🟢 ACTIVATION SYNC: Activated entity for buffer[{}] - glyph '{}'",
+                    buffer_index,
+                    sort_entry.kind.glyph_name()
+                );
             } else if !should_be_active && is_currently_active {
                 // Should be inactive but is active - deactivate it
                 commands.entity(entity).remove::<ActiveSort>();
                 commands.entity(entity).insert(InactiveSort);
-                info!("🔴 ACTIVATION SYNC: Deactivated entity for buffer[{}] - glyph '{}'", 
-                      buffer_index, sort_entry.kind.glyph_name());
+                info!(
+                    "🔴 ACTIVATION SYNC: Deactivated entity for buffer[{}] - glyph '{}'",
+                    buffer_index,
+                    sort_entry.kind.glyph_name()
+                );
             }
         }
     }
@@ -524,33 +646,18 @@ pub fn despawn_missing_buffer_sort_entities(
     mut commands: Commands,
     text_editor_state: Res<TextEditorState>,
     mut buffer_entities: ResMut<BufferSortEntities>,
-    mut unified_entities: ResMut<
-        crate::rendering::unified_glyph_editing::UnifiedGlyphEntities,
-    >,
-    mut metrics_entities: ResMut<
-        crate::rendering::metrics::MetricsLineEntities,
-    >,
-    mut handle_entities: ResMut<
-        crate::rendering::sort_visuals::SortHandleEntities,
-    >,
+    mut glyph_entities: ResMut<crate::rendering::glyph_renderer::GlyphRenderEntities>,
+    mut metrics_entities: ResMut<crate::rendering::metrics::MetricsLineEntities>,
+    mut handle_entities: ResMut<crate::rendering::sort_visuals::SortHandleEntities>,
     sort_query: Query<Entity, With<BufferSortIndex>>,
-    unified_element_query: Query<(
+    glyph_element_query: Query<(
         Entity,
-        &crate::rendering::unified_glyph_editing::UnifiedGlyphElement,
+        &crate::rendering::glyph_renderer::GlyphRenderElement,
     )>,
-    point_query: Query<
-        Entity,
-        With<crate::systems::sort_manager::SortPointEntity>,
-    >,
+    point_query: Query<Entity, With<crate::systems::sort_manager::SortPointEntity>>,
     sort_point_query: Query<&crate::systems::sort_manager::SortPointEntity>,
-    sort_name_text_query: Query<(
-        Entity,
-        &crate::rendering::sort_renderer::SortGlyphNameText,
-    )>,
-    sort_unicode_text_query: Query<(
-        Entity,
-        &crate::rendering::sort_renderer::SortUnicodeText,
-    )>,
+    sort_name_text_query: Query<(Entity, &crate::rendering::sort_renderer::SortGlyphNameText)>,
+    sort_unicode_text_query: Query<(Entity, &crate::rendering::sort_renderer::SortUnicodeText)>,
 ) {
     // Always log to see if system is running
     info!("🔍 despawn_missing_buffer_sort_entities: SYSTEM CALLED - Buffer length: {}, Tracked entities: {}", 
@@ -575,7 +682,10 @@ pub fn despawn_missing_buffer_sort_entities(
     for (&buffer_index, &entity) in buffer_entities.entities.iter() {
         // Break early if we've hit our despawn limit for this frame
         if despawn_operations >= MAX_DESPAWN_PER_FRAME {
-            info!("⚠️ Reached despawn limit ({}) for this frame - will continue next frame", MAX_DESPAWN_PER_FRAME);
+            info!(
+                "⚠️ Reached despawn limit ({}) for this frame - will continue next frame",
+                MAX_DESPAWN_PER_FRAME
+            );
             break;
         }
         // Check if this buffer index still exists in the actual buffer
@@ -584,26 +694,27 @@ pub fn despawn_missing_buffer_sort_entities(
             if sort_query.get(entity).is_ok() {
                 info!(
                     "🗑️ Despawning sort entity for deleted buffer index {} (buffer len: {})",
-                    buffer_index, text_editor_state.buffer.len()
+                    buffer_index,
+                    text_editor_state.buffer.len()
                 );
 
-                // First, despawn all unified glyph elements associated with this sort
-                let mut unified_count = 0;
+                // First, despawn all glyph render elements associated with this sort
+                let mut glyph_count = 0;
 
-                // Despawn all unified elements (points, outlines, handles)
-                if let Some(element_entities) = unified_entities.elements.get(&entity) {
+                // Despawn all glyph elements (points, outlines, handles)
+                if let Some(element_entities) = glyph_entities.elements.get(&entity) {
                     for &element_entity in element_entities.iter() {
                         commands.entity(element_entity).despawn();
-                        unified_count += 1;
+                        glyph_count += 1;
                         despawn_operations += 1;
                     }
                 }
 
-                // Also despawn any loose unified elements that might not be tracked
-                for (unified_entity, unified_element) in unified_element_query.iter() {
-                    if unified_element.sort_entity == entity {
-                        commands.entity(unified_entity).despawn();
-                        unified_count += 1;
+                // Also despawn any loose glyph elements that might not be tracked
+                for (glyph_entity, glyph_element) in glyph_element_query.iter() {
+                    if glyph_element.sort_entity == entity {
+                        commands.entity(glyph_entity).despawn();
+                        glyph_count += 1;
                         despawn_operations += 1;
                     }
                 }
@@ -636,9 +747,7 @@ pub fn despawn_missing_buffer_sort_entities(
                 }
 
                 // Despawn unicode text entities
-                for (text_entity, unicode_text) in
-                    sort_unicode_text_query.iter()
-                {
+                for (text_entity, unicode_text) in sort_unicode_text_query.iter() {
                     if unicode_text.sort_entity == entity {
                         commands.entity(text_entity).despawn();
                         label_count += 1;
@@ -650,7 +759,8 @@ pub fn despawn_missing_buffer_sort_entities(
                 if let Some(metrics_entity_list) = metrics_entities.lines.get(&entity) {
                     info!(
                         "🗑️ CLEANING UP METRICS: Found {} metrics entities for sort {:?}",
-                        metrics_entity_list.len(), entity
+                        metrics_entity_list.len(),
+                        entity
                     );
                     for &metrics_entity in metrics_entity_list.iter() {
                         info!("🗑️ Despawning metrics entity {:?}", metrics_entity);
@@ -675,11 +785,11 @@ pub fn despawn_missing_buffer_sort_entities(
                     }
                 }
 
-                info!("🗑️ Despawned {} unified elements, {} point entities, {} metrics line entities, {} label entities, and {} handle entities for sort {:?} (total operations: {})", 
-                      unified_count, point_count, metrics_count, label_count, handle_count, entity, despawn_operations);
+                info!("🗑️ Despawned {} glyph elements, {} point entities, {} metrics line entities, {} label entities, and {} handle entities for sort {:?} (total operations: {})", 
+                      glyph_count, point_count, metrics_count, label_count, handle_count, entity, despawn_operations);
 
-                // Remove from unified tracking
-                unified_entities.elements.remove(&entity);
+                // Remove from glyph render tracking
+                glyph_entities.elements.remove(&entity);
 
                 // Remove from metrics tracking
                 metrics_entities.lines.remove(&entity);
@@ -692,7 +802,10 @@ pub fn despawn_missing_buffer_sort_entities(
                 despawn_operations += 1;
                 to_remove.push(buffer_index);
             } else {
-                warn!("Entity {:?} for buffer index {} already despawned or invalid", entity, buffer_index);
+                warn!(
+                    "Entity {:?} for buffer index {} already despawned or invalid",
+                    entity, buffer_index
+                );
                 to_remove.push(buffer_index);
             }
         }
@@ -706,7 +819,7 @@ pub fn despawn_missing_buffer_sort_entities(
         buffer_entities.entities.remove(&index);
         info!("🗑️ Removed buffer index {} from entity tracking", index);
     }
-    
+
     // Log final summary
     if despawn_operations > 0 {
         info!("📊 despawn_missing_buffer_sort_entities: Completed {} total despawn operations this frame (despawned {} sorts)", despawn_operations, despawn_count);

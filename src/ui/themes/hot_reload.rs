@@ -91,8 +91,8 @@ pub fn reload_theme_on_keypress(
     mut current_theme: ResMut<CurrentTheme>,
 ) {
     // Press Ctrl/Cmd + R to reload the current theme
-    let ctrl_held = keyboard.pressed(KeyCode::ControlLeft)
-        || keyboard.pressed(KeyCode::ControlRight);
+    let ctrl_held =
+        keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight);
 
     if ctrl_held && keyboard.just_pressed(KeyCode::KeyR) {
         let variant = current_theme.variant.clone();

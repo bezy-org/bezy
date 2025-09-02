@@ -10,18 +10,18 @@ use crate::systems::text_editor_sorts::{
     detect_sort_glyph_changes, // NEW: Detect glyph changes and force point regeneration
     // handle_text_input_with_cosmic, // DISABLED: Legacy system causing double input
     handle_arabic_text_input, // NEW: Arabic and Unicode text input
-    regenerate_points_on_fontir_change, // NEW: Regenerate points when FontIR data changes
     // respawn_active_sort_points, // REMOVED: Replaced with ECS-based system
     handle_sort_placement_input, // NEW: Uses centralized input system
     handle_text_editor_keyboard_input,
     handle_unicode_text_input, // NEW: Unicode character input using Bevy events
     initialize_text_editor_sorts,
     manage_sort_activation, // NEW: ECS-based sort activation management
+    regenerate_points_on_fontir_change, // NEW: Regenerate points when FontIR data changes
     // handle_text_editor_sort_clicks, // REMOVED: legacy system
     render_text_editor_sorts,
     spawn_active_sort_points_optimized, // NEW: Optimized instant point spawning
-    spawn_missing_sort_entities, // NEW: Spawn ECS entities for buffer sorts
-    sync_buffer_sort_activation_state, // NEW: Sync activation state from buffer to entities
+    spawn_missing_sort_entities,        // NEW: Spawn ECS entities for buffer sorts
+    sync_buffer_sort_activation_state,  // NEW: Sync activation state from buffer to entities
 };
 
 use bevy::prelude::*;
@@ -36,6 +36,8 @@ impl Plugin for TextEditorPlugin {
             .init_resource::<crate::core::state::text_editor::TextEditorState>()
             .init_resource::<crate::systems::text_editor_sorts::sort_rendering::CursorRenderingState>()
             .init_resource::<crate::core::state::text_editor::ActiveSortEntity>()
+            // Add buffer manager plugin
+            .add_plugins(crate::systems::TextBufferManagerPlugin)
             // Initialize text editor state
             .add_systems(Startup, initialize_text_editor_sorts)
             // Input handling

@@ -20,9 +20,7 @@ pub fn load_ufo_from_path(path: impl AsRef<Path>) -> Result<Font> {
 /// Load a UFO font file from disk (compatibility version)
 /// This version matches the old API signature for compatibility
 #[allow(dead_code)]
-pub fn load_ufo_from_path_compat(
-    path: &str,
-) -> Result<Font, Box<dyn std::error::Error>> {
+pub fn load_ufo_from_path_compat(path: &str) -> Result<Font, Box<dyn std::error::Error>> {
     let font_path = PathBuf::from(path);
 
     if !font_path.exists() {
@@ -43,10 +41,7 @@ fn char_to_hex_codepoint(unicode_char: char) -> String {
 }
 
 /// Add all codepoints from a glyph to the mapping
-fn add_glyph_codepoints_to_map(
-    map: &mut HashMap<String, String>,
-    glyph: &norad::Glyph,
-) {
+fn add_glyph_codepoints_to_map(map: &mut HashMap<String, String>, glyph: &norad::Glyph) {
     for &unicode_char in &glyph.codepoints {
         let codepoint_hex = char_to_hex_codepoint(unicode_char);
         map.insert(codepoint_hex, glyph.name().to_string());
@@ -69,10 +64,7 @@ fn build_codepoint_glyph_map(font: &Font) -> HashMap<String, String> {
 
 /// Find a glyph by its Unicode codepoint (like "0041" for letter A)
 #[allow(dead_code)]
-pub fn find_glyph_by_unicode(
-    font: &Font,
-    codepoint_hex: &str,
-) -> Option<String> {
+pub fn find_glyph_by_unicode(font: &Font, codepoint_hex: &str) -> Option<String> {
     build_codepoint_glyph_map(font).get(codepoint_hex).cloned()
 }
 
@@ -100,10 +92,7 @@ pub enum CycleDirection {
 
 /// Get the appropriate starting position based on direction
 #[allow(dead_code)]
-fn get_direction_default(
-    codepoints: &[String],
-    direction: CycleDirection,
-) -> Option<String> {
+fn get_direction_default(codepoints: &[String], direction: CycleDirection) -> Option<String> {
     match direction {
         CycleDirection::Next => codepoints.first().cloned(),
         CycleDirection::Previous => codepoints.last().cloned(),
@@ -112,10 +101,7 @@ fn get_direction_default(
 
 /// Find the position of a codepoint in the list
 #[allow(dead_code)]
-fn find_codepoint_position(
-    codepoints: &[String],
-    target: &str,
-) -> Option<usize> {
+fn find_codepoint_position(codepoints: &[String], target: &str) -> Option<usize> {
     codepoints.iter().position(|codepoint| codepoint == target)
 }
 
@@ -136,8 +122,7 @@ pub fn cycle_codepoint_in_list(
     }
 
     // Find where we are in the list
-    let current_position =
-        find_codepoint_position(available_codepoints, current_codepoint);
+    let current_position = find_codepoint_position(available_codepoints, current_codepoint);
 
     let Some(current_position) = current_position else {
         // Current codepoint not found, start from the end based on direction
@@ -196,10 +181,7 @@ pub fn find_previous_codepoint_in_list(
 /// Set up the font when the app starts (compatibility function)
 /// This provides the same API as the old version but works with the new architecture
 #[allow(dead_code)]
-pub fn initialize_font_state(
-    mut commands: Commands,
-    cli_args: Res<crate::core::cli::CliArgs>,
-) {
+pub fn initialize_font_state(mut commands: Commands, cli_args: Res<crate::core::cli::CliArgs>) {
     if let Some(font_path) = &cli_args.ufo_path {
         load_font_at_startup(&mut commands, font_path);
     } else {
