@@ -65,7 +65,7 @@ fn setup_file_menu(
 ) {
     if let Ok(mut window) = windows.single_mut() {
         // Set window title to include app name
-        window.title = "Bezy - Font Editor".to_string();
+        window.title = "🌀Bezy".to_string();
 
         // Initialize keyboard-based file menu
         info!("✅ File menu initialized with cross-platform keyboard shortcuts:");

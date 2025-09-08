@@ -185,11 +185,27 @@ fn calculate_buffer_local_position(
     let line_height = upm - descender;  // Legacy formula: upm - descender (descender is negative)
     
     // Calculate position by iterating through preceding sorts in this buffer
+    // Direction depends on layout mode
+    let layout_mode = &text_buffer.layout_mode;
+    
     for i in 0..buffer_local_index {
         if let Some((_, sort)) = buffer_sorts.get(i) {
             match &sort.kind {
                 crate::core::state::text_editor::SortKind::Glyph { advance_width, .. } => {
-                    x_offset += advance_width;
+                    match layout_mode {
+                        crate::core::state::SortLayoutMode::LTRText => {
+                            // LTR: advance to the right
+                            x_offset += advance_width;
+                        }
+                        crate::core::state::SortLayoutMode::RTLText => {
+                            // RTL: advance to the left  
+                            x_offset -= advance_width;
+                        }
+                        crate::core::state::SortLayoutMode::Freeform => {
+                            // Freeform: treat as LTR
+                            x_offset += advance_width;
+                        }
+                    }
                 }
                 crate::core::state::text_editor::SortKind::LineBreak => {
                     x_offset = 0.0;

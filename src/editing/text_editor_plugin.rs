@@ -15,6 +15,7 @@ use crate::systems::text_editor_sorts::{
     handle_text_editor_keyboard_input,
     handle_unicode_text_input, // NEW: Unicode character input using Bevy events
     initialize_text_editor_sorts,
+    initialize_rtl_shaping, // NEW: Initialize RTL shaping resources
     manage_sort_activation, // NEW: ECS-based sort activation management
     regenerate_points_on_fontir_change, // NEW: Regenerate points when FontIR data changes
     // handle_text_editor_sort_clicks, // REMOVED: legacy system
@@ -39,10 +40,14 @@ impl Plugin for TextEditorPlugin {
             // Add buffer manager plugin
             .add_plugins(crate::systems::TextBufferManagerPlugin)
             // Initialize text editor state
-            .add_systems(Startup, initialize_text_editor_sorts)
+            .add_systems(Startup, (
+                initialize_text_editor_sorts,
+                initialize_rtl_shaping, // Initialize RTL shaping resources
+            ))
             // Input handling
             .add_systems(Update, (
                 handle_unicode_text_input,
+                handle_arabic_text_input, // Handle Arabic text input with shaping
                 handle_sort_placement_input,
             ).in_set(super::FontEditorSets::Input))
             // Text buffer updates

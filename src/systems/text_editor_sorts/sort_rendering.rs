@@ -281,48 +281,80 @@ fn calculate_cursor_position(
     let mut y_offset = 0.0;
     let mut buffer_sort_count = 0;
     
-    // Find all sorts belonging to this buffer and process them in order
-    for sort_entry in text_editor_state.buffer.iter() {
-        if sort_entry.buffer_id == Some(buffer_id) {
-            // Only accumulate advances for sorts BEFORE the cursor position
-            if buffer_sort_count < cursor_pos_in_buffer {
-                match &sort_entry.kind {
-                    crate::core::state::text_editor::SortKind::LineBreak => {
-                        // Handle line breaks: move to next line
-                        x_offset = 0.0;
-                        y_offset -= line_height;
-                        info!("🎯 UNIFIED CURSOR: Line break at sort {}, moved to next line (y_offset: {})", 
-                              buffer_sort_count, y_offset);
-                    }
-                    crate::core::state::text_editor::SortKind::Glyph { advance_width, .. } => {
-                        // Accumulate glyph advances based on text direction
-                        match layout_mode {
-                            crate::core::state::text_editor::SortLayoutMode::LTRText => {
-                                x_offset += advance_width;
+    match layout_mode {
+        crate::core::state::text_editor::SortLayoutMode::RTLText => {
+            // RTL CURSOR LOGIC: Per documentation - calculate width of text AFTER cursor position
+            info!("🎯 RTL CURSOR: Using RTL logic from fundamentals doc");
+            
+            // Start from RIGHT EDGE (root position)
+            x_offset = 0.0;
+            
+            for sort_entry in text_editor_state.buffer.iter() {
+                if sort_entry.buffer_id == Some(buffer_id) {
+                    // Accumulate advances for sorts AT OR AFTER the cursor position
+                    if buffer_sort_count >= cursor_pos_in_buffer {
+                        match &sort_entry.kind {
+                            crate::core::state::text_editor::SortKind::LineBreak => {
+                                // Handle line breaks
+                                if buffer_sort_count == cursor_pos_in_buffer {
+                                    // Cursor at line break position
+                                    y_offset -= line_height;
+                                    info!("🎯 RTL CURSOR: Cursor at line break position {}", buffer_sort_count);
+                                    break;
+                                }
                             }
-                            crate::core::state::text_editor::SortLayoutMode::RTLText => {
+                            crate::core::state::text_editor::SortKind::Glyph { advance_width, .. } => {
+                                // RTL: Move LEFT by width of text AFTER cursor
                                 x_offset -= advance_width;
-                            }
-                            crate::core::state::text_editor::SortLayoutMode::Freeform => {
-                                x_offset += advance_width; // Shouldn't happen in buffer context
+                                info!("🎯 RTL CURSOR: Sort {} after cursor, moved left by {}, offset now: ({:.1}, {:.1})", 
+                                      buffer_sort_count, advance_width, x_offset, y_offset);
                             }
                         }
-                        info!("🎯 UNIFIED CURSOR: Accumulated advance {} for sort {}, total offset: ({:.1}, {:.1})", 
-                              advance_width, buffer_sort_count, x_offset, y_offset);
                     }
-                }
-            } else if buffer_sort_count == cursor_pos_in_buffer {
-                // Cursor is positioned AT this sort - check if it's a line break
-                if matches!(&sort_entry.kind, crate::core::state::text_editor::SortKind::LineBreak) {
-                    // Cursor at line break position - show at start of new line
-                    x_offset = 0.0;
-                    y_offset -= line_height;
-                    info!("🎯 UNIFIED CURSOR: Cursor at line break position {}, showing at new line start", buffer_sort_count);
-                    break;
+                    
+                    buffer_sort_count += 1;
                 }
             }
             
-            buffer_sort_count += 1;
+            info!("🎯 RTL CURSOR: Final position at RIGHT EDGE of preceding text: ({:.1}, {:.1})", x_offset, y_offset);
+        }
+        _ => {
+            // LTR/FREEFORM CURSOR LOGIC: Start from left edge, move right as characters are added
+            info!("🎯 LTR CURSOR: Using standard LTR cursor positioning logic");
+            
+            for sort_entry in text_editor_state.buffer.iter() {
+                if sort_entry.buffer_id == Some(buffer_id) {
+                    // Only accumulate advances for sorts BEFORE the cursor position
+                    if buffer_sort_count < cursor_pos_in_buffer {
+                        match &sort_entry.kind {
+                            crate::core::state::text_editor::SortKind::LineBreak => {
+                                // Handle line breaks: move to next line
+                                x_offset = 0.0;
+                                y_offset -= line_height;
+                                info!("🎯 LTR CURSOR: Line break at sort {}, moved to next line (y_offset: {})", 
+                                      buffer_sort_count, y_offset);
+                            }
+                            crate::core::state::text_editor::SortKind::Glyph { advance_width, .. } => {
+                                // Accumulate left-to-right
+                                x_offset += advance_width;
+                                info!("🎯 LTR CURSOR: Accumulated advance {} for sort {}, total offset: ({:.1}, {:.1})", 
+                                      advance_width, buffer_sort_count, x_offset, y_offset);
+                            }
+                        }
+                    } else if buffer_sort_count == cursor_pos_in_buffer {
+                        // Cursor is positioned AT this sort - check if it's a line break
+                        if matches!(&sort_entry.kind, crate::core::state::text_editor::SortKind::LineBreak) {
+                            // Cursor at line break position - show at start of new line
+                            x_offset = 0.0;
+                            y_offset -= line_height;
+                            info!("🎯 LTR CURSOR: Cursor at line break position {}, showing at new line start", buffer_sort_count);
+                            break;
+                        }
+                    }
+                    
+                    buffer_sort_count += 1;
+                }
+            }
         }
     }
     

@@ -4,10 +4,11 @@
 
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
+use bevy::render::camera::OrthographicProjection;
 use bevy_pancam::{PanCam, PanCamPlugin};
 
 // Constants
-const INITIAL_ZOOM_SCALE: f32 = 1.0; // Start at 32-unit grid level
+// const INITIAL_ZOOM_SCALE: f32 = 1.0; // Start at 32-unit grid level (unused while testing 25% zoom)
 
 // Component to mark the main design camera
 #[derive(Component)]
@@ -41,8 +42,12 @@ pub fn setup_camera(mut commands: Commands) {
             ..default()
         },
         // Position camera to center on glyph area instead of design space origin
-        Transform::from_xyz(0.0, camera_center_y, 1000.0)
-            .with_scale(Vec3::splat(INITIAL_ZOOM_SCALE)),
+        Transform::from_xyz(0.0, camera_center_y, 1000.0),
+        // Set initial orthographic projection scale for 25% zoom (temporary for testing)
+        Projection::Orthographic(OrthographicProjection {
+            scale: 4.0, // 4.0 = 25% zoom (larger scale = more zoomed out)
+            ..OrthographicProjection::default_2d()
+        }),
         PanCam {
             grab_buttons: vec![MouseButton::Left, MouseButton::Middle],
             enabled: true,

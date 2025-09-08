@@ -748,13 +748,13 @@ pub fn handle_text_mode_keyboard(
 
     // text_editor_state is now available directly as ResMut
 
-    if current_placement_mode.0 == TextPlacementMode::LTRText
-        || current_placement_mode.0 == TextPlacementMode::RTLText
-    {
+    // Handle arrow keys based on text direction mode
+    if current_placement_mode.0 == TextPlacementMode::LTRText {
+        // LTR Mode: Normal arrow key behavior
         if keyboard_input.just_pressed(KeyCode::ArrowLeft) {
             text_editor_state.move_cursor_left();
             debug!(
-                "Text mode: moved cursor left to position {}",
+                "LTR mode: moved cursor left to position {}",
                 text_editor_state.cursor_position
             );
             keyboard_input.clear_just_pressed(KeyCode::ArrowLeft);
@@ -762,11 +762,35 @@ pub fn handle_text_mode_keyboard(
         if keyboard_input.just_pressed(KeyCode::ArrowRight) {
             text_editor_state.move_cursor_right();
             debug!(
-                "Text mode: moved cursor right to position {}",
+                "LTR mode: moved cursor right to position {}",
                 text_editor_state.cursor_position
             );
             keyboard_input.clear_just_pressed(KeyCode::ArrowRight);
         }
+    } else if current_placement_mode.0 == TextPlacementMode::RTLText {
+        // RTL Mode: Arrow keys reversed for logical movement in RTL text
+        if keyboard_input.just_pressed(KeyCode::ArrowLeft) {
+            text_editor_state.move_cursor_right(); // Left arrow increases position (toward text beginning)
+            debug!(
+                "RTL mode: left arrow moved toward text beginning, position {}",
+                text_editor_state.cursor_position
+            );
+            keyboard_input.clear_just_pressed(KeyCode::ArrowLeft);
+        }
+        if keyboard_input.just_pressed(KeyCode::ArrowRight) {
+            text_editor_state.move_cursor_left(); // Right arrow decreases position (toward text end)
+            debug!(
+                "RTL mode: right arrow moved toward text end, position {}",
+                text_editor_state.cursor_position
+            );
+            keyboard_input.clear_just_pressed(KeyCode::ArrowRight);
+        }
+    }
+
+    // Common vertical navigation for both LTR and RTL
+    if current_placement_mode.0 == TextPlacementMode::LTRText
+        || current_placement_mode.0 == TextPlacementMode::RTLText
+    {
         if keyboard_input.just_pressed(KeyCode::ArrowUp) {
             text_editor_state.move_cursor_up_multiline();
             debug!(
