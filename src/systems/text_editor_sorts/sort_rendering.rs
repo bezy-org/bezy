@@ -283,42 +283,34 @@ fn calculate_cursor_position(
     
     match layout_mode {
         crate::core::state::text_editor::SortLayoutMode::RTLText => {
-            // RTL CURSOR LOGIC: Mirror LTR logic but subtract advance widths instead of add
-            info!("🎯 RTL CURSOR: Using RTL cursor positioning logic (mirroring LTR)");
+            // RTL CURSOR LOGIC: Calculate width of text AFTER cursor, position cursor that far left from root
+            info!("🎯 RTL CURSOR: Using correct RTL logic - width of text AFTER cursor");
             
             for sort_entry in text_editor_state.buffer.iter() {
                 if sort_entry.buffer_id == Some(buffer_id) {
-                    // Only accumulate advances for sorts BEFORE the cursor position
-                    if buffer_sort_count < cursor_pos_in_buffer {
+                    // Only accumulate advances for sorts AT OR AFTER the cursor position
+                    if buffer_sort_count >= cursor_pos_in_buffer {
                         match &sort_entry.kind {
                             crate::core::state::text_editor::SortKind::LineBreak => {
                                 // Handle line breaks: move to next line
-                                x_offset = 0.0;
                                 y_offset -= line_height;
                                 info!("🎯 RTL CURSOR: Line break at sort {}, moved to next line (y_offset: {})", 
                                       buffer_sort_count, y_offset);
                             }
                             crate::core::state::text_editor::SortKind::Glyph { advance_width, .. } => {
-                                // RTL: Accumulate leftward (subtract advance width)
+                                // RTL: Move left by width of text AFTER cursor (including current position)
                                 x_offset -= advance_width;
-                                info!("🎯 RTL CURSOR: Accumulated advance {} for sort {}, total offset: ({:.1}, {:.1})", 
+                                info!("🎯 RTL CURSOR: Text after cursor, move left by {} for sort {}, offset: ({:.1}, {:.1})", 
                                       advance_width, buffer_sort_count, x_offset, y_offset);
                             }
-                        }
-                    } else if buffer_sort_count == cursor_pos_in_buffer {
-                        // Cursor is positioned AT this sort - check if it's a line break
-                        if matches!(&sort_entry.kind, crate::core::state::text_editor::SortKind::LineBreak) {
-                            // Cursor at line break position - show at start of new line
-                            x_offset = 0.0;
-                            y_offset -= line_height;
-                            info!("🎯 RTL CURSOR: Cursor at line break position {}, showing at new line start", buffer_sort_count);
-                            break;
                         }
                     }
                     
                     buffer_sort_count += 1;
                 }
             }
+            
+            info!("🎯 RTL CURSOR: Final cursor positioned at right edge of preceding text: ({:.1}, {:.1})", x_offset, y_offset);
         }
         _ => {
             // LTR/FREEFORM CURSOR LOGIC: Start from left edge, move right as characters are added

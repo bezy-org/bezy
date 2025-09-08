@@ -69,17 +69,23 @@ Cursor at position 3: אבג| (after all text - leftmost position)
 ### Advance Width Calculation (RTL)
 ```rust
 // RTL cursor calculation - CRITICAL UNDERSTANDING:
-// In RTL, we start from the RIGHT and work LEFT
-// The cursor position represents how far LEFT we've moved from the right edge
+// WRONG APPROACH: Starting from left edge like LTR
+// RIGHT APPROACH: Start from RIGHT EDGE and work toward insertion point
+
+// CORRECT RTL LOGIC:
+// 1. Calculate total width of ALL text AFTER cursor position
+// 2. Position cursor by moving LEFT from root by that amount
+// 3. This positions cursor at RIGHT EDGE of preceding text (insertion point)
 
 x_offset = 0.0;  // Start at root position (rightmost edge)
 
-// For each character BEFORE cursor position  
-for char in text[0..cursor_position] {
-    x_offset -= char.advance_width;  // Move LEFT (subtract!)
+// For each character AT OR AFTER cursor position
+for char in text[cursor_position..] {
+    x_offset -= char.advance_width;  // Move LEFT by width of following text
 }
 
-// Cursor positioned at LEFT edge of all preceding text
+// Result: Cursor positioned at RIGHT EDGE of preceding text (insertion point)
+// This is where the next character will appear in RTL text
 ```
 
 ### Arrow Key Behavior (RTL)
@@ -117,10 +123,21 @@ for char in text[0..cursor_position] {
 
 ### Expected Behavior:
 1. **Empty buffer**: Cursor at (0.0, 0.0) - root position
-2. **Type one character**: Cursor moves to (-advance_width, 0.0) 
-3. **Type second character**: Cursor moves to (-total_width, 0.0)
-4. **Left arrow**: Cursor moves toward text beginning (position increases)
-5. **Right arrow**: Cursor moves toward text end (position decreases)
+2. **Type one character**: Cursor stays at (0.0, 0.0) - insertion point for next character
+3. **Type second character**: Cursor stays at (0.0, 0.0) - insertion point for next character
+4. **Move cursor with arrows**: Cursor position changes based on text after cursor
+5. **Cursor at position 1 (between chars)**: Cursor at (-width_of_last_char, 0.0)
+
+### RTL Cursor Position Examples:
+```
+Text: [ا][ب][ج] (3 Arabic chars, each 200 units wide)
+Total text width: 600 units
+
+Cursor position 0: |ابج → cursor at (0.0, 0.0) - before all text
+Cursor position 1: ا|بج → cursor at (-400.0, 0.0) - before ب and ج  
+Cursor position 2: اب|ج → cursor at (-200.0, 0.0) - before ج only
+Cursor position 3: ابج| → cursor at (-600.0, 0.0) - after all text
+```
 
 ### Debug Questions:
 - Is cursor positioned at left edge of existing text?
