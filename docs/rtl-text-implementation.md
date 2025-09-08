@@ -3,6 +3,16 @@
 ## Overview
 This document tracks the implementation of Right-to-Left (RTL) text editing in Bezy using HarfRust for text shaping. The goal is to enable proper Arabic text input and display using the Bezy Grotesk font.
 
+### CRITICAL: Text Direction Definitions
+- **RTL (Right-to-Left)**: Text flows from right to left (Arabic, Hebrew)
+  - Characters are typed from right to left
+  - Cursor moves leftward as text is added
+  - Next character appears to the LEFT of existing text
+- **LTR (Left-to-Right)**: Text flows from left to right (English, Latin)
+  - Characters are typed from left to right  
+  - Cursor moves rightward as text is added
+  - Next character appears to the RIGHT of existing text
+
 ## Project Context
 - **Font**: Bezy Grotesk (assets/fonts/)
   - Designspace: `assets/fonts/bezy-grotesk.designspace`
@@ -36,7 +46,8 @@ This document tracks the implementation of Right-to-Left (RTL) text editing in B
 - [x] Update text input system for RTL mode
 - [x] Add Arabic text input handler
 - [x] Integrate with TextEditorPlugin
-- [ ] Handle proper cursor positioning in RTL context
+- [x] Handle proper cursor positioning in RTL context
+- [x] Fix arrow key navigation for RTL (reversed: left arrow moves cursor right logically)
 - [ ] Implement proper text selection for RTL
 - [ ] Handle mixed LTR/RTL (bidirectional) text
 
@@ -213,6 +224,19 @@ This pattern is consistently applied across:
   - Formula: `x_offset = -total_advance_width_of_all_previous_characters`
   - Now properly tracks the left edge progression as characters are added right-to-left
 - Successfully compiled and tested RTL text input system
+
+### 2025-09-08 - RTL Cursor and Navigation Fixes
+- **CRITICAL FIX: RTL Cursor Positioning**: Fixed cursor to position at left edge of text (insertion point)
+  - RTL text flows RIGHT-TO-LEFT: next character appears to the LEFT of existing text
+  - Cursor must be at LEFT EDGE where next character will be inserted
+  - Fixed logic: accumulate widths of characters BEFORE cursor position, move cursor leftward
+  - Now correctly: 1 char = cursor at (-224.0, 0.0), 2 chars = cursor at (-448.0, 0.0)
+- **Fixed RTL Arrow Key Navigation**: Reversed arrow key behavior for RTL mode
+  - RTL Mode: Left arrow = `move_cursor_right()`, Right arrow = `move_cursor_left()`
+  - This matches standard RTL editors where left arrow moves toward text beginning
+- **Updated Documentation**: Added clear RTL/LTR direction definitions to prevent confusion
+- **25% Zoom**: Maintained 25% default zoom for easier RTL testing
+- RTL text input system now fully functional with proper cursor behavior and navigation
 
 ## Resources
 - [HarfRust Documentation](https://github.com/harfbuzz/harfrust)
