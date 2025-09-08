@@ -50,9 +50,9 @@ for char in text[0..cursor_position] {
 ## How RTL Text Editors Work
 
 ### Character Insertion
-1. **Cursor Position**: Marks insertion point (visually at RIGHT edge of existing text)
-2. **Character Added**: Appears to the LEFT of cursor position
-3. **Cursor Movement**: Cursor stays at same visual position (new text grows leftward)
+1. **Cursor Position**: Marks insertion point (visually at LEFT edge of existing text)
+2. **Character Added**: Appears to the LEFT of cursor position (pushing existing text further left)
+3. **Cursor Movement**: Cursor stays at same visual position (insertion point for next character)
 4. **Text Flow**: Characters accumulate right-to-left
 
 ### Cursor Positioning Logic (RTL)
@@ -75,7 +75,7 @@ Cursor at position 3: אבג| (after all text - leftmost position)
 // CORRECT RTL LOGIC:
 // 1. Calculate total width of ALL text AFTER cursor position
 // 2. Position cursor by moving LEFT from root by that amount
-// 3. This positions cursor at RIGHT EDGE of preceding text (insertion point)
+// 3. This positions cursor at LEFT EDGE of existing text (insertion point)
 
 x_offset = 0.0;  // Start at root position (rightmost edge)
 
@@ -84,7 +84,7 @@ for char in text[cursor_position..] {
     x_offset -= char.advance_width;  // Move LEFT by width of following text
 }
 
-// Result: Cursor positioned at RIGHT EDGE of preceding text (insertion point)
+// Result: Cursor positioned at LEFT EDGE of existing text (insertion point)
 // This is where the next character will appear in RTL text
 ```
 
@@ -109,7 +109,7 @@ for char in text[cursor_position..] {
 ### RTL Text Editor Must:
 1. **Start calculations from right edge** (root position = rightmost point)
 2. **Subtract advance widths** to move cursor leftward
-3. **Position cursor at left edge** of preceding text
+3. **Position cursor at left edge** of existing text (insertion point)
 4. **Handle arrow keys logically** (left arrow moves toward text beginning)
 5. **Maintain visual consistency** with standard RTL editors
 
