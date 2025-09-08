@@ -283,25 +283,31 @@ fn calculate_cursor_position(
     
     match layout_mode {
         crate::core::state::text_editor::SortLayoutMode::RTLText => {
-            // RTL CURSOR LOGIC: Calculate width of text AFTER cursor, position cursor that far left from root
-            info!("🎯 RTL CURSOR: Using correct RTL logic - width of text AFTER cursor");
+            // RTL CURSOR LOGIC: Per documentation - calculate width of text AFTER cursor position
+            info!("🎯 RTL CURSOR: Using RTL logic from fundamentals doc");
+            
+            // Start from RIGHT EDGE (root position)
+            x_offset = 0.0;
             
             for sort_entry in text_editor_state.buffer.iter() {
                 if sort_entry.buffer_id == Some(buffer_id) {
-                    // Only accumulate advances for sorts AT OR AFTER the cursor position
+                    // Accumulate advances for sorts AT OR AFTER the cursor position
                     if buffer_sort_count >= cursor_pos_in_buffer {
                         match &sort_entry.kind {
                             crate::core::state::text_editor::SortKind::LineBreak => {
-                                // Handle line breaks: move to next line
-                                y_offset -= line_height;
-                                info!("🎯 RTL CURSOR: Line break at sort {}, moved to next line (y_offset: {})", 
-                                      buffer_sort_count, y_offset);
+                                // Handle line breaks
+                                if buffer_sort_count == cursor_pos_in_buffer {
+                                    // Cursor at line break position
+                                    y_offset -= line_height;
+                                    info!("🎯 RTL CURSOR: Cursor at line break position {}", buffer_sort_count);
+                                    break;
+                                }
                             }
                             crate::core::state::text_editor::SortKind::Glyph { advance_width, .. } => {
-                                // RTL: Move left by width of text AFTER cursor (including current position)
+                                // RTL: Move LEFT by width of text AFTER cursor
                                 x_offset -= advance_width;
-                                info!("🎯 RTL CURSOR: Text after cursor, move left by {} for sort {}, offset: ({:.1}, {:.1})", 
-                                      advance_width, buffer_sort_count, x_offset, y_offset);
+                                info!("🎯 RTL CURSOR: Sort {} after cursor, moved left by {}, offset now: ({:.1}, {:.1})", 
+                                      buffer_sort_count, advance_width, x_offset, y_offset);
                             }
                         }
                     }
@@ -310,7 +316,7 @@ fn calculate_cursor_position(
                 }
             }
             
-            info!("🎯 RTL CURSOR: Final cursor positioned at right edge of preceding text: ({:.1}, {:.1})", x_offset, y_offset);
+            info!("🎯 RTL CURSOR: Final position at RIGHT EDGE of preceding text: ({:.1}, {:.1})", x_offset, y_offset);
         }
         _ => {
             // LTR/FREEFORM CURSOR LOGIC: Start from left edge, move right as characters are added
