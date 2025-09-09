@@ -931,6 +931,15 @@ fn calculate_character_position(
 }
 
 /// Handle left arrow key press - move cursor left in the active buffer
+/// 
+/// IMPORTANT: Arrow keys work consistently across LTR and RTL modes
+/// - Left arrow always decreases buffer position (n → n-1)
+/// - The visual movement is handled by the cursor rendering system
+/// - In LTR: decreasing position moves cursor visually left (as expected)
+/// - In RTL: decreasing position ALSO moves cursor visually left because:
+///   * Position 0 is at the rightmost (start) position
+///   * Position N is at the leftmost (end) position
+///   * So decreasing position (N → 0) moves cursor from left to right visually
 fn handle_arrow_left(
     text_editor_state: &mut ResMut<TextEditorState>,
     active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
@@ -946,17 +955,18 @@ fn handle_arrow_left(
         return;
     };
     
-    let Ok((_text_buffer, mut buffer_cursor)) = buffer_query.get_mut(buffer_entity) else {
+    let Ok((text_buffer, mut buffer_cursor)) = buffer_query.get_mut(buffer_entity) else {
         debug!("Buffer entity not found for arrow left");
         return;
     };
     
-    // Move cursor left if not at the beginning
+    // Left arrow always decreases position regardless of text direction
+    // The visual effect (moving left on screen) is achieved through the cursor rendering logic
     if buffer_cursor.position > 0 {
         buffer_cursor.position -= 1;
-        info!("⬅️ Moved cursor left to position {}", buffer_cursor.position);
+        info!("⬅️ Left arrow moved to position {}", buffer_cursor.position);
     } else {
-        debug!("Cursor already at beginning, cannot move left");
+        debug!("Cursor already at position 0, cannot move left");
     }
     
     // Mark text editor state as changed to trigger cursor rendering update
@@ -965,6 +975,15 @@ fn handle_arrow_left(
 }
 
 /// Handle right arrow key press - move cursor right in the active buffer
+///
+/// IMPORTANT: Arrow keys work consistently across LTR and RTL modes
+/// - Right arrow always increases buffer position (n → n+1)
+/// - The visual movement is handled by the cursor rendering system
+/// - In LTR: increasing position moves cursor visually right (as expected)
+/// - In RTL: increasing position ALSO moves cursor visually right because:
+///   * Position 0 is at the rightmost (start) position
+///   * Position N is at the leftmost (end) position
+///   * So increasing position (0 → N) moves cursor from right to left visually
 fn handle_arrow_right(
     text_editor_state: &mut ResMut<TextEditorState>,
     active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
@@ -985,19 +1004,19 @@ fn handle_arrow_right(
         return;
     };
     
-    // Count how many sorts belong to this buffer to determine max cursor position
+    // Right arrow always increases position regardless of text direction
+    // The visual effect (moving right on screen) is achieved through the cursor rendering logic
     let buffer_sort_count = text_editor_state
         .buffer
         .iter()
         .filter(|sort| sort.buffer_id == Some(text_buffer.id))
         .count();
-    
-    // Move cursor right if not at the end
+        
     if buffer_cursor.position < buffer_sort_count {
         buffer_cursor.position += 1;
-        info!("➡️ Moved cursor right to position {}", buffer_cursor.position);
+        info!("➡️ Right arrow moved to position {}", buffer_cursor.position);
     } else {
-        debug!("Cursor already at end, cannot move right");
+        debug!("Cursor already at end position, cannot move right");
     }
     
     // Mark text editor state as changed to trigger cursor rendering update

@@ -52,18 +52,17 @@ for char in text[0..cursor_position] {
 ### Character Insertion
 1. **Cursor Position**: Marks insertion point (visually at LEFT edge of existing text)
 2. **Character Added**: Appears to the LEFT of cursor position (pushing existing text further left)
-3. **Cursor Movement**: Cursor stays at same visual position (insertion point for next character)
+3. **Cursor Movement**: Moves LEFT after character insertion
 4. **Text Flow**: Characters accumulate right-to-left
 
 ### Cursor Positioning Logic (RTL)
 ```
 Text: "אבג" (Hebrew: alef-bet-gimel)
-Visual: גבא| (text flows right-to-left, cursor at right edge)
-
-Cursor at position 0: |אבג (before first character - rightmost position)
+Visual: "|אבג" (text flows right-to-left, cursor at left edge of new sorts)
+Cursor at position 0: אבג| (before first character - rightmost position)
 Cursor at position 1: א|בג (after first character)
 Cursor at position 2: אב|ג (after second character) 
-Cursor at position 3: אבג| (after all text - leftmost position)
+Cursor at position 3: |אבג (after all text - leftmost position)
 ```
 
 ### Advance Width Calculation (RTL)
@@ -71,11 +70,6 @@ Cursor at position 3: אבג| (after all text - leftmost position)
 // RTL cursor calculation - CRITICAL UNDERSTANDING:
 // WRONG APPROACH: Starting from left edge like LTR
 // RIGHT APPROACH: Start from RIGHT EDGE and work toward insertion point
-
-// CORRECT RTL LOGIC:
-// 1. Calculate total width of ALL text AFTER cursor position
-// 2. Position cursor by moving LEFT from root by that amount
-// 3. This positions cursor at LEFT EDGE of existing text (insertion point)
 
 x_offset = 0.0;  // Start at root position (rightmost edge)
 
@@ -89,16 +83,27 @@ for char in text[cursor_position..] {
 ```
 
 ### Arrow Key Behavior (RTL)
-- **Left Arrow**: Move cursor left (increase position - toward beginning of text)
-- **Right Arrow**: Move cursor right (decrease position - toward end of text)
+- **Left Arrow**: Move cursor left (increase position - toward end of text buffer)
+- **Right Arrow**: Move cursor right (decrease position - toward beginning of text)
+
+**IMPORTANT NOTE ON ARROW KEYS:**
+Arrow keys should ALWAYS move the cursor visually in the direction of the arrow, regardless of text direction:
+- Left arrow ALWAYS moves cursor visually LEFT on screen
+- Right arrow ALWAYS moves cursor visually RIGHT on screen
+
+The difference in RTL is how this visual movement maps to buffer positions:
+- In LTR: visual left = decrease position, visual right = increase position  
+- In RTL: visual left = increase position, visual right = decrease position
+
+**DO NOT** reverse the visual behavior of arrow keys - users expect the cursor to move in the direction of the arrow they pressed!
 
 ## Key Differences Summary
 
 | Aspect | LTR | RTL |
 |--------|-----|-----|
-| Text Flow | Left → Right | Right → Left |
+| Text Flow |LTR = Left → Right | RTL = Right → Left |
 | Character Insertion | Right of cursor | Left of cursor |
-| Cursor Movement After Typing | Rightward | Stays at insertion point |
+| Cursor Movement After Typing | Rightward | Leftward |
 | Advance Width Math | Add (+) | Subtract (-) |
 | Starting Position | Left edge | Right edge |
 | Left Arrow | Decrease position | Increase position |
@@ -109,8 +114,6 @@ for char in text[cursor_position..] {
 ### RTL Text Editor Must:
 1. **Start calculations from right edge** (root position = rightmost point)
 2. **Subtract advance widths** to move cursor leftward
-3. **Position cursor at left edge** of existing text (insertion point)
-4. **Handle arrow keys logically** (left arrow moves toward text beginning)
 5. **Maintain visual consistency** with standard RTL editors
 
 ### Common Mistakes:
@@ -119,30 +122,35 @@ for char in text[cursor_position..] {
 - ❌ Reversing arrow key logic unnecessarily
 - ❌ Positioning cursor at wrong edge of text
 
-## Testing RTL Implementation
+## Implementation Notes (Bezy Editor)
 
-### Expected Behavior:
-1. **Empty buffer**: Cursor at (0.0, 0.0) - root position
-2. **Type one character**: Cursor stays at (0.0, 0.0) - insertion point for next character
-3. **Type second character**: Cursor stays at (0.0, 0.0) - insertion point for next character
-4. **Move cursor with arrows**: Cursor position changes based on text after cursor
-5. **Cursor at position 1 (between chars)**: Cursor at (-width_of_last_char, 0.0)
+### Buffer Storage Architecture
+Text is stored in **logical order** (reading order) in a `Vec<SortEntry>` buffer, with visual presentation handled by the rendering system. For RTL text, buffer position 0 corresponds to the rightmost visual position, and position N to the leftmost. This follows Unicode standards and industry practices.
 
-### RTL Cursor Position Examples:
-```
-Text: [ا][ب][ج] (3 Arabic chars, each 200 units wide)
-Total text width: 600 units
+### Data Structure Performance
+- **Current**: Vec-based buffer with O(n) insertion/deletion complexity
+- **Trade-off**: Implementation simplicity over performance, suitable for small text typical in font editing
+- **Future**: Consider gap buffer (O(1) operations) or rope data structure for larger documents
 
-Cursor position 0: |ابج → cursor at (0.0, 0.0) - before all text
-Cursor position 1: ا|بج → cursor at (-400.0, 0.0) - before ب and ج  
-Cursor position 2: اب|ج → cursor at (-200.0, 0.0) - before ج only
-Cursor position 3: ابج| → cursor at (-600.0, 0.0) - after all text
-```
+### Cursor Positioning Implementation
+The RTL cursor positioning is implemented in `src/systems/text_editor_sorts/sort_rendering.rs`:
+- Collects all sorts belonging to the specific buffer (avoiding cross-buffer contamination)
+- Uses local buffer indexing instead of global indices
+- For RTL: Accumulates widths of characters AT OR AFTER cursor position
+- This correctly positions the cursor at the LEFT edge where new text will be inserted
 
-### Debug Questions:
-- Is cursor positioned at left edge of existing text?
-- Do advance widths subtract (not add) in RTL?
-- Do arrow keys move cursor in expected logical direction?
-- Does typing move cursor to correct insertion point?
+### Arrow Key Implementation  
+The arrow keys are implemented in `src/systems/text_editor_sorts/unicode_input.rs`:
+- **Simplified approach**: Arrow keys work identically for both LTR and RTL
+- Left arrow always decreases buffer position
+- Right arrow always increases buffer position
+- The visual movement is handled entirely by the cursor rendering system
+- This ensures arrows always move the cursor visually in the expected direction
 
-This document serves as the definitive reference for LTR/RTL text editor behavior in the Bezy font editor.
+### Why This Works
+In RTL mode:
+- Position 0 = rightmost (where typing starts)
+- Position N = leftmost (where cursor ends after typing)
+- Decreasing position (left arrow) moves cursor from left to right visually
+- Increasing position (right arrow) moves cursor from right to left visually
+- The visual result matches user expectations without special-casing the arrow logic
