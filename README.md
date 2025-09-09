@@ -1,15 +1,18 @@
 # Bezy
 
-A cross-platform bidirectional RTL/LTR font editor built with Rust. The core dependancies are: Bevy, HarfRust, Norad, Kurbo, Fontc, FontIR.
+![Bezy Font Editor Screenshot](https://bezy.org/images/bezy-screenshot-001.jpg)
 
-This editor is a spiritual successor of font editors like RoboFont and MFEK that are designed for customization and tool making.
+Bezy is a cross-platform, Rust-based font editor with a built-in bidirectional (RTL/LTR) text editor. It draws inspiration from editors like RoboFont and MFEK, while reimagining font editing for Unix-like AI and CLI heavy workflows. The core dependancies are: [Bevy](https://bevy.org/), [HarfRust](https://github.com/harfbuzz/harfrust), [Norad](https://github.com/linebender/norad), [Kurbo](https://github.com/linebender/kurbo), [Fontc](https://github.com/googlefonts/fontc), [FontIR](https://github.com/googlefonts/fontc).
 
-Bezy is written in the Rust programming language using a game engine to create a performant, fun and aesthetic experience that keeps users in a flow state. Rust has great documentation, a friendly compiler with useful error messages, top-notch tooling, and an integrated package manager and build tool. With help from AI tools like Claude Code and Gemini CLI, it can be easier to use than Python. Don't be intimidated if you are not an expert programmer—this application is designed for students, designers, and artists to be able to customize it and make their own tools.
+Bezy is written in the Rust programming language using a game engine to create a performant, fun, and aesthetic experience that keeps users in a flow state. Rust has great documentation, a friendly compiler with useful error messages, top-notch tooling, and an integrated package manager and build tool. With help from AI tools like Claude Code and Gemini CLI, it can be easier to use than Python. Don't be intimidated if you are not an expert programmer—this application is designed for students, designers, and artists to be able to customize it and make their own tools.
 
 We aim to be an open and welcoming community that values working in the open and sharing knowledge. Contributors of all skill levels are welcome.
 
 > “The enjoyment of one's tools is an essential ingredient of successful work.”  
 > — Donald Knuth
+
+>“Many have tried to replace FontForge—all have failed. I might fail, in fact, history says I probably will. Yet, the current state of affairs is so bad I feel I must try.”
+>—Fredrick Brennan
 
 ## Installation
 
@@ -19,7 +22,6 @@ Install Rust by following the official instructions at [https://www.rust-lang.or
 
 Verify installation:
 ```bash
-rustc --version
 cargo --version
 ```
 
@@ -33,7 +35,7 @@ cd bezy
 
 #### Step 2: Build and Run
 ```bash
-# Build and run with the default font
+# Build and run
 cargo run
 
 # Build with optimizations (slower to compile, faster to run)
@@ -46,21 +48,19 @@ cargo run -- --load-ufo path/to/your/font.ufo
 #### First Time Build
 The first build will take a few minutes as it downloads and compiles all dependencies. Subsequent builds will be much faster (usually under 30 seconds).
 
-### Troubleshooting
-
-**Performance issues:**
-- Always use `cargo run --release` for the best performance
+#### Troubleshooting Performance Issues
+- Use `cargo run --release` for the best performance
 
 ## Command Line Flags
 
-Bezy supports several command-line options to customize your experience:
+Bezy is designed to be used as a command line tool in Unix-style workflows. If you aren't familiar with working this way, it's worth learning and will save you time in the long run. 
 
 ### Basic Usage
 ```bash
 bezy [OPTIONS]
 ```
 
-### Available Options
+### Common Flag Options
 
 | Flag | Short | Description | Example |
 |------|-------|-------------|---------|
@@ -79,14 +79,14 @@ Available themes:
 
 ### Examples
 ```bash
-# Load a specific font with light theme
-bezy --load-ufo ~/Fonts/MyFont.ufo --theme lightmode
-
 # Load a designspace for variable fonts
 bezy --load-ufo ~/Fonts/MyVariable.designspace
 
 # Use the built-in test font with strawberry theme
 bezy --theme strawberry
+
+# Combine as many flags as you need
+bezy --load-ufo ~/Fonts/MyFont.ufo --theme lightmode
 ```
 
 ## Keyboard Shortcuts
@@ -132,29 +132,9 @@ bezy --theme strawberry
 
 ## Usage Guide
 
-### Basic Workflow
+### Working with Edit-Mode Tools
 
-1. **Launch Bezy**
-   ```bash
-   cargo run -- --load-ufo your-font.ufo
-   ```
-
-2. **Navigate Glyphs**
-   - Use `Home`/`End` keys to jump to first/last glyph
-   - Click on glyph cells in the grid to switch glyphs
-
-3. **Edit Points**
-   - Select the Selection tool (or press `V`)
-   - Click and drag to select points
-   - Use arrow keys to nudge selected points
-   - Drag points directly to move them
-
-4. **Save Your Work**
-   - Press `Cmd/Ctrl + S` to save changes back to the UFO file
-
-### Working with Tools
-
-The toolbar on the left provides access to various editing tools. Each tool has specific behaviors:
+The edit-mode toolbar provides access to various editing tools. Each tool has specific behaviors:
 
 - **Selection Tool**: Select and manipulate points
 - **Pen Tool**: Add new points and curves
@@ -168,7 +148,7 @@ The toolbar on the left provides access to various editing tools. Each tool has 
 2. **Use release mode for smoother performance**: `cargo run --release`
 3. **Save frequently**: Use `Cmd/Ctrl + S` to save your changes
 4. **Experiment with themes**: Try different themes to find what works best for your eyes
-5. **Learn by doing**: The best way to learn is to open a font and start editing!
+5. **Read the code**: If you don't understand how something works, read the source code. Use a tool like Claude Code if you need help. This project is designed to be understandable and modifyable by regular users.
 
 ### File Format Support
 
@@ -176,11 +156,13 @@ Bezy currently supports:
 - **UFO 3** (Unified Font Object) - Individual font files
 - **Designspace** - Variable font sources
 
-UFO files are directories (folders) containing XML files that describe your font. They're human-readable and version-control friendly.
+UFO files are directories (folders) containing XML files that describe your font. They're human-readable, version-control friendly, and application independant.
 
 # License
+GNU GENERAL PUBLIC LICENSE
+Version 3, 29 June 2007
 
-GPL v3.0
+The GNU General Public License is a copyleft license for software and other kinds of works.
 
 # Homepage
 
