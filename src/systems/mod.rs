@@ -18,7 +18,7 @@ pub mod plugins;
 pub mod sort_manager;
 pub mod startup_layout;
 pub mod text_buffer_manager;
-pub mod text_editor_sorts;
+pub mod sorts;
 pub mod text_shaping;
 pub mod ui_interaction;
 

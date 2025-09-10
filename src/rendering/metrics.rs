@@ -230,7 +230,7 @@ pub fn render_mesh_metrics_lines(
         (Entity, &Transform, &crate::editing::sort::Sort),
         (
             With<crate::editing::sort::ActiveSort>,
-            Without<crate::systems::text_editor_sorts::sort_entities::BufferSortIndex>,
+            Without<crate::systems::sorts::sort_entities::BufferSortIndex>,
         ),
     >,
     // Add query for ACTIVE text buffer sorts (text roots)
@@ -238,7 +238,7 @@ pub fn render_mesh_metrics_lines(
     active_buffer_sort_query: Query<
         (Entity, &Transform, &crate::editing::sort::Sort),
         (
-            With<crate::systems::text_editor_sorts::sort_entities::BufferSortIndex>,
+            With<crate::systems::sorts::sort_entities::BufferSortIndex>,
             With<crate::editing::sort::ActiveSort>,
         ),
     >,
@@ -247,7 +247,7 @@ pub fn render_mesh_metrics_lines(
     inactive_buffer_sort_query: Query<
         (Entity, &Transform, &crate::editing::sort::Sort),
         (
-            With<crate::systems::text_editor_sorts::sort_entities::BufferSortIndex>,
+            With<crate::systems::sorts::sort_entities::BufferSortIndex>,
             With<crate::editing::sort::InactiveSort>,
         ),
     >,
@@ -1417,7 +1417,7 @@ fn create_dashed_line_meshes(
 /// System to clean up orphaned metrics entities using component relationships
 /// This prevents the race condition by using change detection and explicit relationships
 pub fn cleanup_orphaned_metrics(
-    buffer_entities: Res<crate::systems::text_editor_sorts::sort_entities::BufferSortEntities>,
+    buffer_entities: Res<crate::systems::sorts::sort_entities::BufferSortEntities>,
     metrics_query: Query<(Entity, &MetricsFor), With<MetricsLine>>,
     sort_query: Query<Entity, With<crate::editing::sort::Sort>>,
     mut commands: Commands,

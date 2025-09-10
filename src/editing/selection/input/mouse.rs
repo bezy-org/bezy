@@ -42,7 +42,7 @@ pub fn process_selection_input_events(
     select_mode: Option<Res<crate::ui::edit_mode_toolbar::select::SelectModeActive>>,
     text_editor_state: ResMut<TextEditorState>,
     app_state: Option<Res<crate::core::state::AppState>>,
-    buffer_entities: Res<crate::systems::text_editor_sorts::sort_entities::BufferSortEntities>,
+    buffer_entities: Res<crate::systems::sorts::sort_entities::BufferSortEntities>,
 ) {
     // Early exit if no events to process - this prevents expensive logging every frame
     let event_count = input_events.len();

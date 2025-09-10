@@ -7,7 +7,7 @@
 use crate::core::state::fontir_app_state::FontIRAppState;
 use crate::core::state::{AppState, TextEditorState};
 use crate::systems::arabic_shaping::{get_arabic_position, ArabicPosition};
-use crate::systems::text_editor_sorts::input_utilities::{
+use crate::systems::sorts::input_utilities::{
     unicode_to_glyph_name, unicode_to_glyph_name_fontir,
 };
 use crate::ui::edit_mode_toolbar::text::TextPlacementMode;
@@ -29,7 +29,7 @@ pub fn handle_unicode_text_input(
     current_placement_mode: Res<TextPlacementMode>,
     active_buffer: Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
     mut buffer_query: Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
-    mut respawn_queue: ResMut<crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
+    mut respawn_queue: ResMut<crate::systems::sorts::sort_entities::BufferSortRespawnQueue>,
 ) {
     // EARLY RETURN: Skip all expensive work if no keyboard events
     if key_evr.is_empty() {
@@ -200,7 +200,7 @@ fn handle_unicode_character(
     current_placement_mode: &TextPlacementMode,
     active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
     buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
-    respawn_queue: &mut ResMut<crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
+    respawn_queue: &mut ResMut<crate::systems::sorts::sort_entities::BufferSortRespawnQueue>,
 ) {
     // Find glyph name for this Unicode character
     let glyph_name = if let Some(app_state) = app_state.as_ref() {
@@ -350,7 +350,7 @@ fn handle_space_character(
     _current_placement_mode: &TextPlacementMode,
     active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
     buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_buffer::BufferCursor)>,
-    respawn_queue: &mut ResMut<crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
+    respawn_queue: &mut ResMut<crate::systems::sorts::sort_entities::BufferSortRespawnQueue>,
 ) {
     let glyph_name = "space".to_string();
 
@@ -401,7 +401,7 @@ fn handle_newline_character(
     current_placement_mode: &TextPlacementMode,
     active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
     buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
-    respawn_queue: &mut ResMut<crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
+    respawn_queue: &mut ResMut<crate::systems::sorts::sort_entities::BufferSortRespawnQueue>,
 ) {
     match *current_placement_mode {
         TextPlacementMode::Insert | TextPlacementMode::LTRText | TextPlacementMode::RTLText => {
@@ -427,7 +427,7 @@ fn insert_line_break_at_buffer_cursor(
     text_editor_state: &mut ResMut<TextEditorState>,
     active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
     buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
-    respawn_queue: &mut ResMut<crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
+    respawn_queue: &mut ResMut<crate::systems::sorts::sort_entities::BufferSortRespawnQueue>,
 ) -> bool {
     // Get the active buffer entity
     let Some(active_buffer_res) = active_buffer else {
@@ -491,7 +491,7 @@ fn handle_backspace(
     current_placement_mode: &TextPlacementMode,
     active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
     buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
-    respawn_queue: &mut ResMut<crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
+    respawn_queue: &mut ResMut<crate::systems::sorts::sort_entities::BufferSortRespawnQueue>,
 ) {
     match *current_placement_mode {
         TextPlacementMode::Insert | TextPlacementMode::LTRText | TextPlacementMode::Freeform => {
@@ -519,7 +519,7 @@ fn handle_delete(
     current_placement_mode: &TextPlacementMode,
     active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
     buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
-    respawn_queue: &mut ResMut<crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
+    respawn_queue: &mut ResMut<crate::systems::sorts::sort_entities::BufferSortRespawnQueue>,
 ) {
     match *current_placement_mode {
         TextPlacementMode::Insert | TextPlacementMode::LTRText | TextPlacementMode::Freeform => {
@@ -546,7 +546,7 @@ fn delete_character_at_buffer_cursor(
     text_editor_state: &mut ResMut<TextEditorState>,
     active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
     buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
-    respawn_queue: &mut ResMut<crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
+    respawn_queue: &mut ResMut<crate::systems::sorts::sort_entities::BufferSortRespawnQueue>,
     delete_to_left: bool, // true = backspace (delete left), false = delete key (delete right)
 ) -> bool {
     // Get the active buffer entity
@@ -742,7 +742,7 @@ fn insert_character_at_buffer_cursor(
     text_editor_state: &mut ResMut<TextEditorState>,
     active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
     buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
-    respawn_queue: &mut ResMut<crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
+    respawn_queue: &mut ResMut<crate::systems::sorts::sort_entities::BufferSortRespawnQueue>,
 ) -> bool {
     info!("🔍 INSERT DEBUG: character='{}', glyph_name='{}', advance_width={:.1}", 
           character, glyph_name, advance_width);

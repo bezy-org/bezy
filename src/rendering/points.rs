@@ -268,7 +268,7 @@ impl Plugin for PointRenderingPlugin {
         app.add_systems(
             Update,
             render_points_with_meshes
-                .after(crate::systems::text_editor_sorts::spawn_active_sort_points_optimized)
+                .after(crate::systems::sorts::spawn_active_sort_points_optimized)
                 .after(crate::editing::selection::nudge::handle_nudge_input),
         );
     }

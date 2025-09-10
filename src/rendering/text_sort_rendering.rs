@@ -1,10 +1,7 @@
-//! Text editor cursor management
+//! Text editor sort rendering
 //!
-//! This module provides cursor management for the text editor, coordinating
-//! between cursor position calculation and visual rendering.
-
-mod cursor_calculation;
-mod cursor_system;
+//! This module provides the rendering functions for text editor sorts.
+//! Pure rendering logic only - no business logic or state management.
 
 /// Text editor sorts are rendered by the main mesh glyph outline system
 /// This function exists for compatibility but the actual rendering happens
@@ -14,6 +11,3 @@ pub fn render_text_editor_sorts() {
     // since they are regular Sort entities with BufferSortIndex components.
     // No additional rendering logic needed here.
 }
-
-// Re-export the main cursor rendering system
-pub use cursor_system::render_text_editor_cursor;

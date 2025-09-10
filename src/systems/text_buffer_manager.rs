@@ -85,7 +85,7 @@ pub fn create_missing_buffer_entities(
     mut commands: Commands,
     text_editor_state: Option<Res<TextEditorState>>,
     buffer_query: Query<&TextBuffer, With<TextBuffer>>,
-    _sort_query: Query<&Sort, (With<Sort>, With<crate::systems::text_editor_sorts::sort_entities::BufferSortIndex>)>,
+    _sort_query: Query<&Sort, (With<Sort>, With<crate::systems::sorts::sort_entities::BufferSortIndex>)>,
 ) {
     let Some(text_state) = text_editor_state else { return };
     

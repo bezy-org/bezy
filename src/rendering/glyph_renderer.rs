@@ -1384,7 +1384,7 @@ fn detect_sort_changes(
         Entity,
         (
             With<ActiveSort>,
-            With<crate::systems::text_editor_sorts::sort_entities::BufferSortIndex>,
+            With<crate::systems::sorts::sort_entities::BufferSortIndex>,
         ),
     >,
 ) {
@@ -1503,7 +1503,7 @@ impl Plugin for GlyphRenderingPlugin {
                 Update,
                 (detect_sort_changes, render_glyphs)
                     .chain()
-                    .after(crate::systems::text_editor_sorts::spawn_active_sort_points_optimized)
+                    .after(crate::systems::sorts::spawn_active_sort_points_optimized)
                     .after(crate::editing::selection::nudge::handle_nudge_input),
             );
     }

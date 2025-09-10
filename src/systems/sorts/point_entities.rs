@@ -28,7 +28,7 @@ pub fn spawn_active_sort_points_optimized(
     // Debug: Check all buffer sorts
     all_buffer_sorts: Query<
         (Entity, &Sort, &Transform, Option<&ActiveSort>),
-        With<crate::systems::text_editor_sorts::sort_entities::BufferSortIndex>,
+        With<crate::systems::sorts::sort_entities::BufferSortIndex>,
     >,
     // CRITICAL FIX: Trigger unified renderer update when points are spawned
     mut visual_update_tracker: ResMut<crate::rendering::glyph_renderer::SortVisualUpdateTracker>,

@@ -232,7 +232,7 @@ fn get_arabic_base_name(ch: char) -> String {
 
 /// Helper function to map Unicode to glyph name
 fn unicode_to_glyph_name(ch: char, fontir_state: &FontIRAppState) -> Option<String> {
-    use crate::systems::text_editor_sorts::input_utilities::unicode_to_glyph_name_fontir;
+    use crate::systems::sorts::input_utilities::unicode_to_glyph_name_fontir;
     unicode_to_glyph_name_fontir(ch, fontir_state)
 }
 

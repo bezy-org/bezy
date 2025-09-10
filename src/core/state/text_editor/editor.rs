@@ -592,7 +592,7 @@ impl TextEditorState {
         advance_width: f32,
         codepoint: Option<char>,
         _respawn_queue: Option<
-            &mut crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue,
+            &mut crate::systems::sorts::sort_entities::BufferSortRespawnQueue,
         >,
     ) {
         debug!("Insert at cursor: Starting insertion of '{}'", glyph_name);

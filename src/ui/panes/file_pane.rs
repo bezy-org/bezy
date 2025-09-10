@@ -5,7 +5,7 @@
 //! UFO masters in a designspace.
 
 use crate::core::state::fontir_app_state::FontIRAppState;
-use crate::systems::text_editor_sorts::sort_entities::BufferSortEntities;
+use crate::systems::sorts::sort_entities::BufferSortEntities;
 use crate::ui::theme::*;
 use crate::ui::themes::{CurrentTheme, UiBorderRadius};
 use bevy::prelude::*;

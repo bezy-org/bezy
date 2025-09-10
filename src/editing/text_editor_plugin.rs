@@ -3,7 +3,7 @@
 //! This plugin replaces the old entity-based sort system with a text editor
 //! approach that treats sorts as a linear buffer with cursor navigation.
 
-use crate::systems::text_editor_sorts::{
+use crate::systems::sorts::{
     debug_text_editor_state,
     despawn_inactive_sort_points_optimized, // NEW: Optimized instant point despawning
     despawn_missing_buffer_sort_entities,   // NEW: Despawn deleted buffer sorts
@@ -19,11 +19,12 @@ use crate::systems::text_editor_sorts::{
     manage_sort_activation, // NEW: ECS-based sort activation management
     regenerate_points_on_fontir_change, // NEW: Regenerate points when FontIR data changes
     // handle_text_editor_sort_clicks, // REMOVED: legacy system
-    render_text_editor_sorts,
     spawn_active_sort_points_optimized, // NEW: Optimized instant point spawning
     spawn_missing_sort_entities,        // NEW: Spawn ECS entities for buffer sorts
     sync_buffer_sort_activation_state,  // NEW: Sync activation state from buffer to entities
 };
+
+use crate::rendering::text_sort_rendering::render_text_editor_sorts;
 
 use bevy::prelude::*;
 
@@ -54,8 +55,8 @@ impl Plugin for TextEditorPlugin {
             .add_systems(Update, (
                 spawn_missing_sort_entities,
                 sync_buffer_sort_activation_state, // NEW: Sync activation state after spawning
-                crate::systems::text_editor_sorts::sort_entities::update_buffer_sort_positions,
-                crate::systems::text_editor_sorts::sort_entities::auto_activate_selected_sorts,
+                crate::systems::sorts::sort_entities::update_buffer_sort_positions,
+                crate::systems::sorts::sort_entities::auto_activate_selected_sorts,
                 manage_sort_activation,
             ).chain().in_set(super::FontEditorSets::EntitySync))
             // Entity spawning/despawning 
@@ -68,7 +69,7 @@ impl Plugin for TextEditorPlugin {
             // Rendering systems
             .add_systems(Update, (
                 render_text_editor_sorts,
-                crate::systems::text_editor_sorts::sort_rendering::render_text_editor_cursor,
+                crate::systems::sorts::cursor_management::render_text_editor_cursor,
             ).in_set(super::FontEditorSets::Rendering))
             // Cleanup systems (the old cleanup system is now replaced by component-relationship cleanup)
             .add_systems(Update, 

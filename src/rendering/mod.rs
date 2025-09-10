@@ -24,6 +24,7 @@ pub mod selection;
 pub mod sort_renderer;
 pub mod sort_visuals;
 pub mod text_cursor;
+pub mod text_sort_rendering;
 pub mod zoom_aware_scaling;
 
 // Re-export commonly used items
