@@ -40,7 +40,7 @@ pub struct TextModeState {
     pub showing_preview: bool,
 }
 
-/// Text placement modes for the submenu
+/// Current text placement mode (both enum and resource)
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Resource)]
 pub enum TextPlacementMode {
     /// Place sorts in left-to-right text mode
@@ -97,9 +97,6 @@ pub struct TextModeButton {
     pub mode: TextPlacementMode,
 }
 
-/// Resource to track the current text placement mode
-#[derive(Resource, Default)]
-pub struct CurrentTextPlacementMode(pub TextPlacementMode);
 
 pub struct TextTool;
 
@@ -152,7 +149,7 @@ impl Plugin for TextModePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<TextModeActive>()
             .init_resource::<TextModeState>()
-            .init_resource::<CurrentTextPlacementMode>()
+            .init_resource::<TextPlacementMode>()
             .init_resource::<TextModeConfig>()
             .add_systems(
                 Update,
@@ -255,16 +252,16 @@ pub fn handle_text_mode_selection(
         ),
         With<TextSubMenuButton>,
     >,
-    mut current_mode: ResMut<CurrentTextPlacementMode>,
+    mut current_mode: ResMut<TextPlacementMode>,
     mut text_mode_config: ResMut<TextModeConfig>,
     children_query: Query<&Children>,
     mut text_query: Query<&mut TextColor>,
 ) {
     for (interaction, mut color, mut border_color, mode_button, entity) in &mut interaction_query {
-        let is_current_mode = current_mode.0 == mode_button.mode;
+        let is_current_mode = *current_mode == mode_button.mode;
 
         if *interaction == Interaction::Pressed && !is_current_mode {
-            current_mode.0 = mode_button.mode;
+            *current_mode = mode_button.mode;
             text_mode_config.default_placement_mode = mode_button.mode.to_sort_layout_mode();
             info!("Switched to text placement mode: {:?}", mode_button.mode);
         }
@@ -352,7 +349,7 @@ pub fn handle_text_mode_mouse_clicks(
     current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     ui_hover_state: Res<crate::systems::ui_interaction::UiHoverState>,
     pointer_info: Res<crate::core::io::pointer::PointerInfo>,
-    mut current_placement_mode: ResMut<CurrentTextPlacementMode>,
+    mut current_placement_mode: ResMut<TextPlacementMode>,
     mut text_editor_state: ResMut<TextEditorState>,
     app_state: Option<Res<AppState>>,
     fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
@@ -460,10 +457,10 @@ pub fn handle_text_mode_mouse_clicks(
 
         // If we placed a text sort, automatically switch to Insert mode
         if did_place_text_sort
-            && (current_placement_mode.0 == TextPlacementMode::LTRText
-                || current_placement_mode.0 == TextPlacementMode::RTLText)
+            && (*current_placement_mode == TextPlacementMode::LTRText
+                || *current_placement_mode == TextPlacementMode::RTLText)
         {
-            current_placement_mode.0 = TextPlacementMode::Insert;
+            *current_placement_mode = TextPlacementMode::Insert;
             info!("Auto-switched to Insert mode after placing text sort");
         }
     }
@@ -473,7 +470,7 @@ pub fn handle_text_mode_mouse_clicks(
 pub fn handle_text_mode_sort_placement(
     _text_editor_state: &mut ResMut<TextEditorState>,
     _glyph_navigation: &Res<GlyphNavigation>,
-    _current_placement_mode: &CurrentTextPlacementMode,
+    _current_placement_mode: &TextPlacementMode,
     _pointer_info: &Res<crate::core::io::pointer::PointerInfo>,
     _camera_query: &mut Query<&mut Projection, With<DesignCamera>>,
     _glyph_names: &[String],
@@ -492,7 +489,7 @@ pub fn render_sort_preview(
     text_mode_active: Res<TextModeActive>,
     _text_mode_state: Res<TextModeState>,
     _text_editor_state: Option<Res<TextEditorState>>,
-    current_placement_mode: Res<CurrentTextPlacementMode>,
+    current_placement_mode: Res<TextPlacementMode>,
     glyph_navigation: Res<GlyphNavigation>,
     app_state: Option<Res<AppState>>,
     fontir_app_state: Option<Res<FontIRAppState>>,
@@ -502,14 +499,14 @@ pub fn render_sort_preview(
 ) {
     info!(
         "[PREVIEW] Entered render_sort_preview - text_mode_active: {}, placement_mode: {:?}",
-        text_mode_active.0, current_placement_mode.0
+        text_mode_active.0, *current_placement_mode
     );
     if !text_mode_active.0 {
         preview_metrics_state.active = false;
         debug!("[PREVIEW] Early return: text_mode_active is false - disabled metrics preview");
         return;
     }
-    if current_placement_mode.0 == TextPlacementMode::Insert {
+    if *current_placement_mode == TextPlacementMode::Insert {
         preview_metrics_state.active = false;
         info!("[PREVIEW] DISABLING preview: placement mode is Insert");
         return;
@@ -529,13 +526,13 @@ pub fn render_sort_preview(
     let snapped_position = (pointer_info.design.to_raw() / grid_size).round() * grid_size;
     debug!(
         "[PREVIEW] Placement mode: {:?}, snapped_position: ({:.1}, {:.1})",
-        current_placement_mode.0, snapped_position.x, snapped_position.y
+        *current_placement_mode, snapped_position.x, snapped_position.y
     );
 
     let _preview_color = Color::srgb(1.0, 0.5, 0.0).with_alpha(0.8);
 
     // Determine the appropriate preview glyph based on placement mode
-    let preview_glyph_name = match current_placement_mode.0 {
+    let preview_glyph_name = match *current_placement_mode {
         TextPlacementMode::RTLText => "alef-ar".to_string(), // Arabic Alef for RTL
         _ => glyph_navigation
             .current_glyph
@@ -545,7 +542,7 @@ pub fn render_sort_preview(
 
     debug!(
         "[PREVIEW] Using preview glyph: {} (placement mode: {:?})",
-        preview_glyph_name, current_placement_mode.0
+        preview_glyph_name, *current_placement_mode
     );
 
     // Try FontIR first, then fall back to AppState
@@ -621,7 +618,7 @@ pub fn render_sort_preview(
 pub fn handle_text_tool_shortcuts(
     mut keyboard_input: ResMut<ButtonInput<KeyCode>>,
     mut current_tool: ResMut<crate::ui::edit_mode_toolbar::CurrentTool>,
-    current_placement_mode: Res<CurrentTextPlacementMode>,
+    current_placement_mode: Res<TextPlacementMode>,
     _text_mode_config: ResMut<TextModeConfig>,
     text_editor_state: Option<Res<TextEditorState>>,
     text_mode_active: Res<TextModeActive>,
@@ -656,7 +653,7 @@ pub fn handle_text_tool_shortcuts(
             info!("Current text buffer: {}", buffer_text);
             info!("Buffer length: {} sorts", text_editor_state.buffer.len());
             info!("Cursor position: {}", text_editor_state.cursor_position);
-            info!("Current mode: {:?}", current_placement_mode.0);
+            info!("Current mode: {:?}", *current_placement_mode);
         }
     }
     if current_tool.get_current() == Some("text") && keyboard_input.just_pressed(KeyCode::F1) {
@@ -708,7 +705,7 @@ pub fn reset_text_mode_when_inactive(
 #[allow(clippy::too_many_arguments)]
 pub fn handle_text_mode_keyboard(
     text_mode_active: Res<TextModeActive>,
-    current_placement_mode: Res<CurrentTextPlacementMode>,
+    current_placement_mode: Res<TextPlacementMode>,
     mut text_editor_state: ResMut<TextEditorState>,
     mut keyboard_input: ResMut<ButtonInput<KeyCode>>,
     app_state: Option<Res<AppState>>,
@@ -749,7 +746,7 @@ pub fn handle_text_mode_keyboard(
     // text_editor_state is now available directly as ResMut
 
     // Handle arrow keys based on text direction mode
-    if current_placement_mode.0 == TextPlacementMode::LTRText {
+    if *current_placement_mode == TextPlacementMode::LTRText {
         // LTR Mode: Normal arrow key behavior
         if keyboard_input.just_pressed(KeyCode::ArrowLeft) {
             text_editor_state.move_cursor_left();
@@ -767,7 +764,7 @@ pub fn handle_text_mode_keyboard(
             );
             keyboard_input.clear_just_pressed(KeyCode::ArrowRight);
         }
-    } else if current_placement_mode.0 == TextPlacementMode::RTLText {
+    } else if *current_placement_mode == TextPlacementMode::RTLText {
         // RTL Mode: Arrow keys reversed for logical movement in RTL text
         if keyboard_input.just_pressed(KeyCode::ArrowLeft) {
             text_editor_state.move_cursor_right(); // Left arrow increases position (toward text beginning)
@@ -788,8 +785,8 @@ pub fn handle_text_mode_keyboard(
     }
 
     // Common vertical navigation for both LTR and RTL
-    if current_placement_mode.0 == TextPlacementMode::LTRText
-        || current_placement_mode.0 == TextPlacementMode::RTLText
+    if *current_placement_mode == TextPlacementMode::LTRText
+        || *current_placement_mode == TextPlacementMode::RTLText
     {
         if keyboard_input.just_pressed(KeyCode::ArrowUp) {
             text_editor_state.move_cursor_up_multiline();
@@ -829,7 +826,7 @@ pub fn handle_text_mode_keyboard(
     }
 
     // Handle Insert mode cursor navigation
-    if current_placement_mode.0 == TextPlacementMode::Insert {
+    if *current_placement_mode == TextPlacementMode::Insert {
         debug!("Checking Insert mode keyboard input...");
         if keyboard_input.just_pressed(KeyCode::ArrowLeft) {
             info!("Arrow left pressed in Insert mode");

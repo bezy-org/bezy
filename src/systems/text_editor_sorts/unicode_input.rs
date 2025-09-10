@@ -10,7 +10,7 @@ use crate::systems::arabic_shaping::{get_arabic_position, ArabicPosition};
 use crate::systems::text_editor_sorts::input_utilities::{
     unicode_to_glyph_name, unicode_to_glyph_name_fontir,
 };
-use crate::ui::edit_mode_toolbar::text::{CurrentTextPlacementMode, TextPlacementMode};
+use crate::ui::edit_mode_toolbar::text::TextPlacementMode;
 use crate::ui::edit_mode_toolbar::CurrentTool;
 use bevy::input::keyboard::{Key, KeyboardInput};
 use bevy::input::ButtonState;
@@ -26,7 +26,7 @@ pub fn handle_unicode_text_input(
     app_state: Option<Res<AppState>>,
     fontir_app_state: Option<Res<FontIRAppState>>,
     current_tool: Res<CurrentTool>,
-    current_placement_mode: Res<CurrentTextPlacementMode>,
+    current_placement_mode: Res<TextPlacementMode>,
     active_buffer: Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
     mut buffer_query: Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
     mut respawn_queue: ResMut<crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
@@ -41,7 +41,7 @@ pub fn handle_unicode_text_input(
     let key_count = key_evr.len();
     debug!("Unicode input: {} keyboard events detected", key_count);
     debug!("Current tool: {:?}", current_tool.get_current());
-    debug!("Current placement mode: {:?}", current_placement_mode.0);
+    debug!("Current placement mode: {:?}", *current_placement_mode);
 
     // Only handle input when text tool is active
     if current_tool.get_current() != Some("text") {
@@ -51,12 +51,12 @@ pub fn handle_unicode_text_input(
 
     // Handle typing in Insert mode and text placement modes (RTL/LTR)
     if !matches!(
-        current_placement_mode.0,
+        *current_placement_mode,
         TextPlacementMode::Insert | TextPlacementMode::RTLText | TextPlacementMode::LTRText
     ) {
         debug!(
             "Unicode input blocked: Not in a text input mode (current: {:?})",
-            current_placement_mode.0
+            *current_placement_mode
         );
         return;
     }
@@ -64,7 +64,7 @@ pub fn handle_unicode_text_input(
     if key_count > 0 {
         debug!(
             "Unicode input: Processing {} keyboard events in text input mode ({:?})",
-            key_count, current_placement_mode.0
+            key_count, *current_placement_mode
         );
     }
 
@@ -197,7 +197,7 @@ fn handle_unicode_character(
     text_editor_state: &mut ResMut<TextEditorState>,
     app_state: &Option<Res<AppState>>,
     fontir_app_state: &Option<Res<FontIRAppState>>,
-    current_placement_mode: &CurrentTextPlacementMode,
+    current_placement_mode: &TextPlacementMode,
     active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
     buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
     respawn_queue: &mut ResMut<crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
@@ -229,7 +229,7 @@ fn handle_unicode_character(
         // This was causing duplicate sorts - one from clicking, one from typing
 
         // Insert the character using new buffer entity system
-        match current_placement_mode.0 {
+        match *current_placement_mode {
             TextPlacementMode::Insert => {
                 info!(
                     "🔍 DEBUG: About to insert character '{}' as glyph '{}'",
@@ -262,7 +262,7 @@ fn handle_unicode_character(
                 );
             }
             TextPlacementMode::LTRText | TextPlacementMode::RTLText => {
-                let mode_name = if matches!(current_placement_mode.0, TextPlacementMode::LTRText) {
+                let mode_name = if matches!(*current_placement_mode, TextPlacementMode::LTRText) {
                     "LTR Text"
                 } else {
                     "RTL Text"
@@ -347,7 +347,7 @@ fn handle_space_character(
     text_editor_state: &mut ResMut<TextEditorState>,
     app_state: &Option<Res<AppState>>,
     fontir_app_state: &Option<Res<FontIRAppState>>,
-    _current_placement_mode: &CurrentTextPlacementMode,
+    _current_placement_mode: &TextPlacementMode,
     active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
     buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_buffer::BufferCursor)>,
     respawn_queue: &mut ResMut<crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
@@ -398,16 +398,16 @@ fn handle_space_character(
 /// Handle newline character input
 fn handle_newline_character(
     text_editor_state: &mut ResMut<TextEditorState>,
-    current_placement_mode: &CurrentTextPlacementMode,
+    current_placement_mode: &TextPlacementMode,
     active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
     buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
     respawn_queue: &mut ResMut<crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
 ) {
-    match current_placement_mode.0 {
+    match *current_placement_mode {
         TextPlacementMode::Insert | TextPlacementMode::LTRText | TextPlacementMode::RTLText => {
             // Use buffer cursor system to insert line break at correct position
             insert_line_break_at_buffer_cursor(text_editor_state, active_buffer, buffer_query, respawn_queue);
-            let mode_name = match current_placement_mode.0 {
+            let mode_name = match *current_placement_mode {
                 TextPlacementMode::Insert => "Insert",
                 TextPlacementMode::LTRText => "LTR Text", 
                 TextPlacementMode::RTLText => "RTL Text",
@@ -488,16 +488,16 @@ fn insert_line_break_at_buffer_cursor(
 /// Handle backspace key
 fn handle_backspace(
     text_editor_state: &mut ResMut<TextEditorState>,
-    current_placement_mode: &CurrentTextPlacementMode,
+    current_placement_mode: &TextPlacementMode,
     active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
     buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
     respawn_queue: &mut ResMut<crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
 ) {
-    match current_placement_mode.0 {
+    match *current_placement_mode {
         TextPlacementMode::Insert | TextPlacementMode::LTRText | TextPlacementMode::Freeform => {
             // For LTR text and Insert mode: backspace deletes character to the LEFT of cursor
             delete_character_at_buffer_cursor(text_editor_state, active_buffer, buffer_query, respawn_queue, true);
-            let mode_name = match current_placement_mode.0 {
+            let mode_name = match *current_placement_mode {
                 TextPlacementMode::Insert => "Insert",
                 TextPlacementMode::LTRText => "LTR Text", 
                 TextPlacementMode::Freeform => "Freeform",
@@ -516,16 +516,16 @@ fn handle_backspace(
 /// Handle delete key
 fn handle_delete(
     text_editor_state: &mut ResMut<TextEditorState>,
-    current_placement_mode: &CurrentTextPlacementMode,
+    current_placement_mode: &TextPlacementMode,
     active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
     buffer_query: &mut Query<(&crate::core::state::text_editor::text_buffer::TextBuffer, &mut crate::core::state::text_editor::text_buffer::BufferCursor)>,
     respawn_queue: &mut ResMut<crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue>,
 ) {
-    match current_placement_mode.0 {
+    match *current_placement_mode {
         TextPlacementMode::Insert | TextPlacementMode::LTRText | TextPlacementMode::Freeform => {
             // For LTR text and Insert mode: delete key deletes character to the RIGHT of cursor
             delete_character_at_buffer_cursor(text_editor_state, active_buffer, buffer_query, respawn_queue, false);
-            let mode_name = match current_placement_mode.0 {
+            let mode_name = match *current_placement_mode {
                 TextPlacementMode::Insert => "Insert",
                 TextPlacementMode::LTRText => "LTR Text", 
                 TextPlacementMode::Freeform => "Freeform",

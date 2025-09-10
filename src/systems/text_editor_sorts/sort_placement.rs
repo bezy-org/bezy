@@ -18,7 +18,7 @@ pub fn handle_sort_placement_input(
     windows: Query<&Window, With<bevy::window::PrimaryWindow>>,
     current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     mut current_placement_mode: ResMut<
-        crate::ui::edit_mode_toolbar::text::CurrentTextPlacementMode,
+        crate::ui::edit_mode_toolbar::text::TextPlacementMode,
     >,
     mut text_editor_state: ResMut<crate::core::state::TextEditorState>,
     ui_hover_state: Res<crate::systems::ui_interaction::UiHoverState>,
@@ -39,10 +39,10 @@ pub fn handle_sort_placement_input(
     info!("🖱️ SORT PLACEMENT: ✅ Text tool is active, checking other conditions...");
 
     // Only handle text placement modes, not insert mode
-    match current_placement_mode.0 {
+    match *current_placement_mode {
         TextPlacementMode::LTRText | TextPlacementMode::RTLText => {
             // Continue with placement
-            info!("🖱️ SORT PLACEMENT: ✅ Text tool active with placement mode {:?} - READY TO PLACE SORTS!", current_placement_mode.0);
+            info!("🖱️ SORT PLACEMENT: ✅ Text tool active with placement mode {:?} - READY TO PLACE SORTS!", *current_placement_mode);
         }
         TextPlacementMode::Insert | TextPlacementMode::Freeform => {
             // These modes don't place sorts on click
@@ -50,7 +50,7 @@ pub fn handle_sort_placement_input(
             {
                 info!(
                     "🖱️ SORT PLACEMENT: Click ignored - in {:?} mode (not placement mode)",
-                    current_placement_mode.0
+                    *current_placement_mode
                 );
             }
             return;
@@ -133,7 +133,7 @@ pub fn handle_sort_placement_input(
         &mut commands,
         &mut text_editor_state,
         snapped_position,
-        current_placement_mode.0.to_sort_layout_mode(),
+        current_placement_mode.to_sort_layout_mode(),
         fontir_app_state.as_deref(),
     );
 
@@ -149,10 +149,10 @@ pub fn handle_sort_placement_input(
 
     // AUTO-SWITCH TO INSERT MODE: After placing LTR/RTL text buffer sorts, switch to Insert mode
     // for natural text editing UX. Freeform sorts stay in placement mode for multi-placement.
-    let previous_mode = current_placement_mode.0;
+    let previous_mode = *current_placement_mode;
     match previous_mode {
         TextPlacementMode::LTRText | TextPlacementMode::RTLText => {
-            current_placement_mode.0 = TextPlacementMode::Insert;
+            *current_placement_mode = TextPlacementMode::Insert;
             info!(
                 "🖱️ SORT PLACEMENT: Auto-switched to Insert mode after placing {:?} text buffer sort",
                 previous_mode

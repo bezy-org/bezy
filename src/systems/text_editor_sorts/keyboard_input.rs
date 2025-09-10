@@ -5,7 +5,7 @@ use bevy::input::keyboard::KeyboardInput;
 use crate::core::state::text_editor::TextEditorState;
 use crate::core::state::fontir_app_state::FontIRAppState;
 use crate::core::state::AppState;
-use crate::ui::edit_mode_toolbar::text::{CurrentTextPlacementMode, TextPlacementMode};
+use crate::ui::edit_mode_toolbar::text::TextPlacementMode;
 use super::rtl_shaping::ShapedTextCache;
 
 /// Handle text editor keyboard input
@@ -18,13 +18,13 @@ pub fn handle_arabic_text_input(
     _commands: Commands,
     mut key_evr: EventReader<KeyboardInput>,
     mut text_editor_state: ResMut<TextEditorState>,
-    current_placement_mode: Res<CurrentTextPlacementMode>,
+    current_placement_mode: Res<TextPlacementMode>,
     _fontir_app_state: Option<Res<FontIRAppState>>,
     _app_state: Option<Res<AppState>>,
     _shaped_cache: ResMut<ShapedTextCache>,
 ) {
     // Only process in RTL text mode
-    if current_placement_mode.0 != TextPlacementMode::RTLText {
+    if *current_placement_mode != TextPlacementMode::RTLText {
         return;
     }
     

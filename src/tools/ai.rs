@@ -266,7 +266,7 @@ pub fn handle_ai_tool_shortcuts(
     mut current_operation: ResMut<CurrentAiOperation>,
     text_mode_active: Option<Res<crate::ui::edit_mode_toolbar::text::TextModeActive>>,
     current_text_placement_mode: Option<
-        Res<crate::ui::edit_mode_toolbar::text::CurrentTextPlacementMode>,
+        Res<crate::ui::edit_mode_toolbar::text::TextPlacementMode>,
     >,
 ) {
     // Check if single-char hotkeys should be disabled for text input

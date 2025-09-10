@@ -6,8 +6,7 @@ use crate::core::state::text_editor::{SortKind, SortLayoutMode};
 use crate::core::state::{AppState, TextEditorState};
 use crate::rendering::entity_pools::{update_cursor_entity, EntityPools, PooledEntityType};
 use crate::ui::theme::*;
-use crate::ui::edit_mode_toolbar::text::CurrentTextPlacementMode;
-// TextPlacementMode import removed - not used in new mesh-based cursor
+use crate::ui::edit_mode_toolbar::text::TextPlacementMode;
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh2d;
 use bevy::sprite::{ColorMaterial, MeshMaterial2d};
@@ -41,7 +40,7 @@ pub fn render_text_editor_cursor(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     text_editor_state: Option<Res<TextEditorState>>,
-    current_placement_mode: Res<CurrentTextPlacementMode>,
+    current_placement_mode: Res<TextPlacementMode>,
     app_state: Option<Res<AppState>>,
     fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
     current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
@@ -62,13 +61,13 @@ pub fn render_text_editor_cursor(
     info!(
         "CURSOR: System called - tool: {:?}, mode: {:?}",
         current_tool.get_current(),
-        current_placement_mode.0
+        *current_placement_mode
     );
 
     // Only render cursor when Text tool is active AND in Insert mode
     let should_show_cursor = current_tool.get_current() == Some("text")
         && matches!(
-            current_placement_mode.0,
+            *current_placement_mode,
             crate::ui::edit_mode_toolbar::text::TextPlacementMode::Insert
         );
         
@@ -76,7 +75,7 @@ pub fn render_text_editor_cursor(
         info!(
             "CURSOR: Not rendering - need Text tool + Insert mode (tool: {:?}, mode: {:?})",
             current_tool.get_current(),
-            current_placement_mode.0
+            *current_placement_mode
         );
         // Clear cursor entities when not in Insert mode
         entity_pools.return_cursor_entities(&mut commands);
@@ -85,14 +84,14 @@ pub fn render_text_editor_cursor(
     
     info!(
         "CURSOR: Rendering cursor - mode: {:?}",
-        current_placement_mode.0
+        *current_placement_mode
     );
 
     info!("CURSOR: Proceeding to render cursor (Insert mode confirmed)");
 
     // CHANGE DETECTION: Check if cursor needs updating
     let current_tool_name = current_tool.get_current();
-    let current_placement_mode_value = current_placement_mode.0;
+    let current_placement_mode_value = *current_placement_mode;
     let current_camera_scale = camera_scale.scale_factor;
 
     // Get cursor position from active buffer entity
@@ -167,11 +166,11 @@ pub fn render_text_editor_cursor(
         camera_scale_changed
     );
 
-    debug!("Cursor mode: {:?}", current_placement_mode.0);
+    debug!("Cursor mode: {:?}", *current_placement_mode);
 
     debug!(
         "Cursor system running: text tool active, mode: {:?}",
-        current_placement_mode.0
+        *current_placement_mode
     );
 
     let Some(text_editor_state) = text_editor_state else {
