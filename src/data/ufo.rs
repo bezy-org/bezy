@@ -182,7 +182,7 @@ pub fn find_previous_codepoint_in_list(
 /// This provides the same API as the old version but works with the new architecture
 #[allow(dead_code)]
 pub fn initialize_font_state(mut commands: Commands, cli_args: Res<crate::core::cli::CliArgs>) {
-    if let Some(font_path) = &cli_args.ufo_path {
+    if let Some(font_path) = &cli_args.font_source {
         load_font_at_startup(&mut commands, font_path);
     } else {
         // No font specified, start with empty state

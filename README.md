@@ -43,8 +43,8 @@ cargo run
 # Build with optimizations (slower to compile, faster to run)
 cargo run --release
 
-# Build and run with a specific UFO file
-cargo run -- --load-ufo path/to/your/font.ufo
+# Build and run with a specific font source (UFO or designspace)
+cargo run -- --edit path/to/your/font.ufo
 ```
 
 #### First Time Build
@@ -72,11 +72,11 @@ Once installed, you can run Bezy from anywhere:
 # Run with default settings
 bezy
 
-# Load a specific font
-bezy --load-ufo ~/Fonts/MyFont.ufo
+# Edit a specific font (UFO or designspace)
+bezy --edit ~/Fonts/MyFont.ufo
 
 # Use with any command line flags
-bezy --theme lightmode --load-ufo MyFont.ufo
+bezy --theme lightmode --edit MyFont.ufo
 ```
 
 #### Updating Bezy
@@ -115,11 +115,16 @@ Bezy is designed to be used as a command line tool in Unix-style workflows. If y
 bezy [OPTIONS]
 ```
 
+### Unified Font Source Handling
+The `--edit` flag intelligently handles both UFO directories and designspace files:
+- **Single UFO**: Shows a clean interface without master selection controls
+- **Designspace**: Shows master selector circles for switching between different masters
+
 ### Common Flag Options
 
 | Flag | Short | Description | Example |
 |------|-------|-------------|---------|
-| `--load-ufo <PATH>` | `-f` | Load a specific UFO file or designspace | `bezy --load-ufo MyFont.ufo` |
+| `--edit <PATH>` | `-e` | Edit a font source (UFO directory or .designspace file) | `bezy --edit MyFont.ufo` |
 | `--theme <NAME>` | `-t` | Set the color theme | `bezy --theme lightmode` |
 | `--no-default-buffer` | | Start without default text buffer | `bezy --no-default-buffer` |
 | `--help` | `-h` | Show help information | `bezy --help` |
@@ -134,14 +139,20 @@ Available themes:
 
 ### Examples
 ```bash
-# Load a designspace for variable fonts
-bezy --load-ufo ~/Fonts/MyVariable.designspace
+# Edit a single UFO (no master selector shown)
+bezy --edit ~/Fonts/MyFont.ufo
+
+# Edit a designspace for variable fonts (master selector shown)
+bezy --edit ~/Fonts/MyVariable.designspace
 
 # Use the built-in test font with strawberry theme
 bezy --theme strawberry
 
 # Combine as many flags as you need
-bezy --load-ufo ~/Fonts/MyFont.ufo --theme lightmode
+bezy --edit ~/Fonts/MyFont.ufo --theme lightmode
+
+# Short form using -e
+bezy -e MyFont.ufo
 ```
 
 ## Keyboard Shortcuts

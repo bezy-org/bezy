@@ -10,8 +10,8 @@ use fontir::source::Source;
 
 /// System to load UFO/designspace font on startup using FontIR
 pub fn load_fontir_font(mut commands: Commands, cli_args: Res<CliArgs>) {
-    // clap provides the default value, so ufo_path is guaranteed to be Some
-    if let Some(path) = &cli_args.ufo_path {
+    // clap provides the default value, so font_source is guaranteed to be Some
+    if let Some(path) = &cli_args.font_source {
         match FontIRAppState::from_path(path.clone()) {
             Ok(mut app_state) => {
                 // Try to load glyphs if possible
