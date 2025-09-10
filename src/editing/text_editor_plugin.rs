@@ -69,7 +69,7 @@ impl Plugin for TextEditorPlugin {
             // Rendering systems
             .add_systems(Update, (
                 render_text_editor_sorts,
-                crate::systems::sorts::cursor_management::render_text_editor_cursor,
+                crate::systems::sorts::cursor::render_text_editor_cursor,
             ).in_set(super::FontEditorSets::Rendering))
             // Cleanup systems (the old cleanup system is now replaced by component-relationship cleanup)
             .add_systems(Update, 

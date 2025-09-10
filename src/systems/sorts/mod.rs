@@ -9,7 +9,7 @@ pub mod point_entities;
 pub mod rtl_shaping;
 pub mod sort_entities;
 pub mod sort_placement;
-pub mod cursor_management;
+pub mod cursor;
 pub mod sort_state;
 pub mod unicode_input;
 
@@ -20,6 +20,6 @@ pub use point_entities::*;
 pub use rtl_shaping::*;
 pub use sort_entities::*;
 pub use sort_placement::*;
-pub use cursor_management::*;
+pub use cursor::*;
 pub use sort_state::*;
 pub use unicode_input::*;
