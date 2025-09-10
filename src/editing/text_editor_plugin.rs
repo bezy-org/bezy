@@ -35,7 +35,7 @@ impl Plugin for TextEditorPlugin {
         app
             // Initialize resources
             .init_resource::<crate::core::state::text_editor::TextEditorState>()
-            .init_resource::<crate::systems::text_editor_sorts::sort_rendering::CursorRenderingState>()
+            .init_resource::<crate::rendering::CursorRenderingState>()
             .init_resource::<crate::core::state::text_editor::ActiveSortEntity>()
             // Add buffer manager plugin
             .add_plugins(crate::systems::TextBufferManagerPlugin)
