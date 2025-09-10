@@ -144,7 +144,7 @@ fn insert_arabic_glyph(
     app_state: &Option<Res<AppState>>,
     fontir_app_state: &Option<Res<FontIRAppState>>,
 ) {
-    use crate::core::state::text_editor::buffer::{SortEntry, SortKind};
+    use crate::core::state::text_editor::buffer::{SortData, SortKind};
     use crate::core::state::SortLayoutMode;
     
     // Get proper advance width from font metrics (same as LTR mode)
@@ -153,7 +153,7 @@ fn insert_arabic_glyph(
     info!("🔍 ARABIC INSERT: glyph '{}' with advance_width: {:.1}", glyph_name, advance_width);
     
     // Create a new sort entry with the Arabic glyph
-    let sort = SortEntry {
+    let sort = SortData {
         kind: SortKind::Glyph {
             codepoint: None, // We could map this back from glyph name if needed
             glyph_name: glyph_name.to_string(),

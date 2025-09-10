@@ -64,7 +64,7 @@ pub enum SortKind {
 #[derive(Clone)]
 pub struct SortBuffer {
     /// The gap buffer storage
-    buffer: Vec<SortEntry>,
+    buffer: Vec<SortData>,
     /// Gap start position
     gap_start: usize,
     /// Gap end position (exclusive)
@@ -90,9 +90,9 @@ impl BufferId {
     }
 }
 
-/// An entry in the sort buffer representing a glyph
+/// Data for a sort in the buffer (glyph or line break)
 #[derive(Clone, Debug)]
-pub struct SortEntry {
+pub struct SortData {
     pub kind: SortKind,
     /// Whether this sort is currently active (in edit mode with points showing)
     pub is_active: bool,
@@ -133,7 +133,7 @@ impl Default for SortBuffer {
     }
 }
 
-impl Default for SortEntry {
+impl Default for SortData {
     fn default() -> Self {
         Self {
             kind: SortKind::Glyph {
@@ -167,7 +167,7 @@ impl SortBuffer {
         let initial_capacity = 1024; // Start with room for plenty of sorts
         let mut buffer = Vec::with_capacity(initial_capacity);
         // Fill with default entries to create the gap
-        buffer.resize(initial_capacity, SortEntry::default());
+        buffer.resize(initial_capacity, SortData::default());
 
         Self {
             buffer,
@@ -187,7 +187,7 @@ impl SortBuffer {
     }
 
     /// Get sort at logical position
-    pub fn get(&self, index: usize) -> Option<&SortEntry> {
+    pub fn get(&self, index: usize) -> Option<&SortData> {
         if index >= self.len() {
             return None;
         }
@@ -200,7 +200,7 @@ impl SortBuffer {
     }
 
     /// Get mutable sort at logical position
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut SortEntry> {
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut SortData> {
         if index >= self.len() {
             return None;
         }
@@ -250,7 +250,7 @@ impl SortBuffer {
     }
 
     /// Insert sort at position
-    pub fn insert(&mut self, index: usize, sort: SortEntry) {
+    pub fn insert(&mut self, index: usize, sort: SortData) {
         if index > self.len() {
             return;
         }
@@ -269,7 +269,7 @@ impl SortBuffer {
     }
 
     /// Delete sort at position
-    pub fn delete(&mut self, index: usize) -> Option<SortEntry> {
+    pub fn delete(&mut self, index: usize) -> Option<SortData> {
         if index >= self.len() {
             return None;
         }
@@ -280,7 +280,7 @@ impl SortBuffer {
         // The element to be deleted is now at the end of the gap.
         // We "delete" it by incrementing the gap's end, effectively swallowing the element.
         let deleted_item = self.buffer[self.gap_end].clone();
-        self.buffer[self.gap_end] = SortEntry::default(); // Clear the old slot
+        self.buffer[self.gap_end] = SortData::default(); // Clear the old slot
         self.gap_end += 1;
 
         Some(deleted_item)
@@ -294,7 +294,7 @@ impl SortBuffer {
         let new_gap_size = gap_size + (new_capacity - old_capacity);
 
         // Extend buffer
-        self.buffer.resize(new_capacity, SortEntry::default());
+        self.buffer.resize(new_capacity, SortData::default());
 
         // Move elements after gap to end of new buffer
         let elements_after_gap = old_capacity - self.gap_end;
@@ -303,7 +303,7 @@ impl SortBuffer {
                 let src_idx = self.gap_end + i;
                 let dst_idx = new_capacity - elements_after_gap + i;
                 self.buffer[dst_idx] = self.buffer[src_idx].clone();
-                self.buffer[src_idx] = SortEntry::default();
+                self.buffer[src_idx] = SortData::default();
             }
         }
 
@@ -322,7 +322,7 @@ impl SortBuffer {
     /// Clear all sorts and reset gap
     pub fn clear(&mut self) {
         for item in &mut self.buffer {
-            *item = SortEntry::default();
+            *item = SortData::default();
         }
         self.gap_start = 0;
         self.gap_end = self.buffer.len();
@@ -330,7 +330,7 @@ impl SortBuffer {
 }
 
 impl<'a> Iterator for SortBufferIterator<'a> {
-    type Item = &'a SortEntry;
+    type Item = &'a SortData;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index >= self.buffer.len() {

@@ -186,7 +186,7 @@ fn create_independent_sort_with_fontir(
     fontir_app_state: Option<&crate::core::state::FontIRAppState>,
 ) -> bevy::prelude::Entity {
     use crate::core::state::text_editor::buffer::BufferId;
-    use crate::core::state::text_editor::{SortEntry, SortKind, SortLayoutMode};
+    use crate::core::state::text_editor::{SortData, SortKind, SortLayoutMode};
     use crate::systems::text_buffer_manager::{create_text_buffer, add_sort_to_buffer};
 
     info!("🖱️ INSIDE create_independent_sort_with_fontir: Starting function");
@@ -236,7 +236,7 @@ fn create_independent_sort_with_fontir(
 
     // CREATE INITIAL CHARACTER SORT: This provides a clear visual starting point
     // This is NOT a "root sort" - just the first character in the buffer like any other
-    let initial_sort = SortEntry {
+    let initial_sort = SortData {
         kind: SortKind::Glyph {
             glyph_name: placeholder_glyph.clone(),
             codepoint: Some(placeholder_codepoint),

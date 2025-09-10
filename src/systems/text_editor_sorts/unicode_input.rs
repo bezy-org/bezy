@@ -453,7 +453,7 @@ fn insert_line_break_at_buffer_cursor(
           insert_buffer_index, cursor_position, buffer_id.0, layout_mode);
 
     // Create line break entry
-    let new_line_break = crate::core::state::text_editor::buffer::SortEntry {
+    let new_line_break = crate::core::state::text_editor::buffer::SortData {
         kind: crate::core::state::text_editor::buffer::SortKind::LineBreak,
         is_active: false,
         layout_mode: layout_mode,
@@ -781,7 +781,7 @@ fn insert_character_at_buffer_cursor(
     }
     
     // Create the new sort entry
-    use crate::core::state::text_editor::buffer::{SortEntry, SortKind, SortLayoutMode};
+    use crate::core::state::text_editor::buffer::{SortData, SortKind, SortLayoutMode};
     
     // Calculate the world position for the new character based on text flow
     let new_position = calculate_character_position(
@@ -792,7 +792,7 @@ fn insert_character_at_buffer_cursor(
         &layout_mode,
     );
     
-    let new_sort = SortEntry {
+    let new_sort = SortData {
         kind: SortKind::Glyph {
             codepoint: Some(character),
             glyph_name: glyph_name.clone(),

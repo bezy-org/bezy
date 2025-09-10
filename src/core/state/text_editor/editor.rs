@@ -6,7 +6,7 @@ use bevy::prelude::*;
 
 impl TextEditorState {
     /// Get only text sorts (sorts that flow like text)
-    pub fn get_text_sorts(&self) -> Vec<(usize, &SortEntry)> {
+    pub fn get_text_sorts(&self) -> Vec<(usize, &SortData)> {
         let mut text_sorts = Vec::new();
 
         for i in 0..self.buffer.len() {
@@ -23,7 +23,7 @@ impl TextEditorState {
     }
 
     /// Get sorts belonging to a specific buffer ID
-    pub fn get_sorts_for_buffer(&self, buffer_id: BufferId) -> Vec<(usize, &SortEntry)> {
+    pub fn get_sorts_for_buffer(&self, buffer_id: BufferId) -> Vec<(usize, &SortData)> {
         let mut buffer_sorts = Vec::new();
 
         for i in 0..self.buffer.len() {
@@ -38,7 +38,7 @@ impl TextEditorState {
     }
 
     /// Find the first sort for a specific buffer ID
-    pub fn find_buffer_root(&self, buffer_id: BufferId) -> Option<(usize, &SortEntry)> {
+    pub fn find_buffer_root(&self, buffer_id: BufferId) -> Option<(usize, &SortData)> {
         for i in 0..self.buffer.len() {
             if let Some(sort) = self.buffer.get(i) {
                 if sort.buffer_id == Some(buffer_id) {
@@ -77,7 +77,7 @@ impl TextEditorState {
         // Clear all states first
         self.clear_all_states();
 
-        let new_sort = SortEntry {
+        let new_sort = SortData {
             kind: SortKind::Glyph {
                 codepoint,
                 glyph_name: glyph_name.clone(),
@@ -324,7 +324,7 @@ impl TextEditorState {
         };
 
         let buffer_id = BufferId::new();
-        let text_root = SortEntry {
+        let text_root = SortData {
             kind: SortKind::Glyph {
                 codepoint: Some(placeholder_codepoint), // Use appropriate codepoint for layout mode
                 // Use a visible placeholder glyph instead of empty string
@@ -474,12 +474,12 @@ impl TextEditorState {
     }
 
     /// Get the sort at a specific buffer position
-    pub fn get_sort_at_position(&self, position: usize) -> Option<&SortEntry> {
+    pub fn get_sort_at_position(&self, position: usize) -> Option<&SortData> {
         self.buffer.get(position)
     }
 
     /// Get the currently active sort
-    pub fn get_active_sort(&self) -> Option<(usize, &SortEntry)> {
+    pub fn get_active_sort(&self) -> Option<(usize, &SortData)> {
         for i in 0..self.buffer.len() {
             if let Some(sort) = self.buffer.get(i) {
                 if sort.is_active {
@@ -649,7 +649,7 @@ impl TextEditorState {
                 .map(|sort| (sort.layout_mode.clone(), sort.buffer_id))
                 .unwrap_or((SortLayoutMode::LTRText, None));
 
-            let new_sort = SortEntry {
+            let new_sort = SortData {
                 kind: SortKind::Glyph {
                     codepoint,
                     glyph_name: glyph_name.clone(),
@@ -1040,7 +1040,7 @@ impl TextEditorState {
         self.clear_all_states();
 
         let buffer_id = BufferId::new();
-        let new_root = SortEntry {
+        let new_root = SortData {
             kind: SortKind::Glyph {
                 codepoint,
                 glyph_name,
@@ -1072,7 +1072,7 @@ impl TextEditorState {
                 .map(|sort| (sort.layout_mode.clone(), sort.buffer_id))
                 .unwrap_or((SortLayoutMode::LTRText, None));
 
-            let new_sort = SortEntry {
+            let new_sort = SortData {
                 kind: SortKind::LineBreak,
                 is_active: false,
                 layout_mode: root_layout_mode,

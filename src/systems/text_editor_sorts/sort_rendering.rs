@@ -21,8 +21,7 @@ pub struct TextEditorCursor;
 pub struct CursorRenderingState {
     pub last_cursor_position: Option<Vec2>,
     pub last_tool: Option<String>,
-    pub last_placement_mode:
-        Option<crate::ui::edit_mode_toolbar::text::TextPlacementMode>,
+    pub last_placement_mode: Option<crate::ui::edit_mode_toolbar::text::TextPlacementMode>,
     pub last_buffer_cursor_position: Option<usize>,
     pub last_camera_scale: Option<f32>,
 }
@@ -36,7 +35,7 @@ pub fn render_text_editor_sorts() {
     // No additional rendering logic needed here.
 }
 
-/// Render the visual cursor for Insert mode using zoom-aware mesh rendering
+/// Render the visual cursor for Insert mode using zoom-aware-mesh-rendering
 pub fn render_text_editor_cursor(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -66,14 +65,18 @@ pub fn render_text_editor_cursor(
         current_placement_mode.0
     );
 
-    // Only render cursor when Text tool is active AND in Insert mode (the only mode where cursor is functional)
-    let should_show_cursor = current_tool.get_current() == Some("text") 
-        && matches!(current_placement_mode.0, crate::ui::edit_mode_toolbar::text::TextPlacementMode::Insert);
+    // Only render cursor when Text tool is active AND in Insert mode
+    let should_show_cursor = current_tool.get_current() == Some("text")
+        && matches!(
+            current_placement_mode.0,
+            crate::ui::edit_mode_toolbar::text::TextPlacementMode::Insert
+        );
         
     if !should_show_cursor {
         info!(
             "CURSOR: Not rendering - need Text tool + Insert mode (tool: {:?}, mode: {:?})",
-            current_tool.get_current(), current_placement_mode.0
+            current_tool.get_current(),
+            current_placement_mode.0
         );
         // Clear cursor entities when not in Insert mode
         entity_pools.return_cursor_entities(&mut commands);
@@ -92,22 +95,25 @@ pub fn render_text_editor_cursor(
     let current_placement_mode_value = current_placement_mode.0;
     let current_camera_scale = camera_scale.scale_factor;
 
-    // NEW BUFFER ENTITY SYSTEM: Get cursor position from active buffer entity
+    // Get cursor position from active buffer entity
     let current_buffer_cursor_position = active_buffer
         .as_ref()
         .and_then(|active| active.buffer_entity)
         .and_then(|buffer_entity| {
-            // Query the buffer entity for its cursor position
-            buffer_query.get(buffer_entity).ok().map(|(_buffer, cursor)| {
-                info!(
-                    "🔍 CURSOR: Found active buffer entity {:?} with cursor at position {}",
-                    buffer_entity, cursor.position
-                );
-                cursor.position
-            })
+            buffer_query
+                .get(buffer_entity)
+                .ok()
+                .map(|(_buffer, cursor)| {
+                    info!(
+                        "🔍 CURSOR: Found active buffer entity {:?} with cursor at position {}",
+                        buffer_entity,
+                        cursor.position
+                    );
+                    cursor.position
+                })
         });
 
-    // Calculate current cursor position using UNIFIED SYSTEM for consistent change detection
+    // Calculate current cursor position for consistent change detection
     let current_cursor_position = text_editor_state.as_ref().and_then(|state| {
         calculate_cursor_position(
             state,
@@ -121,12 +127,14 @@ pub fn render_text_editor_cursor(
 
     // Check if anything changed
     let tool_changed = cursor_state.last_tool.as_deref() != current_tool_name;
-    let placement_mode_changed =
-        cursor_state.last_placement_mode != Some(current_placement_mode_value);
-    let buffer_cursor_changed =
-        cursor_state.last_buffer_cursor_position != current_buffer_cursor_position;
-    let cursor_position_changed = cursor_state.last_cursor_position != current_cursor_position;
-    let camera_scale_changed = cursor_state.last_camera_scale != Some(current_camera_scale);
+    let placement_mode_changed = cursor_state.last_placement_mode 
+        != Some(current_placement_mode_value);
+    let buffer_cursor_changed = cursor_state.last_buffer_cursor_position 
+        != current_buffer_cursor_position;
+    let cursor_position_changed = cursor_state.last_cursor_position 
+        != current_cursor_position;
+    let camera_scale_changed = cursor_state.last_camera_scale 
+        != Some(current_camera_scale);
 
     if !tool_changed
         && !placement_mode_changed
@@ -138,7 +146,7 @@ pub fn render_text_editor_cursor(
         return;
     }
 
-    // ENTITY POOLING: Clear cursor entities before re-rendering
+    // Clear cursor entities before re-rendering
     entity_pools.return_cursor_entities(&mut commands);
     info!("CURSOR: Returned cursor entities to pool");
 
@@ -149,8 +157,15 @@ pub fn render_text_editor_cursor(
     cursor_state.last_cursor_position = current_cursor_position;
     cursor_state.last_camera_scale = Some(current_camera_scale);
 
-    debug!("Cursor rendering triggered - changes detected: tool={}, placement_mode={}, buffer_cursor={}, cursor_position={}, camera_scale={}", 
-           tool_changed, placement_mode_changed, buffer_cursor_changed, cursor_position_changed, camera_scale_changed);
+    debug!(
+        "Cursor rendering triggered - changes detected: tool={}, placement_mode={}, \
+         buffer_cursor={}, cursor_position={}, camera_scale={}",
+        tool_changed,
+        placement_mode_changed,
+        buffer_cursor_changed,
+        cursor_position_changed,
+        camera_scale_changed
+    );
 
     debug!("Cursor mode: {:?}", current_placement_mode.0);
 
@@ -163,7 +178,7 @@ pub fn render_text_editor_cursor(
         return;
     };
 
-    // UNIFIED APPROACH: Calculate cursor position with full feature support (line breaks, etc.)
+    // Calculate cursor position with full feature support
     if let Some(cursor_world_pos) = calculate_cursor_position(
         &text_editor_state,
         &sort_query,
@@ -216,7 +231,246 @@ pub fn render_text_editor_cursor(
 }
 
 
-/// Unified cursor position calculation using new buffer entity system with full feature support
+#[derive(Debug)]
+struct BufferInfo {
+    cursor_position: usize,
+    root_position: Vec2,
+    layout_mode: crate::core::state::text_editor::SortLayoutMode,
+    buffer_id: crate::core::state::text_editor::buffer::BufferId,
+}
+
+/// Extract active buffer information from ECS queries
+fn get_active_buffer_info(
+    active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
+    buffer_query: &Query<(
+        &crate::core::state::text_editor::text_buffer::TextBuffer,
+        &crate::core::state::text_editor::text_buffer::BufferCursor,
+    )>,
+) -> Option<BufferInfo> {
+    let active_buffer_res = active_buffer.as_ref()?;
+    let buffer_entity = active_buffer_res.buffer_entity?;
+    let (text_buffer, buffer_cursor) = buffer_query.get(buffer_entity).ok()?;
+    
+    info!(
+        "🎯 CURSOR: Using buffer entity {:?}, cursor: {}, layout: {:?}",
+        buffer_entity,
+        buffer_cursor.position,
+        text_buffer.layout_mode
+    );
+    
+    Some(BufferInfo {
+        cursor_position: buffer_cursor.position,
+        root_position: text_buffer.root_position,
+        layout_mode: text_buffer.layout_mode.clone(),
+        buffer_id: text_buffer.id,
+    })
+}
+
+/// Get line height from font metrics
+fn get_line_height(
+    fontir_app_state: &Option<Res<crate::core::state::FontIRAppState>>,
+    app_state: &Option<Res<AppState>>,
+) -> f32 {
+    if let Some(fontir_state) = fontir_app_state.as_ref() {
+        let metrics = fontir_state.get_font_metrics();
+        let upm = metrics.units_per_em;
+        let descender = metrics.descender.unwrap_or(-256.0);
+        upm - descender
+    } else if let Some(app_state) = app_state.as_ref() {
+        let font_metrics = &app_state.workspace.info.metrics;
+        let upm = font_metrics.units_per_em as f32;
+        let descender = font_metrics.descender.unwrap_or(-256.0) as f32;
+        upm - descender
+    } else {
+        1024.0 // Reasonable fallback
+    }
+}
+
+/// Collect all sorts that belong to the specific buffer
+fn collect_buffer_sorts(
+    text_editor_state: &TextEditorState,
+    buffer_id: crate::core::state::text_editor::buffer::BufferId,
+) -> Vec<&crate::core::state::text_editor::SortData> {
+    text_editor_state
+        .buffer
+        .iter()
+        .filter(|sort| sort.buffer_id == Some(buffer_id))
+        .collect()
+}
+
+/// Calculate cursor offset based on layout mode and cursor position
+fn calculate_cursor_offset(
+    buffer_sorts: &[&crate::core::state::text_editor::SortData],
+    cursor_position: usize,
+    layout_mode: &crate::core::state::text_editor::SortLayoutMode,
+    line_height: f32,
+) -> Vec2 {
+    match layout_mode {
+        crate::core::state::text_editor::SortLayoutMode::RTLText => {
+            calculate_rtl_cursor_offset(buffer_sorts, cursor_position, line_height)
+        }
+        _ => calculate_ltr_cursor_offset(buffer_sorts, cursor_position, line_height),
+    }
+}
+
+/// Calculate RTL cursor offset (right-to-left text positioning)
+/// 
+/// RTL POSITIONING LOGIC:
+/// ===================
+/// In RTL text, cursor positioning works BACKWARDS from LTR:
+/// 1. START: Root position (rightmost edge) 
+/// 2. DIRECTION: Move LEFT by subtracting widths
+/// 3. RULE: Accumulate widths of text AT OR AFTER cursor position
+/// This positions cursor at LEFT EDGE of existing text (insertion point)
+/// 
+fn calculate_rtl_cursor_offset(
+    buffer_sorts: &[&crate::core::state::text_editor::SortData],
+    cursor_position: usize,
+    line_height: f32,
+) -> Vec2 {
+    info!(
+        "🎯 RTL CURSOR: Found {} sorts in buffer, cursor at position {}",
+        buffer_sorts.len(),
+        cursor_position
+    );
+    
+    // RTL starts at RIGHT EDGE (x=0) and moves LEFT (negative x)
+    let mut horizontal_offset = 0.0;
+    let mut vertical_offset = 0.0;
+    
+    // TODO(human): Debug this RTL cursor positioning logic
+    
+    // CRITICAL RTL RULE: Process characters AT OR AFTER cursor position
+    // This moves cursor leftward to the insertion point
+    for (sort_index, sort_entry) in buffer_sorts.iter().enumerate() {
+        if sort_index < cursor_position {
+            // SKIP: Characters BEFORE cursor don't affect RTL cursor position
+            continue;
+        }
+        
+        // Process characters AT OR AFTER cursor position
+        match &sort_entry.kind {
+            crate::core::state::text_editor::SortKind::LineBreak => {
+                if sort_index == cursor_position {
+                    // Cursor exactly at line break - move to next line
+                    vertical_offset -= line_height;
+                    info!("🎯 RTL CURSOR: Cursor at line break {}", sort_index);
+                    break;
+                }
+                // Line breaks AFTER cursor don't affect position
+            }
+            
+            crate::core::state::text_editor::SortKind::Glyph { advance_width, .. } => {
+                // RTL KEY OPERATION: Move LEFT by subtracting width
+                horizontal_offset -= advance_width;
+                
+                info!(
+                    "🎯 RTL: Sort[{}] '{}' at/after cursor → moved LEFT by {:.1} \
+                     → offset now ({:.1}, {:.1})",
+                    sort_index,
+                    sort_entry.kind.glyph_name(),
+                    advance_width,
+                    horizontal_offset,
+                    vertical_offset
+                );
+            }
+        }
+    }
+    
+    info!(
+        "🎯 RTL RESULT: Cursor at LEFT EDGE for insertion → ({:.1}, {:.1})",
+        horizontal_offset,
+        vertical_offset
+    );
+    
+    Vec2::new(horizontal_offset, vertical_offset)
+}
+
+/// Calculate LTR cursor offset (left-to-right text positioning)
+/// 
+/// LTR POSITIONING LOGIC:
+/// ====================
+/// In LTR text, cursor positioning is intuitive:
+/// 1. START: Root position (leftmost edge)
+/// 2. DIRECTION: Move RIGHT by adding widths
+/// 3. RULE: Accumulate widths of text BEFORE cursor position
+/// This positions cursor AFTER existing text (insertion point)
+/// 
+fn calculate_ltr_cursor_offset(
+    buffer_sorts: &[&crate::core::state::text_editor::SortData],
+    cursor_position: usize,
+    line_height: f32,
+) -> Vec2 {
+    info!("🎯 LTR CURSOR: Using standard LTR cursor positioning logic");
+    
+    // LTR starts at LEFT EDGE (x=0) and moves RIGHT (positive x)
+    let mut horizontal_offset = 0.0;
+    let mut vertical_offset = 0.0;
+    
+    // Process each sort in the buffer
+    for (sort_index, sort_entry) in buffer_sorts.iter().enumerate() {
+        
+        if sort_index < cursor_position {
+            // BEFORE CURSOR: These characters affect cursor position
+            match &sort_entry.kind {
+                crate::core::state::text_editor::SortKind::LineBreak => {
+                    // Line break: Reset to start of next line
+                    horizontal_offset = 0.0;
+                    vertical_offset -= line_height;
+                    
+                    info!(
+                        "🎯 LTR: Line break[{}] → moved to next line (y: {:.1})",
+                        sort_index,
+                        vertical_offset
+                    );
+                }
+                
+                crate::core::state::text_editor::SortKind::Glyph { advance_width, .. } => {
+                    // LTR KEY OPERATION: Move RIGHT by adding width
+                    horizontal_offset += advance_width;
+                    
+                    info!(
+                        "🎯 LTR: Sort[{}] '{}' before cursor → moved RIGHT by {:.1} \
+                         → offset now ({:.1}, {:.1})",
+                        sort_index,
+                        sort_entry.kind.glyph_name(),
+                        advance_width,
+                        horizontal_offset,
+                        vertical_offset
+                    );
+                }
+            }
+        } 
+        
+        else if sort_index == cursor_position {
+            // AT CURSOR: Special case for line breaks
+            if let crate::core::state::text_editor::SortKind::LineBreak = &sort_entry.kind {
+                // Cursor exactly at line break - show at start of new line
+                horizontal_offset = 0.0;
+                vertical_offset -= line_height;
+                
+                info!(
+                    "🎯 LTR: Cursor AT line break[{}] → show at new line start",
+                    sort_index
+                );
+                break;
+            }
+            // For glyphs: cursor positioned BEFORE the glyph (no offset change)
+        }
+        
+        // AFTER CURSOR: These characters don't affect cursor position (skip)
+    }
+    
+    info!(
+        "🎯 LTR RESULT: Cursor AFTER existing text → ({:.1}, {:.1})",
+        horizontal_offset,
+        vertical_offset
+    );
+    
+    Vec2::new(horizontal_offset, vertical_offset)
+}
+
+/// Calculate cursor position using buffer entity system with full feature support
 fn calculate_cursor_position(
     text_editor_state: &TextEditorState,
     _sort_query: &Query<(
@@ -232,170 +486,18 @@ fn calculate_cursor_position(
     )>,
     active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
 ) -> Option<Vec2> {
-    info!("🎯 UNIFIED CURSOR: Starting calculation with buffer entity system");
-
-    // Get buffer information from buffer entity system
-    let (cursor_pos_in_buffer, buffer_root_position, layout_mode, buffer_id) = if let Some(active_buffer_res) = active_buffer {
-        if let Some(buffer_entity) = active_buffer_res.buffer_entity {
-            if let Ok((text_buffer, buffer_cursor)) = buffer_query.get(buffer_entity) {
-                info!(
-                    "🎯 UNIFIED CURSOR: Using buffer entity {:?}, cursor: {}, layout: {:?}",
-                    buffer_entity, buffer_cursor.position, text_buffer.layout_mode
-                );
-                (buffer_cursor.position, text_buffer.root_position, text_buffer.layout_mode.clone(), text_buffer.id)
-            } else {
-                warn!("🎯 UNIFIED CURSOR: Buffer entity not found - no cursor to render");
-                return None;
-            }
-        } else {
-            warn!("🎯 UNIFIED CURSOR: No active buffer entity");
-            return None;
-        }
-    } else {
-        warn!("🎯 UNIFIED CURSOR: No active buffer resource");
-        return None;
-    };
-
-    // Get font metrics for line height calculation - try FontIR first, then AppState
-    let line_height = if let Some(fontir_state) = fontir_app_state.as_ref() {
-        let metrics = fontir_state.get_font_metrics();
-        let upm = metrics.units_per_em;
-        let descender = metrics.descender.unwrap_or(-256.0);
-        upm - descender
-    } else if let Some(app_state) = app_state.as_ref() {
-        let font_metrics = &app_state.workspace.info.metrics;
-        let upm = font_metrics.units_per_em as f32;
-        let descender = font_metrics.descender.unwrap_or(-256.0) as f32;
-        upm - descender
-    } else {
-        1000.0 // Reasonable fallback for line height
-    };
-
-    info!(
-        "🎯 UNIFIED CURSOR: cursor_pos={}, layout={:?}, root_pos=({:.1}, {:.1}), line_height={:.1}",
-        cursor_pos_in_buffer, layout_mode, buffer_root_position.x, buffer_root_position.y, line_height
-    );
-
-    // UNIFIED CALCULATION: Accumulate advances and handle line breaks
-    let mut x_offset = 0.0;
-    let mut y_offset = 0.0;
-    let mut buffer_sort_count = 0;
+    let buffer_info = get_active_buffer_info(active_buffer, buffer_query)?;
+    let line_height = get_line_height(fontir_app_state, app_state);
+    let buffer_sorts = collect_buffer_sorts(text_editor_state, buffer_info.buffer_id);
     
-    match layout_mode {
-        crate::core::state::text_editor::SortLayoutMode::RTLText => {
-            // RTL CURSOR POSITIONING LOGIC
-            // ==============================
-            // In RTL text, the cursor must be positioned at the LEFT edge of existing text
-            // This is where new characters will be inserted (they appear to the left, pushing existing text right)
-            // 
-            // Position mapping in RTL:
-            // - Position 0: Rightmost position (before any text) - this is where typing starts
-            // - Position N: Leftmost position (after all text) - this is where the cursor ends up after typing N chars
-            //
-            // To calculate cursor position:
-            // 1. Start from root position (rightmost edge, x_offset = 0)
-            // 2. For each character AT OR AFTER cursor position, subtract its width
-            // 3. This moves the cursor leftward to the insertion point
-            
-            info!("🎯 RTL CURSOR: Using RTL logic from fundamentals doc");
-            info!("🎯 RTL CURSOR: cursor_pos_in_buffer = {}", cursor_pos_in_buffer);
-            
-            // Start from RIGHT EDGE (root position)
-            x_offset = 0.0;
-            
-            // First, collect all sorts that belong to this buffer
-            let mut buffer_sorts = Vec::new();
-            for sort_entry in text_editor_state.buffer.iter() {
-                if sort_entry.buffer_id == Some(buffer_id) {
-                    buffer_sorts.push(sort_entry);
-                }
-            }
-            
-            info!("🎯 RTL CURSOR: Found {} sorts in buffer, cursor at position {}", buffer_sorts.len(), cursor_pos_in_buffer);
-            
-            // CRITICAL: Accumulate widths of characters AT OR AFTER cursor position
-            // Example: If we have 4 chars and cursor is at position 4:
-            // - We skip all 4 chars (indices 0-3)
-            // - x_offset remains 0, cursor stays at root (rightmost position)
-            // Example: If cursor is at position 0:
-            // - We accumulate widths of all 4 chars
-            // - x_offset becomes negative, cursor is at far left
-            for (local_index, sort_entry) in buffer_sorts.iter().enumerate() {
-                // Only process sorts AT or AFTER cursor position
-                if local_index >= cursor_pos_in_buffer {
-                    match &sort_entry.kind {
-                        crate::core::state::text_editor::SortKind::LineBreak => {
-                            // If cursor is exactly at a line break, move to next line
-                            if local_index == cursor_pos_in_buffer {
-                                y_offset -= line_height;
-                                info!("🎯 RTL CURSOR: Cursor at line break position {}", local_index);
-                                break;
-                            }
-                        }
-                        crate::core::state::text_editor::SortKind::Glyph { advance_width, .. } => {
-                            // RTL: Move LEFT by width of text AT/AFTER cursor
-                            x_offset -= advance_width;
-                            info!("🎯 RTL CURSOR: Sort {} ('{}') at/after cursor pos, moved left by {}, offset now: ({:.1}, {:.1})", 
-                                  local_index, sort_entry.kind.glyph_name(), advance_width, x_offset, y_offset);
-                        }
-                    }
-                }
-            }
-            
-            info!("🎯 RTL CURSOR: Final position (left edge for insertion): ({:.1}, {:.1})", x_offset, y_offset);
-        }
-        _ => {
-            // LTR/FREEFORM CURSOR LOGIC: Start from left edge, move right as characters are added
-            info!("🎯 LTR CURSOR: Using standard LTR cursor positioning logic");
-            
-            for sort_entry in text_editor_state.buffer.iter() {
-                if sort_entry.buffer_id == Some(buffer_id) {
-                    // Only accumulate advances for sorts BEFORE the cursor position
-                    if buffer_sort_count < cursor_pos_in_buffer {
-                        match &sort_entry.kind {
-                            crate::core::state::text_editor::SortKind::LineBreak => {
-                                // Handle line breaks: move to next line
-                                x_offset = 0.0;
-                                y_offset -= line_height;
-                                info!("🎯 LTR CURSOR: Line break at sort {}, moved to next line (y_offset: {})", 
-                                      buffer_sort_count, y_offset);
-                            }
-                            crate::core::state::text_editor::SortKind::Glyph { advance_width, .. } => {
-                                // Accumulate left-to-right
-                                x_offset += advance_width;
-                                info!("🎯 LTR CURSOR: Accumulated advance {} for sort {}, total offset: ({:.1}, {:.1})", 
-                                      advance_width, buffer_sort_count, x_offset, y_offset);
-                            }
-                        }
-                    } else if buffer_sort_count == cursor_pos_in_buffer {
-                        // Cursor is positioned AT this sort - check if it's a line break
-                        if matches!(&sort_entry.kind, crate::core::state::text_editor::SortKind::LineBreak) {
-                            // Cursor at line break position - show at start of new line
-                            x_offset = 0.0;
-                            y_offset -= line_height;
-                            info!("🎯 LTR CURSOR: Cursor at line break position {}, showing at new line start", buffer_sort_count);
-                            break;
-                        }
-                    }
-                    
-                    buffer_sort_count += 1;
-                }
-            }
-        }
-    }
-    
-    let cursor_position = Vec2::new(
-        buffer_root_position.x + x_offset,
-        buffer_root_position.y + y_offset,
+    let offset = calculate_cursor_offset(
+        &buffer_sorts,
+        buffer_info.cursor_position,
+        &buffer_info.layout_mode,
+        line_height,
     );
     
-    info!(
-        "🎯 UNIFIED CURSOR: Final cursor at position {} -> ({:.1}, {:.1}) [root + offset = ({:.1}, {:.1}) + ({:.1}, {:.1})]",
-        cursor_pos_in_buffer, cursor_position.x, cursor_position.y,
-        buffer_root_position.x, buffer_root_position.y, x_offset, y_offset
-    );
-    
-    Some(cursor_position)
+    Some(buffer_info.root_position + offset)
 }
 
 

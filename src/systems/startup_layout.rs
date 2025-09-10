@@ -101,12 +101,12 @@ fn create_default_sort_at_position(
     advance_width: f32,
 ) {
     use crate::core::state::text_editor::buffer::BufferId;
-    use crate::core::state::text_editor::{SortEntry, SortKind, SortLayoutMode};
+    use crate::core::state::text_editor::{SortData, SortKind, SortLayoutMode};
 
     // Create a new buffer ID for this LTR text flow
     let buffer_id = BufferId::new();
 
-    let sort = SortEntry {
+    let sort = SortData {
         kind: SortKind::Glyph {
             codepoint: Some('a'), // Default to 'a'
             glyph_name: glyph_name.to_string(),

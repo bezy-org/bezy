@@ -4,7 +4,7 @@
 //! handling contextual forms (isolated, initial, medial, final) and ligatures.
 
 use crate::core::state::fontir_app_state::FontIRAppState;
-use crate::core::state::text_editor::buffer::{SortEntry, SortKind};
+use crate::core::state::text_editor::buffer::{SortData, SortKind};
 use crate::core::state::{SortLayoutMode, TextEditorState};
 use crate::systems::text_shaping::{ShapedGlyph, ShapedText, TextDirection};
 use bevy::prelude::*;
