@@ -23,7 +23,7 @@ use crate::ui::panes::file_pane::FilePanePlugin;
 use crate::ui::panes::glyph_pane::GlyphPanePlugin;
 use crate::ui::theme::CurrentTheme;
 #[cfg(debug_assertions)]
-use crate::ui::themes::runtime_reload::RuntimeThemePlugin;
+use crate::ui::theme_system::RuntimeThemePlugin;
 use anyhow::Result;
 use bevy::app::{PluginGroup, PluginGroupBuilder};
 use bevy::prelude::*;

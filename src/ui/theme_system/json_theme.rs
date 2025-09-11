@@ -771,10 +771,10 @@ pub fn check_json_theme_changes(
             // Force reload from JSON file
             let json_path = format!("src/ui/themes/{current_name}.json");
             if let Ok(json_theme) = JsonTheme::load_from_file(&json_path) {
-                current_theme.theme = Box::new(json_theme);
+                current_theme.set_theme(Box::new(json_theme));
 
                 // Update the background color immediately
-                clear_color.0 = current_theme.theme.background_color();
+                clear_color.0 = current_theme.theme().background_color();
             }
         }
     }
