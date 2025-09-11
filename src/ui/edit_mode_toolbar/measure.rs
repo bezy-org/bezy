@@ -193,7 +193,7 @@ pub fn render_measure_preview(
         // Create dashed line for measuring (like knife tool)
         let dash_length = camera_scale.scale_factor * 8.0; // Match knife tool dash length
         let gap_length = camera_scale.scale_factor * 4.0; // Match knife tool gap length
-        
+
         let dashed_line_entity = spawn_dashed_measure_line(
             &mut commands,
             &mut meshes,
@@ -276,21 +276,25 @@ pub fn render_measure_preview(
                 intersections.len(),
                 intersections.len() - 1
             );
-            
+
             // Sort intersections by position along the measuring line
             let mut sorted_intersections = intersections.clone();
             let measuring_line = kurbo::Line::new(
                 kurbo::Point::new(start.x as f64, start.y as f64),
                 kurbo::Point::new(end.x as f64, end.y as f64),
             );
-            
+
             sorted_intersections.sort_by(|a, b| {
                 let cutting_dir = (measuring_line.p1 - measuring_line.p0).normalize();
-                let a_proj = (kurbo::Point::new(a.x as f64, a.y as f64) - measuring_line.p0).dot(cutting_dir);
-                let b_proj = (kurbo::Point::new(b.x as f64, b.y as f64) - measuring_line.p0).dot(cutting_dir);
-                a_proj.partial_cmp(&b_proj).unwrap_or(std::cmp::Ordering::Equal)
+                let a_proj = (kurbo::Point::new(a.x as f64, a.y as f64) - measuring_line.p0)
+                    .dot(cutting_dir);
+                let b_proj = (kurbo::Point::new(b.x as f64, b.y as f64) - measuring_line.p0)
+                    .dot(cutting_dir);
+                a_proj
+                    .partial_cmp(&b_proj)
+                    .unwrap_or(std::cmp::Ordering::Equal)
             });
-            
+
             // Create distance measurements for each consecutive pair
             for i in 0..(sorted_intersections.len() - 1) {
                 let point1 = sorted_intersections[i];
@@ -321,7 +325,10 @@ pub fn render_measure_preview(
 
                 info!(
                     "📏 MEASURE: Segment {}: Distance between points {:?} and {:?} = {} units",
-                    i + 1, point1, point2, distance_text
+                    i + 1,
+                    point1,
+                    point2,
+                    distance_text
                 );
             }
         }
@@ -467,7 +474,7 @@ fn curve_line_intersections_simple(
 
     for intersection in curve_intersections {
         let point = curve.eval(intersection.segment_t);
-        
+
         // IMPORTANT: Check if intersection point lies within the measuring line segment
         // kurbo finds intersections with infinite line, but we want line segment only
         if point_lies_on_line_segment(point, line) {
@@ -486,7 +493,7 @@ fn quad_line_intersections_simple(curve: &kurbo::QuadBez, line: &kurbo::Line) ->
 
     for intersection in curve_intersections {
         let point = curve.eval(intersection.segment_t);
-        
+
         // IMPORTANT: Check if intersection point lies within the measuring line segment
         // kurbo finds intersections with infinite line, but we want line segment only
         if point_lies_on_line_segment(point, line) {
@@ -512,13 +519,13 @@ fn point_lies_on_line_segment(point: kurbo::Point, line: &kurbo::Line) -> bool {
     // Calculate the parameter t for the point on the line
     let dx = line.p1.x - line.p0.x;
     let dy = line.p1.y - line.p0.y;
-    
+
     // Handle near-vertical and near-horizontal lines appropriately
     let t = if dx.abs() > dy.abs() {
         // Use x coordinate for parameter calculation
         if dx.abs() < 1e-10 {
             // Vertical line
-            return (point.x - line.p0.x).abs() < 1e-6 
+            return (point.x - line.p0.x).abs() < 1e-6
                 && point.y >= line.p0.y.min(line.p1.y) - 1e-6
                 && point.y <= line.p0.y.max(line.p1.y) + 1e-6;
         }
@@ -527,13 +534,13 @@ fn point_lies_on_line_segment(point: kurbo::Point, line: &kurbo::Line) -> bool {
         // Use y coordinate for parameter calculation
         if dy.abs() < 1e-10 {
             // Horizontal line
-            return (point.y - line.p0.y).abs() < 1e-6 
+            return (point.y - line.p0.y).abs() < 1e-6
                 && point.x >= line.p0.x.min(line.p1.x) - 1e-6
                 && point.x <= line.p0.x.max(line.p1.x) + 1e-6;
         }
         (point.y - line.p0.y) / dy
     };
-    
+
     // Check if t is within [0, 1] (point lies on line segment)
     (0.0..=1.0).contains(&t)
 }
@@ -629,7 +636,6 @@ fn spawn_dashed_measure_line(
         ))
         .id()
 }
-
 
 /// Spawn a point (circle) mesh for the measure tool
 fn spawn_measure_point_mesh(

@@ -9,9 +9,9 @@ use crate::core::settings::BezySettings;
 use crate::core::state::{AppState, GlyphNavigation};
 use crate::editing::selection::events::AppStateChanged;
 use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
+use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
 use crate::ui::theme::*;
 use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
-use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh2d;
 use bevy::sprite::{ColorMaterial, MeshMaterial2d};
@@ -194,7 +194,10 @@ pub fn handle_shape_mouse_events(
     current_tool: Option<Res<crate::ui::edit_mode_toolbar::CurrentTool>>,
     settings: Res<BezySettings>,
     // Query for active sort to get its position
-    active_sort_query: Query<(Entity, &crate::editing::sort::Sort, &Transform), With<crate::editing::sort::ActiveSort>>,
+    active_sort_query: Query<
+        (Entity, &crate::editing::sort::Sort, &Transform),
+        With<crate::editing::sort::ActiveSort>,
+    >,
 ) {
     // Check if shapes mode is active via multiple methods
     let shapes_is_active = shapes_mode.as_ref().is_some_and(|s| s.0)
@@ -246,7 +249,7 @@ pub fn handle_shape_mouse_events(
     if let Ok(world_position) = camera.viewport_to_world_2d(camera_transform, cursor_position) {
         // Convert to sort-relative coordinates
         let sort_relative_position = world_position - sort_position;
-        
+
         // Apply grid snapping to sort-relative coordinates
         let mut snapped_position = settings.apply_grid_snap(sort_relative_position);
 
@@ -329,7 +332,10 @@ pub fn render_active_shape_drawing_with_dimensions(
     theme: Res<CurrentTheme>,
     asset_server: Res<AssetServer>,
     // Query for active sort to get its position for preview rendering
-    active_sort_query: Query<(Entity, &crate::editing::sort::Sort, &Transform), With<crate::editing::sort::ActiveSort>>,
+    active_sort_query: Query<
+        (Entity, &crate::editing::sort::Sort, &Transform),
+        With<crate::editing::sort::ActiveSort>,
+    >,
 ) {
     // Clean up existing preview elements
     for entity in existing_preview_query.iter() {
@@ -375,7 +381,7 @@ pub fn render_active_shape_drawing_with_dimensions(
             min: rect.min + sort_position,
             max: rect.max + sort_position,
         };
-        
+
         info!("SHAPES PREVIEW: Drawing preview! Sort-relative rect: ({:.1}, {:.1}) to ({:.1}, {:.1}), world rect: ({:.1}, {:.1}) to ({:.1}, {:.1}), shape_type: {:?}", 
               rect.min.x, rect.min.y, rect.max.x, rect.max.y,
               world_rect.min.x, world_rect.min.y, world_rect.max.x, world_rect.max.y,
@@ -1174,8 +1180,7 @@ pub fn handle_shapes_submenu_selection(
         }
     }
 
-    for (interaction, mut color, mut border_color, shape_button, entity) in &mut interaction_query
-    {
+    for (interaction, mut color, mut border_color, shape_button, entity) in &mut interaction_query {
         let is_current_shape = current_shape_type.0 == shape_button.shape_type;
 
         // Debug: Log interactions for debugging

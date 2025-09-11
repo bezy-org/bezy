@@ -160,4 +160,3 @@ pub fn center_camera_on_startup_layout(
         commands.remove_resource::<CenterCameraOnDefaultSort>();
     }
 }
-

@@ -3,9 +3,9 @@
 //! This module handles Right-to-Left text shaping for Arabic text input
 //! using HarfRust to properly shape and position Arabic glyphs.
 
-use harfrust::{GlyphBuffer, UnicodeBuffer, Shaper, ShaperBuilder, Direction, Script, Language};
-use std::fs;
 use bevy::prelude::*;
+use harfrust::{Direction, GlyphBuffer, Language, Script, Shaper, ShaperBuilder, UnicodeBuffer};
+use std::fs;
 
 /// Resource to hold the shaped text results
 #[derive(Resource, Default)]
@@ -34,22 +34,20 @@ pub struct ShapedGlyph {
 /// Shape Arabic text using HarfRust (simplified for now)
 /// Note: Full HarfRust integration requires proper font loading
 /// which we'll implement later with actual font data
-pub fn shape_arabic_text(
-    text: &str,
-) -> Result<Vec<ShapedGlyph>, String> {
+pub fn shape_arabic_text(text: &str) -> Result<Vec<ShapedGlyph>, String> {
     // For now, we'll do simple character-by-character mapping
     // Full HarfRust shaping will be implemented once we have proper font loading
-    
+
     let mut shaped_glyphs = Vec::new();
     let chars: Vec<char> = text.chars().collect();
-    
+
     for (i, ch) in chars.iter().enumerate() {
         let codepoint = *ch as u32;
-        
+
         // Determine contextual form based on position
-        let is_first = i == 0 || chars[i-1].is_whitespace();
-        let is_last = i == chars.len() - 1 || (i < chars.len() - 1 && chars[i+1].is_whitespace());
-        
+        let is_first = i == 0 || chars[i - 1].is_whitespace();
+        let is_last = i == chars.len() - 1 || (i < chars.len() - 1 && chars[i + 1].is_whitespace());
+
         let form = if !is_first && !is_last {
             "medi"
         } else if !is_first && is_last {
@@ -59,9 +57,9 @@ pub fn shape_arabic_text(
         } else {
             "isol"
         };
-        
+
         let glyph_name = map_codepoint_to_glyph_name(codepoint, form);
-        
+
         shaped_glyphs.push(ShapedGlyph {
             glyph_name,
             glyph_id: codepoint,
@@ -71,7 +69,7 @@ pub fn shape_arabic_text(
             y_offset: 0.0,
         });
     }
-    
+
     Ok(shaped_glyphs)
 }
 
@@ -268,13 +266,12 @@ pub fn map_codepoint_to_glyph_name(codepoint: u32, contextual_form: &str) -> Str
         0x0020 => "space",
         // Default: try to find by Unicode name
         _ => return format!("uni{codepoint:04X}"),
-    }.to_string()
+    }
+    .to_string()
 }
 
 /// System to initialize RTL shaping resources
-pub fn initialize_rtl_shaping(
-    mut commands: Commands,
-) {
+pub fn initialize_rtl_shaping(mut commands: Commands) {
     info!("Initializing RTL text shaping resources");
     commands.init_resource::<ShapedTextCache>();
 }

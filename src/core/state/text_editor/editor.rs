@@ -236,7 +236,7 @@ impl TextEditorState {
                     // Collect all sorts belonging to this buffer IN ORDER
                     let mut buffer_sorts = Vec::new();
                     let mut target_index_in_buffer = None;
-                    
+
                     for i in 0..self.buffer.len() {
                         if let Some(sort_entry) = self.buffer.get(i) {
                             if sort_entry.buffer_id == sort.buffer_id {
@@ -247,7 +247,7 @@ impl TextEditorState {
                             }
                         }
                     }
-                    
+
                     // Now calculate position based on buffer-local index
                     if let Some(target_idx) = target_index_in_buffer {
                         for idx in 0..target_idx {
@@ -591,9 +591,7 @@ impl TextEditorState {
         glyph_name: String,
         advance_width: f32,
         codepoint: Option<char>,
-        _respawn_queue: Option<
-            &mut crate::systems::sorts::sort_entities::BufferSortRespawnQueue,
-        >,
+        _respawn_queue: Option<&mut crate::systems::sorts::sort_entities::BufferSortRespawnQueue>,
     ) {
         debug!("Insert at cursor: Starting insertion of '{}'", glyph_name);
         info!(
@@ -972,7 +970,7 @@ impl TextEditorState {
             "Find active sort: Searching for active sort in {} buffer entries",
             self.buffer.len()
         );
-        
+
         // Find any active sort
         for i in 0..self.buffer.len() {
             if let Some(sort) = self.buffer.get(i) {
@@ -1013,10 +1011,7 @@ impl TextEditorState {
                 }
 
                 // The root placeholder doesn't count towards the string's length.
-                if i == root_index
-                    && sort.kind.is_glyph()
-                    && sort.kind.glyph_name() == "a"
-                {
+                if i == root_index && sort.kind.is_glyph() && sort.kind.glyph_name() == "a" {
                     continue;
                 }
 

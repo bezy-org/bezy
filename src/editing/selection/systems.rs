@@ -153,7 +153,6 @@ pub fn update_glyph_data_from_selection(
         }
     }
 
-
     // Early return if no points were moved
     if query.is_empty() {
         return;

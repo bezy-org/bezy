@@ -607,14 +607,17 @@ impl Plugin for SortHandleRenderingPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<SortHandleEntities>()
             .init_resource::<SortHandleDragState>()
-            .add_systems(Update, (
-                render_mesh_sort_handles,
-                // Handle selection should run before auto_activate_selected_sorts
-                handle_sort_selection_and_drag_start
-                    .before(crate::systems::sorts::sort_entities::auto_activate_selected_sorts),
-                handle_sort_drag_update,
-                handle_sort_drag_release,
-            ));
+            .add_systems(
+                Update,
+                (
+                    render_mesh_sort_handles,
+                    // Handle selection should run before auto_activate_selected_sorts
+                    handle_sort_selection_and_drag_start
+                        .before(crate::systems::sorts::sort_entities::auto_activate_selected_sorts),
+                    handle_sort_drag_update,
+                    handle_sort_drag_release,
+                ),
+            );
     }
 }
 

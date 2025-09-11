@@ -16,9 +16,9 @@ pub mod input_consumer;
 pub mod lifecycle;
 pub mod plugins;
 pub mod sort_manager;
+pub mod sorts;
 pub mod startup_layout;
 pub mod text_buffer_manager;
-pub mod sorts;
 pub mod text_shaping;
 pub mod ui_interaction;
 

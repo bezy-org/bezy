@@ -10,4 +10,3 @@ pub fn load_ufo_from_path(path: impl AsRef<Path>) -> Result<Font> {
     let font = Font::load(path)?;
     Ok(font)
 }
-

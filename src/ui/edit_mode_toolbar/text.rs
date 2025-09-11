@@ -22,10 +22,10 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::rendering::cameras::DesignCamera;
 use crate::rendering::checkerboard::calculate_dynamic_grid_size;
+use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
 use crate::ui::theme::*;
 use crate::ui::theme::{PRESSED_BUTTON_COLOR, SORT_ACTIVE_METRICS_COLOR};
 use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
-use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
 
 /// Resource to track if text mode is active
 #[derive(Resource, Default)]
@@ -96,7 +96,6 @@ pub struct TextSubMenuButton;
 pub struct TextModeButton {
     pub mode: TextPlacementMode,
 }
-
 
 pub struct TextTool;
 

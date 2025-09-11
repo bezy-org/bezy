@@ -16,6 +16,7 @@ use crate::systems::{
     center_camera_on_startup_layout, create_startup_layout, exit_on_esc, load_fontir_font,
     BezySystems, CommandsPlugin, HarfBuzzShapingPlugin, InputConsumerPlugin, UiInteractionPlugin,
 };
+use crate::ui::edit_mode_toolbar::EditModeToolbarPlugin;
 use crate::ui::file_menu::FileMenuPlugin;
 use crate::ui::panes::coordinate_pane::CoordinatePanePlugin;
 use crate::ui::panes::design_space::DesignSpacePlugin;
@@ -24,7 +25,6 @@ use crate::ui::panes::glyph_pane::GlyphPanePlugin;
 use crate::ui::theme::CurrentTheme;
 #[cfg(debug_assertions)]
 use crate::ui::themes::runtime_reload::RuntimeThemePlugin;
-use crate::ui::edit_mode_toolbar::EditModeToolbarPlugin;
 use anyhow::Result;
 use bevy::app::{PluginGroup, PluginGroupBuilder};
 use bevy::prelude::*;

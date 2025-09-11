@@ -350,7 +350,6 @@ pub fn render_mesh_metrics_lines(
         }
     }
 
-
     // COMPREHENSIVE CLEAR: Despawn AND remove metrics entities for all sorts being processed to prevent z-fighting
     // Since we removed change detection, we need to clear all metrics to avoid conflicts
     let changed_sort_entities: Vec<Entity> = changed_sort_entities.into_iter().collect();

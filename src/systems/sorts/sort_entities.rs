@@ -1,13 +1,13 @@
 //! Sort entity management for text editor sorts
 
 use crate::core::state::text_editor::TextEditorState;
+use crate::core::state::text_editor::{BufferMember, TextBuffer};
 use crate::core::state::AppState;
+use crate::core::state::FontMetrics;
 use crate::core::state::SortLayoutMode;
 use crate::editing::selection::components::Selected;
 use crate::editing::sort::{ActiveSort, InactiveSort, Sort};
 use bevy::prelude::*;
-use crate::core::state::text_editor::{TextBuffer, BufferMember};
-use crate::core::state::FontMetrics;
 use std::collections::HashMap;
 
 /// Component to track which buffer index this entity represents
@@ -139,25 +139,29 @@ fn calculate_buffer_local_position(
     global_buffer_index: usize,
     text_editor_state: &TextEditorState,
     font_metrics: &FontMetrics,
-    buffer_id_to_entity: &std::collections::HashMap<crate::core::state::text_editor::buffer::BufferId, Entity>,
+    buffer_id_to_entity: &std::collections::HashMap<
+        crate::core::state::text_editor::buffer::BufferId,
+        Entity,
+    >,
     buffer_entity_query: &Query<(Entity, &TextBuffer)>,
 ) -> Option<Vec2> {
     // Get the sort entry we're positioning
     let sort_entry = text_editor_state.buffer.get(global_buffer_index)?;
-    
+
     // Get the buffer ID for this sort
     let buffer_id = sort_entry.buffer_id?;
-    
+
     // Find the buffer entity
     let buffer_entity = buffer_id_to_entity.get(&buffer_id)?;
-    
+
     // Get buffer information
-    let (_entity, text_buffer) = buffer_entity_query.iter()
+    let (_entity, text_buffer) = buffer_entity_query
+        .iter()
         .find(|(entity, _)| entity == buffer_entity)?;
-    
+
     let root_position = text_buffer.root_position;
     let _layout_mode = &text_buffer.layout_mode;
-    
+
     // Find all sorts that belong to this specific buffer, in order
     let mut buffer_sorts = Vec::new();
     for (idx, sort) in text_editor_state.buffer.iter().enumerate() {
@@ -165,29 +169,30 @@ fn calculate_buffer_local_position(
             buffer_sorts.push((idx, sort));
         }
     }
-    
+
     // Find our position within this buffer
-    let buffer_local_index = buffer_sorts.iter()
+    let buffer_local_index = buffer_sorts
+        .iter()
         .position(|(idx, _)| *idx == global_buffer_index)?;
-    
+
     info!(
         "🔍 ECS POSITIONING: Sort at global[{}] is buffer-local[{}] in buffer {:?} with {} total sorts",
         global_buffer_index, buffer_local_index, buffer_id.0, buffer_sorts.len()
     );
-    
+
     // Calculate position based on preceding sorts in THIS buffer only
     let mut x_offset = 0.0;
     let mut y_offset = 0.0;
-    
+
     // Use font metrics to calculate line height (match legacy system)
     let upm = font_metrics.units_per_em as f32;
     let descender = font_metrics.descender.unwrap_or(-256.0) as f32;
-    let line_height = upm - descender;  // Legacy formula: upm - descender (descender is negative)
-    
+    let line_height = upm - descender; // Legacy formula: upm - descender (descender is negative)
+
     // Calculate position by iterating through preceding sorts in this buffer
     // Direction depends on layout mode
     let layout_mode = &text_buffer.layout_mode;
-    
+
     for i in 0..buffer_local_index {
         if let Some((_, sort)) = buffer_sorts.get(i) {
             match &sort.kind {
@@ -198,7 +203,7 @@ fn calculate_buffer_local_position(
                             x_offset += advance_width;
                         }
                         crate::core::state::SortLayoutMode::RTLText => {
-                            // RTL: advance to the left  
+                            // RTL: advance to the left
                             x_offset -= advance_width;
                         }
                         crate::core::state::SortLayoutMode::Freeform => {
@@ -214,9 +219,9 @@ fn calculate_buffer_local_position(
             }
         }
     }
-    
+
     let final_position = Vec2::new(root_position.x + x_offset, root_position.y + y_offset);
-    
+
     info!(
         "🎯 ECS POSITIONING: buffer-local[{}] '{}' at ({:.1}, {:.1}) (x_offset={:.1})",
         buffer_local_index,
@@ -225,7 +230,7 @@ fn calculate_buffer_local_position(
         final_position.y,
         x_offset
     );
-    
+
     Some(final_position)
 }
 
@@ -239,7 +244,10 @@ pub fn spawn_missing_sort_entities(
     app_state: Option<Res<AppState>>,
     fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
     _existing_active_sorts: Query<Entity, With<crate::editing::sort::ActiveSort>>,
-    buffer_entity_query: Query<(Entity, &crate::core::state::text_editor::text_buffer::TextBuffer)>,
+    buffer_entity_query: Query<(
+        Entity,
+        &crate::core::state::text_editor::text_buffer::TextBuffer,
+    )>,
 ) {
     // Debug: Log buffer state (only when buffer has content to reduce spam)
     if !text_editor_state.buffer.is_empty() {
@@ -266,7 +274,10 @@ pub fn spawn_missing_sort_entities(
     let mut buffer_id_to_entity = std::collections::HashMap::new();
     for (buffer_entity, text_buffer) in buffer_entity_query.iter() {
         buffer_id_to_entity.insert(text_buffer.id, buffer_entity);
-        info!("🔗 BUFFER MAPPING: BufferId {:?} -> Entity {:?}", text_buffer.id.0, buffer_entity);
+        info!(
+            "🔗 BUFFER MAPPING: BufferId {:?} -> Entity {:?}",
+            text_buffer.id.0, buffer_entity
+        );
     }
 
     // Handle respawn requests first
@@ -397,10 +408,12 @@ pub fn spawn_missing_sort_entities(
                             }
                         }
 
-                        entity_commands.insert(crate::core::state::text_editor::text_buffer::BufferMember::new(
-                            buffer_entity, 
-                            buffer_local_index
-                        ));
+                        entity_commands.insert(
+                            crate::core::state::text_editor::text_buffer::BufferMember::new(
+                                buffer_entity,
+                                buffer_local_index,
+                            ),
+                        );
 
                         info!("🔗 BUFFER MEMBERSHIP: Linked sort entity {:?} to buffer entity {:?} at buffer-local index {}", 
                               entity, buffer_entity, buffer_local_index);
@@ -436,7 +449,10 @@ pub fn update_buffer_sort_positions(
     fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
     buffer_entities: Res<BufferSortEntities>,
     mut sort_query: Query<&mut Transform, With<BufferSortIndex>>,
-    buffer_entity_query: Query<(Entity, &crate::core::state::text_editor::text_buffer::TextBuffer)>,
+    buffer_entity_query: Query<(
+        Entity,
+        &crate::core::state::text_editor::text_buffer::TextBuffer,
+    )>,
 ) {
     // CRITICAL PERFORMANCE FIX: Early return if TextEditorState hasn't changed
     // Prevents O(N²) position calculations every frame

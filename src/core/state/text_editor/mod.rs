@@ -16,6 +16,4 @@ pub use buffer::{
 };
 
 // Re-export new buffer-level types
-pub use text_buffer::{
-    TextBuffer, BufferCursor, BufferMember, ActiveTextBuffer, BufferSystemSet,
-};
+pub use text_buffer::{ActiveTextBuffer, BufferCursor, BufferMember, BufferSystemSet, TextBuffer};

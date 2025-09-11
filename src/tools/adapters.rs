@@ -329,4 +329,3 @@ impl LegacyEditTool for MetaballsToolAdapter {
         info!("Metaballs tool deactivated");
     }
 }
-

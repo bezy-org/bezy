@@ -7,8 +7,8 @@
 
 use crate::core::state::text_editor::{SortData, SortKind, SortLayoutMode, TextEditorState};
 use crate::core::state::{AppState, TextEditorState as CoreTextEditorState};
-use crate::rendering::text_cursor::{self, CursorRenderingState};
 use crate::rendering::entity_pools::EntityPools;
+use crate::rendering::text_cursor::{self, CursorRenderingState};
 use crate::ui::edit_mode_toolbar::text::TextPlacementMode;
 use bevy::prelude::*;
 use bevy::sprite::ColorMaterial;
@@ -36,14 +36,12 @@ fn get_active_buffer_info(
     let active_buffer_res = active_buffer.as_ref()?;
     let buffer_entity = active_buffer_res.buffer_entity?;
     let (text_buffer, buffer_cursor) = buffer_query.get(buffer_entity).ok()?;
-    
+
     info!(
         "🎯 CURSOR: Using buffer entity {:?}, cursor: {}, layout: {:?}",
-        buffer_entity,
-        buffer_cursor.position,
-        text_buffer.layout_mode
+        buffer_entity, buffer_cursor.position, text_buffer.layout_mode
     );
-    
+
     Some(BufferInfo {
         cursor_position: buffer_cursor.position,
         root_position: text_buffer.root_position,
@@ -100,14 +98,14 @@ fn calculate_cursor_offset(
 }
 
 /// Calculate RTL cursor offset (right-to-left text positioning)
-/// 
+///
 /// RTL POSITIONING LOGIC:
 /// ===================
 /// In RTL text, cursor positioning works BACKWARDS from LTR:
-/// 1. START: Root position (rightmost edge) 
+/// 1. START: Root position (rightmost edge)
 /// 2. DIRECTION: Move LEFT by subtracting widths
 /// 3. RULE: Accumulate widths of text AT OR AFTER cursor position
-/// 
+///
 /// This positions cursor at LEFT EDGE of existing text (insertion point)
 fn calculate_rtl_cursor_offset(
     buffer_sorts: &[&SortData],
@@ -119,13 +117,13 @@ fn calculate_rtl_cursor_offset(
         buffer_sorts.len(),
         cursor_position
     );
-    
+
     // RTL starts at RIGHT EDGE (x=0) and moves LEFT (negative x)
     let mut horizontal_offset = 0.0;
     let mut vertical_offset = 0.0;
-    
+
     // TODO(human): Debug this RTL cursor positioning logic
-    
+
     // CRITICAL RTL RULE: Process characters AT OR AFTER cursor position
     // This moves cursor leftward to the insertion point
     for (sort_index, sort_entry) in buffer_sorts.iter().enumerate() {
@@ -133,7 +131,7 @@ fn calculate_rtl_cursor_offset(
             // SKIP: Characters BEFORE cursor don't affect RTL cursor position
             continue;
         }
-        
+
         // Process characters AT OR AFTER cursor position
         match &sort_entry.kind {
             SortKind::LineBreak => {
@@ -145,11 +143,11 @@ fn calculate_rtl_cursor_offset(
                 }
                 // Line breaks AFTER cursor don't affect position
             }
-            
+
             SortKind::Glyph { advance_width, .. } => {
                 // RTL KEY OPERATION: Move LEFT by subtracting width
                 horizontal_offset -= advance_width;
-                
+
                 info!(
                     "🎯 RTL: Sort[{}] '{}' at/after cursor → moved LEFT by {:.1} \
                      → offset now ({:.1}, {:.1})",
@@ -162,25 +160,24 @@ fn calculate_rtl_cursor_offset(
             }
         }
     }
-    
+
     info!(
         "🎯 RTL RESULT: Cursor at LEFT EDGE for insertion → ({:.1}, {:.1})",
-        horizontal_offset,
-        vertical_offset
+        horizontal_offset, vertical_offset
     );
-    
+
     Vec2::new(horizontal_offset, vertical_offset)
 }
 
 /// Calculate LTR cursor offset (left-to-right text positioning)
-/// 
+///
 /// LTR POSITIONING LOGIC:
 /// ====================
 /// In LTR text, cursor positioning is intuitive:
 /// 1. START: Root position (leftmost edge)
 /// 2. DIRECTION: Move RIGHT by adding widths
 /// 3. RULE: Accumulate widths of text BEFORE cursor position
-/// 
+///
 /// This positions cursor AFTER existing text (insertion point)
 fn calculate_ltr_cursor_offset(
     buffer_sorts: &[&SortData],
@@ -188,14 +185,13 @@ fn calculate_ltr_cursor_offset(
     line_height: f32,
 ) -> Vec2 {
     info!("🎯 LTR CURSOR: Using standard LTR cursor positioning logic");
-    
+
     // LTR starts at LEFT EDGE (x=0) and moves RIGHT (positive x)
     let mut horizontal_offset = 0.0;
     let mut vertical_offset = 0.0;
-    
+
     // Process each sort in the buffer
     for (sort_index, sort_entry) in buffer_sorts.iter().enumerate() {
-        
         if sort_index < cursor_position {
             // BEFORE CURSOR: These characters affect cursor position
             match &sort_entry.kind {
@@ -203,18 +199,17 @@ fn calculate_ltr_cursor_offset(
                     // Line break: Reset to start of next line
                     horizontal_offset = 0.0;
                     vertical_offset -= line_height;
-                    
+
                     info!(
                         "🎯 LTR: Line break[{}] → moved to next line (y: {:.1})",
-                        sort_index,
-                        vertical_offset
+                        sort_index, vertical_offset
                     );
                 }
-                
+
                 SortKind::Glyph { advance_width, .. } => {
                     // LTR KEY OPERATION: Move RIGHT by adding width
                     horizontal_offset += advance_width;
-                    
+
                     info!(
                         "🎯 LTR: Sort[{}] '{}' before cursor → moved RIGHT by {:.1} \
                          → offset now ({:.1}, {:.1})",
@@ -226,15 +221,13 @@ fn calculate_ltr_cursor_offset(
                     );
                 }
             }
-        } 
-        
-        else if sort_index == cursor_position {
+        } else if sort_index == cursor_position {
             // AT CURSOR: Special case for line breaks
             if let SortKind::LineBreak = &sort_entry.kind {
                 // Cursor exactly at line break - show at start of new line
                 horizontal_offset = 0.0;
                 vertical_offset -= line_height;
-                
+
                 info!(
                     "🎯 LTR: Cursor AT line break[{}] → show at new line start",
                     sort_index
@@ -243,16 +236,15 @@ fn calculate_ltr_cursor_offset(
             }
             // For glyphs: cursor positioned BEFORE the glyph (no offset change)
         }
-        
+
         // AFTER CURSOR: These characters don't affect cursor position (skip)
     }
-    
+
     info!(
         "🎯 LTR RESULT: Cursor AFTER existing text → ({:.1}, {:.1})",
-        horizontal_offset,
-        vertical_offset
+        horizontal_offset, vertical_offset
     );
-    
+
     Vec2::new(horizontal_offset, vertical_offset)
 }
 
@@ -270,14 +262,14 @@ pub fn calculate_cursor_position(
     let buffer_info = get_active_buffer_info(active_buffer, buffer_query)?;
     let line_height = get_line_height(fontir_app_state, app_state);
     let buffer_sorts = collect_buffer_sorts(text_editor_state, buffer_info.buffer_id);
-    
+
     let offset = calculate_cursor_offset(
         &buffer_sorts,
         buffer_info.cursor_position,
         &buffer_info.layout_mode,
         line_height,
     );
-    
+
     Some(buffer_info.root_position + offset)
 }
 
@@ -307,7 +299,7 @@ pub fn render_text_editor_cursor(
     // Only render cursor when Text tool is active AND in Insert mode
     let should_show_cursor = current_tool.get_current() == Some("text")
         && matches!(*current_placement_mode, TextPlacementMode::Insert);
-        
+
     if !should_show_cursor {
         text_cursor::clear_cursor_entities(&mut commands, &mut entity_pools);
         return;
@@ -317,13 +309,16 @@ pub fn render_text_editor_cursor(
     let current_tool_name = current_tool.get_current();
     let current_placement_mode_value = *current_placement_mode;
     let current_camera_scale = camera_scale.scale_factor;
-    
+
     // Get cursor position from active buffer entity
     let current_buffer_cursor_position = active_buffer
         .as_ref()
         .and_then(|active| active.buffer_entity)
         .and_then(|buffer_entity| {
-            buffer_query.get(buffer_entity).ok().map(|(_, cursor)| cursor.position)
+            buffer_query
+                .get(buffer_entity)
+                .ok()
+                .map(|(_, cursor)| cursor.position)
         });
 
     // Calculate current cursor position using business logic
@@ -339,13 +334,19 @@ pub fn render_text_editor_cursor(
 
     // Check if anything changed (change detection optimization)
     let tool_changed = cursor_state.last_tool.as_deref() != current_tool_name;
-    let placement_mode_changed = cursor_state.last_placement_mode != Some(current_placement_mode_value);
-    let buffer_cursor_changed = cursor_state.last_buffer_cursor_position != current_buffer_cursor_position;
+    let placement_mode_changed =
+        cursor_state.last_placement_mode != Some(current_placement_mode_value);
+    let buffer_cursor_changed =
+        cursor_state.last_buffer_cursor_position != current_buffer_cursor_position;
     let cursor_position_changed = cursor_state.last_cursor_position != current_cursor_position;
     let camera_scale_changed = cursor_state.last_camera_scale != Some(current_camera_scale);
 
-    if !tool_changed && !placement_mode_changed && !buffer_cursor_changed 
-        && !cursor_position_changed && !camera_scale_changed {
+    if !tool_changed
+        && !placement_mode_changed
+        && !buffer_cursor_changed
+        && !cursor_position_changed
+        && !camera_scale_changed
+    {
         return; // No changes, skip rendering
     }
 

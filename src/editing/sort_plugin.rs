@@ -47,18 +47,12 @@ impl Plugin for SortPlugin {
             // Management systems (events, basic sort operations)
             .add_systems(
                 Update,
-                (
-                    handle_sort_events,
-                )
-                    .in_set(SortSystemSet::Management),
+                (handle_sort_events,).in_set(SortSystemSet::Management),
             )
             // Point spawning systems
             .add_systems(
                 Update,
-                (
-                    respawn_sort_points_on_glyph_change,
-                )
-                    .in_set(SortSystemSet::PointSpawning),
+                (respawn_sort_points_on_glyph_change,).in_set(SortSystemSet::PointSpawning),
             )
             // Label management systems (text labels for sorts)
             .add_systems(

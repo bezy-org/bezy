@@ -680,7 +680,8 @@ fn render_glyph_points(
         // Create the three-layer point shape
         if point_type.is_on_curve && USE_SQUARE_FOR_ON_CURVE {
             // On-curve points: square with three layers
-            let base_size = ON_CURVE_POINT_RADIUS * ON_CURVE_SQUARE_ADJUSTMENT * 2.0 * root_size_multiplier;
+            let base_size =
+                ON_CURVE_POINT_RADIUS * ON_CURVE_SQUARE_ADJUSTMENT * 2.0 * root_size_multiplier;
             let size = camera_scale.adjusted_point_size(base_size);
 
             // Layer 1: Base shape (full width) - primary color

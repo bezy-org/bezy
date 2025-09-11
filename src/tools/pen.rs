@@ -185,7 +185,10 @@ pub fn handle_pen_mouse_events(
     ui_hover_state: Res<UiHoverState>,
     settings: Res<crate::core::settings::BezySettings>,
     // Query for active sort to get its position
-    active_sort_query: Query<(Entity, &crate::editing::sort::Sort, &Transform), With<crate::editing::sort::ActiveSort>>,
+    active_sort_query: Query<
+        (Entity, &crate::editing::sort::Sort, &Transform),
+        With<crate::editing::sort::ActiveSort>,
+    >,
 ) {
     // Check if pen tool is active via multiple methods
     let pen_is_active = pen_mode_active.as_ref().is_some_and(|p| p.0)
@@ -213,7 +216,9 @@ pub fn handle_pen_mouse_events(
         if pen_is_active && active_sort.is_none() {
             // Only show this message when pen tool is actually trying to be used
             if mouse_button_input.just_pressed(MouseButton::Left) {
-                info!("🖊️ Pen tool: Cannot draw without an active sort. Please select a glyph first.");
+                info!(
+                    "🖊️ Pen tool: Cannot draw without an active sort. Please select a glyph first."
+                );
             }
         }
         return;
@@ -230,8 +235,12 @@ pub fn handle_pen_mouse_events(
         let sort_relative_position = DPoint::from_raw(design_position.to_raw() - sort_position);
 
         // Calculate final position with grid snap and axis locking (relative to sort)
-        let final_dpoint =
-            calculate_final_position_dpoint(sort_relative_position, &keyboard_input, &pen_state, &settings);
+        let final_dpoint = calculate_final_position_dpoint(
+            sort_relative_position,
+            &keyboard_input,
+            &pen_state,
+            &settings,
+        );
 
         info!(
             "Pen tool: Left click at design ({:.1}, {:.1}), sort pos ({:.1}, {:.1}) -> sort-relative ({:.1}, {:.1})",
@@ -320,7 +329,10 @@ pub fn render_pen_preview(
     existing_preview_query: Query<Entity, With<PenPreviewElement>>,
     theme: Res<crate::ui::themes::CurrentTheme>,
     // Query for active sort to get its position for preview rendering
-    active_sort_query: Query<(Entity, &crate::editing::sort::Sort, &Transform), With<crate::editing::sort::ActiveSort>>,
+    active_sort_query: Query<
+        (Entity, &crate::editing::sort::Sort, &Transform),
+        With<crate::editing::sort::ActiveSort>,
+    >,
 ) {
     // Clean up existing preview elements
     for entity in existing_preview_query.iter() {
@@ -369,7 +381,9 @@ pub fn render_pen_preview(
 
     let hovering_start_point = if pen_state.current_path.len() > 2 {
         if let Some(first_point) = pen_state.current_path.first() {
-            let distance = final_position_for_closure.to_raw().distance(first_point.to_raw());
+            let distance = final_position_for_closure
+                .to_raw()
+                .distance(first_point.to_raw());
             distance < CLOSE_PATH_THRESHOLD
         } else {
             false
@@ -525,7 +539,8 @@ fn finalize_fontir_path(
         let current_glyph_name = fontir_state.current_glyph.clone();
         if let Some(current_glyph_name) = current_glyph_name {
             // Get or create a working copy using the proper method
-            if let Some(working_copy) = fontir_state.get_or_create_working_copy(&current_glyph_name) {
+            if let Some(working_copy) = fontir_state.get_or_create_working_copy(&current_glyph_name)
+            {
                 working_copy.contours.push(bez_path.clone());
                 working_copy.is_dirty = true;
                 app_state_changed.write(AppStateChanged);
@@ -797,7 +812,7 @@ fn calculate_final_position_dpoint(
 ) -> DPoint {
     // Convert to Vec2 for grid snap
     let raw_pos = cursor_pos.to_raw();
-    
+
     // Apply snap to grid first
     let snapped_pos = settings.apply_grid_snap(raw_pos);
 
@@ -814,7 +829,7 @@ fn calculate_final_position_dpoint(
     } else {
         snapped_pos
     };
-    
+
     // Convert back to DPoint
     DPoint::from_raw(final_vec2)
 }

@@ -56,10 +56,7 @@ pub fn render_cursor_at_position(
 }
 
 /// Clear all cursor entities from the screen
-pub fn clear_cursor_entities(
-    commands: &mut Commands,
-    entity_pools: &mut ResMut<EntityPools>,
-) {
+pub fn clear_cursor_entities(commands: &mut Commands, entity_pools: &mut ResMut<EntityPools>) {
     entity_pools.return_cursor_entities(commands);
 }
 

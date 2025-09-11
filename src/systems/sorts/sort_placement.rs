@@ -17,9 +17,7 @@ pub fn handle_sort_placement_input(
     >,
     windows: Query<&Window, With<bevy::window::PrimaryWindow>>,
     current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
-    mut current_placement_mode: ResMut<
-        crate::ui::edit_mode_toolbar::text::TextPlacementMode,
-    >,
+    mut current_placement_mode: ResMut<crate::ui::edit_mode_toolbar::text::TextPlacementMode>,
     mut text_editor_state: ResMut<crate::core::state::TextEditorState>,
     ui_hover_state: Res<crate::systems::ui_interaction::UiHoverState>,
     fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
@@ -138,11 +136,16 @@ pub fn handle_sort_placement_input(
     );
 
     // CRITICAL: Update the ActiveTextBuffer resource to point to the new buffer entity
-    commands.insert_resource(crate::core::state::text_editor::text_buffer::ActiveTextBuffer {
-        buffer_entity: Some(new_buffer_entity),
-    });
-    
-    info!("🖱️ SORT PLACEMENT: Set active buffer entity to {:?}", new_buffer_entity);
+    commands.insert_resource(
+        crate::core::state::text_editor::text_buffer::ActiveTextBuffer {
+            buffer_entity: Some(new_buffer_entity),
+        },
+    );
+
+    info!(
+        "🖱️ SORT PLACEMENT: Set active buffer entity to {:?}",
+        new_buffer_entity
+    );
 
     // CRITICAL: Mark the text editor state as changed to trigger entity spawning
     text_editor_state.set_changed();
@@ -187,7 +190,7 @@ fn create_independent_sort_with_fontir(
 ) -> bevy::prelude::Entity {
     use crate::core::state::text_editor::buffer::BufferId;
     use crate::core::state::text_editor::{SortData, SortKind, SortLayoutMode};
-    use crate::systems::text_buffer_manager::{create_text_buffer, add_sort_to_buffer};
+    use crate::systems::text_buffer_manager::{add_sort_to_buffer, create_text_buffer};
 
     info!("🖱️ INSIDE create_independent_sort_with_fontir: Starting function");
 
@@ -208,10 +211,10 @@ fn create_independent_sort_with_fontir(
     // Even if the same layout mode (RTL/LTR) exists, we create a new buffer for independence
 
     // NEW BUFFER ENTITY SYSTEM: Create a buffer entity first, then add sort to it
-    
+
     // Create a new unique buffer ID for complete isolation
     let buffer_id = BufferId::new();
-    
+
     // CURSOR POSITIONING: Start cursor after initial character for natural typing flow
     let initial_cursor_position = 1;
 
@@ -224,15 +227,18 @@ fn create_independent_sort_with_fontir(
         initial_cursor_position,
     );
 
-    info!("🖱️ Creating new {} buffer (Entity: {:?}, ID: {:?}) at position ({:.1}, {:.1})", 
-          match layout_mode {
-              SortLayoutMode::RTLText => "RTL",
-              SortLayoutMode::LTRText => "LTR",
-              SortLayoutMode::Freeform => "Freeform", 
-          },
-          buffer_entity,
-          buffer_id,
-          world_position.x, world_position.y);
+    info!(
+        "🖱️ Creating new {} buffer (Entity: {:?}, ID: {:?}) at position ({:.1}, {:.1})",
+        match layout_mode {
+            SortLayoutMode::RTLText => "RTL",
+            SortLayoutMode::LTRText => "LTR",
+            SortLayoutMode::Freeform => "Freeform",
+        },
+        buffer_entity,
+        buffer_id,
+        world_position.x,
+        world_position.y
+    );
 
     // CREATE INITIAL CHARACTER SORT: This provides a clear visual starting point
     // This is NOT a "root sort" - just the first character in the buffer like any other
@@ -246,22 +252,22 @@ fn create_independent_sort_with_fontir(
         is_active: true, // Make this sort active for immediate editing
         root_position: world_position,
         buffer_cursor_position: None, // Deprecated field - cursor stored in buffer entity now
-        buffer_id: Some(buffer_id), // For compatibility, though deprecated
+        buffer_id: Some(buffer_id),   // For compatibility, though deprecated
     };
 
     // Insert the initial sort into the text editor buffer at index 0
     text_editor_state.buffer.insert(0, initial_sort);
-    
+
     info!(
         "📍 SORT PLACEMENT: Created buffer entity {:?} with layout_mode: {:?}, added initial '{}' character at index 0", 
         buffer_entity, layout_mode, placeholder_glyph
     );
-    
+
     info!(
         "🖱️ Created new buffer entity {:?} with cursor at position {} and initial character '{}' at world position ({:.1}, {:.1})",
         buffer_entity, initial_cursor_position, placeholder_glyph, world_position.x, world_position.y
     );
-    
+
     // Return the buffer entity for the caller to use
     buffer_entity
 }

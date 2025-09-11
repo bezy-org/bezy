@@ -53,15 +53,15 @@
 //! This approach ensures perfect visual consistency between main toolbar and all submenus,
 //! making it easy to maintain a professional, unified interface.
 
+use crate::ui::edit_mode_toolbar::*;
 use crate::ui::theme::{
     BUTTON_ICON_SIZE, GROTESK_FONT_PATH, HOVERED_BUTTON_COLOR, HOVERED_BUTTON_OUTLINE_COLOR,
     MONO_FONT_PATH, NORMAL_BUTTON_COLOR, NORMAL_BUTTON_OUTLINE_COLOR, PRESSED_BUTTON_COLOR,
     PRESSED_BUTTON_ICON_COLOR, PRESSED_BUTTON_OUTLINE_COLOR, TOOLBAR_BORDER_WIDTH,
-    TOOLBAR_BUTTON_SIZE, TOOLBAR_CONTAINER_MARGIN, TOOLBAR_ICON_COLOR, TOOLBAR_GRID_SPACING,
+    TOOLBAR_BUTTON_SIZE, TOOLBAR_CONTAINER_MARGIN, TOOLBAR_GRID_SPACING, TOOLBAR_ICON_COLOR,
     TOOLBAR_ITEM_SPACING, TOOLBAR_PADDING, WIDGET_TEXT_FONT_SIZE,
 };
 use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
-use crate::ui::edit_mode_toolbar::*;
 use bevy::prelude::*;
 
 // COMPONENTS ------------------------------------------------------------------
@@ -465,10 +465,7 @@ pub fn update_hover_text_visibility(
     >,
     // AI submenu buttons
     ai_button_query: Query<
-        (
-            &Interaction,
-            &crate::tools::ai::AiOperationButton,
-        ),
+        (&Interaction, &crate::tools::ai::AiOperationButton),
         (
             With<Button>,
             Without<ToolButtonData>,
@@ -558,8 +555,11 @@ pub fn update_hover_text_visibility(
     // Calculate position: if submenu visible, position below submenu; otherwise below main toolbar
     let vertical_offset = if submenu_visible {
         // Position below submenu: container margin + main toolbar + spacing + submenu + smaller spacing
-        TOOLBAR_CONTAINER_MARGIN + TOOLBAR_BUTTON_SIZE + TOOLBAR_GRID_SPACING * 2.0
-            + TOOLBAR_BUTTON_SIZE + TOOLBAR_GRID_SPACING * 2.0
+        TOOLBAR_CONTAINER_MARGIN
+            + TOOLBAR_BUTTON_SIZE
+            + TOOLBAR_GRID_SPACING * 2.0
+            + TOOLBAR_BUTTON_SIZE
+            + TOOLBAR_GRID_SPACING * 2.0
     } else {
         // Position below main toolbar with consistent spacing
         base_offset
@@ -608,7 +608,7 @@ pub fn update_hover_text_visibility(
                     position_type: PositionType::Absolute,
                     top: Val::Px(vertical_offset),
                     left: Val::Px(TOOLBAR_CONTAINER_MARGIN + TOOLBAR_GRID_SPACING), // Align with button left edge
-                    display: Display::Flex,                        // Show immediately
+                    display: Display::Flex, // Show immediately
                     ..default()
                 },
                 ButtonHoverText,
