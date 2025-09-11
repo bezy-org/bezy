@@ -19,7 +19,6 @@ use crate::systems::{
 use crate::ui::edit_mode_toolbar::EditModeToolbarPlugin;
 use crate::ui::file_menu::FileMenuPlugin;
 use crate::ui::panes::coordinate_pane::CoordinatePanePlugin;
-use crate::ui::panes::design_space::DesignSpacePlugin;
 use crate::ui::panes::file_pane::FilePanePlugin;
 use crate::ui::panes::glyph_pane::GlyphPanePlugin;
 use crate::ui::theme::CurrentTheme;
@@ -78,7 +77,6 @@ pub struct EditorPluginGroup;
 impl PluginGroup for EditorPluginGroup {
     fn build(self) -> PluginGroupBuilder {
         PluginGroupBuilder::start::<Self>()
-            .add(DesignSpacePlugin)
             .add(FilePanePlugin)
             .add(GlyphPanePlugin)
             .add(CoordinatePanePlugin)
