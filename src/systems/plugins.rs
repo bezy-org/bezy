@@ -8,7 +8,6 @@ use bevy::prelude::*;
 
 use crate::editing::sort_plugin::SortPlugin;
 use crate::ui::theme::{GIZMO_LINE_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH};
-use crate::utils::setup::setup;
 
 /// Configure default Bevy plugins for the application
 #[allow(dead_code)]
@@ -63,7 +62,7 @@ pub struct SetupPlugin;
 
 impl Plugin for SetupPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (setup, configure_gizmos).chain());
+        app.add_systems(Startup, configure_gizmos);
     }
 }
 
