@@ -725,12 +725,6 @@ fn process_input_events(
         }
 
         // Mode-specific consumers
-        // DISABLED: Pen tool now uses its own handle_pen_mouse_events system
-        // if pen_consumer.should_handle_input(event, &input_state) {
-        //     pen_consumer.handle_input(event, &input_state);
-        //     ... pen handling logic ...
-        //     continue;
-        // }
 
         if knife_consumer.should_handle_input(event, &input_state) {
             info!(

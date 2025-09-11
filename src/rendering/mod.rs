@@ -11,7 +11,6 @@
 
 pub mod cameras;
 pub mod checkerboard;
-pub mod debug;
 pub mod draw;
 pub mod entity_pools;
 pub mod glyph_renderer;
@@ -24,7 +23,6 @@ pub mod selection;
 pub mod sort_renderer;
 pub mod sort_visuals;
 pub mod text_cursor;
-pub mod text_sort_rendering;
 pub mod zoom_aware_scaling;
 
 // Re-export commonly used items

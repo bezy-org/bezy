@@ -4,13 +4,10 @@
 //! approach that treats sorts as a linear buffer with cursor navigation.
 
 use crate::systems::sorts::{
-    debug_text_editor_state,
     despawn_inactive_sort_points_optimized, // NEW: Optimized instant point despawning
     despawn_missing_buffer_sort_entities,   // NEW: Despawn deleted buffer sorts
     detect_sort_glyph_changes, // NEW: Detect glyph changes and force point regeneration
-    // handle_text_input_with_cosmic, // DISABLED: Legacy system causing double input
     handle_arabic_text_input, // NEW: Arabic and Unicode text input
-    // respawn_active_sort_points, // REMOVED: Replaced with ECS-based system
     handle_sort_placement_input, // NEW: Uses centralized input system
     handle_text_editor_keyboard_input,
     handle_unicode_text_input, // NEW: Unicode character input using Bevy events
@@ -18,13 +15,11 @@ use crate::systems::sorts::{
     initialize_rtl_shaping, // NEW: Initialize RTL shaping resources
     manage_sort_activation, // NEW: ECS-based sort activation management
     regenerate_points_on_fontir_change, // NEW: Regenerate points when FontIR data changes
-    // handle_text_editor_sort_clicks, // REMOVED: legacy system
     spawn_active_sort_points_optimized, // NEW: Optimized instant point spawning
     spawn_missing_sort_entities,        // NEW: Spawn ECS entities for buffer sorts
     sync_buffer_sort_activation_state,  // NEW: Sync activation state from buffer to entities
 };
 
-use crate::rendering::text_sort_rendering::render_text_editor_sorts;
 
 use bevy::prelude::*;
 
@@ -68,15 +63,12 @@ impl Plugin for TextEditorPlugin {
             ).chain().in_set(super::FontEditorSets::EntitySync))
             // Rendering systems
             .add_systems(Update, (
-                render_text_editor_sorts,
                 crate::systems::sorts::cursor::render_text_editor_cursor,
             ).in_set(super::FontEditorSets::Rendering))
             // Cleanup systems (the old cleanup system is now replaced by component-relationship cleanup)
             .add_systems(Update, 
                 despawn_missing_buffer_sort_entities
                     .in_set(super::FontEditorSets::Cleanup)
-            )
-            // Debug systems (no set - can run anytime)
-            .add_systems(Update, debug_text_editor_state);
+            );
     }
 }

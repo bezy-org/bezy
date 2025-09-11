@@ -224,9 +224,6 @@ fn handle_unicode_character(
         // Get advance width
         let advance_width = get_glyph_advance_width(&glyph_name, app_state, fontir_app_state);
 
-        // REMOVED: Automatic text root creation
-        // Text roots should only be created by clicking with the text tool
-        // This was causing duplicate sorts - one from clicking, one from typing
 
         // Insert the character using new buffer entity system
         match *current_placement_mode {
@@ -439,14 +436,14 @@ fn insert_line_break_at_buffer_cursor(
         warn!("⚠️ LINEBREAK: Active buffer has no entity");
         return false;
     };
-    let Ok((_text_buffer, mut buffer_cursor)) = buffer_query.get_mut(buffer_entity) else {
+    let Ok((text_buffer, mut buffer_cursor)) = buffer_query.get_mut(buffer_entity) else {
         warn!("⚠️ LINEBREAK: Could not access buffer cursor for entity {:?}", buffer_entity);
         return false;
     };
 
     let cursor_position = buffer_cursor.position;
-    let buffer_id = _text_buffer.id;
-    let layout_mode = _text_buffer.layout_mode.clone();
+    let buffer_id = text_buffer.id;
+    let layout_mode = text_buffer.layout_mode.clone();
     let insert_buffer_index = cursor_position;
 
     info!("📝 LINEBREAK: Inserting line break at buffer index {} (cursor at {}) in buffer {:?} (layout: {:?})", 
@@ -955,7 +952,7 @@ fn handle_arrow_left(
         return;
     };
     
-    let Ok((text_buffer, mut buffer_cursor)) = buffer_query.get_mut(buffer_entity) else {
+    let Ok((_text_buffer, mut buffer_cursor)) = buffer_query.get_mut(buffer_entity) else {
         debug!("Buffer entity not found for arrow left");
         return;
     };

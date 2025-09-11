@@ -153,7 +153,6 @@ pub fn update_glyph_data_from_selection(
         }
     }
 
-    // REMOVED: Skip during nudging - we want sync to work normally during nudging
 
     // Early return if no points were moved
     if query.is_empty() {

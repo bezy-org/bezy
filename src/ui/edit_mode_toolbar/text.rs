@@ -157,7 +157,6 @@ impl Plugin for TextModePlugin {
                     update_text_mode_active,
                     handle_text_tool_shortcuts,
                     handle_text_mode_cursor,
-                    // handle_text_mode_mouse_clicks, // DISABLED: Duplicate of handle_sort_placement_input in TextEditorPlugin
                     handle_text_mode_keyboard,
                     render_sort_preview,
                     reset_text_mode_when_inactive,
@@ -476,8 +475,6 @@ pub fn handle_text_mode_sort_placement(
     _glyph_names: &[String],
     _default_advance_width: f32,
 ) -> bool {
-    // DISABLED: This function was creating duplicate sorts
-    // Sort placement is now handled centrally by handle_sort_placement_input in TextEditorPlugin
     false
 }
 

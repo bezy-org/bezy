@@ -330,24 +330,3 @@ impl LegacyEditTool for MetaballsToolAdapter {
     }
 }
 
-/// OLD SYSTEM: Manual tool registration (now replaced by config-based system)
-/// This function is disabled - all tools are now registered automatically
-/// from the configuration in toolbar_config.rs
-fn _register_clean_tools_old_system(
-    mut _tool_registry: ResMut<crate::ui::edit_mode_toolbar::ToolRegistry>,
-) {
-    // 🚫 OLD SYSTEM - DO NOT USE
-    // All tools are now automatically registered from toolbar_config.rs
-    // by the ConfigBasedToolbarPlugin
-
-    // tool_registry.register_tool(Box::new(SelectToolAdapter));
-    // tool_registry.register_tool(Box::new(PenToolAdapter));
-    // tool_registry.register_tool(Box::new(TextToolAdapter));
-    // tool_registry.register_tool(Box::new(ShapesToolAdapter));
-    // tool_registry.register_tool(Box::new(KnifeToolAdapter));
-    // tool_registry.register_tool(Box::new(HyperToolAdapter));
-    // tool_registry.register_tool(Box::new(MetaballsToolAdapter));
-
-    warn!("⚠️  OLD REGISTRATION SYSTEM CALLED - This should not happen!");
-    warn!("🎯 Edit toolbar_config.rs instead of using manual registration");
-}

@@ -105,26 +105,11 @@ impl Plugin for SelectionPlugin {
                     .in_set(SelectionSystemSet::Processing)
                     .after(SelectionSystemSet::Input),
             )
-            // Add the new ECS-based point management systems
-            // TEMP DISABLED: Causing performance lag during text input
-            // .add_systems(
-            //     Update,
-            //     (
-            //         // entity_management::spawn_active_sort_points, // DISABLED: Causes duplicate point entities
-            //         entity_management::despawn_inactive_sort_points,
-            //         entity_management::sync_point_positions_to_sort,
-            //     )
-            //         .after(entity_management::update_glyph_data_from_selection),
-            // )
             // Rendering systems - moved to PostUpdate to run after transform propagation
             .add_systems(
                 PostUpdate,
                 (
                     crate::rendering::selection::render_selection_marquee,
-                    // DISABLED: These are now handled by the unified glyph editing system
-                    // crate::rendering::selection::render_selected_entities,
-                    // crate::rendering::selection::render_all_point_entities,
-                    // crate::rendering::selection::render_control_handles,
                     utils::debug_print_selection_rects, // TEMP: debug system
                 )
                     .in_set(SelectionSystemSet::Render),

@@ -88,11 +88,7 @@ impl PluginGroup for EditorPluginGroup {
             .add(HudPlugin)
             // ✅ NEW SYSTEM: All tools are now automatically registered via EditModeToolbarPlugin
             // No need for manual tool plugin registration - everything is handled by toolbar_config.rs
-            // ❌ OLD SYSTEM (REMOVED): Manual tool plugin registration
-            // .add(crate::tools::CleanToolsPlugin)     // DEPRECATED - now handled by config system
-            // .add(crate::tools::SelectToolPlugin)     // DEPRECATED - now handled by config system
             .add(crate::tools::PenToolPlugin) // Re-enabled - pen tool needs its business logic plugin
-                                              // .add(crate::tools::TextToolPlugin)       // DEPRECATED - now handled by config system
     }
 }
 

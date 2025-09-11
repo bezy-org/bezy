@@ -350,8 +350,6 @@ pub fn render_mesh_metrics_lines(
         }
     }
 
-    // DISABLED: Entity pooling causing crashes - temporarily disabled
-    // entity_pools.return_entities_for_changed_sorts(&mut commands, &changed_sort_entities);
 
     // COMPREHENSIVE CLEAR: Despawn AND remove metrics entities for all sorts being processed to prevent z-fighting
     // Since we removed change detection, we need to clear all metrics to avoid conflicts

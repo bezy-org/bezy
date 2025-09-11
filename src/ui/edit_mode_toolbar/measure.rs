@@ -630,51 +630,6 @@ fn spawn_dashed_measure_line(
         .id()
 }
 
-/// Spawn a line mesh for the measure tool
-#[allow(clippy::too_many_arguments)]
-fn spawn_measure_line_mesh(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<bevy::render::mesh::Mesh>>,
-    materials: &mut ResMut<Assets<bevy::sprite::ColorMaterial>>,
-    start: Vec2,
-    end: Vec2,
-    width: f32,
-    color: bevy::color::Color,
-    z: f32,
-) -> Entity {
-    use bevy::render::mesh::{Indices, PrimitiveTopology};
-
-    let direction = (end - start).normalize();
-    let perpendicular = Vec2::new(-direction.y, direction.x) * width * 0.5;
-
-    // Create quad vertices for the line
-    let vertices = vec![
-        [start.x - perpendicular.x, start.y - perpendicular.y, z],
-        [start.x + perpendicular.x, start.y + perpendicular.y, z],
-        [end.x + perpendicular.x, end.y + perpendicular.y, z],
-        [end.x - perpendicular.x, end.y - perpendicular.y, z],
-    ];
-
-    let indices = vec![0, 1, 2, 0, 2, 3];
-
-    let mut mesh = bevy::render::mesh::Mesh::new(
-        PrimitiveTopology::TriangleList,
-        bevy::render::render_asset::RenderAssetUsages::default(),
-    );
-    mesh.insert_attribute(bevy::render::mesh::Mesh::ATTRIBUTE_POSITION, vertices);
-    mesh.insert_indices(Indices::U32(indices));
-
-    let mesh_handle = meshes.add(mesh);
-    let material_handle = materials.add(bevy::sprite::ColorMaterial::from(color));
-
-    commands
-        .spawn((
-            bevy::render::mesh::Mesh2d(mesh_handle),
-            bevy::sprite::MeshMaterial2d(material_handle),
-            Transform::from_translation(Vec3::new(0.0, 0.0, z)),
-        ))
-        .id()
-}
 
 /// Spawn a point (circle) mesh for the measure tool
 fn spawn_measure_point_mesh(

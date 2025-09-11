@@ -3,11 +3,8 @@
 //! This tool allows users to cut paths by drawing a line across them.
 //! The tool shows a preview of the cutting line and intersection points.
 
-#![allow(unused_variables)]
 
 use crate::core::state::AppState;
-#[allow(unused_imports)]
-use crate::core::state::GlyphNavigation;
 use crate::editing::selection::events::AppStateChanged;
 use crate::ui::theme::*;
 use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
@@ -1113,11 +1110,10 @@ fn split_path_at_single_point(path: &kurbo::BezPath, hit: &Hit) -> Vec<kurbo::Be
     }
     
     let mut result_path = kurbo::BezPath::new();
-    let mut path_started = false;
     
     // Start from the intersection point
     result_path.move_to(hit.point);
-    path_started = true;
+    let mut path_started = true;
     
     // Add the remainder of the segment after the intersection
     if hit.segment_idx < segments.len() {
@@ -1248,51 +1244,6 @@ fn spawn_dashed_line_batched(
         .id()
 }
 
-/// Spawn a line mesh for the knife tool
-#[allow(clippy::too_many_arguments)]
-fn spawn_knife_line_mesh(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<ColorMaterial>>,
-    start: Vec2,
-    end: Vec2,
-    width: f32,
-    color: Color,
-    z: f32,
-) -> Entity {
-    use bevy::render::mesh::{Indices, PrimitiveTopology};
-
-    let direction = (end - start).normalize();
-    let perpendicular = Vec2::new(-direction.y, direction.x) * width * 0.5;
-
-    // Create quad vertices for the line
-    let vertices = vec![
-        [start.x - perpendicular.x, start.y - perpendicular.y, z],
-        [start.x + perpendicular.x, start.y + perpendicular.y, z],
-        [end.x + perpendicular.x, end.y + perpendicular.y, z],
-        [end.x - perpendicular.x, end.y - perpendicular.y, z],
-    ];
-
-    let indices = vec![0, 1, 2, 0, 2, 3];
-
-    let mut mesh = Mesh::new(
-        PrimitiveTopology::TriangleList,
-        bevy::render::render_asset::RenderAssetUsages::default(),
-    );
-    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
-    mesh.insert_indices(Indices::U32(indices));
-
-    let mesh_handle = meshes.add(mesh);
-    let material_handle = materials.add(ColorMaterial::from(color));
-
-    commands
-        .spawn((
-            Mesh2d(mesh_handle),
-            MeshMaterial2d(material_handle),
-            Transform::from_translation(Vec3::new(0.0, 0.0, z)),
-        ))
-        .id()
-}
 
 /// Spawn a point (circle) mesh for the knife tool
 fn spawn_knife_point_mesh(
@@ -1403,27 +1354,6 @@ struct Hit {
     pub segment_idx: usize,
 }
 
-/// Slice a path with a cutting line, returning new path segments
-fn _slice_path_with_line_simple(path: &BezPath, cutting_line: &kurbo::Line) -> Vec<BezPath> {
-    let hits = find_path_intersections_with_parameters(path, cutting_line);
-
-    if hits.is_empty() {
-        return vec![path.clone()];
-    }
-
-    info!("Found {} intersections, slicing path", hits.len());
-
-    // Sort hits by segment index and parameter t
-    let mut sorted_hits = hits;
-    sorted_hits.sort_by(|a, b| {
-        a.segment_idx
-            .cmp(&b.segment_idx)
-            .then(a.t.partial_cmp(&b.t).unwrap_or(std::cmp::Ordering::Equal))
-    });
-
-    // Slice the path at intersection points
-    slice_path_at_hits(path, &sorted_hits)
-}
 
 /// Find intersections with parameter information for accurate slicing
 fn find_path_intersections_with_parameters(path: &BezPath, cutting_line: &kurbo::Line) -> Vec<Hit> {
@@ -1786,12 +1716,6 @@ fn slice_path_with_two_hits(path: &BezPath, first_hit: &Hit, second_hit: &Hit) -
     result_paths
 }
 
-/// DEPRECATED: We no longer create connecting bridges
-/// Instead, we create proper closed contours with the cutting line integrated
-fn _create_connecting_bridges(_sorted_hits: &[Hit]) -> Vec<BezPath> {
-    // No longer needed - we create proper closed contours instead
-    vec![]
-}
 
 /// Represent a path segment for processing
 #[derive(Debug, Clone)]
@@ -2089,11 +2013,3 @@ fn get_path_start_point_inline(path: &BezPath) -> Option<Point> {
     None
 }
 
-/// Calculate the distance from a point to a line
-fn _calculate_line_point_distance(line: &kurbo::Line, point: Point) -> f64 {
-    let a = line.p1.y - line.p0.y;
-    let b = line.p0.x - line.p1.x;
-    let c = line.p1.x * line.p0.y - line.p0.x * line.p1.y;
-
-    (a * point.x + b * point.y + c).abs() / (a * a + b * b).sqrt()
-}

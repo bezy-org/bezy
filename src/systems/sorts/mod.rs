@@ -10,7 +10,6 @@ pub mod rtl_shaping;
 pub mod sort_entities;
 pub mod sort_placement;
 pub mod cursor;
-pub mod sort_state;
 pub mod unicode_input;
 
 // Re-export commonly used functions
@@ -21,5 +20,4 @@ pub use rtl_shaping::*;
 pub use sort_entities::*;
 pub use sort_placement::*;
 pub use cursor::*;
-pub use sort_state::*;
 pub use unicode_input::*;
