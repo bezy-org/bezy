@@ -6,7 +6,7 @@
 
 use crate::core::state::fontir_app_state::FontIRAppState;
 use crate::core::state::{AppState, TextEditorState};
-use crate::systems::arabic_shaping::{get_arabic_position, ArabicPosition};
+use crate::systems::text_shaping::{get_arabic_position, ArabicPosition};
 use crate::systems::sorts::input_utilities::{unicode_to_glyph_name, unicode_to_glyph_name_fontir};
 use crate::ui::edit_mode_toolbar::text::TextPlacementMode;
 use crate::ui::edit_mode_toolbar::CurrentTool;

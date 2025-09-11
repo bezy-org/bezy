@@ -14,7 +14,7 @@ use crate::rendering::{
 };
 use crate::systems::{
     center_camera_on_startup_layout, create_startup_layout, exit_on_esc, load_fontir_font,
-    BezySystems, CommandsPlugin, HarfBuzzShapingPlugin, InputConsumerPlugin, UiInteractionPlugin,
+    BezySystems, CommandsPlugin, TextShapingPlugin, InputConsumerPlugin, UiInteractionPlugin,
 };
 use crate::ui::edit_mode_toolbar::EditModeToolbarPlugin;
 use crate::ui::file_menu::FileMenuPlugin;
@@ -42,8 +42,8 @@ impl PluginGroup for CorePluginGroup {
             .add(InputConsumerPlugin)
             .add(FontEditorSystemSetsPlugin) // Must be added before other font editor plugins
             .add(TextEditorPlugin)
-            // RE-ENABLED: HarfBuzz text shaping for RTL support
-            .add(HarfBuzzShapingPlugin)
+            // Unified text shaping for RTL support (includes Arabic and HarfBuzz)
+            .add(TextShapingPlugin)
             .add(SelectionPlugin)
             .add(UndoPlugin)
             .add(UiInteractionPlugin)
