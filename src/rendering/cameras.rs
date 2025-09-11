@@ -100,7 +100,7 @@ fn toggle_camera_controls(mut query: Query<&mut PanCam>, keys: Res<ButtonInput<K
 mod camera_and_pointer_tests {
     use super::*;
     use crate::editing::selection::coordinate_system::SelectionCoordinateSystem;
-    use crate::geometry::design_space::DPoint;
+    use crate::geometry::world_space::DPoint;
     use bevy::prelude::*;
 
     /// Simulate a camera at a given position and scale, and a point at a given design space position.

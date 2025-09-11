@@ -13,7 +13,7 @@ use crate::core::io::input::{helpers, InputEvent, InputMode, InputState};
 use crate::core::io::pointer::PointerInfo;
 use crate::core::state::{AppState, ContourData, PointData, PointTypeData};
 use crate::editing::selection::events::AppStateChanged;
-use crate::geometry::design_space::DPoint;
+use crate::geometry::world_space::DPoint;
 use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
 use crate::systems::ui_interaction::UiHoverState;
 use bevy::input::keyboard::KeyCode;

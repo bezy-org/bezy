@@ -11,7 +11,7 @@ use crate::editing::selection::events::{ClickWorldPosition, SELECTION_MARGIN};
 use crate::editing::selection::input::shortcuts::handle_selection_key_press;
 use crate::editing::selection::nudge::EditEvent;
 use crate::editing::selection::{DragPointState, DragSelectionState};
-use crate::geometry::design_space::DPoint;
+use crate::geometry::world_space::DPoint;
 use bevy::input::mouse::MouseButton;
 use bevy::prelude::*;
 

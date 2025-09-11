@@ -13,7 +13,7 @@ use crate::editing::selection::components::{
 use crate::editing::selection::{DragPointState, DragSelectionState, SelectionState};
 use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::ActiveSortState;
-use crate::geometry::design_space::DPoint;
+use crate::geometry::world_space::DPoint;
 use crate::systems::ui_interaction::UiHoverState;
 use bevy::prelude::*;
 

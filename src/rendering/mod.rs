@@ -11,7 +11,6 @@
 
 pub mod cameras;
 pub mod checkerboard;
-pub mod draw;
 pub mod entity_pools;
 pub mod glyph_renderer;
 pub mod mesh_cache;

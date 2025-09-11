@@ -30,9 +30,9 @@ pub struct DragSelectionState {
     /// Whether a drag selection is in progress
     pub is_dragging: bool,
     /// The start position of the drag selection (in design space)
-    pub start_position: Option<crate::geometry::design_space::DPoint>,
+    pub start_position: Option<crate::geometry::world_space::DPoint>,
     /// The current position of the drag selection (in design space)
-    pub current_position: Option<crate::geometry::design_space::DPoint>,
+    pub current_position: Option<crate::geometry::world_space::DPoint>,
     /// Whether this is a multi-select operation (shift is held)
     pub is_multi_select: bool,
     /// The previous selection before the drag started

@@ -15,7 +15,7 @@ use crate::core::state::TextEditorState;
 use crate::editing::edit_type::EditType;
 use crate::editing::selection::nudge::{EditEvent, NudgeState};
 #[allow(unused_imports)]
-use crate::geometry::design_space::DPoint;
+use crate::geometry::world_space::DPoint;
 #[allow(unused_imports)]
 use crate::geometry::point::{EditPoint, EntityId, EntityKind};
 use crate::rendering::cameras::DesignCamera;
@@ -1372,7 +1372,7 @@ pub fn debug_validate_point_entity_uniqueness(
 mod tests {
     use super::*;
     use crate::editing::selection::coordinate_system::SelectionCoordinateSystem;
-    use crate::geometry::design_space::DPoint;
+    use crate::geometry::world_space::DPoint;
     use bevy::prelude::*;
 
     #[test]

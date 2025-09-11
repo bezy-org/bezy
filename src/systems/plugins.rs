@@ -37,15 +37,6 @@ fn configure_gizmos(mut gizmo_store: ResMut<GizmoConfigStore>) {
     info!("Configured gizmo line width to {}px", GIZMO_LINE_WIDTH);
 }
 
-/// Plugin to organize drawing-related systems
-pub struct DrawPlugin;
-
-impl Plugin for DrawPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(Update, crate::rendering::draw::draw_origin_cross);
-        debug!("DrawPlugin loaded - added draw_origin_cross system");
-    }
-}
 
 /// Plugin to organize toolbar-related plugins
 pub struct ToolbarPlugin;
@@ -73,7 +64,6 @@ impl Plugin for BezySystems {
     fn build(&self, app: &mut App) {
         app.add_plugins((
             SetupPlugin,
-            DrawPlugin,
             ToolbarPlugin,
             SortPlugin,
             // Additional plugins will be added as we port more components
