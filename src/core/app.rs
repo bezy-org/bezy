@@ -17,7 +17,6 @@ use crate::systems::{
     BezySystems, CommandsPlugin, HarfBuzzShapingPlugin, InputConsumerPlugin, UiInteractionPlugin,
 };
 use crate::ui::file_menu::FileMenuPlugin;
-use crate::ui::hud::HudPlugin;
 use crate::ui::panes::coordinate_pane::CoordinatePanePlugin;
 use crate::ui::panes::design_space::DesignSpacePlugin;
 use crate::ui::panes::file_pane::FilePanePlugin;
@@ -85,7 +84,6 @@ impl PluginGroup for EditorPluginGroup {
             .add(CoordinatePanePlugin)
             .add(EditModeToolbarPlugin) // ✅ Includes ConfigBasedToolbarPlugin - handles all tools automatically
             .add(FileMenuPlugin)
-            .add(HudPlugin)
             // ✅ NEW SYSTEM: All tools are now automatically registered via EditModeToolbarPlugin
             // No need for manual tool plugin registration - everything is handled by toolbar_config.rs
             .add(crate::tools::PenToolPlugin) // Re-enabled - pen tool needs its business logic plugin

@@ -61,15 +61,26 @@ pub struct GlyphPanePlugin;
 
 impl Plugin for GlyphPanePlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<CurrentGlyphMetrics>().add_systems(
-            Update,
-            (
-                update_glyph_pane,
-                update_glyph_metrics,
-                toggle_glyph_pane_visibility,
-            ),
-        );
+        app.init_resource::<CurrentGlyphMetrics>()
+            .add_systems(Startup, setup_glyph_pane)
+            .add_systems(
+                Update,
+                (
+                    update_glyph_pane,
+                    update_glyph_metrics,
+                    toggle_glyph_pane_visibility,
+                ),
+            );
     }
+}
+
+/// System to set up the glyph pane during startup
+fn setup_glyph_pane(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    theme: Res<CurrentTheme>,
+) {
+    spawn_glyph_pane(&mut commands, &asset_server, &theme);
 }
 
 /// System to update the glyph pane display
