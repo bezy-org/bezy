@@ -12,7 +12,6 @@ use crate::core::settings::BezySettings;
 use crate::core::state::AppState;
 use crate::core::state::FontMetrics;
 use crate::core::state::TextEditorState;
-use crate::editing::edit_type::EditType;
 use crate::editing::selection::nudge::{EditEvent, NudgeState};
 #[allow(unused_imports)]
 use crate::geometry::world_space::DPoint;
@@ -112,7 +111,6 @@ pub fn handle_selection_shortcuts(
 
         // Send edit event
         event_writer.write(EditEvent {
-            edit_type: EditType::Normal,
         });
     }
 }
@@ -542,7 +540,6 @@ pub fn handle_point_drag(
 
             // Send edit event
             event_writer.write(EditEvent {
-                edit_type: EditType::Normal,
             });
         }
     }
@@ -966,7 +963,6 @@ pub fn handle_selection_click(
             .or_insert(pos);
 
         event_writer.write(EditEvent {
-            edit_type: EditType::Normal,
         });
 
         debug!(
@@ -1304,7 +1300,6 @@ pub fn handle_selection_key_press(
                 }
 
                 event_writer.write(EditEvent {
-                    edit_type: EditType::Normal,
                 });
                 debug!("Selected all {} points in active sort", selected_count);
             }
@@ -1317,7 +1312,6 @@ pub fn handle_selection_key_press(
             }
             selection_state.selected.clear();
             event_writer.write(EditEvent {
-                edit_type: EditType::Normal,
             });
         }
         _ => {}

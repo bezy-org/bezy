@@ -1,9 +1,7 @@
 #![allow(unused_imports)]
 
 use crate::core::state::AppState;
-use crate::editing::edit_type::EditType;
 use crate::editing::selection::systems::*;
-use crate::editing::UndoPlugin;
 use bevy::prelude::*;
 
 pub mod components;
@@ -67,7 +65,6 @@ impl Plugin for SelectionPlugin {
             // Add events
             .add_event::<AppStateChanged>()
             .add_event::<EditEvent>()
-            .register_type::<EditType>()
             .register_type::<NudgeState>()
             // Register components
             .register_type::<Selectable>()

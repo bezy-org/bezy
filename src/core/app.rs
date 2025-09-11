@@ -6,7 +6,7 @@ use crate::core::io::input::InputPlugin;
 use crate::core::io::pointer::PointerPlugin;
 use crate::core::settings::{BezySettings, DEFAULT_WINDOW_SIZE, WINDOW_TITLE};
 use crate::core::state::GlyphNavigation;
-use crate::editing::{FontEditorSystemSetsPlugin, SelectionPlugin, TextEditorPlugin, UndoPlugin};
+use crate::editing::{FontEditorSystemSetsPlugin, SelectionPlugin, TextEditorPlugin};
 use crate::rendering::{
     cameras::CameraPlugin, checkerboard::CheckerboardPlugin,
     zoom_aware_scaling::CameraResponsivePlugin, EntityPoolingPlugin, GlyphRenderingPlugin,
@@ -45,7 +45,6 @@ impl PluginGroup for CorePluginGroup {
             // Unified text shaping for RTL support (includes Arabic and HarfBuzz)
             .add(TextShapingPlugin)
             .add(SelectionPlugin)
-            .add(UndoPlugin)
             .add(UiInteractionPlugin)
             .add(CommandsPlugin)
             .add(BezySystems)

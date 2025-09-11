@@ -107,14 +107,11 @@ mod nudge_tests {
 
     #[test]
     fn test_edit_event_creation() {
-        use crate::editing::edit_type::EditType;
 
         let event = EditEvent {
-            edit_type: EditType::NudgeLeft,
         };
 
         assert!(
-            matches!(event.edit_type, EditType::NudgeLeft),
             "Edit event should have correct type"
         );
     }

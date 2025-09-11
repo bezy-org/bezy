@@ -11,7 +11,6 @@ use crate::core::io::input::{helpers, InputEvent, InputMode, InputState, Modifie
 use crate::core::io::pointer::PointerInfo;
 use crate::core::settings::BezySettings;
 use crate::core::state::AppState;
-use crate::editing::edit_type::EditType;
 use crate::editing::selection::components::{GlyphPointReference, PointType, Selectable, Selected};
 use crate::editing::selection::systems::AppStateChanged;
 use crate::editing::selection::{DragPointState, DragSelectionState, SelectionState};

@@ -2,7 +2,6 @@
 
 use crate::core::io::input::{InputEvent, InputState, ModifierState};
 use crate::core::state::TextEditorState;
-use crate::editing::edit_type::EditType;
 use crate::editing::selection::components::{
     GlyphPointReference, PointType, Selectable, Selected, SelectionRect, SelectionState,
 };
@@ -522,7 +521,6 @@ pub fn handle_selection_click(
             .or_insert(pos);
 
         event_writer.write(EditEvent {
-            edit_type: EditType::Normal,
         });
 
         debug!(
