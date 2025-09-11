@@ -5,7 +5,7 @@
 //! UFO masters in a designspace.
 
 use crate::core::state::fontir_app_state::FontIRAppState;
-use crate::systems::text_editor_sorts::sort_entities::BufferSortEntities;
+use crate::systems::sorts::sort_entities::BufferSortEntities;
 use crate::ui::theme::*;
 use crate::ui::themes::{CurrentTheme, UiBorderRadius};
 use bevy::prelude::*;
@@ -481,12 +481,14 @@ fn load_masters_from_designspace(
 }
 
 /// Updates master buttons based on loaded masters
+#[allow(clippy::too_many_arguments)]
 fn update_master_buttons(
     mut commands: Commands,
     _asset_server: Res<AssetServer>,
     theme: Res<CurrentTheme>,
     file_info: Res<FileInfo>,
-    container_query: Query<Entity, With<MasterButtonContainer>>,
+    fontir_state: Option<Res<FontIRAppState>>,
+    mut container_query: Query<(Entity, &mut Node), With<MasterButtonContainer>>,
     existing_buttons: Query<Entity, With<MasterButton>>,
     children_query: Query<&Children>,
 ) {
@@ -495,7 +497,7 @@ fn update_master_buttons(
     }
 
     // Find the master button container
-    let Ok(container_entity) = container_query.single() else {
+    let Ok((container_entity, mut container_node)) = container_query.single_mut() else {
         return;
     };
 
@@ -506,6 +508,21 @@ fn update_master_buttons(
                 commands.entity(child).despawn();
             }
         }
+    }
+
+    // Only show master buttons for designspace sources (not single UFOs)
+    let should_show_masters = fontir_state
+        .as_ref()
+        .map(|state| !state.is_single_ufo())
+        .unwrap_or(true); // Default to showing if no fontir state
+
+    if !should_show_masters {
+        // Hide the container for single UFOs
+        container_node.display = Display::None;
+        return;
+    } else {
+        // Show the container for designspaces
+        container_node.display = Display::Flex;
     }
 
     // Create new buttons based on loaded masters

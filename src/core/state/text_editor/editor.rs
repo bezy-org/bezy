@@ -6,7 +6,7 @@ use bevy::prelude::*;
 
 impl TextEditorState {
     /// Get only text sorts (sorts that flow like text)
-    pub fn get_text_sorts(&self) -> Vec<(usize, &SortEntry)> {
+    pub fn get_text_sorts(&self) -> Vec<(usize, &SortData)> {
         let mut text_sorts = Vec::new();
 
         for i in 0..self.buffer.len() {
@@ -23,7 +23,7 @@ impl TextEditorState {
     }
 
     /// Get sorts belonging to a specific buffer ID
-    pub fn get_sorts_for_buffer(&self, buffer_id: BufferId) -> Vec<(usize, &SortEntry)> {
+    pub fn get_sorts_for_buffer(&self, buffer_id: BufferId) -> Vec<(usize, &SortData)> {
         let mut buffer_sorts = Vec::new();
 
         for i in 0..self.buffer.len() {
@@ -38,7 +38,7 @@ impl TextEditorState {
     }
 
     /// Find the first sort for a specific buffer ID
-    pub fn find_buffer_root(&self, buffer_id: BufferId) -> Option<(usize, &SortEntry)> {
+    pub fn find_buffer_root(&self, buffer_id: BufferId) -> Option<(usize, &SortData)> {
         for i in 0..self.buffer.len() {
             if let Some(sort) = self.buffer.get(i) {
                 if sort.buffer_id == Some(buffer_id) {
@@ -77,7 +77,7 @@ impl TextEditorState {
         // Clear all states first
         self.clear_all_states();
 
-        let new_sort = SortEntry {
+        let new_sort = SortData {
             kind: SortKind::Glyph {
                 codepoint,
                 glyph_name: glyph_name.clone(),
@@ -236,7 +236,7 @@ impl TextEditorState {
                     // Collect all sorts belonging to this buffer IN ORDER
                     let mut buffer_sorts = Vec::new();
                     let mut target_index_in_buffer = None;
-                    
+
                     for i in 0..self.buffer.len() {
                         if let Some(sort_entry) = self.buffer.get(i) {
                             if sort_entry.buffer_id == sort.buffer_id {
@@ -247,7 +247,7 @@ impl TextEditorState {
                             }
                         }
                     }
-                    
+
                     // Now calculate position based on buffer-local index
                     if let Some(target_idx) = target_index_in_buffer {
                         for idx in 0..target_idx {
@@ -260,7 +260,7 @@ impl TextEditorState {
                                         // Line break: reset x to start of line, move y down by line height
                                         x_offset = 0.0;
                                         y_offset -= line_height;
-                                        println!("🔍 LTR LINEBREAK: Reset x_offset=0, y_offset={:.1} (line_height={:.1})", y_offset, line_height);
+                                        println!("🔍 LTR LINEBREAK: Reset x_offset=0, y_offset={y_offset:.1} (line_height={line_height:.1})");
                                     }
                                 }
                             }
@@ -324,7 +324,7 @@ impl TextEditorState {
         };
 
         let buffer_id = BufferId::new();
-        let text_root = SortEntry {
+        let text_root = SortData {
             kind: SortKind::Glyph {
                 codepoint: Some(placeholder_codepoint), // Use appropriate codepoint for layout mode
                 // Use a visible placeholder glyph instead of empty string
@@ -474,12 +474,12 @@ impl TextEditorState {
     }
 
     /// Get the sort at a specific buffer position
-    pub fn get_sort_at_position(&self, position: usize) -> Option<&SortEntry> {
+    pub fn get_sort_at_position(&self, position: usize) -> Option<&SortData> {
         self.buffer.get(position)
     }
 
     /// Get the currently active sort
-    pub fn get_active_sort(&self) -> Option<(usize, &SortEntry)> {
+    pub fn get_active_sort(&self) -> Option<(usize, &SortData)> {
         for i in 0..self.buffer.len() {
             if let Some(sort) = self.buffer.get(i) {
                 if sort.is_active {
@@ -591,9 +591,7 @@ impl TextEditorState {
         glyph_name: String,
         advance_width: f32,
         codepoint: Option<char>,
-        _respawn_queue: Option<
-            &mut crate::systems::text_editor_sorts::sort_entities::BufferSortRespawnQueue,
-        >,
+        _respawn_queue: Option<&mut crate::systems::sorts::sort_entities::BufferSortRespawnQueue>,
     ) {
         debug!("Insert at cursor: Starting insertion of '{}'", glyph_name);
         info!(
@@ -649,7 +647,7 @@ impl TextEditorState {
                 .map(|sort| (sort.layout_mode.clone(), sort.buffer_id))
                 .unwrap_or((SortLayoutMode::LTRText, None));
 
-            let new_sort = SortEntry {
+            let new_sort = SortData {
                 kind: SortKind::Glyph {
                     codepoint,
                     glyph_name: glyph_name.clone(),
@@ -972,7 +970,7 @@ impl TextEditorState {
             "Find active sort: Searching for active sort in {} buffer entries",
             self.buffer.len()
         );
-        
+
         // Find any active sort
         for i in 0..self.buffer.len() {
             if let Some(sort) = self.buffer.get(i) {
@@ -1013,10 +1011,7 @@ impl TextEditorState {
                 }
 
                 // The root placeholder doesn't count towards the string's length.
-                if i == root_index
-                    && sort.kind.is_glyph()
-                    && sort.kind.glyph_name() == "a"
-                {
+                if i == root_index && sort.kind.is_glyph() && sort.kind.glyph_name() == "a" {
                     continue;
                 }
 
@@ -1040,7 +1035,7 @@ impl TextEditorState {
         self.clear_all_states();
 
         let buffer_id = BufferId::new();
-        let new_root = SortEntry {
+        let new_root = SortData {
             kind: SortKind::Glyph {
                 codepoint,
                 glyph_name,
@@ -1072,7 +1067,7 @@ impl TextEditorState {
                 .map(|sort| (sort.layout_mode.clone(), sort.buffer_id))
                 .unwrap_or((SortLayoutMode::LTRText, None));
 
-            let new_sort = SortEntry {
+            let new_sort = SortData {
                 kind: SortKind::LineBreak,
                 is_active: false,
                 layout_mode: root_layout_mode,

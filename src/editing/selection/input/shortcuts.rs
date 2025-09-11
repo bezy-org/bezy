@@ -1,7 +1,6 @@
 //! Keyboard shortcut handling for selection
 
 use crate::core::io::input::ModifierState;
-use crate::editing::edit_type::EditType;
 use crate::editing::selection::components::{
     GlyphPointReference, PointType, Selectable, Selected, SelectionState,
 };
@@ -79,7 +78,6 @@ pub fn handle_selection_shortcuts(
 
         // Send edit event
         event_writer.write(EditEvent {
-            edit_type: EditType::Normal,
         });
     }
 }
@@ -124,7 +122,7 @@ pub fn handle_selection_key_press(
     selection_state: &mut ResMut<SelectionState>,
     event_writer: &mut EventWriter<EditEvent>,
     active_sort_entity: Entity,
-    sort_point_entities: &Query<&crate::systems::sort_manager::SortPointEntity>,
+    sort_point_entities: &Query<&crate::editing::sort::manager::SortPointEntity>,
 ) {
     match key {
         KeyCode::KeyA => {
@@ -151,7 +149,6 @@ pub fn handle_selection_key_press(
                 }
 
                 event_writer.write(EditEvent {
-                    edit_type: EditType::Normal,
                 });
                 debug!("Selected all {} points in active sort", selected_count);
             }
@@ -164,7 +161,6 @@ pub fn handle_selection_key_press(
             }
             selection_state.selected.clear();
             event_writer.write(EditEvent {
-                edit_type: EditType::Normal,
             });
         }
         _ => {}

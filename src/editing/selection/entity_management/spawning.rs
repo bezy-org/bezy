@@ -5,10 +5,10 @@ use crate::core::state::AppState;
 use crate::editing::selection::components::{
     FontIRPointReference, GlyphPointReference, PointType, Selectable, Selected, SelectionState,
 };
+use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::{ActiveSortState, Sort};
 use crate::geometry::bezpath_editing::{extract_editable_points, PathPointType};
 use crate::geometry::point::EditPoint;
-use crate::systems::sort_manager::SortPointEntity;
 use bevy::prelude::*;
 
 /// System to spawn point entities for the active sort using ECS as source of truth

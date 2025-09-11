@@ -6,9 +6,8 @@
 use bevy::gizmos::{config::DefaultGizmoConfigGroup, config::GizmoConfigStore};
 use bevy::prelude::*;
 
-use crate::editing::sort_plugin::SortPlugin;
+use crate::editing::sort::SortPlugin;
 use crate::ui::theme::{GIZMO_LINE_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH};
-use crate::utils::setup::setup;
 
 /// Configure default Bevy plugins for the application
 #[allow(dead_code)]
@@ -38,15 +37,6 @@ fn configure_gizmos(mut gizmo_store: ResMut<GizmoConfigStore>) {
     info!("Configured gizmo line width to {}px", GIZMO_LINE_WIDTH);
 }
 
-/// Plugin to organize drawing-related systems
-pub struct DrawPlugin;
-
-impl Plugin for DrawPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(Update, crate::rendering::draw::draw_origin_cross);
-        debug!("DrawPlugin loaded - added draw_origin_cross system");
-    }
-}
 
 /// Plugin to organize toolbar-related plugins
 pub struct ToolbarPlugin;
@@ -63,7 +53,7 @@ pub struct SetupPlugin;
 
 impl Plugin for SetupPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (setup, configure_gizmos).chain());
+        app.add_systems(Startup, configure_gizmos);
     }
 }
 
@@ -74,7 +64,6 @@ impl Plugin for BezySystems {
     fn build(&self, app: &mut App) {
         app.add_plugins((
             SetupPlugin,
-            DrawPlugin,
             ToolbarPlugin,
             SortPlugin,
             // Additional plugins will be added as we port more components

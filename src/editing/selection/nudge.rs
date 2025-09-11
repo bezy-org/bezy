@@ -1,8 +1,7 @@
 use crate::core::settings::BezySettings;
-use crate::editing::edit_type::EditType;
 use crate::editing::selection::components::Selected;
+use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::ActiveSortState;
-use crate::systems::sort_manager::SortPointEntity;
 use bevy::log::{debug, info, warn};
 use bevy::prelude::*;
 
@@ -28,7 +27,7 @@ pub fn handle_nudge_input(
                 Entity,
                 &mut Transform,
                 &crate::editing::selection::components::GlyphPointReference,
-                Option<&crate::systems::sort_manager::SortPointEntity>,
+                Option<&crate::editing::sort::manager::SortPointEntity>,
             ),
             (With<Selected>, With<SortPointEntity>),
         >,
@@ -157,7 +156,6 @@ pub fn handle_nudge_input(
 
             // Create an edit event for undo/redo
             event_writer.write(EditEvent {
-                edit_type: EditType::NudgeLeft, // Use an existing variant
             });
         } else {
             debug!("[NUDGE] Arrow key pressed but no selected points found");
@@ -316,7 +314,6 @@ impl Plugin for NudgePlugin {
 /// Event for nudge operations
 #[derive(Event)]
 pub struct EditEvent {
-    pub edit_type: EditType,
 }
 
 /// Point coordinates component

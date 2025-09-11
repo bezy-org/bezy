@@ -17,8 +17,8 @@ pub fn load_ufo_font(
     cli_args: Res<crate::core::cli::CliArgs>,
     mut app_state: ResMut<crate::core::state::AppState>,
 ) {
-    // clap provides the default value, so ufo_path is guaranteed to be Some
-    if let Some(path) = &cli_args.ufo_path {
+    // clap provides the default value, so font_source is guaranteed to be Some
+    if let Some(path) = &cli_args.font_source {
         match app_state.load_font_from_path(path.clone()) {
             Ok(_) => {
                 info!("Successfully loaded UFO font from: {}", path.display());

@@ -3,7 +3,6 @@
 use crate::core::io::pointer::PointerInfo;
 use crate::core::settings::BezySettings;
 use crate::core::state::{AppState, FontIRAppState};
-use crate::editing::edit_type::EditType;
 use crate::editing::selection::components::{GlyphPointReference, Selected};
 use crate::editing::selection::nudge::{EditEvent, PointCoordinates};
 use crate::editing::selection::DragPointState;
@@ -23,7 +22,7 @@ pub fn handle_point_drag(
             &mut Transform,
             &mut PointCoordinates,
             Option<&GlyphPointReference>,
-            Option<&crate::systems::sort_manager::SortCrosshair>,
+            Option<&crate::editing::sort::manager::SortCrosshair>,
         ),
         With<Selected>,
     >,
@@ -142,7 +141,6 @@ pub fn handle_point_drag(
 
             // Send edit event
             event_writer.write(EditEvent {
-                edit_type: EditType::Normal,
             });
         }
     }

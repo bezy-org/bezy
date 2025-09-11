@@ -11,11 +11,9 @@ pub mod text_buffer;
 
 // Re-export main types for public API compatibility
 pub use buffer::{
-    ActiveSortEntity, GridConfig, SortBuffer, SortEntry, SortKind, SortLayoutMode, TextEditorState,
+    ActiveSortEntity, GridConfig, SortBuffer, SortData, SortKind, SortLayoutMode, TextEditorState,
     TextModeConfig,
 };
 
 // Re-export new buffer-level types
-pub use text_buffer::{
-    TextBuffer, BufferCursor, BufferMember, ActiveTextBuffer, BufferSystemSet,
-};
+pub use text_buffer::{ActiveTextBuffer, BufferCursor, BufferMember, BufferSystemSet, TextBuffer};

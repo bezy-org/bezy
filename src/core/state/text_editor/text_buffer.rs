@@ -1,12 +1,12 @@
 //! Text buffer ECS components and systems
 //!
-//! This module implements buffer-level storage using ECS entities instead of 
-//! storing buffer metadata in individual sorts. Each text buffer becomes an 
+//! This module implements buffer-level storage using ECS entities instead of
+//! storing buffer metadata in individual sorts. Each text buffer becomes an
 //! ECS entity with its own components for cursor position, layout mode, etc.
 
-use bevy::prelude::*;
-use crate::core::state::text_editor::{SortLayoutMode};
 use crate::core::state::text_editor::buffer::BufferId;
+use crate::core::state::text_editor::SortLayoutMode;
+use bevy::prelude::*;
 
 /// Component that marks an entity as a text buffer
 #[derive(Component, Debug, Clone)]
@@ -50,7 +50,7 @@ pub enum BufferSystemSet {
     /// Update buffer state
     UpdateBuffers,
     /// Sync buffer membership
-    SyncMembership, 
+    SyncMembership,
     /// Render buffer elements
     RenderBuffers,
 }
@@ -72,10 +72,12 @@ impl BufferCursor {
     pub fn new(position: usize) -> Self {
         Self { position }
     }
-    
+
     /// Create a cursor at the end of a buffer with the given length
     pub fn at_end(buffer_length: usize) -> Self {
-        Self { position: buffer_length }
+        Self {
+            position: buffer_length,
+        }
     }
 }
 
@@ -87,7 +89,7 @@ impl BufferMember {
             buffer_index,
         }
     }
-    
+
     /// Check if this sort is the root sort (first in buffer)
     pub fn is_root(&self) -> bool {
         self.buffer_index == 0

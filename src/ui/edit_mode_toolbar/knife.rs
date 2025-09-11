@@ -3,14 +3,10 @@
 //! This tool allows users to cut paths by drawing a line across them.
 //! The tool shows a preview of the cutting line and intersection points.
 
-#![allow(unused_variables)]
-
 use crate::core::state::AppState;
-#[allow(unused_imports)]
-use crate::core::state::GlyphNavigation;
 use crate::editing::selection::events::AppStateChanged;
-use crate::ui::theme::*;
 use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
+use crate::ui::theme::*;
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh2d;
 use bevy::sprite::{ColorMaterial, MeshMaterial2d};
@@ -152,9 +148,12 @@ pub fn handle_knife_mouse_events(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut knife_state: ResMut<KnifeToolState>,
     knife_mode: Option<Res<KnifeModeActive>>,
-    app_state_changed: EventWriter<crate::editing::selection::events::AppStateChanged>,
+    _app_state_changed: EventWriter<crate::editing::selection::events::AppStateChanged>,
     // Query for active sort to get its position
-    active_sort_query: Query<(Entity, &crate::editing::sort::Sort, &Transform), With<crate::editing::sort::ActiveSort>>,
+    active_sort_query: Query<
+        (Entity, &crate::editing::sort::Sort, &Transform),
+        With<crate::editing::sort::ActiveSort>,
+    >,
 ) {
     // Check if knife mode is active
     let knife_is_active = if let Some(knife_mode) = knife_mode {
@@ -200,7 +199,7 @@ pub fn handle_knife_mouse_events(
     if let Ok(world_position) = camera.viewport_to_world_2d(camera_transform, cursor_position) {
         // Convert to sort-relative coordinates
         let sort_relative_position = world_position - sort_position;
-        
+
         // Update shift lock state
         knife_state.shift_locked =
             keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
@@ -212,8 +211,10 @@ pub fn handle_knife_mouse_events(
                 current: sort_relative_position,
             };
             knife_state.intersections.clear();
-            info!("🔪 KNIFE_DEBUG: Started cutting at sort-relative {:?}, world {:?}, sort pos {:?}", 
-                  sort_relative_position, world_position, sort_position);
+            info!(
+                "🔪 KNIFE_DEBUG: Started cutting at sort-relative {:?}, world {:?}, sort pos {:?}",
+                sort_relative_position, world_position, sort_position
+            );
         }
 
         // Handle mouse movement during cutting
@@ -224,7 +225,10 @@ pub fn handle_knife_mouse_events(
             };
 
             // Intersections will be calculated by the render system
-            debug!("🔪 KNIFE_DEBUG: Dragging to sort-relative {:?}", sort_relative_position);
+            debug!(
+                "🔪 KNIFE_DEBUG: Dragging to sort-relative {:?}",
+                sort_relative_position
+            );
         }
 
         // Handle mouse button release
@@ -317,7 +321,10 @@ pub fn render_knife_preview(
     fontir_state: Option<Res<crate::core::state::FontIRAppState>>,
     mut calc_cache: Local<KnifeCalculationCache>,
     // Query for active sort to get its position for preview rendering
-    active_sort_query: Query<(Entity, &crate::editing::sort::Sort, &Transform), With<crate::editing::sort::ActiveSort>>,
+    active_sort_query: Query<
+        (Entity, &crate::editing::sort::Sort, &Transform),
+        With<crate::editing::sort::ActiveSort>,
+    >,
 ) {
     // Check if tool is active
     let is_knife_active = current_tool.get_current() == Some("knife")
@@ -384,7 +391,7 @@ pub fn render_knife_preview(
         // Convert from sort-relative to world coordinates for rendering
         let world_start = start + sort_position;
         let world_end = end + sort_position;
-        
+
         debug!(
             "🔪 RENDER_KNIFE_PREVIEW: Drawing cutting line from sort-relative {:?}-{:?} to world {:?}-{:?}",
             start, end, world_start, world_end
@@ -392,11 +399,11 @@ pub fn render_knife_preview(
         let line_color = theme.theme().knife_line_color();
 
         // Create dashed line effect with a single batched mesh for performance
-        let direction = (world_end - world_start).normalize();
-        let total_length = world_start.distance(world_end);
+        let _direction = (world_end - world_start).normalize();
+        let _total_length = world_start.distance(world_end);
         let dash_length = theme.theme().knife_dash_length() * camera_scale.scale_factor;
         let gap_length = theme.theme().knife_gap_length() * camera_scale.scale_factor;
-        let segment_length = dash_length + gap_length;
+        let _segment_length = dash_length + gap_length;
         let line_width = camera_scale.adjusted_line_width();
 
         // Batch all dashes into a single mesh (use world coordinates)
@@ -474,7 +481,7 @@ pub fn render_knife_preview(
         for &intersection in &calc_cache.cached_intersections {
             // Convert intersection from sort-relative to world coordinates
             let world_intersection = intersection + sort_position;
-            
+
             // Create yellow filled circles for intersection points (like measure tool)
             let intersection_size = camera_scale.adjusted_point_size(6.0); // Same size as measure tool
             let circle_entity = spawn_knife_point_mesh(
@@ -541,14 +548,13 @@ fn calculate_real_intersections(
     intersections
 }
 
-
 /// System to handle actual path cutting with FontIR integration
 #[allow(clippy::too_many_arguments)]
 pub fn handle_fontir_knife_cutting(
     mut fontir_state: Option<ResMut<crate::core::state::FontIRAppState>>,
     mut knife_state: ResMut<KnifeToolState>, // Use main knife state instead of consumer
     mut app_state_changed: EventWriter<crate::editing::selection::events::AppStateChanged>,
-    keyboard: Res<ButtonInput<KeyCode>>,
+    _keyboard: Res<ButtonInput<KeyCode>>,
     mouse_input: Res<ButtonInput<MouseButton>>,
 ) {
     // Check if we just finished a cutting gesture
@@ -611,27 +617,37 @@ fn perform_multi_contour_cut(
     contours: &[kurbo::BezPath],
     cutting_line: &kurbo::Line,
 ) -> Result<Vec<kurbo::BezPath>, String> {
-    info!("🔪 MULTI_CONTOUR_CUT: Analyzing {} contours with Runebender-style unified cutting", contours.len());
-    info!("🔪 CUTTING_LINE: from {:?} to {:?}", cutting_line.p0, cutting_line.p1);
-    
+    info!(
+        "🔪 MULTI_CONTOUR_CUT: Analyzing {} contours with Runebender-style unified cutting",
+        contours.len()
+    );
+    info!(
+        "🔪 CUTTING_LINE: from {:?} to {:?}",
+        cutting_line.p0, cutting_line.p1
+    );
+
     // Step 1: Find ALL intersections across ALL segments using Runebender's approach
     // This is the key insight: flat_map all segments from all contours
     let mut all_intersections = Vec::new();
-    
+
     for (contour_idx, contour) in contours.iter().enumerate() {
-        info!("🔪 CONTOUR_{}: Processing contour with {} elements", contour_idx, contour.elements().len());
-        
+        info!(
+            "🔪 CONTOUR_{}: Processing contour with {} elements",
+            contour_idx,
+            contour.elements().len()
+        );
+
         // Debug: Print contour bounds and key points
         let bounds = contour.bounding_box();
         info!("🔪 CONTOUR_{}: Bounding box: {:?}", contour_idx, bounds);
-        
+
         let hits = find_path_intersections_with_parameters(contour, cutting_line);
         info!(
             "🔪 CONTOUR_{}: Found {} intersections",
             contour_idx,
             hits.len()
         );
-        
+
         // Debug: Print intersection details
         for (hit_idx, hit) in hits.iter().enumerate() {
             info!(
@@ -639,19 +655,19 @@ fn perform_multi_contour_cut(
                 contour_idx, hit_idx, hit.point, hit.t, hit.segment_idx
             );
         }
-        
+
         // Store intersections with their source contour info
         for hit in hits {
             let pos_on_cutting_line = {
                 let cutting_dir = (cutting_line.p1 - cutting_line.p0).normalize();
                 (hit.point - cutting_line.p0).dot(cutting_dir)
             };
-            
+
             info!(
                 "🔪 UNIFIED_INTERSECTION: contour={}, point={:?}, pos_on_line={:.3}",
                 contour_idx, hit.point, pos_on_cutting_line
             );
-            
+
             all_intersections.push(UnifiedIntersection {
                 contour_idx,
                 hit,
@@ -659,7 +675,7 @@ fn perform_multi_contour_cut(
             });
         }
     }
-    
+
     // Step 2: Check if we have enough intersections
     if all_intersections.len() < 2 {
         let error_msg = format!(
@@ -669,18 +685,19 @@ fn perform_multi_contour_cut(
         info!("🔪 ERROR: {}", error_msg);
         return Err(error_msg);
     }
-    
+
     // Step 3: Sort all intersections by position along cutting line (Runebender approach)
     all_intersections.sort_by(|a, b| {
-        a.pos_on_cutting_line.partial_cmp(&b.pos_on_cutting_line)
+        a.pos_on_cutting_line
+            .partial_cmp(&b.pos_on_cutting_line)
             .unwrap_or(std::cmp::Ordering::Equal)
     });
-    
+
     info!(
         "🔪 SORTED_INTERSECTIONS: {} total intersections sorted by position along cutting line",
         all_intersections.len()
     );
-    
+
     // Debug: Print sorted intersection order
     for (i, intersection) in all_intersections.iter().enumerate() {
         info!(
@@ -688,7 +705,7 @@ fn perform_multi_contour_cut(
             i, intersection.contour_idx, intersection.hit.point, intersection.pos_on_cutting_line
         );
     }
-    
+
     // Step 4: Use Runebender's unified slicing approach
     info!("🔪 PROCEEDING: to unified path slicing");
     perform_unified_path_slicing(contours, &all_intersections, cutting_line)
@@ -713,23 +730,26 @@ fn perform_unified_path_slicing(
         sorted_intersections.len(),
         contours.len()
     );
-    
+
     let mut result_contours = Vec::new();
     let mut processed_contours = std::collections::HashSet::new();
-    
+
     // Group intersections by contour for processing
-    let mut contour_intersection_map: std::collections::HashMap<usize, Vec<&UnifiedIntersection>> = 
+    let mut contour_intersection_map: std::collections::HashMap<usize, Vec<&UnifiedIntersection>> =
         std::collections::HashMap::new();
-    
+
     for intersection in sorted_intersections {
         contour_intersection_map
             .entry(intersection.contour_idx)
             .or_default()
             .push(intersection);
     }
-    
-    info!("🔪 INTERSECTION_GROUPING: {} contours have intersections", contour_intersection_map.len());
-    
+
+    info!(
+        "🔪 INTERSECTION_GROUPING: {} contours have intersections",
+        contour_intersection_map.len()
+    );
+
     // Debug: Print intersection distribution
     for (contour_idx, intersections) in &contour_intersection_map {
         info!(
@@ -738,7 +758,7 @@ fn perform_unified_path_slicing(
             intersections.len()
         );
     }
-    
+
     // Process each contour with its intersections
     for (contour_idx, contour_intersections) in &contour_intersection_map {
         let contour_idx = *contour_idx;
@@ -746,27 +766,34 @@ fn perform_unified_path_slicing(
             info!("🔪 SKIP_CONTOUR_{}: Already processed", contour_idx);
             continue;
         }
-        
+
         let contour = &contours[contour_idx];
-        
+
         info!(
             "🔪 PROCESS_CONTOUR_{}: {} intersections",
             contour_idx,
             contour_intersections.len()
         );
-        
+
         if contour_intersections.len() >= 2 {
             // This contour can be cut normally
-            info!("🔪 CONTOUR_{}: Can be cut normally (≥2 intersections)", contour_idx);
-            
+            info!(
+                "🔪 CONTOUR_{}: Can be cut normally (≥2 intersections)",
+                contour_idx
+            );
+
             let hits: Vec<Hit> = contour_intersections
                 .iter()
                 .map(|ui| ui.hit.clone())
                 .collect();
-            
-            info!("🔪 CONTOUR_{}: Calling slice_path_at_hits with {} hits", contour_idx, hits.len());
+
+            info!(
+                "🔪 CONTOUR_{}: Calling slice_path_at_hits with {} hits",
+                contour_idx,
+                hits.len()
+            );
             let sliced_paths = slice_path_at_hits(contour, &hits);
-            
+
             if sliced_paths.len() > 1 {
                 info!(
                     "🔪 CONTOUR_{}: Successfully sliced into {} pieces",
@@ -787,7 +814,7 @@ fn perform_unified_path_slicing(
                 "🔪 CONTOUR_{}: Single intersection - implementing cross-contour connection logic",
                 contour_idx
             );
-            
+
             // Don't process single intersections immediately - collect them for cross-contour bridging
             info!(
                 "🔪 CONTOUR_{}: Deferring single-intersection contour for cross-contour processing",
@@ -801,47 +828,46 @@ fn perform_unified_path_slicing(
             );
             result_contours.push(contour.clone());
         }
-        
+
         processed_contours.insert(contour_idx);
     }
-    
+
     // CROSS-CONTOUR BRIDGING: Handle single intersections by connecting them across contours
-    let single_intersection_contours: Vec<(usize, &UnifiedIntersection)> = 
-        contour_intersection_map
-            .iter()
-            .filter_map(|(contour_idx, intersections)| {
-                if intersections.len() == 1 && !processed_contours.contains(contour_idx) {
-                    Some((*contour_idx, intersections[0]))
-                } else {
-                    None
-                }
-            })
-            .collect();
-    
+    let single_intersection_contours: Vec<(usize, &UnifiedIntersection)> = contour_intersection_map
+        .iter()
+        .filter_map(|(contour_idx, intersections)| {
+            if intersections.len() == 1 && !processed_contours.contains(contour_idx) {
+                Some((*contour_idx, intersections[0]))
+            } else {
+                None
+            }
+        })
+        .collect();
+
     info!(
         "🔪 CROSS_CONTOUR_BRIDGING: Found {} contours with single intersections",
         single_intersection_contours.len()
     );
-    
+
     if single_intersection_contours.len() >= 2 {
         // We can create cross-contour connections
-        info!("🔪 CROSS_CONTOUR_BRIDGING: Attempting to connect {} single-intersection contours", 
-              single_intersection_contours.len());
-        
+        info!(
+            "🔪 CROSS_CONTOUR_BRIDGING: Attempting to connect {} single-intersection contours",
+            single_intersection_contours.len()
+        );
+
         // Sort single-intersection contours by their position along cutting line
         let mut sorted_single_intersections = single_intersection_contours;
         sorted_single_intersections.sort_by(|a, b| {
-            a.1.pos_on_cutting_line.partial_cmp(&b.1.pos_on_cutting_line)
+            a.1.pos_on_cutting_line
+                .partial_cmp(&b.1.pos_on_cutting_line)
                 .unwrap_or(std::cmp::Ordering::Equal)
         });
-        
+
         // Create cross-contour bridges between adjacent single intersections
-        let bridged_contours = create_cross_contour_bridges(
-            contours,
-            &sorted_single_intersections,
-            cutting_line,
-        );
-        
+        let bridged_contours =
+            create_cross_contour_bridges(contours, &sorted_single_intersections, cutting_line);
+
         match bridged_contours {
             Ok(bridges) => {
                 info!(
@@ -849,7 +875,7 @@ fn perform_unified_path_slicing(
                     bridges.len()
                 );
                 result_contours.extend(bridges);
-                
+
                 // Mark these contours as processed
                 for (contour_idx, _) in sorted_single_intersections {
                     processed_contours.insert(contour_idx);
@@ -860,7 +886,7 @@ fn perform_unified_path_slicing(
                     "🔪 CROSS_CONTOUR_FAILED: {}, keeping original contours",
                     error
                 );
-                
+
                 // Fall back to keeping original contours
                 for (contour_idx, _) in sorted_single_intersections {
                     result_contours.push(contours[contour_idx].clone());
@@ -874,13 +900,13 @@ fn perform_unified_path_slicing(
         info!(
             "🔪 SINGLE_SPLIT: Only one contour with single intersection, splitting at intersection point"
         );
-        
+
         let contour = &contours[contour_idx];
         let split_paths = split_path_at_single_point(contour, &intersection.hit);
         result_contours.extend(split_paths);
         processed_contours.insert(contour_idx);
     }
-    
+
     // Add any unprocessed contours
     for (idx, contour) in contours.iter().enumerate() {
         if !processed_contours.contains(&idx) {
@@ -888,7 +914,7 @@ fn perform_unified_path_slicing(
             result_contours.push(contour.clone());
         }
     }
-    
+
     if result_contours.is_empty() {
         let error_msg = "No valid contours produced after unified slicing".to_string();
         info!("🔪 ERROR: {}", error_msg);
@@ -899,7 +925,7 @@ fn perform_unified_path_slicing(
             contours.len(),
             result_contours.len()
         );
-        
+
         // Debug: Print what we're returning
         for (i, result_contour) in result_contours.iter().enumerate() {
             info!(
@@ -909,7 +935,7 @@ fn perform_unified_path_slicing(
                 result_contour.bounding_box()
             );
         }
-        
+
         Ok(result_contours)
     }
 }
@@ -925,31 +951,33 @@ fn create_cross_contour_bridges(
         "🔗 BRIDGE_CREATION: Creating bridges between {} single-intersection contours",
         sorted_single_intersections.len()
     );
-    
+
     if sorted_single_intersections.len() < 2 {
-        return Err("Need at least 2 single intersections to create cross-contour bridges".to_string());
+        return Err(
+            "Need at least 2 single intersections to create cross-contour bridges".to_string(),
+        );
     }
-    
+
     let mut bridged_contours = Vec::new();
-    
+
     // Process pairs of adjacent single intersections
     for pair in sorted_single_intersections.windows(2) {
         if pair.len() != 2 {
             continue;
         }
-        
+
         let (contour_idx_1, intersection_1) = pair[0];
         let (contour_idx_2, intersection_2) = pair[1];
-        
+
         info!(
             "🔗 BRIDGE_PAIR: Connecting contour {} (intersection at {:?}) with contour {} (intersection at {:?})",
             contour_idx_1, intersection_1.hit.point,
             contour_idx_2, intersection_2.hit.point
         );
-        
+
         let contour_1 = &contours[contour_idx_1];
         let contour_2 = &contours[contour_idx_2];
-        
+
         // Create a bridge between these two contours
         match create_single_cross_contour_bridge(
             contour_1,
@@ -959,7 +987,10 @@ fn create_cross_contour_bridges(
             cutting_line,
         ) {
             Ok(bridge) => {
-                info!("🔗 BRIDGE_SUCCESS: Created bridge between contours {} and {}", contour_idx_1, contour_idx_2);
+                info!(
+                    "🔗 BRIDGE_SUCCESS: Created bridge between contours {} and {}",
+                    contour_idx_1, contour_idx_2
+                );
                 bridged_contours.push(bridge);
             }
             Err(error) => {
@@ -967,16 +998,16 @@ fn create_cross_contour_bridges(
                     "🔗 BRIDGE_FAILED: Failed to create bridge between contours {} and {}: {}",
                     contour_idx_1, contour_idx_2, error
                 );
-                return Err(format!("Cross-contour bridge creation failed: {}", error));
+                return Err(format!("Cross-contour bridge creation failed: {error}"));
             }
         }
     }
-    
+
     info!(
         "🔗 BRIDGE_COMPLETE: Successfully created {} cross-contour bridges",
         bridged_contours.len()
     );
-    
+
     Ok(bridged_contours)
 }
 
@@ -987,19 +1018,19 @@ fn create_single_cross_contour_bridge(
     intersection_1: &Hit,
     contour_2: &kurbo::BezPath,
     intersection_2: &Hit,
-    cutting_line: &kurbo::Line,
+    _cutting_line: &kurbo::Line,
 ) -> Result<kurbo::BezPath, String> {
     info!(
         "🌉 SINGLE_BRIDGE: Creating bridge from {:?} to {:?}",
         intersection_1.point, intersection_2.point
     );
-    
+
     // Start building the bridged contour
     let mut bridged_path = kurbo::BezPath::new();
-    
+
     // Start at intersection_1
     bridged_path.move_to(intersection_1.point);
-    
+
     // Add the portion of contour_1 from intersection_1 around to where it would naturally end
     add_contour_portion_from_intersection(
         &mut bridged_path,
@@ -1007,11 +1038,11 @@ fn create_single_cross_contour_bridge(
         intersection_1,
         true, // forward direction
     )?;
-    
+
     // Add bridge line from contour_1 back to intersection_1, then to intersection_2
     // This creates the "cutting line" portion of the bridge
     bridged_path.line_to(intersection_2.point);
-    
+
     // Add the portion of contour_2 from intersection_2 around to where it would naturally end
     add_contour_portion_from_intersection(
         &mut bridged_path,
@@ -1019,15 +1050,15 @@ fn create_single_cross_contour_bridge(
         intersection_2,
         true, // forward direction
     )?;
-    
+
     // Close the path to create a complete contour
     bridged_path.close_path();
-    
+
     info!(
         "🌉 SINGLE_BRIDGE_SUCCESS: Created bridge with {} elements",
         bridged_path.elements().len()
     );
-    
+
     Ok(bridged_path)
 }
 
@@ -1039,16 +1070,17 @@ fn add_contour_portion_from_intersection(
     forward: bool,
 ) -> Result<(), String> {
     let segments = path_to_segments(contour);
-    
+
     if intersection.segment_idx >= segments.len() {
         return Err(format!(
             "Intersection segment index {} out of bounds (contour has {} segments)",
-            intersection.segment_idx, segments.len()
+            intersection.segment_idx,
+            segments.len()
         ));
     }
-    
+
     let mut current_started = true; // bridged_path already has a starting point
-    
+
     if forward {
         // Add remainder of the intersection segment
         if intersection.segment_idx < segments.len() {
@@ -1056,17 +1088,17 @@ fn add_contour_portion_from_intersection(
             let remainder = extract_subsegment(segment, intersection.t, 1.0);
             add_segment_to_path(bridged_path, &remainder, &mut current_started);
         }
-        
+
         // Add all subsequent segments
-        for seg_idx in (intersection.segment_idx + 1)..segments.len() {
-            add_segment_to_path(bridged_path, &segments[seg_idx], &mut current_started);
+        for segment in segments.iter().skip(intersection.segment_idx + 1) {
+            add_segment_to_path(bridged_path, segment, &mut current_started);
         }
-        
+
         // Add all segments from the beginning up to the intersection
-        for seg_idx in 0..intersection.segment_idx {
-            add_segment_to_path(bridged_path, &segments[seg_idx], &mut current_started);
+        for segment in segments.iter().take(intersection.segment_idx) {
+            add_segment_to_path(bridged_path, segment, &mut current_started);
         }
-        
+
         // Add beginning of intersection segment up to the intersection point
         if intersection.segment_idx < segments.len() {
             let segment = &segments[intersection.segment_idx];
@@ -1080,17 +1112,17 @@ fn add_contour_portion_from_intersection(
             let beginning = extract_subsegment(segment, 0.0, intersection.t);
             add_segment_to_path(bridged_path, &beginning, &mut current_started);
         }
-        
+
         // Add all segments before intersection in reverse order
         for seg_idx in (0..intersection.segment_idx).rev() {
             add_segment_to_path(bridged_path, &segments[seg_idx], &mut current_started);
         }
-        
+
         // Add all segments after intersection in reverse order
         for seg_idx in ((intersection.segment_idx + 1)..segments.len()).rev() {
             add_segment_to_path(bridged_path, &segments[seg_idx], &mut current_started);
         }
-        
+
         // Add remainder of intersection segment
         if intersection.segment_idx < segments.len() {
             let segment = &segments[intersection.segment_idx];
@@ -1098,7 +1130,7 @@ fn add_contour_portion_from_intersection(
             add_segment_to_path(bridged_path, &remainder, &mut current_started);
         }
     }
-    
+
     Ok(())
 }
 
@@ -1106,47 +1138,46 @@ fn add_contour_portion_from_intersection(
 fn split_path_at_single_point(path: &kurbo::BezPath, hit: &Hit) -> Vec<kurbo::BezPath> {
     // For single intersection, we'll break the closed path at the intersection point
     // This creates an open path that can be useful for complex multi-contour cuts
-    
+
     let segments = path_to_segments(path);
     if hit.segment_idx >= segments.len() {
         return vec![path.clone()];
     }
-    
+
     let mut result_path = kurbo::BezPath::new();
-    let mut path_started = false;
-    
+
     // Start from the intersection point
     result_path.move_to(hit.point);
-    path_started = true;
-    
+    let mut path_started = true;
+
     // Add the remainder of the segment after the intersection
     if hit.segment_idx < segments.len() {
         let segment = &segments[hit.segment_idx];
         let remainder = extract_subsegment(segment, hit.t, 1.0);
         add_segment_to_path(&mut result_path, &remainder, &mut path_started);
     }
-    
+
     // Add all subsequent segments
     for (seg_idx, segment) in segments.iter().enumerate() {
         if seg_idx > hit.segment_idx {
             add_segment_to_path(&mut result_path, segment, &mut path_started);
         }
     }
-    
+
     // Add all segments before the intersection
     for (seg_idx, segment) in segments.iter().enumerate() {
         if seg_idx < hit.segment_idx {
             add_segment_to_path(&mut result_path, segment, &mut path_started);
         }
     }
-    
+
     // Add the beginning of the segment up to the intersection
     if hit.segment_idx < segments.len() {
         let segment = &segments[hit.segment_idx];
         let beginning = extract_subsegment(segment, 0.0, hit.t);
         add_segment_to_path(&mut result_path, &beginning, &mut path_started);
     }
-    
+
     // Close the path to maintain proper glyph topology
     if !result_path.elements().is_empty() {
         result_path.close_path();
@@ -1228,52 +1259,6 @@ fn spawn_dashed_line_batched(
         // Create a dummy entity if no dashes were created
         return commands.spawn_empty().id();
     }
-
-    let mut mesh = Mesh::new(
-        PrimitiveTopology::TriangleList,
-        bevy::render::render_asset::RenderAssetUsages::default(),
-    );
-    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
-    mesh.insert_indices(Indices::U32(indices));
-
-    let mesh_handle = meshes.add(mesh);
-    let material_handle = materials.add(ColorMaterial::from(color));
-
-    commands
-        .spawn((
-            Mesh2d(mesh_handle),
-            MeshMaterial2d(material_handle),
-            Transform::from_translation(Vec3::new(0.0, 0.0, z)),
-        ))
-        .id()
-}
-
-/// Spawn a line mesh for the knife tool
-#[allow(clippy::too_many_arguments)]
-fn spawn_knife_line_mesh(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<ColorMaterial>>,
-    start: Vec2,
-    end: Vec2,
-    width: f32,
-    color: Color,
-    z: f32,
-) -> Entity {
-    use bevy::render::mesh::{Indices, PrimitiveTopology};
-
-    let direction = (end - start).normalize();
-    let perpendicular = Vec2::new(-direction.y, direction.x) * width * 0.5;
-
-    // Create quad vertices for the line
-    let vertices = vec![
-        [start.x - perpendicular.x, start.y - perpendicular.y, z],
-        [start.x + perpendicular.x, start.y + perpendicular.y, z],
-        [end.x + perpendicular.x, end.y + perpendicular.y, z],
-        [end.x - perpendicular.x, end.y - perpendicular.y, z],
-    ];
-
-    let indices = vec![0, 1, 2, 0, 2, 3];
 
     let mut mesh = Mesh::new(
         PrimitiveTopology::TriangleList,
@@ -1403,36 +1388,20 @@ struct Hit {
     pub segment_idx: usize,
 }
 
-/// Slice a path with a cutting line, returning new path segments
-fn _slice_path_with_line_simple(path: &BezPath, cutting_line: &kurbo::Line) -> Vec<BezPath> {
-    let hits = find_path_intersections_with_parameters(path, cutting_line);
-
-    if hits.is_empty() {
-        return vec![path.clone()];
-    }
-
-    info!("Found {} intersections, slicing path", hits.len());
-
-    // Sort hits by segment index and parameter t
-    let mut sorted_hits = hits;
-    sorted_hits.sort_by(|a, b| {
-        a.segment_idx
-            .cmp(&b.segment_idx)
-            .then(a.t.partial_cmp(&b.t).unwrap_or(std::cmp::Ordering::Equal))
-    });
-
-    // Slice the path at intersection points
-    slice_path_at_hits(path, &sorted_hits)
-}
-
 /// Find intersections with parameter information for accurate slicing
 fn find_path_intersections_with_parameters(path: &BezPath, cutting_line: &kurbo::Line) -> Vec<Hit> {
     let mut hits = Vec::new();
     let mut current_point = Point::ZERO;
     let mut segment_idx = 0;
 
-    info!("🔍 INTERSECTION_SEARCH: Starting search through {} path elements", path.elements().len());
-    info!("🔍 CUTTING_LINE: from {:?} to {:?}", cutting_line.p0, cutting_line.p1);
+    info!(
+        "🔍 INTERSECTION_SEARCH: Starting search through {} path elements",
+        path.elements().len()
+    );
+    info!(
+        "🔍 CUTTING_LINE: from {:?} to {:?}",
+        cutting_line.p0, cutting_line.p1
+    );
 
     for (element_idx, element) in path.elements().iter().enumerate() {
         match element {
@@ -1442,12 +1411,18 @@ fn find_path_intersections_with_parameters(path: &BezPath, cutting_line: &kurbo:
             }
             PathEl::LineTo(end) => {
                 let segment = kurbo::Line::new(current_point, *end);
-                info!("🔍 ELEMENT_{}: LineTo from {:?} to {:?}", element_idx, current_point, end);
-                
+                info!(
+                    "🔍 ELEMENT_{}: LineTo from {:?} to {:?}",
+                    element_idx, current_point, end
+                );
+
                 if let Some(intersection) =
                     line_line_intersection_with_parameter(&segment, cutting_line)
                 {
-                    info!("🔍 LINE_INTERSECTION: Found at {:?}, t={:.3}", intersection.0, intersection.1);
+                    info!(
+                        "🔍 LINE_INTERSECTION: Found at {:?}, t={:.3}",
+                        intersection.0, intersection.1
+                    );
                     hits.push(Hit {
                         point: intersection.0,
                         t: intersection.1,
@@ -1461,30 +1436,40 @@ fn find_path_intersections_with_parameters(path: &BezPath, cutting_line: &kurbo:
             }
             PathEl::CurveTo(c1, c2, end) => {
                 let curve = kurbo::CubicBez::new(current_point, *c1, *c2, *end);
-                info!("🔍 ELEMENT_{}: CurveTo from {:?} via {:?},{:?} to {:?}", 
-                      element_idx, current_point, c1, c2, end);
-                
+                info!(
+                    "🔍 ELEMENT_{}: CurveTo from {:?} via {:?},{:?} to {:?}",
+                    element_idx, current_point, c1, c2, end
+                );
+
                 let curve_hits =
                     curve_line_intersections_with_parameters(&curve, cutting_line, segment_idx);
-                info!("🔍 CURVE_INTERSECTIONS: Found {} intersections", curve_hits.len());
-                
+                info!(
+                    "🔍 CURVE_INTERSECTIONS: Found {} intersections",
+                    curve_hits.len()
+                );
+
                 for (i, hit) in curve_hits.iter().enumerate() {
                     info!("🔍 CURVE_HIT_{}: point={:?}, t={:.3}", i, hit.point, hit.t);
                 }
-                
+
                 hits.extend(curve_hits);
                 current_point = *end;
                 segment_idx += 1;
             }
             PathEl::QuadTo(c, end) => {
                 let curve = kurbo::QuadBez::new(current_point, *c, *end);
-                info!("🔍 ELEMENT_{}: QuadTo from {:?} via {:?} to {:?}", 
-                      element_idx, current_point, c, end);
-                
+                info!(
+                    "🔍 ELEMENT_{}: QuadTo from {:?} via {:?} to {:?}",
+                    element_idx, current_point, c, end
+                );
+
                 let curve_hits =
                     quad_line_intersections_with_parameters(&curve, cutting_line, segment_idx);
-                info!("🔍 QUAD_INTERSECTIONS: Found {} intersections", curve_hits.len());
-                
+                info!(
+                    "🔍 QUAD_INTERSECTIONS: Found {} intersections",
+                    curve_hits.len()
+                );
+
                 hits.extend(curve_hits);
                 current_point = *end;
                 segment_idx += 1;
@@ -1492,12 +1477,18 @@ fn find_path_intersections_with_parameters(path: &BezPath, cutting_line: &kurbo:
             PathEl::ClosePath => {
                 if let Some(start_point) = get_path_start_point_inline(path) {
                     let segment = kurbo::Line::new(current_point, start_point);
-                    info!("🔍 ELEMENT_{}: ClosePath from {:?} to {:?}", element_idx, current_point, start_point);
-                    
+                    info!(
+                        "🔍 ELEMENT_{}: ClosePath from {:?} to {:?}",
+                        element_idx, current_point, start_point
+                    );
+
                     if let Some(intersection) =
                         line_line_intersection_with_parameter(&segment, cutting_line)
                     {
-                        info!("🔍 CLOSE_INTERSECTION: Found at {:?}, t={:.3}", intersection.0, intersection.1);
+                        info!(
+                            "🔍 CLOSE_INTERSECTION: Found at {:?}, t={:.3}",
+                            intersection.0, intersection.1
+                        );
                         hits.push(Hit {
                             point: intersection.0,
                             t: intersection.1,
@@ -1512,29 +1503,44 @@ fn find_path_intersections_with_parameters(path: &BezPath, cutting_line: &kurbo:
         }
     }
 
-    info!("🔍 RAW_HITS: Found {} raw intersections before deduplication", hits.len());
+    info!(
+        "🔍 RAW_HITS: Found {} raw intersections before deduplication",
+        hits.len()
+    );
 
     // Remove duplicate hits with better tolerance
     let original_count = hits.len();
     hits.dedup_by(|a, b| a.point.distance(b.point) < 1.0);
     if hits.len() < original_count {
-        info!("🔍 DEDUPLICATION: Removed {} duplicates, {} remaining", original_count - hits.len(), hits.len());
+        info!(
+            "🔍 DEDUPLICATION: Removed {} duplicates, {} remaining",
+            original_count - hits.len(),
+            hits.len()
+        );
     }
-    
+
     // Sort hits by their position along the knife cutting line for better ordering
     hits.sort_by(|a, b| {
         // Calculate position along cutting line for better ordering
         let cutting_dir = (cutting_line.p1 - cutting_line.p0).normalize();
         let a_proj = (a.point - cutting_line.p0).dot(cutting_dir);
         let b_proj = (b.point - cutting_line.p0).dot(cutting_dir);
-        a_proj.partial_cmp(&b_proj).unwrap_or(std::cmp::Ordering::Equal)
+        a_proj
+            .partial_cmp(&b_proj)
+            .unwrap_or(std::cmp::Ordering::Equal)
     });
-    
-    info!("🔍 FINAL_HITS: Returning {} sorted intersections", hits.len());
+
+    info!(
+        "🔍 FINAL_HITS: Returning {} sorted intersections",
+        hits.len()
+    );
     for (i, hit) in hits.iter().enumerate() {
-        info!("🔍 FINAL_HIT_{}: point={:?}, t={:.3}, segment_idx={}", i, hit.point, hit.t, hit.segment_idx);
+        info!(
+            "🔍 FINAL_HIT_{}: point={:?}, t={:.3}, segment_idx={}",
+            i, hit.point, hit.t, hit.segment_idx
+        );
     }
-    
+
     hits
 }
 
@@ -1568,7 +1574,6 @@ fn slice_path_at_hits(path: &BezPath, hits: &[Hit]) -> Vec<BezPath> {
 
     // Use recursive slicing algorithm (similar to Runebender)
     slice_path_recursively(path, &sorted_hits)
-
 }
 
 /// Recursive path slicing algorithm based on Runebender's approach
@@ -1587,20 +1592,20 @@ fn slice_path_recursively(path: &BezPath, hits: &[Hit]) -> Vec<BezPath> {
     // Take first two intersections and slice, then recursively slice the remaining parts
     let first_hit = &hits[0];
     let second_hit = &hits[1];
-    
+
     // Slice path at first two intersections
     let sliced_paths = slice_path_with_two_hits(path, first_hit, second_hit);
-    
+
     if sliced_paths.len() != 2 {
         // If slicing failed, try with remaining intersections
         return slice_path_recursively(path, &hits[1..]);
     }
 
     let mut result_paths = Vec::new();
-    
+
     // Check if remaining intersections affect either of the sliced paths
     let remaining_hits = &hits[2..];
-    
+
     for sliced_path in sliced_paths {
         // Find which remaining hits belong to this path segment
         let relevant_hits: Vec<Hit> = remaining_hits
@@ -1608,7 +1613,7 @@ fn slice_path_recursively(path: &BezPath, hits: &[Hit]) -> Vec<BezPath> {
             .filter(|hit| path_contains_hit(&sliced_path, hit))
             .cloned()
             .collect();
-        
+
         if relevant_hits.is_empty() {
             // No more intersections in this path
             result_paths.push(sliced_path);
@@ -1618,12 +1623,13 @@ fn slice_path_recursively(path: &BezPath, hits: &[Hit]) -> Vec<BezPath> {
             result_paths.extend(further_sliced);
         }
     }
-    
+
     info!(
         "Recursive slicing: {} intersections -> {} final paths",
-        hits.len(), result_paths.len()
+        hits.len(),
+        result_paths.len()
     );
-    
+
     result_paths
 }
 
@@ -1632,9 +1638,9 @@ fn path_contains_hit(path: &BezPath, hit: &Hit) -> bool {
     // Simple heuristic: check if the hit point is close to any part of the path
     let hit_point = hit.point;
     const TOLERANCE: f64 = 5.0; // Tighter tolerance for better accuracy
-    
+
     let mut current_point = kurbo::Point::ZERO;
-    
+
     for element in path.elements() {
         match element {
             PathEl::MoveTo(pt) => {
@@ -1682,7 +1688,7 @@ fn path_contains_hit(path: &BezPath, hit: &Hit) -> bool {
             }
         }
     }
-    
+
     false
 }
 
@@ -1784,13 +1790,6 @@ fn slice_path_with_two_hits(path: &BezPath, first_hit: &Hit, second_hit: &Hit) -
         result_paths.len()
     );
     result_paths
-}
-
-/// DEPRECATED: We no longer create connecting bridges
-/// Instead, we create proper closed contours with the cutting line integrated
-fn _create_connecting_bridges(_sorted_hits: &[Hit]) -> Vec<BezPath> {
-    // No longer needed - we create proper closed contours instead
-    vec![]
 }
 
 /// Represent a path segment for processing
@@ -2010,7 +2009,7 @@ fn curve_line_intersections_simple(curve: &kurbo::CubicBez, line: &kurbo::Line) 
     for intersection in curve_intersections {
         // Calculate the intersection point using segment_t
         let point = curve.eval(intersection.segment_t);
-        
+
         // IMPORTANT: Check if intersection point lies within the knife line segment
         // kurbo finds intersections with infinite line, but we want line segment only
         if point_lies_on_line_segment(point, line) {
@@ -2036,7 +2035,7 @@ fn quad_line_intersections_simple(curve: &kurbo::QuadBez, line: &kurbo::Line) ->
     for intersection in curve_intersections {
         // Calculate the intersection point using segment_t
         let point = curve.eval(intersection.segment_t);
-        
+
         // IMPORTANT: Check if intersection point lies within the knife line segment
         // kurbo finds intersections with infinite line, but we want line segment only
         if point_lies_on_line_segment(point, line) {
@@ -2054,13 +2053,13 @@ fn point_lies_on_line_segment(point: Point, line: &kurbo::Line) -> bool {
     // Calculate the parameter t for the point on the line
     let dx = line.p1.x - line.p0.x;
     let dy = line.p1.y - line.p0.y;
-    
+
     // Handle near-vertical and near-horizontal lines appropriately
     let t = if dx.abs() > dy.abs() {
         // Use x coordinate for parameter calculation
         if dx.abs() < 1e-10 {
             // Vertical line
-            return (point.x - line.p0.x).abs() < 1e-6 
+            return (point.x - line.p0.x).abs() < 1e-6
                 && point.y >= line.p0.y.min(line.p1.y) - 1e-6
                 && point.y <= line.p0.y.max(line.p1.y) + 1e-6;
         }
@@ -2069,13 +2068,13 @@ fn point_lies_on_line_segment(point: Point, line: &kurbo::Line) -> bool {
         // Use y coordinate for parameter calculation
         if dy.abs() < 1e-10 {
             // Horizontal line
-            return (point.y - line.p0.y).abs() < 1e-6 
+            return (point.y - line.p0.y).abs() < 1e-6
                 && point.x >= line.p0.x.min(line.p1.x) - 1e-6
                 && point.x <= line.p0.x.max(line.p1.x) + 1e-6;
         }
         (point.y - line.p0.y) / dy
     };
-    
+
     // Check if t is within [0, 1] (point lies on line segment)
     (0.0..=1.0).contains(&t)
 }
@@ -2087,13 +2086,4 @@ fn get_path_start_point_inline(path: &BezPath) -> Option<Point> {
         }
     }
     None
-}
-
-/// Calculate the distance from a point to a line
-fn _calculate_line_point_distance(line: &kurbo::Line, point: Point) -> f64 {
-    let a = line.p1.y - line.p0.y;
-    let b = line.p0.x - line.p1.x;
-    let c = line.p1.x * line.p0.y - line.p0.x * line.p1.y;
-
-    (a * point.x + b * point.y + c).abs() / (a * a + b * b).sqrt()
 }

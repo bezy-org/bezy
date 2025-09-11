@@ -1,9 +1,7 @@
 #![allow(unused_imports)]
 
 use crate::core::state::AppState;
-use crate::editing::edit_type::EditType;
 use crate::editing::selection::systems::*;
-use crate::editing::UndoPlugin;
 use bevy::prelude::*;
 
 pub mod components;
@@ -30,9 +28,9 @@ pub struct DragSelectionState {
     /// Whether a drag selection is in progress
     pub is_dragging: bool,
     /// The start position of the drag selection (in design space)
-    pub start_position: Option<crate::geometry::design_space::DPoint>,
+    pub start_position: Option<crate::geometry::world_space::DPoint>,
     /// The current position of the drag selection (in design space)
-    pub current_position: Option<crate::geometry::design_space::DPoint>,
+    pub current_position: Option<crate::geometry::world_space::DPoint>,
     /// Whether this is a multi-select operation (shift is held)
     pub is_multi_select: bool,
     /// The previous selection before the drag started
@@ -67,7 +65,6 @@ impl Plugin for SelectionPlugin {
             // Add events
             .add_event::<AppStateChanged>()
             .add_event::<EditEvent>()
-            .register_type::<EditType>()
             .register_type::<NudgeState>()
             // Register components
             .register_type::<Selectable>()
@@ -105,26 +102,11 @@ impl Plugin for SelectionPlugin {
                     .in_set(SelectionSystemSet::Processing)
                     .after(SelectionSystemSet::Input),
             )
-            // Add the new ECS-based point management systems
-            // TEMP DISABLED: Causing performance lag during text input
-            // .add_systems(
-            //     Update,
-            //     (
-            //         // entity_management::spawn_active_sort_points, // DISABLED: Causes duplicate point entities
-            //         entity_management::despawn_inactive_sort_points,
-            //         entity_management::sync_point_positions_to_sort,
-            //     )
-            //         .after(entity_management::update_glyph_data_from_selection),
-            // )
             // Rendering systems - moved to PostUpdate to run after transform propagation
             .add_systems(
                 PostUpdate,
                 (
                     crate::rendering::selection::render_selection_marquee,
-                    // DISABLED: These are now handled by the unified glyph editing system
-                    // crate::rendering::selection::render_selected_entities,
-                    // crate::rendering::selection::render_all_point_entities,
-                    // crate::rendering::selection::render_control_handles,
                     utils::debug_print_selection_rects, // TEMP: debug system
                 )
                     .in_set(SelectionSystemSet::Render),

@@ -101,12 +101,12 @@ fn create_default_sort_at_position(
     advance_width: f32,
 ) {
     use crate::core::state::text_editor::buffer::BufferId;
-    use crate::core::state::text_editor::{SortEntry, SortKind, SortLayoutMode};
+    use crate::core::state::text_editor::{SortData, SortKind, SortLayoutMode};
 
     // Create a new buffer ID for this LTR text flow
     let buffer_id = BufferId::new();
 
-    let sort = SortEntry {
+    let sort = SortData {
         kind: SortKind::Glyph {
             codepoint: Some('a'), // Default to 'a'
             glyph_name: glyph_name.to_string(),
@@ -115,7 +115,7 @@ fn create_default_sort_at_position(
         is_active: true,                      // Make it active and ready to edit
         layout_mode: SortLayoutMode::LTRText, // LTR text mode for typing
         root_position: position,
-        buffer_cursor_position: Some(1), // LEGACY: Cursor after the first character (for compatibility)
+        buffer_cursor_position: Some(1),
         buffer_id: Some(buffer_id), // Assign unique buffer ID for isolation
     };
 
@@ -160,24 +160,3 @@ pub fn center_camera_on_startup_layout(
         commands.remove_resource::<CenterCameraOnDefaultSort>();
     }
 }
-
-// Future expansion ideas for post v1.0:
-//
-// /// Configuration for the startup glyph grid
-// pub struct GridConfig {
-//     pub rows: usize,
-//     pub cols: usize,
-//     pub spacing: f32,
-//     pub glyphs: Vec<String>,
-// }
-//
-// /// Create a grid of glyph sorts at startup
-// fn create_glyph_grid(
-//     text_editor_state: &mut TextEditorState,
-//     config: &GridConfig,
-//     fontir_state: Option<&FontIRAppState>,
-// ) {
-//     // Implementation for creating a grid of sorts
-//     // Each sort would be positioned based on grid coordinates
-//     // Camera would center on the entire grid
-// }

@@ -1,6 +1,6 @@
 //! Mouse and trackpad managment
 
-use crate::geometry::design_space::DPoint;
+use crate::geometry::world_space::DPoint;
 use crate::rendering::cameras::DesignCamera;
 use bevy::prelude::*;
 

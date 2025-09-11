@@ -12,10 +12,9 @@ use crate::core::settings::BezySettings;
 use crate::core::state::AppState;
 use crate::core::state::FontMetrics;
 use crate::core::state::TextEditorState;
-use crate::editing::edit_type::EditType;
 use crate::editing::selection::nudge::{EditEvent, NudgeState};
 #[allow(unused_imports)]
-use crate::geometry::design_space::DPoint;
+use crate::geometry::world_space::DPoint;
 #[allow(unused_imports)]
 use crate::geometry::point::{EditPoint, EntityId, EntityKind};
 use crate::rendering::cameras::DesignCamera;
@@ -112,7 +111,6 @@ pub fn handle_selection_shortcuts(
 
         // Send edit event
         event_writer.write(EditEvent {
-            edit_type: EditType::Normal,
         });
     }
 }
@@ -136,7 +134,7 @@ pub fn update_glyph_data_from_selection(
         (
             &Transform,
             &GlyphPointReference,
-            Option<&crate::systems::sort_manager::SortPointEntity>,
+            Option<&crate::editing::sort::manager::SortPointEntity>,
         ),
         (With<Selected>, Changed<Transform>),
     >,
@@ -152,8 +150,6 @@ pub fn update_glyph_data_from_selection(
             return;
         }
     }
-
-    // REMOVED: Skip during nudging - we want sync to work normally during nudging
 
     // Early return if no points were moved
     if query.is_empty() {
@@ -237,7 +233,7 @@ pub fn spawn_active_sort_points(
     mut commands: Commands,
     active_sort_state: Res<crate::editing::sort::ActiveSortState>,
     sort_query: Query<(Entity, &crate::editing::sort::Sort, &Transform)>,
-    point_entities: Query<Entity, With<crate::systems::sort_manager::SortPointEntity>>,
+    point_entities: Query<Entity, With<crate::editing::sort::manager::SortPointEntity>>,
     app_state: Res<AppState>,
     _selection_state: ResMut<crate::editing::selection::SelectionState>,
 ) {
@@ -298,7 +294,7 @@ pub fn spawn_active_sort_points(
                                         InheritedVisibility::default(),
                                         ViewVisibility::default(),
                                         crate::editing::selection::components::Selectable,
-                                        crate::systems::sort_manager::SortPointEntity {
+                                        crate::editing::sort::manager::SortPointEntity {
                                             sort_entity,
                                         },
                                     ))
@@ -336,7 +332,7 @@ pub fn spawn_active_sort_points(
 pub fn despawn_inactive_sort_points(
     mut commands: Commands,
     active_sort_state: Res<crate::editing::sort::ActiveSortState>,
-    point_entities: Query<(Entity, &crate::systems::sort_manager::SortPointEntity)>,
+    point_entities: Query<(Entity, &crate::editing::sort::manager::SortPointEntity)>,
     mut selection_state: ResMut<crate::editing::selection::SelectionState>,
 ) {
     // Despawn points for sorts that are no longer active
@@ -372,7 +368,7 @@ pub fn sync_point_positions_to_sort(
         >,
         Query<(
             &mut Transform,
-            &crate::systems::sort_manager::SortPointEntity,
+            &crate::editing::sort::manager::SortPointEntity,
             &crate::editing::selection::components::GlyphPointReference,
         )>,
     )>,
@@ -461,7 +457,7 @@ pub fn handle_point_drag(
             &mut Transform,
             &mut crate::editing::selection::nudge::PointCoordinates,
             Option<&GlyphPointReference>,
-            Option<&crate::systems::sort_manager::SortCrosshair>,
+            Option<&crate::editing::sort::manager::SortCrosshair>,
         ),
         With<Selected>,
     >,
@@ -544,7 +540,6 @@ pub fn handle_point_drag(
 
             // Send edit event
             event_writer.write(EditEvent {
-                edit_type: EditType::Normal,
             });
         }
     }
@@ -578,7 +573,7 @@ pub fn process_selection_input_events(
     selection_rect_query: Query<Entity, With<SelectionRect>>,
     mut selection_state: ResMut<SelectionState>,
     active_sort_state: Res<crate::editing::sort::ActiveSortState>,
-    sort_point_entities: Query<&crate::systems::sort_manager::SortPointEntity>,
+    sort_point_entities: Query<&crate::editing::sort::manager::SortPointEntity>,
     select_mode: Option<Res<crate::ui::edit_mode_toolbar::select::SelectModeActive>>,
     text_editor_state: ResMut<TextEditorState>,
     app_state: Res<crate::core::state::AppState>,
@@ -805,7 +800,7 @@ pub fn handle_selection_click(
     selected_query: &Query<(Entity, &Transform), With<Selected>>,
     selection_state: &mut ResMut<SelectionState>,
     active_sort_entity: Entity,
-    sort_point_entities: &Query<&crate::systems::sort_manager::SortPointEntity>,
+    sort_point_entities: &Query<&crate::editing::sort::manager::SortPointEntity>,
 ) {
     debug!("=== HANDLE SELECTION CLICK ===");
     let cursor_pos = position.to_raw();
@@ -968,7 +963,6 @@ pub fn handle_selection_click(
             .or_insert(pos);
 
         event_writer.write(EditEvent {
-            edit_type: EditType::Normal,
         });
 
         debug!(
@@ -1014,7 +1008,7 @@ pub fn handle_selection_drag(
     >,
     selection_state: &mut ResMut<SelectionState>,
     _active_sort_entity: Entity,
-    _sort_point_entities: &Query<&crate::systems::sort_manager::SortPointEntity>,
+    _sort_point_entities: &Query<&crate::editing::sort::manager::SortPointEntity>,
     _selection_rect_query: &Query<Entity, With<SelectionRect>>,
 ) {
     info!(
@@ -1279,7 +1273,7 @@ pub fn handle_selection_key_press(
     selection_state: &mut ResMut<SelectionState>,
     event_writer: &mut EventWriter<EditEvent>,
     active_sort_entity: Entity,
-    sort_point_entities: &Query<&crate::systems::sort_manager::SortPointEntity>,
+    sort_point_entities: &Query<&crate::editing::sort::manager::SortPointEntity>,
 ) {
     match key {
         KeyCode::KeyA => {
@@ -1306,7 +1300,6 @@ pub fn handle_selection_key_press(
                 }
 
                 event_writer.write(EditEvent {
-                    edit_type: EditType::Normal,
                 });
                 debug!("Selected all {} points in active sort", selected_count);
             }
@@ -1319,7 +1312,6 @@ pub fn handle_selection_key_press(
             }
             selection_state.selected.clear();
             event_writer.write(EditEvent {
-                edit_type: EditType::Normal,
             });
         }
         _ => {}
@@ -1350,7 +1342,7 @@ pub fn debug_validate_point_entity_uniqueness(
             &crate::editing::selection::components::GlyphPointReference,
             Entity,
         ),
-        With<crate::systems::sort_manager::SortPointEntity>,
+        With<crate::editing::sort::manager::SortPointEntity>,
     >,
 ) {
     use std::collections::HashMap;
@@ -1374,7 +1366,7 @@ pub fn debug_validate_point_entity_uniqueness(
 mod tests {
     use super::*;
     use crate::editing::selection::coordinate_system::SelectionCoordinateSystem;
-    use crate::geometry::design_space::DPoint;
+    use crate::geometry::world_space::DPoint;
     use bevy::prelude::*;
 
     #[test]

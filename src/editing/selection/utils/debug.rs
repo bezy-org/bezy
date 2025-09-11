@@ -20,7 +20,7 @@ pub fn debug_validate_point_entity_uniqueness(
             Entity,
             &crate::editing::selection::components::GlyphPointReference,
         ),
-        With<crate::systems::sort_manager::SortPointEntity>,
+        With<crate::editing::sort::manager::SortPointEntity>,
     >,
 ) {
     let mut seen_points = std::collections::HashSet::new();

@@ -11,8 +11,6 @@
 
 pub mod cameras;
 pub mod checkerboard;
-pub mod debug;
-pub mod draw;
 pub mod entity_pools;
 pub mod glyph_renderer;
 pub mod mesh_cache;
@@ -23,6 +21,7 @@ pub mod points;
 pub mod selection;
 pub mod sort_renderer;
 pub mod sort_visuals;
+pub mod text_cursor;
 pub mod zoom_aware_scaling;
 
 // Re-export commonly used items
@@ -37,4 +36,5 @@ pub use selection::{
     render_all_point_entities, render_selected_entities, render_selection_marquee,
 };
 pub use sort_visuals::SortHandleRenderingPlugin;
+pub use text_cursor::{CursorRenderingState, TextEditorCursor};
 pub use zoom_aware_scaling::{CameraResponsivePlugin, CameraResponsiveScale};

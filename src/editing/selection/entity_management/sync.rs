@@ -3,8 +3,8 @@
 use crate::core::state::AppState;
 use crate::editing::selection::components::{GlyphPointReference, Selected};
 use crate::editing::selection::nudge::NudgeState;
+use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::Sort;
-use crate::systems::sort_manager::SortPointEntity;
 use bevy::ecs::system::ParamSet;
 use bevy::prelude::*;
 use std::collections::HashMap;

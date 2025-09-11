@@ -11,18 +11,17 @@ use crate::core::io::input::{helpers, InputEvent, InputMode, InputState, Modifie
 use crate::core::io::pointer::PointerInfo;
 use crate::core::settings::BezySettings;
 use crate::core::state::AppState;
-use crate::editing::edit_type::EditType;
 use crate::editing::selection::components::{GlyphPointReference, PointType, Selectable, Selected};
 use crate::editing::selection::systems::AppStateChanged;
 use crate::editing::selection::{DragPointState, DragSelectionState, SelectionState};
+use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::ActiveSortState;
-use crate::geometry::design_space::DPoint;
-use crate::systems::sort_manager::SortPointEntity;
+use crate::geometry::world_space::DPoint;
 use crate::systems::ui_interaction::UiHoverState;
-use crate::ui::theme::*;
-use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
 use crate::ui::edit_mode_toolbar::select::SelectModeActive;
 use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
+use crate::ui::theme::*;
+use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
 use bevy::input::keyboard::KeyCode;
 use bevy::input::mouse::MouseButton;
 use bevy::prelude::*;
@@ -431,7 +430,7 @@ fn handle_left_click(
     glyph_navigation: &Res<crate::core::state::GlyphNavigation>,
     app_state: &mut ResMut<crate::core::state::AppState>,
     app_state_changed: &mut EventWriter<AppStateChanged>,
-    active_sort_info: Option<(usize, &crate::core::state::SortEntry)>,
+    active_sort_info: Option<(usize, &crate::core::state::SortData)>,
     text_editor_state: Option<&crate::core::state::TextEditorState>,
     cursor_pos: Vec2,
     settings: &BezySettings,
@@ -505,7 +504,7 @@ fn close_current_path(
     glyph_navigation: &Res<crate::core::state::GlyphNavigation>,
     app_state: &mut ResMut<crate::core::state::AppState>,
     app_state_changed: &mut EventWriter<AppStateChanged>,
-    active_sort_info: Option<(usize, &crate::core::state::SortEntry)>,
+    active_sort_info: Option<(usize, &crate::core::state::SortData)>,
     text_editor_state: Option<&crate::core::state::TextEditorState>,
 ) {
     if !pen_state.points.is_empty() {
@@ -550,7 +549,7 @@ fn handle_right_click(
     glyph_navigation: &Res<crate::core::state::GlyphNavigation>,
     app_state: &mut ResMut<crate::core::state::AppState>,
     app_state_changed: &mut EventWriter<AppStateChanged>,
-    active_sort_info: Option<(usize, &crate::core::state::SortEntry)>,
+    active_sort_info: Option<(usize, &crate::core::state::SortData)>,
     text_editor_state: Option<&crate::core::state::TextEditorState>,
 ) {
     if pen_state.state == PenState::Drawing && pen_state.points.len() >= 2 {
@@ -587,7 +586,7 @@ fn add_contour_to_glyph(
     app_state: &mut ResMut<crate::core::state::AppState>,
     app_state_changed: &mut EventWriter<AppStateChanged>,
     is_closed: bool,
-    active_sort_info: Option<(usize, &crate::core::state::SortEntry)>,
+    active_sort_info: Option<(usize, &crate::core::state::SortData)>,
 ) {
     let glyph_name = if let Some((_sort_index, sort_entry)) = active_sort_info {
         info!(

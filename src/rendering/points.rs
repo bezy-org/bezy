@@ -6,9 +6,9 @@
 #![allow(clippy::too_many_arguments)]
 
 use crate::editing::selection::components::{PointType, Selected};
+use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::ActiveSort;
 use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
-use crate::systems::sort_manager::SortPointEntity;
 use crate::ui::theme::*;
 use crate::ui::themes::CurrentTheme;
 use bevy::prelude::*;
@@ -268,7 +268,7 @@ impl Plugin for PointRenderingPlugin {
         app.add_systems(
             Update,
             render_points_with_meshes
-                .after(crate::systems::text_editor_sorts::spawn_active_sort_points_optimized)
+                .after(crate::systems::sorts::spawn_active_sort_points_optimized)
                 .after(crate::editing::selection::nudge::handle_nudge_input),
         );
     }

@@ -2,20 +2,21 @@
 //!
 //! Bevy plugin that registers all sort-related systems, resources, and events.
 
+use super::manager::{
+    handle_sort_events, respawn_sort_points_on_glyph_change, spawn_current_glyph_sort,
+};
 use crate::core::state::{AppState, GlyphNavigation};
 use crate::editing::selection::components::{
     GlyphPointReference, PointType, Selectable, Selected, SelectionState,
 };
 use crate::editing::selection::nudge::PointCoordinates;
-use crate::editing::sort::{ActiveSort, ActiveSortState, InactiveSort, Sort, SortEvent};
+use crate::editing::sort::components::{
+    ActiveSort, ActiveSortState, InactiveSort, Sort, SortEvent,
+};
 use crate::rendering::cameras::DesignCamera;
 use crate::rendering::sort_renderer::{
     manage_sort_labels, update_sort_label_colors, update_sort_label_positions,
 };
-use crate::systems::sort_manager::{
-    handle_sort_events, respawn_sort_points_on_glyph_change, spawn_current_glyph_sort,
-};
-// use crate::systems::sort_interaction::handle_sort_clicks; // DISABLED: Old input system conflicts with selection
 use bevy::prelude::*;
 
 /// System sets for Sort management to ensure proper ordering
@@ -48,22 +49,12 @@ impl Plugin for SortPlugin {
             // Management systems (events, basic sort operations)
             .add_systems(
                 Update,
-                (
-                    handle_sort_events,
-                    // REMOVED: spawn_current_glyph_sort - unwanted automatic sort creation
-                    // REMOVED: enforce_single_active_sort, auto_activate_first_sort, handle_glyph_navigation_changes,
-                    // These are now handled by TextEditorState + sync system
-                )
-                    .in_set(SortSystemSet::Management),
+                (handle_sort_events,).in_set(SortSystemSet::Management),
             )
             // Point spawning systems
             .add_systems(
                 Update,
-                (
-                    // spawn_sort_point_entities, // DISABLED: Causes duplicate point entities
-                    respawn_sort_points_on_glyph_change,
-                )
-                    .in_set(SortSystemSet::PointSpawning),
+                (respawn_sort_points_on_glyph_change,).in_set(SortSystemSet::PointSpawning),
             )
             // Label management systems (text labels for sorts)
             .add_systems(

@@ -8,8 +8,8 @@
 
 use crate::core::state::FontIRAppState;
 use crate::editing::selection::components::Selected;
+use crate::editing::sort::manager::SortPointEntity;
 use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
-use crate::systems::sort_manager::SortPointEntity;
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh2d;
 use bevy::sprite::{ColorMaterial, MeshMaterial2d};
@@ -282,7 +282,7 @@ pub fn handle_sort_selection_and_drag_start(
     mut text_editor_state: Option<ResMut<crate::core::state::text_editor::TextEditorState>>,
     buffer_index_query: Query<(
         Entity,
-        &crate::systems::text_editor_sorts::sort_entities::BufferSortIndex,
+        &crate::systems::sorts::sort_entities::BufferSortIndex,
     )>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
 ) {
@@ -487,7 +487,7 @@ pub fn handle_sort_drag_update(
     text_editor_state: Option<Res<crate::core::state::text_editor::TextEditorState>>,
     buffer_index_query: Query<(
         Entity,
-        &crate::systems::text_editor_sorts::sort_entities::BufferSortIndex,
+        &crate::systems::sorts::sort_entities::BufferSortIndex,
     )>,
 ) {
     if let Some(dragging_sort) = drag_state.dragging_sort {
@@ -571,7 +571,7 @@ pub fn handle_sort_drag_release(
     sort_query: Query<&Transform, With<crate::editing::sort::Sort>>,
     buffer_index_query: Query<(
         Entity,
-        &crate::systems::text_editor_sorts::sort_entities::BufferSortIndex,
+        &crate::systems::sorts::sort_entities::BufferSortIndex,
     )>,
 ) {
     if drag_state.dragging_sort.is_some() && mouse_button_input.just_released(MouseButton::Left) {
@@ -607,14 +607,17 @@ impl Plugin for SortHandleRenderingPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<SortHandleEntities>()
             .init_resource::<SortHandleDragState>()
-            .add_systems(Update, (
-                render_mesh_sort_handles,
-                // Handle selection should run before auto_activate_selected_sorts
-                handle_sort_selection_and_drag_start
-                    .before(crate::systems::text_editor_sorts::sort_entities::auto_activate_selected_sorts),
-                handle_sort_drag_update,
-                handle_sort_drag_release,
-            ));
+            .add_systems(
+                Update,
+                (
+                    render_mesh_sort_handles,
+                    // Handle selection should run before auto_activate_selected_sorts
+                    handle_sort_selection_and_drag_start
+                        .before(crate::systems::sorts::sort_entities::auto_activate_selected_sorts),
+                    handle_sort_drag_update,
+                    handle_sort_drag_release,
+                ),
+            );
     }
 }
 

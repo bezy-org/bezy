@@ -2,7 +2,6 @@
 
 use crate::core::io::input::{InputEvent, InputState, ModifierState};
 use crate::core::state::TextEditorState;
-use crate::editing::edit_type::EditType;
 use crate::editing::selection::components::{
     GlyphPointReference, PointType, Selectable, Selected, SelectionRect, SelectionState,
 };
@@ -11,7 +10,7 @@ use crate::editing::selection::events::{ClickWorldPosition, SELECTION_MARGIN};
 use crate::editing::selection::input::shortcuts::handle_selection_key_press;
 use crate::editing::selection::nudge::EditEvent;
 use crate::editing::selection::{DragPointState, DragSelectionState};
-use crate::geometry::design_space::DPoint;
+use crate::geometry::world_space::DPoint;
 use bevy::input::mouse::MouseButton;
 use bevy::prelude::*;
 
@@ -38,11 +37,11 @@ pub fn process_selection_input_events(
     selection_rect_query: Query<Entity, With<SelectionRect>>,
     mut selection_state: ResMut<SelectionState>,
     active_sort_state: Res<crate::editing::sort::ActiveSortState>,
-    sort_point_entities: Query<&crate::systems::sort_manager::SortPointEntity>,
+    sort_point_entities: Query<&crate::editing::sort::manager::SortPointEntity>,
     select_mode: Option<Res<crate::ui::edit_mode_toolbar::select::SelectModeActive>>,
     text_editor_state: ResMut<TextEditorState>,
     app_state: Option<Res<crate::core::state::AppState>>,
-    buffer_entities: Res<crate::systems::text_editor_sorts::sort_entities::BufferSortEntities>,
+    buffer_entities: Res<crate::systems::sorts::sort_entities::BufferSortEntities>,
 ) {
     // Early exit if no events to process - this prevents expensive logging every frame
     let event_count = input_events.len();
@@ -353,7 +352,7 @@ pub fn handle_selection_click(
     selected_query: &Query<(Entity, &Transform), With<Selected>>,
     selection_state: &mut ResMut<SelectionState>,
     active_sort_entity: Entity,
-    sort_point_entities: &Query<&crate::systems::sort_manager::SortPointEntity>,
+    sort_point_entities: &Query<&crate::editing::sort::manager::SortPointEntity>,
 ) {
     debug!(
         "=== HANDLE SELECTION CLICK === position={:?}, active_sort={:?}",
@@ -522,7 +521,6 @@ pub fn handle_selection_click(
             .or_insert(pos);
 
         event_writer.write(EditEvent {
-            edit_type: EditType::Normal,
         });
 
         debug!(
@@ -568,7 +566,7 @@ pub fn handle_selection_drag(
     >,
     selection_state: &mut ResMut<SelectionState>,
     _active_sort_entity: Entity,
-    _sort_point_entities: &Query<&crate::systems::sort_manager::SortPointEntity>,
+    _sort_point_entities: &Query<&crate::editing::sort::manager::SortPointEntity>,
     _selection_rect_query: &Query<Entity, With<SelectionRect>>,
 ) {
     info!(

@@ -32,8 +32,8 @@ Status:
 use crate::core::settings::BezySettings;
 use crate::core::state::{AppState, GlyphNavigation};
 use crate::editing::selection::systems::AppStateChanged;
-use crate::ui::theme::{METABALL_GIZMO_COLOR, METABALL_OUTLINE_COLOR, METABALL_SELECTED_COLOR};
 use crate::ui::edit_mode_toolbar::{EditTool, ToolId, ToolRegistry};
+use crate::ui::theme::{METABALL_GIZMO_COLOR, METABALL_OUTLINE_COLOR, METABALL_SELECTED_COLOR};
 use bevy::prelude::*;
 use contour_isobands::ContourBuilder;
 

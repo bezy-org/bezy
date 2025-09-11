@@ -6,7 +6,7 @@
 //! the hybrid approach.
 
 use super::{CurrentTool, ToolId, ToolRegistry};
-use crate::ui::edit_mode_toolbar::text::{CurrentTextPlacementMode, TextPlacementMode};
+use crate::ui::edit_mode_toolbar::text::TextPlacementMode;
 use bevy::prelude::*;
 
 /// Resource to track spacebar toggle state
@@ -35,13 +35,13 @@ pub fn handle_spacebar_toggle(
     mut current_tool: ResMut<CurrentTool>,
     mut toggle_state: ResMut<SpacebarToggleState>,
     tool_registry: Res<ToolRegistry>,
-    current_text_placement_mode: Option<Res<CurrentTextPlacementMode>>,
+    current_text_placement_mode: Option<Res<TextPlacementMode>>,
 ) {
     // Check if text tool is active and in insert mode
     let is_text_insert_mode = current_tool.get_current() == Some("text")
         && current_text_placement_mode
             .as_ref()
-            .map(|mode| mode.0 == TextPlacementMode::Insert)
+            .map(|mode| **mode == TextPlacementMode::Insert)
             .unwrap_or(false);
 
     // Skip temporary mode switching if text tool is in insert mode

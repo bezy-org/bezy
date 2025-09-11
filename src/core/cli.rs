@@ -14,8 +14,9 @@ use std::path::PathBuf;
 ///
 /// Examples:
 ///   bezy                                # Load default font
-///   bezy --load-ufo my-font.ufo         # Load specific font
-///   bezy --load-ufo ~/Fonts/MyFont.ufo  # Load font with full path
+///   bezy --edit my-font.ufo             # Edit specific font
+///   bezy --edit ~/Fonts/MyFont.ufo      # Edit font with full path
+///   bezy --edit my-variable.designspace # Edit variable font
 ///   bezy --theme lightmode              # Use light mode theme
 ///   bezy --theme strawberry             # Use strawberry theme
 ///   bezy --no-default-buffer            # Start without default LTR buffer (for testing)
@@ -27,19 +28,19 @@ use std::path::PathBuf;
     long_about = "Bezy is a cross-platform font editor that supports UFO (Unified Font Object) files. It provides glyph editing capabilities with a modern, game-engine-powered interface."
 )]
 pub struct CliArgs {
-    /// Path to a UFO file or designspace to load on startup
+    /// Path to a font source to edit (UFO or designspace)
     ///
-    /// The file should be either a valid UFO version 3 directory structure
+    /// The source should be either a valid UFO version 3 directory structure
     /// or a .designspace file for variable fonts.
     /// If not specified, loads the default sample font.
     #[clap(
-        long = "load-ufo",
-        short = 'f',
+        long = "edit",
+        short = 'e',
         default_value = DEFAULT_UFO_PATH,
-        help = "UFO file or designspace to load",
-        long_help = "Path to a UFO (Unified Font Object) file or designspace file to load on startup. UFO files should be directory structures, designspace files enable variable font support."
+        help = "Font source to edit (UFO or designspace)",
+        long_help = "Path to a font source to edit. Accepts UFO directories (.ufo) for single master fonts or designspace files (.designspace) for variable fonts with multiple masters."
     )]
-    pub ufo_path: Option<PathBuf>,
+    pub font_source: Option<PathBuf>,
 
     /// Theme to use for the interface
     ///
@@ -80,42 +81,48 @@ impl CliArgs {
 
         #[cfg(not(target_arch = "wasm32"))]
         {
-            if let Some(path) = &self.ufo_path {
+            if let Some(path) = &self.font_source {
                 if !path.exists() {
                     return Err(format!(
-                        "UFO file does not exist: {}\nMake sure the path is correct and the file exists.",
+                        "Font source does not exist: {}\nMake sure the path is correct and the file exists.",
                         path.display()
                     ));
                 }
 
                 // Check if it's a .designspace file or a UFO directory
-                if let Some(extension) = path.extension() {
-                    if extension == "designspace" {
-                        // Valid designspace file - no further validation needed
-                    } else {
-                        return Err(format!(
-                            "Unsupported file type: {}\nSupported formats: .ufo directories and .designspace files.",
-                            path.display()
-                        ));
-                    }
-                } else if path.is_dir() {
-                    // Assume it's a UFO directory - check for required files
+                if path.is_dir() {
+                    // It's a directory - check if it's a valid UFO
                     let meta_info = path.join("metainfo.plist");
                     if !meta_info.exists() {
                         return Err(format!(
-                            "Not a valid UFO file: missing metainfo.plist in {}\nMake sure this is a valid UFO directory.",
+                            "Not a valid UFO directory: missing metainfo.plist in {}\nMake sure this is a valid UFO directory.",
+                            path.display()
+                        ));
+                    }
+                } else if path.is_file() {
+                    // It's a file - check if it's a designspace
+                    if let Some(extension) = path.extension() {
+                        if extension != "designspace" {
+                            return Err(format!(
+                                "Unsupported file type: {}\nOnly .designspace files are supported for non-directory sources.",
+                                path.display()
+                            ));
+                        }
+                    } else {
+                        return Err(format!(
+                            "File has no extension: {}\nExpected a .designspace file.",
                             path.display()
                         ));
                     }
                 } else {
                     return Err(format!(
-                        "Invalid path: {}\nPath must be either a .ufo directory or a .designspace file.",
+                        "Path is neither a file nor a directory: {}\nPath must be either a UFO directory or a .designspace file.",
                         path.display()
                     ));
                 }
             } else {
-                // If no UFO path provided, use default
-                return Err("Please provide a UFO file path as an argument.\nExample: bezy assets/fonts/bezy-grotesk-regular.ufo".to_string());
+                // If no font source provided, use default
+                return Err("Please provide a font source path as an argument.\nExample: bezy --edit assets/fonts/bezy-grotesk-regular.ufo".to_string());
             }
 
             // Validate theme if provided
@@ -139,18 +146,18 @@ impl CliArgs {
     #[cfg(target_arch = "wasm32")]
     pub fn default_for_web() -> Self {
         Self {
-            ufo_path: Some(PathBuf::from(DEFAULT_UFO_PATH)),
+            font_source: Some(PathBuf::from(DEFAULT_UFO_PATH)),
             theme: None,              // Use default theme for web builds
             no_default_buffer: false, // Enable default buffer for web builds
         }
     }
 
-    /// Get the UFO path, guaranteed to be Some after validation
+    /// Get the font source path, guaranteed to be Some after validation
     #[allow(dead_code)]
-    pub fn get_ufo_path(&self) -> &PathBuf {
-        self.ufo_path
+    pub fn get_font_source(&self) -> &PathBuf {
+        self.font_source
             .as_ref()
-            .expect("UFO path should be validated")
+            .expect("Font source should be validated")
     }
 
     /// Get the theme variant from CLI args or default

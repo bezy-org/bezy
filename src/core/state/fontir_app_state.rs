@@ -55,6 +55,15 @@ impl From<&GlyphInstance> for EditableGlyphInstance {
     }
 }
 
+/// Type of font source being edited
+#[derive(Debug, Clone, PartialEq)]
+pub enum SourceType {
+    /// Single UFO file
+    SingleUfo,
+    /// Designspace with multiple masters
+    Designspace { master_count: usize },
+}
+
 /// The main application state using FontIR
 #[derive(Resource, Clone)]
 pub struct FontIRAppState {
@@ -83,6 +92,9 @@ pub struct FontIRAppState {
     /// Path to the source file
     pub source_path: PathBuf,
 
+    /// Type of source (single UFO or designspace)
+    pub source_type: SourceType,
+
     /// Kerning groups data loaded from UFO groups.plist
     /// Maps group name (e.g. "public.kern1.a") to list of glyph names
     pub kerning_groups: HashMap<String, Vec<String>>,
@@ -93,6 +105,20 @@ impl FontIRAppState {
     pub fn from_path(path: PathBuf) -> Result<Self> {
         // Load the source (works with .ufo or .designspace)
         let source = Arc::new(DesignSpaceIrSource::new(&path)?);
+
+        // Detect source type based on file extension
+        let source_type = if path.extension().and_then(|s| s.to_str()) == Some("designspace") {
+            // Try to count masters from the designspace
+            match DesignSpaceDocument::load(&path) {
+                Ok(ds) => SourceType::Designspace {
+                    master_count: ds.sources.len(),
+                },
+                Err(_) => SourceType::Designspace { master_count: 0 },
+            }
+        } else {
+            // Assume it's a single UFO
+            SourceType::SingleUfo
+        };
 
         // Initialize with default location
         // Note: We'll use fallback to first available instance in glyph lookup
@@ -107,6 +133,7 @@ impl FontIRAppState {
             current_glyph: Some("a".to_string()), // Default to 'a' to match GlyphNavigation
             current_location,
             source_path: path.clone(),
+            source_type,
             kerning_groups: HashMap::new(),
         };
 
@@ -124,6 +151,11 @@ impl FontIRAppState {
         }
 
         Ok(app_state)
+    }
+
+    /// Check if this is a single UFO source (not a designspace)
+    pub fn is_single_ufo(&self) -> bool {
+        matches!(self.source_type, SourceType::SingleUfo)
     }
 
     /// Set the current glyph
@@ -228,7 +260,8 @@ impl FontIRAppState {
         if let Some(fontir_glyph) = self.glyph_cache.get(glyph_name) {
             // Get the appropriate instance for our location
             // Try to find the exact location match first
-            let instance = fontir_glyph.sources()
+            let instance = fontir_glyph
+                .sources()
                 .iter()
                 .find(|(loc, _)| **loc == location)
                 .map(|(_, inst)| inst)
@@ -236,7 +269,7 @@ impl FontIRAppState {
                     // Fallback to first available instance if exact match not found
                     fontir_glyph.sources().iter().next().map(|(_, inst)| inst)
                 });
-                
+
             if let Some(instance) = instance {
                 let working_copy = EditableGlyphInstance::from(instance);
                 info!(
@@ -1271,32 +1304,42 @@ impl FontIRAppState {
 
     /// Get glyph name for a Unicode character by looking up Unicode mappings in the font
     pub fn get_glyph_name_for_unicode(&self, unicode_char: char) -> Option<String> {
-        info!("🔍 FONTIR UNICODE: Looking up character '{}' (U+{:04X})", unicode_char, unicode_char as u32);
-        
+        info!(
+            "🔍 FONTIR UNICODE: Looking up character '{}' (U+{:04X})",
+            unicode_char, unicode_char as u32
+        );
+
         // SIMPLE TEST: For now, just handle basic ASCII letters directly
         // This will help us verify the lookup path is working
         match unicode_char {
             'a'..='z' | 'A'..='Z' => {
                 let char_name = unicode_char.to_string();
-                info!("✅ FONTIR UNICODE: Simple ASCII lookup for '{}' -> '{}'", unicode_char, char_name);
+                info!(
+                    "✅ FONTIR UNICODE: Simple ASCII lookup for '{}' -> '{}'",
+                    unicode_char, char_name
+                );
                 return Some(char_name);
             }
             _ => {
                 info!("🔍 FONTIR UNICODE: Not a simple ASCII letter, trying UFO lookup");
             }
         }
-        
+
         // Load Unicode mappings from the source UFO if not already cached
         let source_path = &self.source_path;
-        
+
         // Try to read the UFO and find glyphs with this Unicode value
         if source_path.extension() == Some(std::ffi::OsStr::new("ufo")) {
             if let Ok(font) = norad::Font::load(source_path) {
                 // Look through all glyphs for one that maps to this Unicode character
                 for glyph in font.default_layer().iter() {
                     if glyph.codepoints.contains(unicode_char) {
-                        info!("Found glyph '{}' for character '{}' (U+{:04X}) via Unicode mapping", 
-                              glyph.name(), unicode_char, unicode_char as u32);
+                        info!(
+                            "Found glyph '{}' for character '{}' (U+{:04X}) via Unicode mapping",
+                            glyph.name(),
+                            unicode_char,
+                            unicode_char as u32
+                        );
                         return Some(glyph.name().to_string());
                     }
                 }
@@ -1316,8 +1359,11 @@ impl FontIRAppState {
                 }
             }
         }
-        
-        info!("❌ FONTIR UNICODE: No mapping found for character '{}' (U+{:04X})", unicode_char, unicode_char as u32);
+
+        info!(
+            "❌ FONTIR UNICODE: No mapping found for character '{}' (U+{:04X})",
+            unicode_char, unicode_char as u32
+        );
         None
     }
 }

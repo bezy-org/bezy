@@ -6,9 +6,9 @@
 #![allow(clippy::too_many_arguments)]
 
 use crate::editing::selection::components::{GlyphPointReference, PointType, Selected};
+use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::{ActiveSort, Sort};
 use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
-use crate::systems::sort_manager::SortPointEntity;
 use crate::ui::theme::*;
 use crate::ui::themes::CurrentTheme;
 use bevy::prelude::*;
@@ -680,7 +680,8 @@ fn render_glyph_points(
         // Create the three-layer point shape
         if point_type.is_on_curve && USE_SQUARE_FOR_ON_CURVE {
             // On-curve points: square with three layers
-            let base_size = ON_CURVE_POINT_RADIUS * ON_CURVE_SQUARE_ADJUSTMENT * 2.0 * root_size_multiplier;
+            let base_size =
+                ON_CURVE_POINT_RADIUS * ON_CURVE_SQUARE_ADJUSTMENT * 2.0 * root_size_multiplier;
             let size = camera_scale.adjusted_point_size(base_size);
 
             // Layer 1: Base shape (full width) - primary color
@@ -1379,12 +1380,12 @@ fn detect_sort_changes(
     removed_active: RemovedComponents<ActiveSort>,
     removed_inactive: RemovedComponents<crate::editing::sort::InactiveSort>,
     // CRITICAL FIX: Also trigger updates when points are available for active sorts
-    point_query: Query<&crate::systems::sort_manager::SortPointEntity>,
+    point_query: Query<&crate::editing::sort::manager::SortPointEntity>,
     buffer_active_sorts: Query<
         Entity,
         (
             With<ActiveSort>,
-            With<crate::systems::text_editor_sorts::sort_entities::BufferSortIndex>,
+            With<crate::systems::sorts::sort_entities::BufferSortIndex>,
         ),
     >,
 ) {
@@ -1503,7 +1504,7 @@ impl Plugin for GlyphRenderingPlugin {
                 Update,
                 (detect_sort_changes, render_glyphs)
                     .chain()
-                    .after(crate::systems::text_editor_sorts::spawn_active_sort_points_optimized)
+                    .after(crate::systems::sorts::spawn_active_sort_points_optimized)
                     .after(crate::editing::selection::nudge::handle_nudge_input),
             );
     }

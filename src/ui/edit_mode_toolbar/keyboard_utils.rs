@@ -18,7 +18,7 @@ pub fn should_disable_single_char_hotkeys<T1, T2>(
 ) -> bool
 where
     T1: AsRef<super::text::TextModeActive>,
-    T2: AsRef<super::text::CurrentTextPlacementMode>,
+    T2: AsRef<super::text::TextPlacementMode>,
 {
     // Check if we're in text insert mode
     if let (Some(text_active), Some(placement_mode)) =
@@ -27,7 +27,7 @@ where
         // Disable single-char hotkeys when in text mode with Insert placement
         let text_active = text_active.as_ref();
         let placement_mode = placement_mode.as_ref();
-        text_active.0 && placement_mode.0 == super::text::TextPlacementMode::Insert
+        text_active.0 && *placement_mode == super::text::TextPlacementMode::Insert
     } else {
         false
     }

@@ -11,9 +11,9 @@ use crate::editing::selection::components::{
     GlyphPointReference, PointType, Selectable, Selected, SelectionRect,
 };
 use crate::editing::selection::{DragPointState, DragSelectionState, SelectionState};
+use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::ActiveSortState;
-use crate::geometry::design_space::DPoint;
-use crate::systems::sort_manager::SortPointEntity;
+use crate::geometry::world_space::DPoint;
 use crate::systems::ui_interaction::UiHoverState;
 use bevy::prelude::*;
 
@@ -725,12 +725,6 @@ fn process_input_events(
         }
 
         // Mode-specific consumers
-        // DISABLED: Pen tool now uses its own handle_pen_mouse_events system
-        // if pen_consumer.should_handle_input(event, &input_state) {
-        //     pen_consumer.handle_input(event, &input_state);
-        //     ... pen handling logic ...
-        //     continue;
-        // }
 
         if knife_consumer.should_handle_input(event, &input_state) {
             info!(

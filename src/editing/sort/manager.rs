@@ -474,5 +474,4 @@ pub fn auto_activate_first_sort(
     _sorts_query: Query<Entity, (With<Sort>, With<InactiveSort>)>,
     _active_sorts_query: Query<Entity, With<ActiveSort>>,
 ) {
-    // DISABLED: Skip auto-activation to keep design space clean
 }

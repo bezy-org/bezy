@@ -400,7 +400,7 @@ fn update_coordinate_selection(
     selected_query: Query<
         (
             &GlobalTransform,
-            Option<&crate::systems::sort_manager::SortPointEntity>,
+            Option<&crate::editing::sort::manager::SortPointEntity>,
         ),
         With<Selected>,
     >,

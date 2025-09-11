@@ -66,7 +66,6 @@ impl TextPlacementMode {
             TextPlacementMode::Freeform => SortLayoutMode::Freeform,
         }
     }
-
 }
 
 /// Component to mark text submenu buttons

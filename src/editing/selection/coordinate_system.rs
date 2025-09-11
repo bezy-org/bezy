@@ -1,4 +1,4 @@
-use crate::geometry::design_space::DPoint;
+use crate::geometry::world_space::DPoint;
 use bevy::prelude::*;
 
 /// Centralized coordinate system for selection operations

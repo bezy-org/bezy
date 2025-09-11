@@ -6,7 +6,7 @@ use crate::core::io::input::InputPlugin;
 use crate::core::io::pointer::PointerPlugin;
 use crate::core::settings::{BezySettings, DEFAULT_WINDOW_SIZE, WINDOW_TITLE};
 use crate::core::state::GlyphNavigation;
-use crate::editing::{FontEditorSystemSetsPlugin, SelectionPlugin, TextEditorPlugin, UndoPlugin};
+use crate::editing::{FontEditorSystemSetsPlugin, SelectionPlugin, TextEditorPlugin};
 use crate::rendering::{
     cameras::CameraPlugin, checkerboard::CheckerboardPlugin,
     zoom_aware_scaling::CameraResponsivePlugin, EntityPoolingPlugin, GlyphRenderingPlugin,
@@ -14,18 +14,16 @@ use crate::rendering::{
 };
 use crate::systems::{
     center_camera_on_startup_layout, create_startup_layout, exit_on_esc, load_fontir_font,
-    BezySystems, CommandsPlugin, HarfBuzzShapingPlugin, InputConsumerPlugin, UiInteractionPlugin,
+    BezySystems, CommandsPlugin, InputConsumerPlugin, TextShapingPlugin, UiInteractionPlugin,
 };
+use crate::ui::edit_mode_toolbar::EditModeToolbarPlugin;
 use crate::ui::file_menu::FileMenuPlugin;
-use crate::ui::hud::HudPlugin;
 use crate::ui::panes::coordinate_pane::CoordinatePanePlugin;
-use crate::ui::panes::design_space::DesignSpacePlugin;
 use crate::ui::panes::file_pane::FilePanePlugin;
 use crate::ui::panes::glyph_pane::GlyphPanePlugin;
 use crate::ui::theme::CurrentTheme;
 #[cfg(debug_assertions)]
-use crate::ui::themes::runtime_reload::RuntimeThemePlugin;
-use crate::ui::edit_mode_toolbar::EditModeToolbarPlugin;
+use crate::ui::theme_system::RuntimeThemePlugin;
 use anyhow::Result;
 use bevy::app::{PluginGroup, PluginGroupBuilder};
 use bevy::prelude::*;
@@ -44,10 +42,9 @@ impl PluginGroup for CorePluginGroup {
             .add(InputConsumerPlugin)
             .add(FontEditorSystemSetsPlugin) // Must be added before other font editor plugins
             .add(TextEditorPlugin)
-            // RE-ENABLED: HarfBuzz text shaping for RTL support
-            .add(HarfBuzzShapingPlugin)
+            // Unified text shaping for RTL support (includes Arabic and HarfBuzz)
+            .add(TextShapingPlugin)
             .add(SelectionPlugin)
-            .add(UndoPlugin)
             .add(UiInteractionPlugin)
             .add(CommandsPlugin)
             .add(BezySystems)
@@ -79,20 +76,14 @@ pub struct EditorPluginGroup;
 impl PluginGroup for EditorPluginGroup {
     fn build(self) -> PluginGroupBuilder {
         PluginGroupBuilder::start::<Self>()
-            .add(DesignSpacePlugin)
             .add(FilePanePlugin)
             .add(GlyphPanePlugin)
             .add(CoordinatePanePlugin)
             .add(EditModeToolbarPlugin) // ✅ Includes ConfigBasedToolbarPlugin - handles all tools automatically
             .add(FileMenuPlugin)
-            .add(HudPlugin)
             // ✅ NEW SYSTEM: All tools are now automatically registered via EditModeToolbarPlugin
             // No need for manual tool plugin registration - everything is handled by toolbar_config.rs
-            // ❌ OLD SYSTEM (REMOVED): Manual tool plugin registration
-            // .add(crate::tools::CleanToolsPlugin)     // DEPRECATED - now handled by config system
-            // .add(crate::tools::SelectToolPlugin)     // DEPRECATED - now handled by config system
             .add(crate::tools::PenToolPlugin) // Re-enabled - pen tool needs its business logic plugin
-                                              // .add(crate::tools::TextToolPlugin)       // DEPRECATED - now handled by config system
     }
 }
 

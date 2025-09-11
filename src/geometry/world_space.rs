@@ -1,9 +1,9 @@
-//! Design space coordinate system for font editing
+//! World space coordinate system for font editing
 //!
 //! This module provides the core coordinate types and transformations for the font editor.
-//! Design space is the fixed coordinate system where glyphs, guides, and other entities
+//! World space is the fixed coordinate system where glyphs, guides, and other entities
 //! are described. When drawing to the screen or handling mouse input, we need to translate
-//! from 'screen space' to design space, taking into account things like the current
+//! from 'screen space' to world space, taking into account things like the current
 //! scroll offset and zoom level.
 
 use std::fmt;
@@ -12,7 +12,7 @@ use std::ops::{Add, AddAssign, Sub, SubAssign};
 use bevy::math::Vec2;
 use bevy::prelude::*;
 
-/// A point in design space.
+/// A point in world space.
 ///
 /// This type represents a point in the canonical font coordinate system.
 /// The origin (0,0) is at the intersection of the baseline and the left sidebearing.
@@ -23,7 +23,7 @@ pub struct DPoint {
     pub y: f32,
 }
 
-/// A vector in design space, used for nudging & dragging
+/// A vector in world space, used for nudging & dragging
 #[derive(Debug, Clone, Copy, Component, PartialEq)]
 pub struct DVec2 {
     pub x: f32,
@@ -34,15 +34,15 @@ impl DPoint {
     pub const ZERO: DPoint = DPoint { x: 0.0, y: 0.0 };
 
     /// Create a new `DPoint` with the given coordinates.
-    /// Should only be used with inputs already in design space, such as when
+    /// Should only be used with inputs already in world space, such as when
     /// loaded from file.
     pub(crate) fn new(x: f32, y: f32) -> DPoint {
         DPoint { x, y }
     }
 
-    /// Create a new `DPoint` from a `Vec2` in design space. This should only
+    /// Create a new `DPoint` from a `Vec2` in world space. This should only
     /// be used to convert back to a `DPoint` after using `Vec2` to do vector
-    /// math in design space.
+    /// math in world space.
     pub fn from_raw(point: impl Into<Vec2>) -> DPoint {
         let point = point.into();
         DPoint::new(point.x, point.y)
