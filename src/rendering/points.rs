@@ -6,9 +6,9 @@
 #![allow(clippy::too_many_arguments)]
 
 use crate::editing::selection::components::{PointType, Selected};
+use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::ActiveSort;
 use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
-use crate::systems::sort_manager::SortPointEntity;
 use crate::ui::theme::*;
 use crate::ui::themes::CurrentTheme;
 use bevy::prelude::*;

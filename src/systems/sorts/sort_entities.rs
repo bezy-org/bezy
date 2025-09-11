@@ -687,8 +687,8 @@ pub fn despawn_missing_buffer_sort_entities(
         Entity,
         &crate::rendering::glyph_renderer::GlyphRenderElement,
     )>,
-    point_query: Query<Entity, With<crate::systems::sort_manager::SortPointEntity>>,
-    sort_point_query: Query<&crate::systems::sort_manager::SortPointEntity>,
+    point_query: Query<Entity, With<crate::editing::sort::manager::SortPointEntity>>,
+    sort_point_query: Query<&crate::editing::sort::manager::SortPointEntity>,
     sort_name_text_query: Query<(Entity, &crate::rendering::sort_renderer::SortGlyphNameText)>,
     sort_unicode_text_query: Query<(Entity, &crate::rendering::sort_renderer::SortUnicodeText)>,
 ) {

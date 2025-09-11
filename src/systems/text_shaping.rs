@@ -590,9 +590,10 @@ pub fn shape_arabic_buffer_system(
     };
 
     // Early exit: Only process if we have RTL layout mode
-    let has_rtl_text = text_editor_state.buffer.iter().any(|entry| {
-        matches!(entry.layout_mode, SortLayoutMode::RTLText)
-    });
+    let has_rtl_text = text_editor_state
+        .buffer
+        .iter()
+        .any(|entry| matches!(entry.layout_mode, SortLayoutMode::RTLText));
 
     if !has_rtl_text {
         return;
@@ -868,7 +869,12 @@ pub fn harfbuzz_shaping_system(
         }
 
         // Normal HarfBuzz processing for other text
-        match shape_text_with_harfbuzz(&text, direction, &mut shaping_cache.harfbuzz_cache, &fontir_state) {
+        match shape_text_with_harfbuzz(
+            &text,
+            direction,
+            &mut shaping_cache.harfbuzz_cache,
+            &fontir_state,
+        ) {
             Ok(shaped) => {
                 info!(
                     "🔤 HarfBuzz: Successfully shaped '{}' into {} glyphs",
@@ -916,15 +922,15 @@ pub struct TextShapingPlugin;
 
 impl Plugin for TextShapingPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<TextShapingCache>()
-            .add_systems(
-                Update,
-                (
-                    shape_arabic_text_system,
-                    shape_arabic_buffer_system,
-                    harfbuzz_shaping_system,
-                ).in_set(crate::editing::FontEditorSets::TextBuffer)
-            );
+        app.init_resource::<TextShapingCache>().add_systems(
+            Update,
+            (
+                shape_arabic_text_system,
+                shape_arabic_buffer_system,
+                harfbuzz_shaping_system,
+            )
+                .in_set(crate::editing::FontEditorSets::TextBuffer),
+        );
     }
 }
 
@@ -973,10 +979,10 @@ mod tests {
     #[test]
     fn test_arabic_position_detection() {
         let text: Vec<char> = "مرحبا".chars().collect();
-        
+
         // Test various positions in Arabic text
         assert_eq!(get_arabic_position(&text, 0), ArabicPosition::Initial);
-        
+
         // Test isolated character
         let isolated: Vec<char> = "ا".chars().collect();
         assert_eq!(get_arabic_position(&isolated, 0), ArabicPosition::Isolated);

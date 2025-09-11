@@ -1,8 +1,8 @@
 use crate::core::settings::BezySettings;
 use crate::editing::edit_type::EditType;
 use crate::editing::selection::components::Selected;
+use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::ActiveSortState;
-use crate::systems::sort_manager::SortPointEntity;
 use bevy::log::{debug, info, warn};
 use bevy::prelude::*;
 
@@ -28,7 +28,7 @@ pub fn handle_nudge_input(
                 Entity,
                 &mut Transform,
                 &crate::editing::selection::components::GlyphPointReference,
-                Option<&crate::systems::sort_manager::SortPointEntity>,
+                Option<&crate::editing::sort::manager::SortPointEntity>,
             ),
             (With<Selected>, With<SortPointEntity>),
         >,

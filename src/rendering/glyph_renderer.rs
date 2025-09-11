@@ -6,9 +6,9 @@
 #![allow(clippy::too_many_arguments)]
 
 use crate::editing::selection::components::{GlyphPointReference, PointType, Selected};
+use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::{ActiveSort, Sort};
 use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
-use crate::systems::sort_manager::SortPointEntity;
 use crate::ui::theme::*;
 use crate::ui::themes::CurrentTheme;
 use bevy::prelude::*;
@@ -1380,7 +1380,7 @@ fn detect_sort_changes(
     removed_active: RemovedComponents<ActiveSort>,
     removed_inactive: RemovedComponents<crate::editing::sort::InactiveSort>,
     // CRITICAL FIX: Also trigger updates when points are available for active sorts
-    point_query: Query<&crate::systems::sort_manager::SortPointEntity>,
+    point_query: Query<&crate::editing::sort::manager::SortPointEntity>,
     buffer_active_sorts: Query<
         Entity,
         (

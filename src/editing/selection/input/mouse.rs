@@ -38,7 +38,7 @@ pub fn process_selection_input_events(
     selection_rect_query: Query<Entity, With<SelectionRect>>,
     mut selection_state: ResMut<SelectionState>,
     active_sort_state: Res<crate::editing::sort::ActiveSortState>,
-    sort_point_entities: Query<&crate::systems::sort_manager::SortPointEntity>,
+    sort_point_entities: Query<&crate::editing::sort::manager::SortPointEntity>,
     select_mode: Option<Res<crate::ui::edit_mode_toolbar::select::SelectModeActive>>,
     text_editor_state: ResMut<TextEditorState>,
     app_state: Option<Res<crate::core::state::AppState>>,
@@ -353,7 +353,7 @@ pub fn handle_selection_click(
     selected_query: &Query<(Entity, &Transform), With<Selected>>,
     selection_state: &mut ResMut<SelectionState>,
     active_sort_entity: Entity,
-    sort_point_entities: &Query<&crate::systems::sort_manager::SortPointEntity>,
+    sort_point_entities: &Query<&crate::editing::sort::manager::SortPointEntity>,
 ) {
     debug!(
         "=== HANDLE SELECTION CLICK === position={:?}, active_sort={:?}",
@@ -568,7 +568,7 @@ pub fn handle_selection_drag(
     >,
     selection_state: &mut ResMut<SelectionState>,
     _active_sort_entity: Entity,
-    _sort_point_entities: &Query<&crate::systems::sort_manager::SortPointEntity>,
+    _sort_point_entities: &Query<&crate::editing::sort::manager::SortPointEntity>,
     _selection_rect_query: &Query<Entity, With<SelectionRect>>,
 ) {
     info!(

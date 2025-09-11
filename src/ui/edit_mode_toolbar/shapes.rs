@@ -356,7 +356,7 @@ pub fn render_active_shape_drawing_with_dimensions(
     // Debug: Always log when this system runs
     debug!("SHAPES PREVIEW: System running - shapes_mode_active: {:?}, active_sort: {}, current_tool: {:?}, is_drawing: {}, shapes_is_active: {}", 
            shapes_mode.as_ref().map(|s| s.0),
-           active_sort.is_some(), 
+           active_sort.is_some(),
            current_tool.as_ref().and_then(|t| t.get_current()),
            active_drawing.is_drawing,
            shapes_is_active);

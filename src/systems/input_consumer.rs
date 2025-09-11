@@ -11,9 +11,9 @@ use crate::editing::selection::components::{
     GlyphPointReference, PointType, Selectable, Selected, SelectionRect,
 };
 use crate::editing::selection::{DragPointState, DragSelectionState, SelectionState};
+use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::ActiveSortState;
 use crate::geometry::design_space::DPoint;
-use crate::systems::sort_manager::SortPointEntity;
 use crate::systems::ui_interaction::UiHoverState;
 use bevy::prelude::*;
 

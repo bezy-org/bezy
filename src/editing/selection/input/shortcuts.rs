@@ -124,7 +124,7 @@ pub fn handle_selection_key_press(
     selection_state: &mut ResMut<SelectionState>,
     event_writer: &mut EventWriter<EditEvent>,
     active_sort_entity: Entity,
-    sort_point_entities: &Query<&crate::systems::sort_manager::SortPointEntity>,
+    sort_point_entities: &Query<&crate::editing::sort::manager::SortPointEntity>,
 ) {
     match key {
         KeyCode::KeyA => {

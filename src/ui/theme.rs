@@ -7,5 +7,5 @@
 //! For creating custom themes, see the themes/ directory and docs/THEME_CREATION_GUIDE.md
 
 // Re-export the theme system and all organized constants
-pub use crate::ui::themes::*;
 pub use crate::ui::theme_system::*;
+pub use crate::ui::themes::*;

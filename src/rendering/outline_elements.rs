@@ -1,7 +1,7 @@
 use crate::core::state::FontIRAppState;
 use crate::editing::selection::components::{GlyphPointReference, PointType};
+use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::{ActiveSort, Sort};
-use crate::systems::sort_manager::SortPointEntity;
 use crate::ui::theme::HANDLE_LINE_COLOR;
 use bevy::prelude::*;
 

@@ -43,6 +43,6 @@ pub mod strawberry;
 
 // Re-export core theming infrastructure from theme_system
 pub use crate::ui::theme_system::{
-    BezyTheme, ThemeRegistry, ThemeVariant, CurrentTheme, get_theme_registry,
-    WidgetBorderRadius, ToolbarBorderRadius, UiBorderRadius
+    get_theme_registry, BezyTheme, CurrentTheme, ThemeRegistry, ThemeVariant, ToolbarBorderRadius,
+    UiBorderRadius, WidgetBorderRadius,
 };

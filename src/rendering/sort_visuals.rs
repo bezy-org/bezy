@@ -8,8 +8,8 @@
 
 use crate::core::state::FontIRAppState;
 use crate::editing::selection::components::Selected;
+use crate::editing::sort::manager::SortPointEntity;
 use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
-use crate::systems::sort_manager::SortPointEntity;
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh2d;
 use bevy::sprite::{ColorMaterial, MeshMaterial2d};

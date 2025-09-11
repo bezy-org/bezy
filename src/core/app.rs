@@ -14,7 +14,7 @@ use crate::rendering::{
 };
 use crate::systems::{
     center_camera_on_startup_layout, create_startup_layout, exit_on_esc, load_fontir_font,
-    BezySystems, CommandsPlugin, TextShapingPlugin, InputConsumerPlugin, UiInteractionPlugin,
+    BezySystems, CommandsPlugin, InputConsumerPlugin, TextShapingPlugin, UiInteractionPlugin,
 };
 use crate::ui::edit_mode_toolbar::EditModeToolbarPlugin;
 use crate::ui::file_menu::FileMenuPlugin;

@@ -15,8 +15,8 @@ use crate::editing::selection::components::{
 };
 use crate::editing::selection::nudge::NudgeState;
 use crate::editing::selection::{DragPointState, DragSelectionState};
+use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::ActiveSort;
-use crate::systems::sort_manager::SortPointEntity;
 use crate::ui::theme::*;
 use crate::ui::themes::CurrentTheme;
 use bevy::prelude::*;

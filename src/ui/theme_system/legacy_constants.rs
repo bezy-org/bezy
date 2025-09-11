@@ -2,13 +2,13 @@
 //!
 //! This file contains hardcoded constants that were used before the theme system.
 //! These exist purely for backward compatibility during migration.
-//! 
+//!
 //! TODO: This entire file should be deleted once all code is migrated to use the theme system.
 
 use bevy::prelude::*;
 
 // =================================================================
-// LEGACY COMPATIBILITY CONSTANTS  
+// LEGACY COMPATIBILITY CONSTANTS
 // These provide hardcoded values from before the theme system
 // DELETE THIS ENTIRE FILE once migration to theme system is complete
 // =================================================================

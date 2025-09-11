@@ -3,8 +3,8 @@
 //! This file provides convenient accessor functions for getting values from the current theme.
 //! Use these functions instead of accessing theme resources directly for better consistency.
 
-use bevy::prelude::*;
 use crate::ui::themes::{BezyTheme, CurrentTheme};
+use bevy::prelude::*;
 
 // =================================================================
 // THEME ACCESSOR FUNCTIONS

@@ -3,10 +3,10 @@
 use crate::core::state::font_data::PointTypeData;
 use crate::core::state::{AppState, FontIRAppState};
 use crate::editing::selection::components::{GlyphPointReference, PointType, Selectable};
+use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::{ActiveSort, InactiveSort, Sort};
 use crate::geometry::design_space::DPoint;
 use crate::geometry::point::EditPoint;
-use crate::systems::sort_manager::SortPointEntity;
 use bevy::prelude::*;
 use kurbo::{PathEl, Point};
 use std::collections::HashMap;

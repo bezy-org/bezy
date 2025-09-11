@@ -12,7 +12,7 @@ use std::str::FromStr;
 use std::sync::OnceLock;
 
 use super::json_theme;
-use crate::ui::themes::{darkmode, lightmode, strawberry, campfire};
+use crate::ui::themes::{campfire, darkmode, lightmode, strawberry};
 
 // =================================================================
 // THEME REGISTRY - AUTOMATIC THEME DISCOVERY

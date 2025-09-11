@@ -23,7 +23,7 @@ pub fn handle_point_drag(
             &mut Transform,
             &mut PointCoordinates,
             Option<&GlyphPointReference>,
-            Option<&crate::systems::sort_manager::SortCrosshair>,
+            Option<&crate::editing::sort::manager::SortCrosshair>,
         ),
         With<Selected>,
     >,

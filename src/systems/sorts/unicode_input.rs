@@ -6,8 +6,8 @@
 
 use crate::core::state::fontir_app_state::FontIRAppState;
 use crate::core::state::{AppState, TextEditorState};
-use crate::systems::text_shaping::{get_arabic_position, ArabicPosition};
 use crate::systems::sorts::input_utilities::{unicode_to_glyph_name, unicode_to_glyph_name_fontir};
+use crate::systems::text_shaping::{get_arabic_position, ArabicPosition};
 use crate::ui::edit_mode_toolbar::text::TextPlacementMode;
 use crate::ui::edit_mode_toolbar::CurrentTool;
 use bevy::input::keyboard::{Key, KeyboardInput};
@@ -984,7 +984,7 @@ fn insert_character_at_buffer_cursor(
     // DEBUG: Verify what actually got inserted
     if let Some(inserted_sort) = text_editor_state.buffer.get(insert_buffer_index) {
         info!("🔍 INSERT DEBUG: Verified inserted sort at index {}: glyph_name='{}', character codepoint={:?}", 
-              insert_buffer_index, inserted_sort.kind.glyph_name(), 
+              insert_buffer_index, inserted_sort.kind.glyph_name(),
               if let crate::core::state::text_editor::buffer::SortKind::Glyph { codepoint, .. } = &inserted_sort.kind {
                   codepoint.map(|c| format!("'{c}'"))
               } else { None });
