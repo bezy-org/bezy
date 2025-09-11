@@ -481,6 +481,7 @@ fn load_masters_from_designspace(
 }
 
 /// Updates master buttons based on loaded masters
+#[allow(clippy::too_many_arguments)]
 fn update_master_buttons(
     mut commands: Commands,
     _asset_server: Res<AssetServer>,

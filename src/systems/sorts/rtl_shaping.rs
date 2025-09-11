@@ -267,7 +267,7 @@ pub fn map_codepoint_to_glyph_name(codepoint: u32, contextual_form: &str) -> Str
         // Space
         0x0020 => "space",
         // Default: try to find by Unicode name
-        _ => return format!("uni{:04X}", codepoint),
+        _ => return format!("uni{codepoint:04X}"),
     }.to_string()
 }
 

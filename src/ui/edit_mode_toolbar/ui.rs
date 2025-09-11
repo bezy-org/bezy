@@ -579,7 +579,7 @@ pub fn update_hover_text_visibility(
             };
             // Invert the scale since smaller scale = zoomed in
             let zoom_percentage = ((1.0 / zoom_scale) * 100.0) as i32;
-            format!("Zoom: {}%", zoom_percentage)
+            format!("Zoom: {zoom_percentage}%")
         } else {
             String::new()
         }

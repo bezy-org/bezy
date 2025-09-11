@@ -260,7 +260,7 @@ impl TextEditorState {
                                         // Line break: reset x to start of line, move y down by line height
                                         x_offset = 0.0;
                                         y_offset -= line_height;
-                                        println!("🔍 LTR LINEBREAK: Reset x_offset=0, y_offset={:.1} (line_height={:.1})", y_offset, line_height);
+                                        println!("🔍 LTR LINEBREAK: Reset x_offset=0, y_offset={y_offset:.1} (line_height={line_height:.1})");
                                     }
                                 }
                             }

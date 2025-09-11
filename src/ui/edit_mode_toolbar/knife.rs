@@ -149,7 +149,7 @@ pub fn handle_knife_mouse_events(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut knife_state: ResMut<KnifeToolState>,
     knife_mode: Option<Res<KnifeModeActive>>,
-    app_state_changed: EventWriter<crate::editing::selection::events::AppStateChanged>,
+    _app_state_changed: EventWriter<crate::editing::selection::events::AppStateChanged>,
     // Query for active sort to get its position
     active_sort_query: Query<(Entity, &crate::editing::sort::Sort, &Transform), With<crate::editing::sort::ActiveSort>>,
 ) {
@@ -389,11 +389,11 @@ pub fn render_knife_preview(
         let line_color = theme.theme().knife_line_color();
 
         // Create dashed line effect with a single batched mesh for performance
-        let direction = (world_end - world_start).normalize();
-        let total_length = world_start.distance(world_end);
+        let _direction = (world_end - world_start).normalize();
+        let _total_length = world_start.distance(world_end);
         let dash_length = theme.theme().knife_dash_length() * camera_scale.scale_factor;
         let gap_length = theme.theme().knife_gap_length() * camera_scale.scale_factor;
-        let segment_length = dash_length + gap_length;
+        let _segment_length = dash_length + gap_length;
         let line_width = camera_scale.adjusted_line_width();
 
         // Batch all dashes into a single mesh (use world coordinates)
@@ -545,7 +545,7 @@ pub fn handle_fontir_knife_cutting(
     mut fontir_state: Option<ResMut<crate::core::state::FontIRAppState>>,
     mut knife_state: ResMut<KnifeToolState>, // Use main knife state instead of consumer
     mut app_state_changed: EventWriter<crate::editing::selection::events::AppStateChanged>,
-    keyboard: Res<ButtonInput<KeyCode>>,
+    _keyboard: Res<ButtonInput<KeyCode>>,
     mouse_input: Res<ButtonInput<MouseButton>>,
 ) {
     // Check if we just finished a cutting gesture
@@ -964,7 +964,7 @@ fn create_cross_contour_bridges(
                     "🔗 BRIDGE_FAILED: Failed to create bridge between contours {} and {}: {}",
                     contour_idx_1, contour_idx_2, error
                 );
-                return Err(format!("Cross-contour bridge creation failed: {}", error));
+                return Err(format!("Cross-contour bridge creation failed: {error}"));
             }
         }
     }
@@ -984,7 +984,7 @@ fn create_single_cross_contour_bridge(
     intersection_1: &Hit,
     contour_2: &kurbo::BezPath,
     intersection_2: &Hit,
-    cutting_line: &kurbo::Line,
+    _cutting_line: &kurbo::Line,
 ) -> Result<kurbo::BezPath, String> {
     info!(
         "🌉 SINGLE_BRIDGE: Creating bridge from {:?} to {:?}",
@@ -1055,13 +1055,13 @@ fn add_contour_portion_from_intersection(
         }
         
         // Add all subsequent segments
-        for seg_idx in (intersection.segment_idx + 1)..segments.len() {
-            add_segment_to_path(bridged_path, &segments[seg_idx], &mut current_started);
+        for segment in segments.iter().skip(intersection.segment_idx + 1) {
+            add_segment_to_path(bridged_path, segment, &mut current_started);
         }
         
         // Add all segments from the beginning up to the intersection
-        for seg_idx in 0..intersection.segment_idx {
-            add_segment_to_path(bridged_path, &segments[seg_idx], &mut current_started);
+        for segment in segments.iter().take(intersection.segment_idx) {
+            add_segment_to_path(bridged_path, segment, &mut current_started);
         }
         
         // Add beginning of intersection segment up to the intersection point

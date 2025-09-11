@@ -23,6 +23,7 @@ pub struct CursorRenderingState {
 }
 
 /// Render a text cursor at the specified world position
+#[allow(clippy::too_many_arguments)]
 pub fn render_cursor_at_position(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
@@ -63,6 +64,7 @@ pub fn clear_cursor_entities(
 }
 
 /// Create a mesh-based cursor with triangular ends
+#[allow(clippy::too_many_arguments)]
 fn create_mesh_cursor(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,

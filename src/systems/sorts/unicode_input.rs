@@ -19,6 +19,7 @@ use bevy::prelude::DetectChangesMut;
 
 /// Handle Unicode character input using Bevy 0.16 keyboard events
 /// This system provides comprehensive Unicode support for global scripts
+#[allow(clippy::too_many_arguments)]
 pub fn handle_unicode_text_input(
     mut commands: Commands,
     mut key_evr: EventReader<KeyboardInput>,
@@ -191,6 +192,7 @@ pub fn handle_unicode_text_input(
 }
 
 /// Handle a single Unicode character input
+#[allow(clippy::too_many_arguments)]
 fn handle_unicode_character(
     character: char,
     commands: &mut Commands,
@@ -339,6 +341,7 @@ fn handle_unicode_character(
 }
 
 /// Handle space character input
+#[allow(clippy::too_many_arguments)]
 fn handle_space_character(
     commands: &mut Commands,
     text_editor_state: &mut ResMut<TextEditorState>,
@@ -453,7 +456,7 @@ fn insert_line_break_at_buffer_cursor(
     let new_line_break = crate::core::state::text_editor::buffer::SortData {
         kind: crate::core::state::text_editor::buffer::SortKind::LineBreak,
         is_active: false,
-        layout_mode: layout_mode,
+        layout_mode,
         root_position: bevy::prelude::Vec2::ZERO,
         buffer_cursor_position: None,
         buffer_id: Some(buffer_id),
@@ -731,6 +734,7 @@ fn get_contextual_arabic_glyph_name(
 }
 
 /// Insert a character at the current buffer cursor position using the new buffer entity system
+#[allow(clippy::too_many_arguments)]
 fn insert_character_at_buffer_cursor(
     character: char,
     glyph_name: String,
@@ -782,7 +786,7 @@ fn insert_character_at_buffer_cursor(
     
     // Calculate the world position for the new character based on text flow
     let new_position = calculate_character_position(
-        &text_editor_state,
+        text_editor_state,
         buffer_id,
         cursor_position,
         text_buffer.root_position,
@@ -848,7 +852,7 @@ fn insert_character_at_buffer_cursor(
         info!("🔍 INSERT DEBUG: Verified inserted sort at index {}: glyph_name='{}', character codepoint={:?}", 
               insert_buffer_index, inserted_sort.kind.glyph_name(), 
               if let crate::core::state::text_editor::buffer::SortKind::Glyph { codepoint, .. } = &inserted_sort.kind {
-                  codepoint.map(|c| format!("'{}'", c))
+                  codepoint.map(|c| format!("'{c}'"))
               } else { None });
     }
     

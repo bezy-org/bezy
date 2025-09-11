@@ -301,10 +301,10 @@ pub fn render_measure_preview(
                 // Format distance value appropriately - show integers without decimals
                 let distance_text = if distance.fract().abs() < 1e-6 {
                     // It's essentially a whole number
-                    format!("{:.0}", distance)
+                    format!("{distance:.0}")
                 } else {
                     // Show one decimal place
-                    format!("{:.1}", distance)
+                    format!("{distance:.1}")
                 };
 
                 // Spawn pill-shaped background for text with higher z-orders

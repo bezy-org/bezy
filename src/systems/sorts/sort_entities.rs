@@ -230,6 +230,7 @@ fn calculate_buffer_local_position(
 }
 
 /// Spawn missing sort entities for sorts in the text editor buffer
+#[allow(clippy::too_many_arguments)]
 pub fn spawn_missing_sort_entities(
     mut commands: Commands,
     text_editor_state: ResMut<TextEditorState>,
