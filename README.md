@@ -131,11 +131,41 @@ The `--edit` flag intelligently handles both UFO directories and designspace fil
 | `--version` | `-V` | Show version information | `bezy --version` |
 
 ### Themes
-Available themes:
+
+Bezy includes four built-in themes embedded in the application and supports optional custom theme creation:
+
+#### Built-in Themes
 - `darkmode` (default) - Dark background with light text
-- `lightmode` - Light background with dark text  
+- `lightmode` - Light background with dark text
 - `strawberry` - Pink/red/green theme
 - `campfire` - Warm orange/brown theme
+
+These themes are embedded in the application and work in both development and installed modes.
+
+#### Custom Themes (Optional)
+You can optionally create and edit your own themes by creating a `~/.bezy/themes/` directory. The theme system works as follows:
+
+**Default behavior**: Uses embedded themes (no setup required)
+**With `~/.bezy/themes/`**: Uses themes from this directory when it exists
+
+##### Theme Loading Priority:
+1. If `~/.bezy/themes/` exists → Load themes from `~/.bezy/themes/*.json`
+2. If not → Use embedded themes (default)
+3. Hot-reload: When using custom themes, changes are reflected instantly when you save the file
+
+##### Creating Custom Themes:
+```bash
+# Optional: Create themes directory for customization
+mkdir -p ~/.bezy/themes
+
+# Copy built-in theme as starting point (get from src/ui/themes/ in source)
+# Or create your own JSON file following the theme structure
+
+# Use your custom theme
+bezy --theme mytheme
+```
+
+**Note**: You don't need to create `~/.bezy/themes/` unless you want to customize themes. The built-in themes work out of the box.
 
 ### Examples
 ```bash

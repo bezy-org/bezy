@@ -7,6 +7,7 @@
 //! Actual theme definitions live in ../themes/
 
 pub mod core;
+pub mod embedded_themes;
 pub mod hot_reload;
 pub mod json_theme;
 pub mod runtime_reload;

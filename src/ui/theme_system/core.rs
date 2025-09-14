@@ -11,7 +11,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::OnceLock;
 
-use super::json_theme;
+use super::{embedded_themes, json_theme};
 use crate::ui::themes::{campfire, darkmode, lightmode, strawberry};
 
 // =================================================================
@@ -43,27 +43,44 @@ impl ThemeRegistry {
 
     /// Load themes from JSON files
     fn load_json_themes(&mut self) {
-        let themes_dir = std::path::PathBuf::from("src/ui/themes");
+        // Check if user themes directory exists
+        let user_themes_dir = embedded_themes::get_user_themes_dir();
 
-        if !themes_dir.exists() {
-            return;
-        }
+        if user_themes_dir.exists() {
+            // User has custom themes directory, load from there
+            info!("Loading themes from user directory: {:?}", user_themes_dir);
 
-        if let Ok(entries) = std::fs::read_dir(themes_dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
+            if let Ok(entries) = std::fs::read_dir(&user_themes_dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
 
-                if path.extension().and_then(|s| s.to_str()) == Some("json") {
-                    if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
-                        match json_theme::JsonTheme::load_from_file(&path) {
-                            Ok(theme) => {
-                                info!("Loaded JSON theme: {}", theme.name);
-                                self.themes.insert(stem.to_string(), Box::new(theme));
-                            }
-                            Err(e) => {
-                                error!("Failed to load JSON theme from {:?}: {}", path, e);
+                    if path.extension().and_then(|s| s.to_str()) == Some("json") {
+                        if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
+                            match json_theme::JsonTheme::load_from_file(&path) {
+                                Ok(theme) => {
+                                    info!("Loaded user theme: {}", theme.name);
+                                    self.themes.insert(stem.to_string(), Box::new(theme));
+                                }
+                                Err(e) => {
+                                    error!("Failed to load user theme from {:?}: {}", path, e);
+                                }
                             }
                         }
+                    }
+                }
+            }
+        } else {
+            // No user directory, load embedded themes
+            info!("No user themes directory found, loading embedded themes");
+
+            for (name, content) in embedded_themes::get_embedded_themes() {
+                match embedded_themes::load_theme_from_string(content) {
+                    Ok(theme) => {
+                        info!("Loaded embedded theme: {}", theme.name);
+                        self.themes.insert(name, Box::new(theme));
+                    }
+                    Err(e) => {
+                        error!("Failed to load embedded theme {}: {}", name, e);
                     }
                 }
             }
@@ -102,15 +119,24 @@ impl ThemeRegistry {
     pub fn create_theme(&self, name: &str) -> Option<Box<dyn BezyTheme>> {
         // For JSON themes, we need to reload them to get fresh data
         if let Some(_theme) = self.themes.get(name) {
-            // Try to reload from JSON file first
-            let json_path = format!("src/ui/themes/{}.json", name);
-            if let Ok(json_theme) = json_theme::JsonTheme::load_from_file(&json_path) {
-                return Some(Box::new(json_theme));
+            // Check if user themes directory exists and has this theme
+            let user_themes_dir = embedded_themes::get_user_themes_dir();
+            let user_json_path = user_themes_dir.join(format!("{}.json", name));
+
+            if user_json_path.exists() {
+                if let Ok(json_theme) = json_theme::JsonTheme::load_from_file(&user_json_path) {
+                    return Some(Box::new(json_theme));
+                }
             }
 
-            // If JSON reload fails, return the cached theme
-            // Note: This is a limitation - we can't easily clone Box<dyn BezyTheme>
-            // For now, we'll return None and let the caller handle it
+            // Fallback to embedded theme
+            if let Some(content) = embedded_themes::get_embedded_themes().get(name) {
+                if let Ok(json_theme) = embedded_themes::load_theme_from_string(content) {
+                    return Some(Box::new(json_theme));
+                }
+            }
+
+            // If all else fails, return None
             None
         } else {
             None
@@ -618,16 +644,10 @@ impl CurrentTheme {
     pub fn new(variant: ThemeVariant) -> Self {
         let registry = get_theme_registry();
 
-        // Try to load from JSON first
-        let json_path = format!("src/ui/themes/{}.json", variant.name());
-        let theme = if let Ok(json_theme) = json_theme::JsonTheme::load_from_file(&json_path) {
-            Box::new(json_theme) as Box<dyn BezyTheme>
-        } else {
-            // Fallback to registry or default
-            registry
-                .create_theme(variant.name())
-                .unwrap_or_else(|| Box::new(darkmode::DarkModeTheme))
-        };
+        // Try to load theme through the registry (which handles user dir and embedded themes)
+        let theme = registry
+            .create_theme(variant.name())
+            .unwrap_or_else(|| Box::new(darkmode::DarkModeTheme));
 
         Self { variant, theme }
     }

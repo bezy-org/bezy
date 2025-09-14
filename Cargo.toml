@@ -31,6 +31,7 @@ cosmic-text = "0.14.2"
 harfrust = { git = "https://github.com/harfbuzz/harfrust.git" }
 chrono = { version = "0.4", features = ["serde"] }
 tempfile = "3.8"
+dirs = "5.0"
 
 # WASM-specific dependencies
 [target.'cfg(target_arch = "wasm32")'.dependencies]
