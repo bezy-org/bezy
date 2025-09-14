@@ -53,6 +53,7 @@
 //! This approach ensures perfect visual consistency between main toolbar and all submenus,
 //! making it easy to maintain a professional, unified interface.
 
+use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::ui::edit_mode_toolbar::*;
 use crate::ui::theme::{
     BUTTON_ICON_SIZE, GROTESK_FONT_PATH, HOVERED_BUTTON_COLOR, HOVERED_BUTTON_OUTLINE_COLOR,
@@ -86,6 +87,7 @@ pub struct ButtonHoverText;
 pub fn spawn_edit_mode_toolbar(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    embedded_fonts: Res<EmbeddedFonts>,
     theme: Res<CurrentTheme>,
     mut tool_registry: ResMut<ToolRegistry>,
 ) {
@@ -99,7 +101,7 @@ pub fn spawn_edit_mode_toolbar(
         .with_children(|parent| {
             for tool_id in ordered_tool_ids {
                 if let Some(tool) = tool_registry.get_tool(tool_id) {
-                    create_tool_button(parent, tool, &asset_server, &theme);
+                    create_tool_button(parent, tool, &asset_server, &embedded_fonts, &theme);
                 } else {
                     warn!("Tool '{}' not found in registry", tool_id);
                 }
@@ -128,6 +130,7 @@ fn create_tool_button(
     parent: &mut ChildSpawnerCommands,
     tool: &dyn EditTool,
     asset_server: &AssetServer,
+    embedded_fonts: &EmbeddedFonts,
     theme: &Res<CurrentTheme>,
 ) {
     parent
@@ -136,7 +139,7 @@ fn create_tool_button(
             ..default()
         })
         .with_children(|button_container| {
-            create_button_entity(button_container, tool, asset_server, theme);
+            create_button_entity(button_container, tool, asset_server, embedded_fonts, theme);
         });
 }
 
@@ -145,6 +148,7 @@ fn create_button_entity(
     parent: &mut ChildSpawnerCommands,
     tool: &dyn EditTool,
     asset_server: &AssetServer,
+    embedded_fonts: &EmbeddedFonts,
     theme: &Res<CurrentTheme>,
 ) -> Entity {
     parent
@@ -159,7 +163,7 @@ fn create_button_entity(
             ToolbarBorderRadius,
         ))
         .with_children(|button| {
-            create_button_text(button, tool, asset_server);
+            create_button_text(button, tool, asset_server, embedded_fonts);
         })
         .id()
 }
@@ -183,8 +187,9 @@ fn create_button_text(
     parent: &mut ChildSpawnerCommands,
     tool: &dyn EditTool,
     asset_server: &AssetServer,
+    embedded_fonts: &EmbeddedFonts,
 ) {
-    create_button_icon_text(parent, tool.icon(), asset_server);
+    create_button_icon_text(parent, tool.icon(), asset_server, embedded_fonts);
 }
 
 /// Creates properly centered button icon text - shared helper for consistent alignment
@@ -193,6 +198,7 @@ pub fn create_button_icon_text(
     parent: &mut ChildSpawnerCommands,
     icon: &str,
     asset_server: &AssetServer,
+    embedded_fonts: &EmbeddedFonts,
 ) {
     parent.spawn((
         Node {
@@ -202,7 +208,7 @@ pub fn create_button_icon_text(
         },
         Text::new(icon.to_string()),
         TextFont {
-            font: asset_server.load(GROTESK_FONT_PATH),
+            font: asset_server.load_font_with_fallback(GROTESK_FONT_PATH, embedded_fonts),
             font_size: BUTTON_ICON_SIZE,
             ..default()
         },
@@ -217,6 +223,7 @@ pub fn create_toolbar_button<T: Bundle>(
     icon: &str,
     additional_components: T,
     asset_server: &AssetServer,
+    embedded_fonts: &EmbeddedFonts,
     theme: &Res<CurrentTheme>,
 ) {
     create_toolbar_button_with_hover_text(
@@ -225,6 +232,7 @@ pub fn create_toolbar_button<T: Bundle>(
         None,
         additional_components,
         asset_server,
+        embedded_fonts,
         theme,
     );
 }
@@ -237,6 +245,7 @@ pub fn create_toolbar_button_with_hover_text<T: Bundle>(
     _hover_text: Option<&str>,
     additional_components: T,
     asset_server: &AssetServer,
+    embedded_fonts: &EmbeddedFonts,
     theme: &Res<CurrentTheme>,
 ) {
     // Note: _hover_text parameter is now ignored since hover text is handled dynamically
@@ -257,7 +266,7 @@ pub fn create_toolbar_button_with_hover_text<T: Bundle>(
                     ToolbarBorderRadius,
                 ))
                 .with_children(|button| {
-                    create_button_icon_text(button, icon, asset_server);
+                    create_button_icon_text(button, icon, asset_server, embedded_fonts);
                 });
         });
 }
@@ -479,6 +488,7 @@ pub fn update_hover_text_visibility(
     mut hover_text_query: Query<(Entity, &mut Text, &mut Node), With<ButtonHoverText>>,
     tool_registry: Res<ToolRegistry>,
     asset_server: Res<AssetServer>,
+    embedded_fonts: Res<EmbeddedFonts>,
     // Get camera for zoom level
     camera_query: Query<&Projection, With<crate::rendering::cameras::DesignCamera>>,
 ) {
@@ -599,7 +609,7 @@ pub fn update_hover_text_visibility(
             commands.spawn((
                 Text::new(display_text),
                 TextFont {
-                    font: asset_server.load(MONO_FONT_PATH),
+                    font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
                     font_size: WIDGET_TEXT_FONT_SIZE,
                     ..default()
                 },

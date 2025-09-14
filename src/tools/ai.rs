@@ -7,6 +7,7 @@
 //! - Weight consistency fixes
 //! - Curve smoothness optimization
 
+use crate::embedded_assets::EmbeddedFonts;
 use super::{EditTool, ToolInfo};
 use bevy::prelude::*;
 
@@ -136,6 +137,7 @@ fn spawn_ai_operation_button(
     parent: &mut ChildSpawnerCommands,
     operation: AiOperation,
     asset_server: &Res<AssetServer>,
+    embedded_fonts: &Res<EmbeddedFonts>,
     theme: &Res<crate::ui::themes::CurrentTheme>,
 ) {
     // Use the unified toolbar button creation system for consistent styling
@@ -144,6 +146,7 @@ fn spawn_ai_operation_button(
         operation.get_icon(),
         (AiSubMenuButton, AiOperationButton { operation }),
         asset_server,
+        embedded_fonts,
         theme,
     );
 }
@@ -151,6 +154,7 @@ fn spawn_ai_operation_button(
 pub fn spawn_ai_submenu(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    embedded_fonts: Res<EmbeddedFonts>,
     theme: Res<crate::ui::themes::CurrentTheme>,
 ) {
     use crate::ui::theme::*;
@@ -181,7 +185,7 @@ pub fn spawn_ai_submenu(
         .spawn((submenu_node, Name::new("AiSubMenu")))
         .with_children(|parent| {
             for operation in operations {
-                spawn_ai_operation_button(parent, operation, &asset_server, &theme);
+                spawn_ai_operation_button(parent, operation, &asset_server, &embedded_fonts, &theme);
             }
         });
 

@@ -6,6 +6,7 @@
 //!
 //! The tool converts placed points into UFO contours that are saved to the font file.
 
+use crate::embedded_assets::EmbeddedFonts;
 use super::EditModeSystem;
 use crate::core::io::input::{helpers, InputEvent, InputMode, InputState, ModifierState};
 use crate::core::io::pointer::PointerInfo;
@@ -839,6 +840,7 @@ fn spawn_pen_mode_button(
     parent: &mut ChildSpawnerCommands,
     mode: PenDrawingMode,
     asset_server: &Res<AssetServer>,
+    embedded_fonts: &Res<EmbeddedFonts>,
     theme: &Res<CurrentTheme>,
 ) {
     // Use the unified toolbar button creation system for consistent styling with hover text
@@ -848,6 +850,7 @@ fn spawn_pen_mode_button(
         Some(mode.get_name()), // Show the mode name on hover
         (PenSubMenuButton, PenModeButton { mode }),
         asset_server,
+        embedded_fonts,
         theme,
     );
 }
@@ -855,6 +858,7 @@ fn spawn_pen_mode_button(
 pub fn spawn_pen_submenu(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    embedded_fonts: Res<EmbeddedFonts>,
     theme: Res<CurrentTheme>,
 ) {
     info!("🖊️ Spawning pen submenu with Regular and Hyperbezier modes");
@@ -881,7 +885,7 @@ pub fn spawn_pen_submenu(
         .spawn((submenu_node, Name::new("PenSubMenu")))
         .with_children(|parent| {
             for mode in modes {
-                spawn_pen_mode_button(parent, mode, &asset_server, &theme);
+                spawn_pen_mode_button(parent, mode, &asset_server, &embedded_fonts, &theme);
             }
         });
 

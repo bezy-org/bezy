@@ -1,4 +1,5 @@
 //! Bezy
+pub mod embedded_assets;
 pub mod core;
 pub mod data;
 pub mod editing;

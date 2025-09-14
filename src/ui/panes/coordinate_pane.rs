@@ -6,6 +6,7 @@
 #![allow(unused_mut)]
 #![allow(unused_variables)]
 
+use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::editing::selection::components::Selected;
 use crate::geometry::quadrant::Quadrant;
 use crate::ui::theme::*;
@@ -120,6 +121,7 @@ impl Plugin for CoordinatePanePlugin {
 pub fn spawn_coordinate_pane(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    embedded_fonts: Res<EmbeddedFonts>,
     theme: Res<CurrentTheme>,
 ) {
     let position = UiRect {
@@ -158,7 +160,7 @@ pub fn spawn_coordinate_pane(
                         },
                         Text::new("X:"),
                         TextFont {
-                            font: asset_server.load(MONO_FONT_PATH),
+                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -168,7 +170,7 @@ pub fn spawn_coordinate_pane(
                     row.spawn((
                         Text::new("0"),
                         TextFont {
-                            font: asset_server.load(MONO_FONT_PATH),
+                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -194,7 +196,7 @@ pub fn spawn_coordinate_pane(
                         },
                         Text::new("Y:"),
                         TextFont {
-                            font: asset_server.load(MONO_FONT_PATH),
+                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -204,7 +206,7 @@ pub fn spawn_coordinate_pane(
                     row.spawn((
                         Text::new("0"),
                         TextFont {
-                            font: asset_server.load(MONO_FONT_PATH),
+                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -230,7 +232,7 @@ pub fn spawn_coordinate_pane(
                         },
                         Text::new("W:"),
                         TextFont {
-                            font: asset_server.load(MONO_FONT_PATH),
+                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -240,7 +242,7 @@ pub fn spawn_coordinate_pane(
                     row.spawn((
                         Text::new("0"),
                         TextFont {
-                            font: asset_server.load(MONO_FONT_PATH),
+                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -266,7 +268,7 @@ pub fn spawn_coordinate_pane(
                         },
                         Text::new("H:"),
                         TextFont {
-                            font: asset_server.load(MONO_FONT_PATH),
+                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -276,7 +278,7 @@ pub fn spawn_coordinate_pane(
                     row.spawn((
                         Text::new("0"),
                         TextFont {
-                            font: asset_server.load(MONO_FONT_PATH),
+                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },

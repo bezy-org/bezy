@@ -6,8 +6,6 @@
 use crate::ui::themes::ThemeVariant;
 use bevy::prelude::*;
 
-/// Default UFO file to load if none is specified
-pub const DEFAULT_UFO_PATH: &str = "assets/fonts/bezy-grotesk.designspace";
 pub const WINDOW_TITLE: &str = "Bezy";
 pub const DEFAULT_WINDOW_SIZE: (f32, f32) = (1280.0, 768.0);
 

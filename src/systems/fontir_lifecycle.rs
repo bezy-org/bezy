@@ -40,7 +40,8 @@ pub fn load_fontir_font(mut commands: Commands, cli_args: Res<CliArgs>) {
             }
         }
     } else {
-        warn!("No font path specified, running without a font loaded.");
-        // Don't insert any FontIRAppState resource - systems will need to handle this
+        info!("No font path specified, starting with empty default state.");
+        // Don't insert any FontIRAppState resource - systems will handle this gracefully
+        // The app will run in an empty state allowing users to start fresh
     }
 }

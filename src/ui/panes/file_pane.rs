@@ -4,6 +4,7 @@
 //! information about the currently loaded font files and allows switching between
 //! UFO masters in a designspace.
 
+use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::core::state::fontir_app_state::FontIRAppState;
 use crate::systems::sorts::sort_entities::BufferSortEntities;
 use crate::ui::theme::*;
@@ -140,6 +141,7 @@ impl Plugin for FilePanePlugin {
 pub fn spawn_file_pane(
     mut commands: Commands,
     _asset_server: Res<AssetServer>,
+    _embedded_fonts: Res<EmbeddedFonts>,
     theme: Res<CurrentTheme>,
 ) {
     // Position to visually align with toolbar content, accounting for our border and padding
@@ -222,7 +224,7 @@ pub fn spawn_file_pane(
                         },
                         Text::new("DS:"),
                         TextFont {
-                            font: _asset_server.load(MONO_FONT_PATH),
+                            font: _asset_server.load_font_with_fallback(MONO_FONT_PATH, &_embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -232,7 +234,7 @@ pub fn spawn_file_pane(
                     row.spawn((
                         Text::new("Loading..."),
                         TextFont {
-                            font: _asset_server.load(MONO_FONT_PATH),
+                            font: _asset_server.load_font_with_fallback(MONO_FONT_PATH, &_embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -258,7 +260,7 @@ pub fn spawn_file_pane(
                         },
                         Text::new("UFO:"),
                         TextFont {
-                            font: _asset_server.load(MONO_FONT_PATH),
+                            font: _asset_server.load_font_with_fallback(MONO_FONT_PATH, &_embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -268,7 +270,7 @@ pub fn spawn_file_pane(
                     row.spawn((
                         Text::new("Loading..."),
                         TextFont {
-                            font: _asset_server.load(MONO_FONT_PATH),
+                            font: _asset_server.load_font_with_fallback(MONO_FONT_PATH, &_embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -298,7 +300,7 @@ pub fn spawn_file_pane(
                         },
                         Text::new("Saved:"),
                         TextFont {
-                            font: _asset_server.load(MONO_FONT_PATH),
+                            font: _asset_server.load_font_with_fallback(MONO_FONT_PATH, &_embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -308,7 +310,7 @@ pub fn spawn_file_pane(
                     row.spawn((
                         Text::new(""),
                         TextFont {
-                            font: _asset_server.load(MONO_FONT_PATH),
+                            font: _asset_server.load_font_with_fallback(MONO_FONT_PATH, &_embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -337,7 +339,7 @@ pub fn spawn_file_pane(
                         },
                         Text::new("Exported:"),
                         TextFont {
-                            font: _asset_server.load(MONO_FONT_PATH),
+                            font: _asset_server.load_font_with_fallback(MONO_FONT_PATH, &_embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -347,7 +349,7 @@ pub fn spawn_file_pane(
                     row.spawn((
                         Text::new(""),
                         TextFont {
-                            font: _asset_server.load(MONO_FONT_PATH),
+                            font: _asset_server.load_font_with_fallback(MONO_FONT_PATH, &_embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -485,6 +487,7 @@ fn load_masters_from_designspace(
 fn update_master_buttons(
     mut commands: Commands,
     _asset_server: Res<AssetServer>,
+    _embedded_fonts: Res<EmbeddedFonts>,
     theme: Res<CurrentTheme>,
     file_info: Res<FileInfo>,
     fontir_state: Option<Res<FontIRAppState>>,

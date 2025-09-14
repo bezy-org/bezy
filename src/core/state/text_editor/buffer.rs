@@ -312,7 +312,7 @@ impl SortBuffer {
     }
 
     /// Get an iterator over all sorts (excluding gap)
-    pub fn iter(&self) -> SortBufferIterator {
+    pub fn iter(&self) -> SortBufferIterator<'_> {
         SortBufferIterator {
             buffer: self,
             index: 0,
