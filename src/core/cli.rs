@@ -4,7 +4,6 @@
 //! validation for user inputs. Many CLI options are documented with
 //! examples to help users understand the expected format.
 
-use crate::core::settings::DEFAULT_UFO_PATH;
 use crate::ui::themes::ThemeVariant;
 use bevy::prelude::*;
 use clap::Parser;
@@ -32,13 +31,12 @@ pub struct CliArgs {
     ///
     /// The source should be either a valid UFO version 3 directory structure
     /// or a .designspace file for variable fonts.
-    /// If not specified, loads the default sample font.
+    /// If not specified, opens an empty default state.
     #[clap(
         long = "edit",
         short = 'e',
-        default_value = DEFAULT_UFO_PATH,
         help = "Font source to edit (UFO or designspace)",
-        long_help = "Path to a font source to edit. Accepts UFO directories (.ufo) for single master fonts or designspace files (.designspace) for variable fonts with multiple masters."
+        long_help = "Path to a font source to edit. Accepts UFO directories (.ufo) for single master fonts or designspace files (.designspace) for variable fonts with multiple masters. If not specified, opens an empty default state."
     )]
     pub font_source: Option<PathBuf>,
 
@@ -120,9 +118,6 @@ impl CliArgs {
                         path.display()
                     ));
                 }
-            } else {
-                // If no font source provided, use default
-                return Err("Please provide a font source path as an argument.\nExample: bezy --edit assets/fonts/bezy-grotesk-regular.ufo".to_string());
             }
 
             // Validate theme if provided
@@ -141,23 +136,21 @@ impl CliArgs {
 
     /// Create default CLI args for web builds
     ///
-    /// For WASM builds, we use a default font path since command line arguments
+    /// For WASM builds, we start with an empty state since command line arguments
     /// are not available in the browser environment.
     #[cfg(target_arch = "wasm32")]
     pub fn default_for_web() -> Self {
         Self {
-            font_source: Some(PathBuf::from(DEFAULT_UFO_PATH)),
+            font_source: None,        // Start with empty state for web builds
             theme: None,              // Use default theme for web builds
             no_default_buffer: false, // Enable default buffer for web builds
         }
     }
 
-    /// Get the font source path, guaranteed to be Some after validation
+    /// Get the font source path if provided
     #[allow(dead_code)]
-    pub fn get_font_source(&self) -> &PathBuf {
-        self.font_source
-            .as_ref()
-            .expect("Font source should be validated")
+    pub fn get_font_source(&self) -> Option<&PathBuf> {
+        self.font_source.as_ref()
     }
 
     /// Get the theme variant from CLI args or default

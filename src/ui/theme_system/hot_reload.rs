@@ -3,7 +3,7 @@
 //! This module allows live updating of theme colors while the application is running.
 //! Simply edit a theme file and save it to see changes immediately.
 
-use super::CurrentTheme;
+use super::{embedded_themes, CurrentTheme};
 use bevy::prelude::*;
 use std::fs;
 use std::path::PathBuf;
@@ -22,8 +22,16 @@ pub struct ThemeHotReload {
 
 impl Default for ThemeHotReload {
     fn default() -> Self {
+        // Use user themes directory if it exists, otherwise don't watch anything
+        let theme_dir = if embedded_themes::user_themes_dir_exists() {
+            embedded_themes::get_user_themes_dir()
+        } else {
+            // Return an empty path that won't match any files
+            PathBuf::new()
+        };
+
         Self {
-            theme_dir: PathBuf::from("src/ui/themes"),
+            theme_dir,
             last_modified: std::collections::HashMap::new(),
             check_timer: Timer::from_seconds(0.5, TimerMode::Repeating),
         }
@@ -42,8 +50,13 @@ pub fn hot_reload_themes(
         return;
     }
 
+    // Only check if we have a valid theme directory
+    if hot_reload.theme_dir.as_os_str().is_empty() {
+        return;
+    }
+
     let current_theme_name = current_theme.variant.name();
-    let theme_file = format!("{current_theme_name}.rs");
+    let theme_file = format!("{current_theme_name}.json");
     let theme_path = hot_reload.theme_dir.join(&theme_file);
 
     // Check if the current theme file has been modified
@@ -80,7 +93,14 @@ impl Plugin for ThemeHotReloadPlugin {
             app.init_resource::<ThemeHotReload>()
                 .add_systems(Update, hot_reload_themes);
 
-            info!("Theme hot reloading enabled! Edit theme files to see changes live.");
+            if embedded_themes::user_themes_dir_exists() {
+                info!(
+                    "Theme hot reloading enabled! Edit themes in {:?} to see changes live.",
+                    embedded_themes::get_user_themes_dir()
+                );
+            } else {
+                info!("Theme hot reloading enabled (no user themes directory found).");
+            }
         }
     }
 }

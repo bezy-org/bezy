@@ -5,6 +5,7 @@
 
 #![allow(clippy::type_complexity)]
 
+use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::core::state::{AppState, FontIRAppState, SortLayoutMode};
 use crate::editing::sort::{ActiveSort, InactiveSort, Sort};
 use crate::ui::theme::{MONO_FONT_PATH, SORT_ACTIVE_METRICS_COLOR, SORT_INACTIVE_METRICS_COLOR};
@@ -31,6 +32,7 @@ pub struct SortUnicodeText {
 pub fn manage_sort_labels(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    embedded_fonts: Res<EmbeddedFonts>,
     app_state: Option<Res<AppState>>,
     sorts_query: Query<
         (Entity, &Sort, &Transform),
@@ -96,7 +98,7 @@ pub fn manage_sort_labels(
         commands.spawn((
             Text2d(sort.glyph_name.clone()),
             TextFont {
-                font: asset_server.load(MONO_FONT_PATH),
+                font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
                 font_size: 12.0,
                 ..default()
             },
@@ -128,7 +130,7 @@ pub fn manage_sort_labels(
             commands.spawn((
                 Text2d(unicode_string),
                 TextFont {
-                    font: asset_server.load(MONO_FONT_PATH),
+                    font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
                     font_size: 10.0,
                     ..default()
                 },

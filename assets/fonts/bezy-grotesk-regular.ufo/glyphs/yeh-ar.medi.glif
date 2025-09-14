@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<glyph name="yeh-ar.medi" format="2">
-	<advance width="416"/>
-	<outline>
-		<component base="behDotless-ar.medi"/>
-		<component base="twodotshorizontalbelow-ar"/>
-	</outline>
-</glyph>

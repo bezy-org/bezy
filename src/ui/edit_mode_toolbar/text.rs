@@ -10,6 +10,7 @@
 
 #![allow(clippy::manual_map)]
 
+use crate::embedded_assets::EmbeddedFonts;
 use crate::core::settings::BezySettings;
 use crate::core::state::{
     AppState, FontIRAppState, GlyphNavigation, SortLayoutMode, TextEditorState, TextModeConfig,
@@ -188,6 +189,7 @@ fn spawn_text_mode_button(
     parent: &mut ChildSpawnerCommands,
     mode: TextPlacementMode,
     asset_server: &Res<AssetServer>,
+    embedded_fonts: &Res<EmbeddedFonts>,
     theme: &Res<CurrentTheme>,
 ) {
     // Use the unified toolbar button creation system for consistent styling with hover text
@@ -197,6 +199,7 @@ fn spawn_text_mode_button(
         Some(mode.display_name()), // Show the mode name on hover
         (TextSubMenuButton, TextModeButton { mode }),
         asset_server,
+        embedded_fonts,
         theme,
     );
 }
@@ -204,6 +207,7 @@ fn spawn_text_mode_button(
 pub fn spawn_text_submenu(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    embedded_fonts: Res<EmbeddedFonts>,
     theme: Res<CurrentTheme>,
 ) {
     let modes = [
@@ -232,7 +236,7 @@ pub fn spawn_text_submenu(
         .spawn((submenu_node, Name::new("TextSubMenu")))
         .with_children(|parent| {
             for mode in modes {
-                spawn_text_mode_button(parent, mode, &asset_server, &theme);
+                spawn_text_mode_button(parent, mode, &asset_server, &embedded_fonts, &theme);
             }
         });
 

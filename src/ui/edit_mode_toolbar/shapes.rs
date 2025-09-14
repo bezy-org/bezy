@@ -5,6 +5,7 @@
 
 #![allow(dead_code)]
 
+use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::core::settings::BezySettings;
 use crate::core::state::{AppState, GlyphNavigation};
 use crate::editing::selection::events::AppStateChanged;
@@ -331,6 +332,7 @@ pub fn render_active_shape_drawing_with_dimensions(
     existing_preview_query: Query<Entity, With<ShapePreviewElement>>,
     theme: Res<CurrentTheme>,
     asset_server: Res<AssetServer>,
+    embedded_fonts: Res<EmbeddedFonts>,
     // Query for active sort to get its position for preview rendering
     active_sort_query: Query<
         (Entity, &crate::editing::sort::Sort, &Transform),
@@ -425,6 +427,7 @@ pub fn render_active_shape_drawing_with_dimensions(
             &camera_scale,
             &theme,
             &asset_server,
+            &embedded_fonts,
         );
     } else {
         debug!("SHAPES PREVIEW: No rect available from active_drawing.get_rect()");
@@ -819,6 +822,7 @@ fn spawn_shape_dimension_lines(
     camera_scale: &CameraResponsiveScale,
     theme: &CurrentTheme,
     asset_server: &AssetServer,
+    embedded_fonts: &EmbeddedFonts,
 ) {
     let width = (rect.max.x - rect.min.x).abs();
     let height = (rect.max.y - rect.min.y).abs();
@@ -868,7 +872,7 @@ fn spawn_shape_dimension_lines(
     commands.spawn((
         Text2d(format!("{width:.0}")),
         TextFont {
-            font: asset_server.load(MONO_FONT_PATH),
+            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
             font_size: 14.0,
             ..default()
         },
@@ -921,7 +925,7 @@ fn spawn_shape_dimension_lines(
     commands.spawn((
         Text2d(format!("{height:.0}")),
         TextFont {
-            font: asset_server.load(MONO_FONT_PATH),
+            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
             font_size: 14.0,
             ..default()
         },
@@ -1065,6 +1069,7 @@ fn spawn_shape_mode_button(
     parent: &mut ChildSpawnerCommands,
     shape_type: ShapeType,
     asset_server: &Res<AssetServer>,
+    embedded_fonts: &Res<EmbeddedFonts>,
     theme: &Res<CurrentTheme>,
 ) {
     // Use the unified toolbar button creation system for consistent styling with hover text
@@ -1074,6 +1079,7 @@ fn spawn_shape_mode_button(
         Some(shape_type.get_name()), // Show the shape name on hover
         (ShapeSubMenuButton, ShapeModeButton { shape_type }),
         asset_server,
+        embedded_fonts,
         theme,
     );
 }
@@ -1081,6 +1087,7 @@ fn spawn_shape_mode_button(
 pub fn spawn_shapes_submenu(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    embedded_fonts: Res<EmbeddedFonts>,
     theme: Res<CurrentTheme>,
 ) {
     info!("🔳 Spawning shapes submenu with Rectangle, Oval, and Rounded Rectangle");
@@ -1111,7 +1118,7 @@ pub fn spawn_shapes_submenu(
         .spawn((submenu_node, Name::new("ShapesSubMenu")))
         .with_children(|parent| {
             for shape_type in shapes {
-                spawn_shape_mode_button(parent, shape_type, &asset_server, &theme);
+                spawn_shape_mode_button(parent, shape_type, &asset_server, &embedded_fonts, &theme);
             }
         });
 

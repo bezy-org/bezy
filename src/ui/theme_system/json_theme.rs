@@ -8,7 +8,7 @@
 //! This replaces the Rust trait-based themes with JSON files that can be edited
 //! live and reloaded without recompilation.
 
-use super::BezyTheme;
+use super::{embedded_themes, BezyTheme};
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -647,8 +647,15 @@ impl Default for JsonThemeManager {
 
 impl JsonThemeManager {
     pub fn new() -> Self {
+        // Use user themes directory if it exists, otherwise use empty path
+        let themes_dir = if embedded_themes::user_themes_dir_exists() {
+            embedded_themes::get_user_themes_dir()
+        } else {
+            PathBuf::new()
+        };
+
         Self {
-            themes_dir: PathBuf::from("src/ui/themes"),
+            themes_dir,
             loaded_themes: HashMap::new(),
             file_timestamps: HashMap::new(),
             check_timer: Timer::from_seconds(0.5, TimerMode::Repeating),
@@ -657,30 +664,44 @@ impl JsonThemeManager {
 
     /// Load all JSON theme files from the themes directory
     pub fn load_all_themes(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        if !self.themes_dir.exists() {
-            return Ok(());
-        }
+        // First try to load from user directory if it exists
+        if self.themes_dir.exists() && !self.themes_dir.as_os_str().is_empty() {
+            for entry in fs::read_dir(&self.themes_dir)? {
+                let entry = entry?;
+                let path = entry.path();
 
-        for entry in fs::read_dir(&self.themes_dir)? {
-            let entry = entry?;
-            let path = entry.path();
+                if path.extension().and_then(|s| s.to_str()) == Some("json") {
+                    if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
+                        match JsonTheme::load_from_file(&path) {
+                            Ok(theme) => {
+                                info!("Loaded user theme: {}", theme.name);
+                                self.loaded_themes.insert(stem.to_string(), theme);
 
-            if path.extension().and_then(|s| s.to_str()) == Some("json") {
-                if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
-                    match JsonTheme::load_from_file(&path) {
-                        Ok(theme) => {
-                            info!("Loaded theme: {}", theme.name);
-                            self.loaded_themes.insert(stem.to_string(), theme);
-
-                            if let Ok(metadata) = fs::metadata(&path) {
-                                if let Ok(modified) = metadata.modified() {
-                                    self.file_timestamps.insert(stem.to_string(), modified);
+                                if let Ok(metadata) = fs::metadata(&path) {
+                                    if let Ok(modified) = metadata.modified() {
+                                        self.file_timestamps.insert(stem.to_string(), modified);
+                                    }
                                 }
                             }
+                            Err(e) => {
+                                error!("Failed to load theme from {:?}: {}", path, e);
+                            }
                         }
-                        Err(e) => {
-                            error!("Failed to load theme from {:?}: {}", path, e);
-                        }
+                    }
+                }
+            }
+        }
+
+        // If no themes loaded from user dir, load embedded themes
+        if self.loaded_themes.is_empty() {
+            for (name, content) in embedded_themes::get_embedded_themes() {
+                match embedded_themes::load_theme_from_string(content) {
+                    Ok(theme) => {
+                        info!("Loaded embedded theme: {}", theme.name);
+                        self.loaded_themes.insert(name, theme);
+                    }
+                    Err(e) => {
+                        error!("Failed to load embedded theme: {}", e);
                     }
                 }
             }
@@ -768,13 +789,17 @@ pub fn check_json_theme_changes(
         // If the current theme was changed, reload it
         let current_name = current_theme.variant.name().to_string();
         if changed_themes.contains(&current_name) {
-            // Force reload from JSON file
-            let json_path = format!("src/ui/themes/{current_name}.json");
-            if let Ok(json_theme) = JsonTheme::load_from_file(&json_path) {
-                current_theme.set_theme(Box::new(json_theme));
+            // Force reload from user directory if it exists
+            let user_themes_dir = embedded_themes::get_user_themes_dir();
+            let user_json_path = user_themes_dir.join(format!("{current_name}.json"));
 
-                // Update the background color immediately
-                clear_color.0 = current_theme.theme().background_color();
+            if user_json_path.exists() {
+                if let Ok(json_theme) = JsonTheme::load_from_file(&user_json_path) {
+                    current_theme.set_theme(Box::new(json_theme));
+
+                    // Update the background color immediately
+                    clear_color.0 = current_theme.theme().background_color();
+                }
             }
         }
     }

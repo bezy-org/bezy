@@ -176,6 +176,10 @@ fn configure_window_plugins(app: &mut App) {
 /// Add all plugin groups to the application
 fn add_plugin_groups(app: &mut App) {
     info!("Adding plugin groups...");
+
+    // Add embedded assets plugin to provide fonts when installed via cargo install
+    app.add_plugins(crate::embedded_assets::EmbeddedAssetsPlugin);
+
     app.add_plugins((RenderingPluginGroup, EditorPluginGroup, CorePluginGroup));
 
     // Add runtime theme reload plugin for development
