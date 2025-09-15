@@ -198,10 +198,10 @@ fn save_font_files(
             let ufo_path = designspace_dir.join(&source.filename);
 
             // Check if any modified glyphs belong to this UFO source
-            let source_has_changes = modified_glyphs.iter().any(|((_, _location), _)| {
-                // For now, save to first UFO (regular). In a full implementation,
-                // you'd match the location to the correct UFO source
-                ufo_path.file_name() == Some(std::ffi::OsStr::new("bezy-grotesk-regular.ufo"))
+            // For now, save to all UFO sources that exist. In a full implementation,
+            // you'd match the location to the correct UFO source based on the designspace coordinates
+            let source_has_changes = ufo_path.exists() && modified_glyphs.iter().any(|((_, _), working_copy)| {
+                working_copy.is_dirty
             });
 
             if source_has_changes {
@@ -681,13 +681,18 @@ fn handle_export_ttf_events(
 
             info!("   Generating static instance: {}", style_name);
 
-            // Create a temporary UFO by interpolating at the instance location
-            // For now, we'll just copy the appropriate source UFO
-            let source_ufo_path = if style_name == "Regular" {
-                output_dir.join("bezy-grotesk-regular.ufo")
-            } else if style_name == "Bold" {
-                output_dir.join("bezy-grotesk-bold.ufo")
+            // Find the appropriate source UFO based on the instance location
+            // For non-interpolated instances, find the matching source
+            let source_ufo_path = if let Some(source) = ds.sources.iter().find(|s| {
+                // Match by stylename if available, otherwise use the first source
+                s.stylename.as_deref() == Some(style_name)
+            }) {
+                output_dir.join(&source.filename)
+            } else if !ds.sources.is_empty() {
+                // Fallback to first source if no exact match
+                output_dir.join(&ds.sources[0].filename)
             } else {
+                warn!("No source UFO found for instance: {}", style_name);
                 continue;
             };
 

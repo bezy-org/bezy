@@ -18,7 +18,7 @@ Bezy is a next-gen font editor built with Rust and Bevy, designed for customizat
 ## Quick Start Commands
 
 ```bash
-# Run the app with default font (Bezy Grotesk, glyph 'a')
+# Run the app (starts with empty state)
 cargo run
 
 # Check for compile errors without running the app
@@ -117,10 +117,11 @@ Located in `src/rendering/zoom_aware_scaling.rs`:
 
 ## Default and Test Assets
 
-Built-in test font (UFO/Designspace) with Latin and Arabic support
-Designspace: `assets/fonts/bezy-grotesk.designspace`
-Regular: `assets/fonts/bezy-grotesk-regular.ufo`
-Bold: `assets/fonts/bezy-grotesk-Bold.ufo`
+The application includes built-in fonts for UI display:
+- `assets/fonts/BezyGrotesk-Regular.ttf` - Default UI font
+- `assets/fonts/HasubiMono-Regular.ttf` - Monospace font for code display
+
+Note: The app starts with an empty state when run without arguments. Use the `--edit` flag to open a UFO or designspace file for editing.
 
 ## Known Issues
 

@@ -14,11 +14,9 @@ This document tracks the implementation of Right-to-Left (RTL) text editing in B
   - Next character appears to the RIGHT of existing text
 
 ## Project Context
-- **Font**: Bezy Grotesk (assets/fonts/)
-  - Designspace: `assets/fonts/bezy-grotesk.designspace`
-  - Regular: `assets/fonts/bezy-grotesk-regular.ufo`
-  - Bold: `assets/fonts/bezy-grotesk-Bold.ufo`
-  - **Arabic Support**: ✅ Confirmed - Contains full Arabic glyphs with contextual forms (init, medi, fina)
+- **Font**: User-provided UFO or designspace files
+  - Load with `--edit` flag: `bezy --edit path/to/font.ufo`
+  - **Arabic Support**: Depends on the font being edited
 - **Text Shaping Library**: [HarfRust](https://github.com/harfbuzz/harfrust) v0.2.0
   - Rust port of HarfBuzz v11.4.5
   - No `unsafe` code, ~25% slower than HarfBuzz
@@ -65,7 +63,7 @@ This document tracks the implementation of Right-to-Left (RTL) text editing in B
 use harfrust::{Face, Font, Buffer, shape};
 
 // Load font face from UFO data
-let face = Face::from_file("assets/fonts/bezy-grotesk-regular.ufo")?;
+let face = Face::from_file("path/to/your/font.ufo")?;
 let font = Font::new(face);
 
 // Create buffer for Arabic text
