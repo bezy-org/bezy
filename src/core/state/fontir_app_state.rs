@@ -513,20 +513,25 @@ impl FontIRAppState {
                 }
             }
         } else if self.source_path.extension()? == "designspace" {
-            // For .designspace files, load the first/default UFO source
+            // For .designspace files, load the first available UFO source
             let designspace_dir = self.source_path.parent()?;
-            let regular_ufo_path = designspace_dir.join("bezy-grotesk-regular.ufo");
+
+            // Load the designspace to get the sources
+            let designspace = DesignSpaceDocument::load(&self.source_path).ok()?;
+            let first_source = designspace.sources.first()?;
+            let first_ufo_path = designspace_dir.join(&first_source.filename);
+
             debug!(
                 "🔧 Loading UFO from designspace for component resolution: {:?}",
-                regular_ufo_path
+                first_ufo_path
             );
-            match norad::Font::load(&regular_ufo_path) {
+            match norad::Font::load(&first_ufo_path) {
                 Ok(font) => {
                     debug!("✅ Successfully loaded UFO for component resolution");
                     font
                 }
                 Err(e) => {
-                    warn!("Failed to load Regular UFO source from designspace for component resolution: {}", e);
+                    warn!("Failed to load first UFO source from designspace for component resolution: {}", e);
                     return None;
                 }
             }
@@ -1345,15 +1350,20 @@ impl FontIRAppState {
                 }
             }
         } else if source_path.extension() == Some(std::ffi::OsStr::new("designspace")) {
-            // For .designspace files, load the first/default UFO source
+            // For .designspace files, load the first available UFO source
             if let Some(designspace_dir) = source_path.parent() {
-                let regular_ufo_path = designspace_dir.join("bezy-grotesk-regular.ufo");
-                if let Ok(font) = norad::Font::load(&regular_ufo_path) {
-                    for glyph in font.default_layer().iter() {
-                        if glyph.codepoints.contains(unicode_char) {
-                            info!("Found glyph '{}' for character '{}' (U+{:04X}) via Unicode mapping in designspace source", 
-                                  glyph.name(), unicode_char, unicode_char as u32);
-                            return Some(glyph.name().to_string());
+                // Load the designspace to get the sources
+                if let Ok(designspace) = DesignSpaceDocument::load(&source_path) {
+                    if let Some(first_source) = designspace.sources.first() {
+                        let first_ufo_path = designspace_dir.join(&first_source.filename);
+                        if let Ok(font) = norad::Font::load(&first_ufo_path) {
+                            for glyph in font.default_layer().iter() {
+                                if glyph.codepoints.contains(unicode_char) {
+                                    info!("Found glyph '{}' for character '{}' (U+{:04X}) via Unicode mapping in designspace source",
+                                          glyph.name(), unicode_char, unicode_char as u32);
+                                    return Some(glyph.name().to_string());
+                                }
+                            }
                         }
                     }
                 }

@@ -1,14 +1,16 @@
 # Bezy
 
+Bezy is an in-development cross-platform font editor with a built-in bidirectional text editor.
+
 ![Bezy Font Editor Screenshot](https://bezy.org/images/bezy-screenshot-001.jpg)
 
-Bezy is a cross-platform, Rust-based font editor with a built-in bidirectional (RTL/LTR) text editor. It draws inspiration from technical-user oriented customizable editors like RoboFont and MFEK, while reimagining font editing for contemporary Unix-like AI and CLI heavy workflows. The core dependancies are: [Bevy](https://bevy.org/), [HarfRust](https://github.com/harfbuzz/harfrust), [Norad](https://github.com/linebender/norad), [Kurbo](https://github.com/linebender/kurbo), [Fontc](https://github.com/googlefonts/fontc), [FontIR](https://github.com/googlefonts/fontc).
+Drawing inspiration from customizable editors like RoboFont and MFEK, Bezy reimagines font editing for contemporary Unix-like AI and CLI heavy workflows. The core dependencies are: [Bevy](https://bevy.org), [HarfRust](https://github.com/harfbuzz/harfrust), [Norad](https://github.com/linebender/norad), [Kurbo](https://github.com/linebender/kurbo), [Fontc](https://github.com/googlefonts/fontc), [FontIR](https://github.com/googlefonts/fontc).
 
-Bezy is written in the Rust programming language using a game engine to create a performant, fun, and aesthetic experience that keeps users in a flow state. Rust has great [documentation](https://doc.rust-lang.org/book/), a friendly compiler with useful error messages, top-notch tooling, and an integrated package manager and build tool. With help from AI tools like [Claude Code](https://www.anthropic.com/claude-code) and [Gemini CLI](https://github.com/google-gemini/gemini-cli), it can be easier to use than Python. Don't be intimidated if you are not an expert programmer—this application is designed for students, designers, and artists to be able to customize it and make their own tools. This project is a spiritual sucsessor to the [RoboFont design principles](https://robofont.com/documentation/topics/robofont-design-principles/):
+Bezy is written in the Rust programming language using a [game engine](https://bevy.org) to create a performant and fun experience that keeps users in a flow state. It is designed to be a visually pleasing environment where design work is done, not just a non-aesthetic production tool.
 
->A typeface designer (who does not want to do any scripting and has no means of letting someone else do that work), has to deal with the available user interface, tool set, feature set, and the list of bugs in the typeface design applications they use. This makes the designer a captive to the development of applications that are often merely production tools and not intended for design. Not being (partly) the designer of your own tools puts a designer in a vulnerable position.
+Rust has great [documentation](https://doc.rust-lang.org/book/), a friendly compiler with useful error messages, top-notch tooling, and an integrated package manager and build tool. With help from AI tools like [Claude Code](https://www.anthropic.com/claude-code) and [Gemini CLI](https://github.com/google-gemini/gemini-cli), it can be easier to use than Python. Don't be intimidated if you are not an expert programmer—this application is designed for students, designers, and artists to be able to customize it and make their own tools and other additions.
 
-We aim to be an open and welcoming community that values working in the open and sharing knowledge. Contributors of all skill levels are welcome.
+The project aims to be a welcoming community that values working in the open, sharing knowledge, and helping people become better programmers. Contributors of all skill levels are welcome.
 
 > “The enjoyment of one's tools is an essential ingredient of successful work.”  
 >—Donald Knuth
@@ -16,26 +18,26 @@ We aim to be an open and welcoming community that values working in the open and
 >“Many have tried to replace FontForge—all have failed. I might fail, in fact, history says I probably will. Yet, the current state of affairs is so bad I feel I must try.”
 >—Fredrick Brennan
 
-## Installation
+# Installation & Building from Source
 
-### Prerequisites
+## Prerequisites
 
-Install Rust by following the official instructions at [https://www.rust-lang.org/tools/install](https://www.rust-lang.org/tools/install)
+Install Rust by following the [official instructions](https://www.rust-lang.org/tools/install) at [rust-lang.org](https://www.rust-lang.org).
 
-Verify installation:
+### Verify installation:
 ```bash
 cargo --version
 ```
 
-### Building from Source
+## Building from Source
 
-#### Step 1: Clone the Repository
+### Step 1: Clone the Repository
 ```bash
 git clone https://github.com/bezy-org/bezy.git
 cd bezy
 ```
 
-#### Step 2: Build and Run
+### Step 2: Build and Run
 ```bash
 # Build and run
 cargo run
@@ -47,17 +49,11 @@ cargo run --release
 cargo run -- --edit path/to/your/font.ufo
 ```
 
-#### First Time Build
-The first build will take a few minutes as it downloads and compiles all dependencies. Subsequent builds will be much faster (usually under 30 seconds).
+## Installing as a Command Line Tool
 
-#### Troubleshooting Performance Issues
-- Use `cargo run --release` for the best performance
+You can install Bezy globally and use it as a command-line tool from anywhere on your system.
 
-### Installing as a Command Line Tool
-
-You can install Bezy globally to use it as a command-line tool from anywhere on your system.
-
-#### Install from Source
+### Install from Source
 ```bash
 # From within the bezy directory after cloning
 cargo install --path .
@@ -66,24 +62,24 @@ cargo install --path .
 cargo install --git https://github.com/bezy-org/bezy.git
 ```
 
-#### Using the Installed Command
-Once installed, you can run Bezy from anywhere:
+### Post Installation 
+Once installed, you can run Bezy from anywhere on your system.
 ```bash
-# Run with default settings
+# Launch the editor without loading a source file 
 bezy
 
-# Edit a specific font (UFO or designspace)
-bezy --edit ~/Fonts/MyFont.ufo
+# Check the version
+bezy --version
 
-# Use with any command line flags
-bezy --theme lightmode --edit MyFont.ufo
+# Check the installation location
+which bezy
 ```
 
-#### Updating Bezy
-To update Bezy after making changes or pulling new updates:
+### Updating Bezy
+To update after making changes or pulling new updates:
 ```bash
 # If you're working from the cloned repository
-cd /path/to/bezy
+cd path/to/bezy
 git pull
 cargo install --path .
 
@@ -94,33 +90,25 @@ cargo install --git https://github.com/bezy-org/bezy.git
 cargo install --path . --force
 ```
 
-#### Uninstalling
-To remove the globally installed version:
+### Uninstalling
 ```bash
+# To remove the globally installed version
 cargo uninstall bezy
 ```
 
-#### Installation Location
-By default, Cargo installs binaries to `~/.cargo/bin/`. Make sure this directory is in your PATH. If it's not, add this to your shell configuration file (`.bashrc`, `.zshrc`, etc.):
+# How to Use
+
 ```bash
-export PATH="$HOME/.cargo/bin:$PATH"
+# Edit a specific font source (UFO or designspace)
+bezy --edit ~/Fonts/MyFont.ufo
 ```
-
-## Command Line Flags
-
-Bezy is designed to be used as a command line tool in Unix-style workflows. If you aren't familiar with working this way, it's worth learning and will save you time in the long run. 
-
-### Basic Usage
-```bash
-bezy [OPTIONS]
-```
-
-### Unified Font Source Handling
 The `--edit` flag intelligently handles both UFO directories and designspace files:
 - **Single UFO**: Shows a clean interface without master selection controls
 - **Designspace**: Shows master selector circles for switching between different masters
 
-### Common Flag Options
+## Command Line Flags
+
+Bezy is designed to be used as a command line tool in Unix-style workflows.
 
 | Flag | Short | Description | Example |
 |------|-------|-------------|---------|
@@ -130,25 +118,76 @@ The `--edit` flag intelligently handles both UFO directories and designspace fil
 | `--help` | `-h` | Show help information | `bezy --help` |
 | `--version` | `-V` | Show version information | `bezy --version` |
 
-### Themes
+### Examples
+```bash
+# Edit a single UFO
+bezy --edit ~/Fonts/MyFont.ufo
+
+# Edit a designspace for variable fonts
+bezy --edit ~/Fonts/MyVariable.designspace
+
+# Use the strawberry theme
+bezy --theme strawberry
+
+# Combine as many flags as you need
+bezy --edit ~/Fonts/MyFont.ufo --theme lightmode
+
+# Short form using -e
+bezy -e MyFont.ufo
+```
+
+## Keyboard Shortcuts
+
+| Shortcut | Action | Context |
+|----------|--------|---------|
+| `Cmd/Ctrl + S` | Save font | Global |
+| `Escape` | Clear selection / Exit tool | Selection mode |
+
+
+## Selection & Editing
+
+| Shortcut | Action | Context |
+|----------|--------|---------|
+| `Arrow Keys` | Nudge selected points | Points selected |
+| `Shift + Arrow Keys` | Nudge selected points more | Points selected |
+| `Cmd/Ctrl + Arrow Keys` | Nudge selected points even more | Points selected |
+
+## Camera Controls
+
+| Control | Action |
+|---------|--------|
+| Mouse Wheel | Zoom in/out |
+| Space | Temporary pan view |
+
+## Working with Edit-Mode Tools
+
+The edit-mode toolbar provides access to various editing tools. Each tool has specific behaviors:
+
+- **Selection Tool**: Select and manipulate points
+- **Pen Tool**: Add new points and contours
+- **Knife Tool**: Cut contours at specific points
+- **Text Tool**: A text editor built with editable type sorts 
+- **Measure Tool**: Measure distances between contours
+
+# Themes
 
 Bezy includes four built-in themes embedded in the application and supports optional custom theme creation:
 
-#### Built-in Themes
+## Built-in Themes
 - `darkmode` (default) - Dark background with light text
 - `lightmode` - Light background with dark text
 - `strawberry` - Pink/red/green theme
-- `campfire` - Warm orange/brown theme
+- `campfire` - Warm orange/red/brown/black theme
 
 These themes are embedded in the application and work in both development and installed modes.
 
-#### Custom Themes (Optional)
+## Custom Themes (Optional)
 You can optionally create and edit your own themes by creating a `~/.bezy/themes/` directory. The theme system works as follows:
 
 **Default behavior**: Uses embedded themes (no setup required)
 **With `~/.bezy/themes/`**: Uses themes from this directory when it exists
 
-##### Theme Loading Priority:
+### Theme Loading Priority:
 1. If `~/.bezy/themes/` exists → Load themes from `~/.bezy/themes/*.json`
 2. If not → Use embedded themes (default)
 3. Hot-reload: When using custom themes, changes are reflected instantly when you save the file
@@ -165,100 +204,10 @@ mkdir -p ~/.bezy/themes
 bezy --theme mytheme
 ```
 
-**Note**: You don't need to create `~/.bezy/themes/` unless you want to customize themes. The built-in themes work out of the box.
-
-### Examples
-```bash
-# Edit a single UFO (no master selector shown)
-bezy --edit ~/Fonts/MyFont.ufo
-
-# Edit a designspace for variable fonts (master selector shown)
-bezy --edit ~/Fonts/MyVariable.designspace
-
-# Use the built-in test font with strawberry theme
-bezy --theme strawberry
-
-# Combine as many flags as you need
-bezy --edit ~/Fonts/MyFont.ufo --theme lightmode
-
-# Short form using -e
-bezy -e MyFont.ufo
-```
-
-## Keyboard Shortcuts
-
-### Essential Shortcuts
-
-| Shortcut | Action | Context |
-|----------|--------|---------|
-| `Cmd/Ctrl + Z` | Undo | Global |
-| `Cmd/Ctrl + Shift + Z` | Redo | Global |
-| `Cmd/Ctrl + S` | Save font | Global |
-| `Cmd/Ctrl + G` | Show glyph palette | Global |
-| `Escape` | Clear selection / Exit tool | Selection mode |
-| `Cmd/Ctrl + A` | Select all points | Selection mode |
-
-### Navigation
-
-| Shortcut | Action |
-|----------|--------|
-| `Home` | Go to first glyph |
-| `End` | Go to last glyph |
-| `Cmd/Ctrl + Plus` | Zoom in |
-| `Cmd/Ctrl + Minus` | Zoom out |
-| `T` | Toggle zoom to cursor |
-
-### Selection & Editing
-
-| Shortcut | Action | Context |
-|----------|--------|---------|
-| `Arrow Keys` | Nudge selected points (1 unit) | Points selected |
-| `Shift + Arrow Keys` | Nudge selected points (10 units) | Points selected |
-| `Cmd/Ctrl + Arrow Keys` | Nudge selected points (100 units) | Points selected |
-| Click + Drag | Select points with marquee | Selection tool |
-| `Shift + Click` | Add to selection | Selection tool |
-
-### Camera Controls
-
-| Control | Action |
-|---------|--------|
-| Mouse Wheel | Zoom in/out |
-| Left/Middle Mouse + Drag | Pan view |
-| `T` | Toggle zoom to cursor on/off |
-
-## Usage Guide
-
-### Working with Edit-Mode Tools
-
-The edit-mode toolbar provides access to various editing tools. Each tool has specific behaviors:
-
-- **Selection Tool**: Select and manipulate points
-- **Pen Tool**: Add new points and curves
-- **Knife Tool**: Cut paths at specific points
-- **Text Tool**: Edit text samples for testing
-- **Measure Tool**: Measure distances between points
-
-### Tips for Beginners
-
-1. **Start with the built-in font**: Run `cargo run` without arguments to explore with the default Bezy Grotesk font
-2. **Use release mode for smoother performance**: `cargo run --release`
-3. **Save frequently**: Use `Cmd/Ctrl + S` to save your changes
-4. **Experiment with themes**: Try different themes to find what works best for your eyes
-5. **Read the code**: If you don't understand how something works, read the source code. Use a tool like Claude Code if you need help. This project is designed to be understandable and modifyable by regular users.
-
-### File Format Support
-
-Bezy currently supports:
-- **UFO 3** (Unified Font Object) - Individual font files
-- **Designspace** - Variable font sources
-
-UFO files are directories (folders) containing XML files that describe your font. They're human-readable, version-control friendly, and application independant.
-
 # License
-GNU GENERAL PUBLIC LICENSE
-Version 3, 29 June 2007
+[GNU GENERAL PUBLIC LICENSE](https://www.gnu.org/licenses/gpl-3.0.en.html) Version 3, 29 June 2007
 
-The GNU General Public License is a copyleft license for software and other kinds of works.
+This project is licensed under the GNU General Public License (GPL), which means you are free to use, study, share, and change the software. The only condition is that if you share it with others—whether in its original form or with your own changes—you must also make the source code available under the same license. In short: the GPL ensures that the software (and any improvements to it) always stays free and open for everyone.
 
 # Homepage
 

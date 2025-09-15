@@ -8,13 +8,16 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
+    #[ignore = "Requires test UFO file to be provided - skipped as test fixtures were removed"]
     fn test_component_resolution() {
-        // Test component resolution with the Bezy Grotesk font
-        let ufo_path = PathBuf::from("assets/fonts/bezy-grotesk-regular.ufo");
+        // Test component resolution - requires a UFO file with components
+        let ufo_path = std::env::var("TEST_UFO_PATH")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| PathBuf::from("path/to/test.ufo"));
 
-        // Skip test if font file doesn't exist (CI environment)
+        // Skip test if font file doesn't exist
         if !ufo_path.exists() {
-            eprintln!("Skipping component test - font file not found");
+            eprintln!("Skipping component test - font file not found at {:?}", ufo_path);
             return;
         }
 
