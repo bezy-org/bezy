@@ -1,14 +1,16 @@
 # Bezy
 
+Bezy is an in-development cross-platform font editor with a built-in bidirectional text editor.
+
 ![Bezy Font Editor Screenshot](https://bezy.org/images/bezy-screenshot-001.jpg)
 
-Bezy is a cross-platform, Rust-based font editor with a built-in bidirectional (RTL/LTR) text editor. It draws inspiration from technical-user oriented customizable editors like RoboFont and MFEK, while reimagining font editing for contemporary Unix-like AI and CLI heavy workflows. The core dependancies are: [Bevy](https://bevy.org/), [HarfRust](https://github.com/harfbuzz/harfrust), [Norad](https://github.com/linebender/norad), [Kurbo](https://github.com/linebender/kurbo), [Fontc](https://github.com/googlefonts/fontc), [FontIR](https://github.com/googlefonts/fontc).
+Drawing inspiration from technical-user-oriented customizable editors like RoboFont and MFEK, Bezy reimagins font editing for contemporary Unix-like AI and CLI heavy workflows. The core dependancies are: [Bevy](https://bevy.org), [HarfRust](https://github.com/harfbuzz/harfrust), [Norad](https://github.com/linebender/norad), [Kurbo](https://github.com/linebender/kurbo), [Fontc](https://github.com/googlefonts/fontc), [FontIR](https://github.com/googlefonts/fontc).
 
-Bezy is written in the Rust programming language using a game engine to create a performant, fun, and aesthetic experience that keeps users in a flow state. Rust has great [documentation](https://doc.rust-lang.org/book/), a friendly compiler with useful error messages, top-notch tooling, and an integrated package manager and build tool. With help from AI tools like [Claude Code](https://www.anthropic.com/claude-code) and [Gemini CLI](https://github.com/google-gemini/gemini-cli), it can be easier to use than Python. Don't be intimidated if you are not an expert programmer—this application is designed for students, designers, and artists to be able to customize it and make their own tools. This project is a spiritual sucsessor to the [RoboFont design principles](https://robofont.com/documentation/topics/robofont-design-principles/):
+Bezy is written in the Rust programming language using a [game engine](https://bevy.org) to create a performant and fun experience that keeps users in a flow state. It is designed to be a visually pleasing environment where design work is done, not just a non-aesthetic production tool.
 
->A typeface designer (who does not want to do any scripting and has no means of letting someone else do that work), has to deal with the available user interface, tool set, feature set, and the list of bugs in the typeface design applications they use. This makes the designer a captive to the development of applications that are often merely production tools and not intended for design. Not being (partly) the designer of your own tools puts a designer in a vulnerable position.
+Rust has great [documentation](https://doc.rust-lang.org/book/), a friendly compiler with useful error messages, top-notch tooling, and an integrated package manager and build tool. With help from AI tools like [Claude Code](https://www.anthropic.com/claude-code) and [Gemini CLI](https://github.com/google-gemini/gemini-cli), it can be easier to use than Python. Don't be intimidated if you are not an expert programmer—this application is designed for students, designers, and artists to be able to customize it and make their own tools and other additions.
 
-We aim to be an open and welcoming community that values working in the open and sharing knowledge. Contributors of all skill levels are welcome.
+The project aims to be a welcoming community that values working in the open, sharing knowledge, and helping people become better programmers. Contributors of all skill levels are welcome.
 
 > “The enjoyment of one's tools is an essential ingredient of successful work.”  
 >—Donald Knuth
@@ -16,26 +18,26 @@ We aim to be an open and welcoming community that values working in the open and
 >“Many have tried to replace FontForge—all have failed. I might fail, in fact, history says I probably will. Yet, the current state of affairs is so bad I feel I must try.”
 >—Fredrick Brennan
 
-## Installation
+# Installation & Building from Source
 
-### Prerequisites
+## Prerequisites
 
-Install Rust by following the official instructions at [https://www.rust-lang.org/tools/install](https://www.rust-lang.org/tools/install)
+Install Rust by following the [official instructions](https://www.rust-lang.org/tools/install) at [rust-lang.org](https://www.rust-lang.org).
 
-Verify installation:
+### Verify installation:
 ```bash
 cargo --version
 ```
 
-### Building from Source
+## Building from Source
 
-#### Step 1: Clone the Repository
+### Step 1: Clone the Repository
 ```bash
 git clone https://github.com/bezy-org/bezy.git
 cd bezy
 ```
 
-#### Step 2: Build and Run
+### Step 2: Build and Run
 ```bash
 # Build and run
 cargo run
@@ -47,17 +49,11 @@ cargo run --release
 cargo run -- --edit path/to/your/font.ufo
 ```
 
-#### First Time Build
-The first build will take a few minutes as it downloads and compiles all dependencies. Subsequent builds will be much faster (usually under 30 seconds).
-
-#### Troubleshooting Performance Issues
-- Use `cargo run --release` for the best performance
-
-### Installing as a Command Line Tool
+## Installing as a Command Line Tool
 
 You can install Bezy globally to use it as a command-line tool from anywhere on your system.
 
-#### Install from Source
+### Install from Source
 ```bash
 # From within the bezy directory after cloning
 cargo install --path .
@@ -66,24 +62,24 @@ cargo install --path .
 cargo install --git https://github.com/bezy-org/bezy.git
 ```
 
-#### Using the Installed Command
-Once installed, you can run Bezy from anywhere:
+### After Installation 
+Once installed, you can run Bezy from anywhere on your system.
 ```bash
-# Run with default settings
+# Launch the editor without loading a source file 
 bezy
 
-# Edit a specific font (UFO or designspace)
-bezy --edit ~/Fonts/MyFont.ufo
+# Check the version
+bezy --version
 
-# Use with any command line flags
-bezy --theme lightmode --edit MyFont.ufo
+# Check the installation location
+which bezy
 ```
 
-#### Updating Bezy
-To update Bezy after making changes or pulling new updates:
+### Updating Bezy
+To update after making changes or pulling new updates:
 ```bash
 # If you're working from the cloned repository
-cd /path/to/bezy
+cd path/to/bezy
 git pull
 cargo install --path .
 
@@ -94,31 +90,29 @@ cargo install --git https://github.com/bezy-org/bezy.git
 cargo install --path . --force
 ```
 
-#### Uninstalling
-To remove the globally installed version:
+### Uninstalling
 ```bash
+# To remove the globally installed version
 cargo uninstall bezy
 ```
 
-#### Installation Location
-By default, Cargo installs binaries to `~/.cargo/bin/`. Make sure this directory is in your PATH. If it's not, add this to your shell configuration file (`.bashrc`, `.zshrc`, etc.):
+# How to Use
+
+## Basics 
 ```bash
-export PATH="$HOME/.cargo/bin:$PATH"
+# Edit a specific font source (UFO or designspace)
+bezy --edit ~/Fonts/MyFont.ufo
+
+# Use with any command line flags
+bezy --theme lightmode --edit MyFont.ufo
 ```
+The `--edit` flag intelligently handles both UFO directories and designspace files:
+- **Single UFO**: Shows a clean interface without master selection controls
+- **Designspace**: Shows master selector circles for switching between different masters
 
 ## Command Line Flags
 
 Bezy is designed to be used as a command line tool in Unix-style workflows. If you aren't familiar with working this way, it's worth learning and will save you time in the long run. 
-
-### Basic Usage
-```bash
-bezy [OPTIONS]
-```
-
-### Unified Font Source Handling
-The `--edit` flag intelligently handles both UFO directories and designspace files:
-- **Single UFO**: Shows a clean interface without master selection controls
-- **Designspace**: Shows master selector circles for switching between different masters
 
 ### Common Flag Options
 
