@@ -71,13 +71,30 @@ const SELECTED_POINT_Z: f32 = 15.0; // Selected points - always above unselected
 /// System to collect rendering data with fewer parameters
 pub fn collect_rendering_data(
     enhanced_points_query: Query<(Entity, &EnhancedPointType)>,
+    enhanced_attributes: Res<crate::editing::selection::entity_management::EnhancedPointAttributes>,
+    point_refs_query: Query<(Entity, &crate::editing::selection::components::GlyphPointReference), Without<EnhancedPointType>>,
     mut rendering_data: ResMut<GlyphRenderingData>,
 ) {
     // Collect enhanced point smooth status to avoid query parameter limits in main render system
     rendering_data.smooth_points.clear();
+
+    // First, collect from enhanced components (preferred method)
     for (entity, enhanced) in enhanced_points_query.iter() {
         rendering_data.smooth_points.insert(entity, enhanced.is_smooth());
     }
+
+    // Then, collect from enhanced attributes for points that don't have enhanced components yet
+    for (entity, point_ref) in point_refs_query.iter() {
+        let key = (point_ref.glyph_name.clone(), point_ref.contour_index, point_ref.point_index);
+        if let Some(ufo_point) = enhanced_attributes.attributes.get(&key) {
+            if let Some(smooth) = ufo_point.smooth {
+                if smooth {
+                    rendering_data.smooth_points.insert(entity, true);
+                }
+            }
+        }
+    }
+
     rendering_data.needs_update = !rendering_data.smooth_points.is_empty();
 }
 

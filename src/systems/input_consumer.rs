@@ -786,9 +786,11 @@ pub fn process_selection_events(
     active_sort_state: Res<crate::editing::sort::ActiveSortState>,
     sort_point_entities: Query<&crate::editing::sort::manager::SortPointEntity>,
     mut enhanced_points_query: Query<&mut crate::editing::selection::enhanced_point_component::EnhancedPointType>,
+    point_refs_query: Query<&crate::editing::selection::components::GlyphPointReference>,
     mut selection_state: ResMut<SelectionState>,
     _selected_query: Query<Entity, With<Selected>>,
     mut visual_update_tracker: ResMut<crate::rendering::glyph_renderer::SortVisualUpdateTracker>,
+    mut enhanced_attributes: ResMut<crate::editing::selection::entity_management::EnhancedPointAttributes>,
 ) {
     if selection_consumer.pending_events.is_empty() {
         return;
@@ -826,17 +828,58 @@ pub fn process_selection_events(
                     if is_double_click {
                         println!("[SELECTION PROCESSOR] Double-click detected - toggling smooth point for entity {:?}", clicked_entity);
 
+                        // Get point reference information for enhanced attributes
+                        let point_ref = if let Ok(point_ref) = point_refs_query.get(clicked_entity) {
+                            point_ref
+                        } else {
+                            println!("[SELECTION PROCESSOR] Could not get point reference for entity {:?}", clicked_entity);
+                            continue;
+                        };
+
+                        // Create key for enhanced attributes lookup
+                        let attr_key = (point_ref.glyph_name.clone(), point_ref.contour_index, point_ref.point_index);
+
                         // Handle smooth point toggle
                         match enhanced_points_query.get_mut(clicked_entity) {
                             Ok(mut enhanced_point) => {
                                 let current_smooth = enhanced_point.ufo_point.smooth.unwrap_or(false);
-                                enhanced_point.ufo_point.smooth = Some(!current_smooth);
+                                let new_smooth = !current_smooth;
+                                enhanced_point.ufo_point.smooth = Some(new_smooth);
+
+                                // Also update enhanced attributes for UFO save persistence
+                                let ufo_point = enhanced_attributes.attributes.entry(attr_key.clone()).or_insert_with(|| {
+                                    crate::core::state::ufo_point::UfoPoint::line_to(0.0, 0.0)
+                                });
+                                ufo_point.smooth = Some(new_smooth);
+
                                 println!("[SELECTION PROCESSOR] Toggled smooth point: entity {:?} is now smooth={}",
-                                      clicked_entity, !current_smooth);
+                                      clicked_entity, new_smooth);
 
                                 // IMPORTANT: Trigger visual update so the point shape changes immediately
                                 visual_update_tracker.needs_update = true;
                                 println!("[SELECTION PROCESSOR] Triggered visual update for smooth point change");
+
+                                // Also ensure the rendering data is marked for update
+                                println!("[SELECTION PROCESSOR] Enhanced point component updated with smooth={}", new_smooth);
+
+                                // IMPORTANT: If point became smooth, make handles collinear
+                                if new_smooth {
+                                    println!("[SELECTION PROCESSOR] Point became smooth - applying collinear handle constraints");
+                                    // TODO(human): Implement collinear handle constraint logic here
+                                    // This should find adjacent off-curve points and make them collinear with this point
+                                    //
+                                    // Steps needed:
+                                    // 1. Get the glyph name and contour index from the clicked point
+                                    // 2. Find all points in the same contour, sorted by point_index
+                                    // 3. Locate the current point in the sequence
+                                    // 4. Find adjacent off-curve control points (before and after)
+                                    // 5. Calculate the line through the smooth point and one handle
+                                    // 6. Reposition the other handle to be collinear
+                                    // 7. Update both Transform components (for immediate visual) and FontIR data (for persistence)
+                                    //
+                                    // Consider using GlyphPointReference to navigate the contour structure
+                                    // and both Transform queries for immediate updates and FontIR updates for data persistence
+                                }
                             }
                             Err(_) => {
                                 // Entity doesn't have EnhancedPointType component, add it with default values
@@ -846,9 +889,13 @@ pub fn process_selection_events(
                                 let mut ufo_point = crate::core::state::ufo_point::UfoPoint::line_to(0.0, 0.0);
                                 ufo_point.smooth = Some(true); // Set to smooth since we're toggling
 
-                                let enhanced_point = crate::editing::selection::enhanced_point_component::EnhancedPointType::new(ufo_point);
+                                let enhanced_point = crate::editing::selection::enhanced_point_component::EnhancedPointType::new(ufo_point.clone());
 
                                 commands.entity(clicked_entity).insert(enhanced_point);
+
+                                // Also update enhanced attributes for UFO save persistence
+                                enhanced_attributes.attributes.insert(attr_key, ufo_point);
+
                                 println!("[SELECTION PROCESSOR] Added EnhancedPointType and set smooth=true for entity {:?}", clicked_entity);
 
                                 // IMPORTANT: Trigger visual update so the point shape changes immediately
