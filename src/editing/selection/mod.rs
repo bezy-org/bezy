@@ -10,6 +10,7 @@ pub mod entity_management;
 pub mod events;
 pub mod input;
 pub mod nudge;
+pub mod point_movement;
 pub mod systems;
 pub mod utils;
 

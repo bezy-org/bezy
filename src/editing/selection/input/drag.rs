@@ -3,8 +3,9 @@
 use crate::core::io::pointer::PointerInfo;
 use crate::core::settings::BezySettings;
 use crate::core::state::{AppState, FontIRAppState};
-use crate::editing::selection::components::{GlyphPointReference, Selected};
+use crate::editing::selection::components::{GlyphPointReference, PointType, Selected};
 use crate::editing::selection::nudge::{EditEvent, PointCoordinates};
+use crate::editing::selection::point_movement::{find_connected_offcurve_points_drag, sync_to_font_data, PointMovement};
 use crate::editing::selection::DragPointState;
 use bevy::input::ButtonInput;
 use bevy::log::{debug, warn};
@@ -23,8 +24,19 @@ pub fn handle_point_drag(
             &mut PointCoordinates,
             Option<&GlyphPointReference>,
             Option<&crate::editing::sort::manager::SortCrosshair>,
+            Option<&PointType>,
         ),
         With<Selected>,
+    >,
+    mut all_points_query: Query<
+        (
+            Entity,
+            &mut Transform,
+            &mut PointCoordinates,
+            &GlyphPointReference,
+            &crate::editing::selection::components::PointType,
+        ),
+        Without<Selected>,
     >,
     mut app_state: Option<ResMut<AppState>>,
     mut fontir_app_state: Option<ResMut<FontIRAppState>>,
@@ -54,8 +66,10 @@ pub fn handle_point_drag(
         }
 
         let mut updated_count = 0;
+        let mut point_movements = Vec::new();
 
-        for (entity, mut transform, mut coordinates, point_ref, sort_crosshair) in &mut query {
+        // First, process selected points and collect movement data
+        for (entity, mut transform, mut coordinates, point_ref, sort_crosshair, point_type) in &mut query {
             if let Some(original_pos) = drag_point_state.original_positions.get(&entity) {
                 let new_pos = *original_pos + movement;
 
@@ -78,51 +92,22 @@ pub fn handle_point_drag(
                     coordinates.x = snapped_pos.x;
                     coordinates.y = snapped_pos.y;
 
-                    // Try FontIR first, then fallback to UFO AppState
-                    let mut handled = false;
+                    // Add this point to movements list
+                    point_movements.push(PointMovement {
+                        entity,
+                        point_ref: point_ref.clone(),
+                        new_position: snapped_pos,
+                        is_connected_offcurve: false,
+                    });
 
-                    if let Some(ref mut fontir_state) = fontir_app_state {
-                        // Try to update FontIR data
-                        match fontir_state.update_point_position(
-                            &point_ref.glyph_name,
-                            point_ref.contour_index,
-                            point_ref.point_index,
-                            transform.translation.x as f64,
-                            transform.translation.y as f64,
-                        ) {
-                            Ok(was_updated) => {
-                                if was_updated {
-                                    updated_count += 1;
-                                    handled = true;
-                                }
-                            }
-                            Err(e) => {
-                                warn!("Failed to update FontIR point: {}", e);
-                            }
-                        }
-                    }
-
-                    // Fallback to UFO AppState if FontIR didn't handle it
-                    if !handled && app_state.is_some() {
-                        if let Some(ref mut app_state) = app_state {
-                            let updated = app_state.set_point_position(
-                                &point_ref.glyph_name,
-                                point_ref.contour_index,
-                                point_ref.point_index,
-                                transform.translation.x as f64,
-                                transform.translation.y as f64,
+                    // Find connected off-curve points if this is an on-curve point
+                    if let Some(pt) = point_type {
+                        if pt.is_on_curve {
+                            let connected_movements = find_connected_offcurve_points_drag(
+                                point_ref, pt, movement, &all_points_query
                             );
-                            if updated {
-                                updated_count += 1;
-                                handled = true;
-                            }
+                            point_movements.extend(connected_movements);
                         }
-                    }
-
-                    // If neither FontIR nor UFO handled it, just track the Transform update
-                    if !handled {
-                        updated_count += 1;
-                        debug!("Point update handled via Transform only (no source data update)");
                     }
                 }
                 // Handle other draggable entities (no snapping, normal Z layer)
@@ -136,8 +121,35 @@ pub fn handle_point_drag(
             }
         }
 
+        // Update connected off-curve points using shared utility
+        for movement in &point_movements {
+            if movement.is_connected_offcurve {
+                if let Ok((_, mut transform, mut coordinates, _, _)) = all_points_query.get_mut(movement.entity) {
+                    // Store original position if not already stored
+                    if !drag_point_state.original_positions.contains_key(&movement.entity) {
+                        drag_point_state.original_positions.insert(
+                            movement.entity,
+                            Vec2::new(transform.translation.x, transform.translation.y),
+                        );
+                    }
+
+                    // Update to the new position (already calculated in shared utility)
+                    transform.translation.x = movement.new_position.x;
+                    transform.translation.y = movement.new_position.y;
+                    transform.translation.z = 5.0;
+                    coordinates.x = movement.new_position.x;
+                    coordinates.y = movement.new_position.y;
+                }
+            }
+        }
+
+        // Sync all movements to font data using shared utility
+        let result = sync_to_font_data(&point_movements, &mut fontir_app_state, &mut app_state);
+        updated_count = result.points_moved + result.connected_offcurves_moved;
+
         if updated_count > 0 {
-            debug!("Updated {} UFO points during drag", updated_count);
+            debug!("Updated {} points ({} selected, {} connected off-curves) during drag",
+                   updated_count, result.points_moved, result.connected_offcurves_moved);
 
             // Send edit event
             event_writer.write(EditEvent {
