@@ -17,7 +17,7 @@ use bevy::prelude::*;
 use std::time::Duration;
 
 /// Threshold for detecting double-clicks in seconds
-const DOUBLE_CLICK_THRESHOLD_SECS: f32 = 0.5;
+pub const DOUBLE_CLICK_THRESHOLD_SECS: f32 = 0.5;
 
 /// Resource to track double-click detection
 #[derive(Resource, Default)]
@@ -76,32 +76,44 @@ pub fn collect_selection_input_events(
         return;
     }
 
+    debug!("collect_selection_input_events: Processing {} input events", event_count);
+
     // Check if select tool is active
-    if !crate::core::io::input::helpers::is_input_mode(
+    let is_select_mode = crate::core::io::input::helpers::is_input_mode(
         &input_state,
         crate::core::io::input::InputMode::Select,
-    ) {
+    );
+    debug!("collect_selection_input_events: is_select_mode = {}", is_select_mode);
+    if !is_select_mode {
+        debug!("collect_selection_input_events: Not in select mode, skipping events");
         return;
     }
 
     // Only process if in select mode
     if let Some(select_mode) = select_mode {
+        debug!("collect_selection_input_events: SelectModeActive = {}", select_mode.0);
         if !select_mode.0 {
+            debug!("collect_selection_input_events: SelectModeActive is false, skipping events");
             return;
         }
     } else {
+        debug!("collect_selection_input_events: SelectModeActive resource not found, skipping events");
         return;
     }
 
     // Collect events for processing
     selection_events.events.clear();
+    let mut collected_count = 0;
     for event in input_events.read() {
         // Skip if UI is consuming input
         if crate::core::io::input::helpers::is_ui_consuming(&input_state) {
+            debug!("collect_selection_input_events: Skipping event - UI is consuming input");
             continue;
         }
         selection_events.events.push(event.clone());
+        collected_count += 1;
     }
+    debug!("collect_selection_input_events: Collected {} events for selection processing", collected_count);
 }
 
 /// System to process selection input events from collected events
@@ -397,7 +409,7 @@ pub fn process_selection_input_events(
 }
 
 /// Find the closest clicked point entity within selection tolerance
-fn find_clicked_point(
+pub fn find_clicked_point(
     position: &DPoint,
     selectable_query: &Query<(Entity, &GlobalTransform, Option<&GlyphPointReference>, Option<&PointType>), With<Selectable>>,
     active_sort_entity: Entity,
@@ -444,10 +456,17 @@ pub fn handle_smooth_point_toggle(
     sort_point_entities: Query<&crate::editing::sort::manager::SortPointEntity>,
     mut enhanced_points_query: Query<&mut EnhancedPointType>,
 ) {
+    // Debug: Log when the system runs and what events it processes
+    if !selection_events.events.is_empty() {
+        debug!("handle_smooth_point_toggle: Processing {} selection events", selection_events.events.len());
+    }
+
     // Only process events that could result in smooth point toggles
     for event in &selection_events.events {
         if let InputEvent::MouseClick { button, position, .. } = event {
             if *button == MouseButton::Left {
+                debug!("handle_smooth_point_toggle: Processing left mouse click at {:?}", position);
+
                 // Use a dummy entity if no active sort exists
                 let active_sort_entity = active_sort_state.active_sort_entity.unwrap_or(Entity::PLACEHOLDER);
 

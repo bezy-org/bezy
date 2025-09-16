@@ -93,10 +93,8 @@ impl Plugin for SelectionPlugin {
                 (SelectionSystemSet::Input, SelectionSystemSet::Processing).chain(),
             )
             .configure_sets(PostUpdate, (SelectionSystemSet::Render,))
-            // Input systems - split into collection and processing phases to avoid parameter limits
-            .add_systems(Update, input::collect_selection_input_events)
-            .add_systems(Update, input::process_selection_input_events.after(input::collect_selection_input_events))
-            .add_systems(Update, input::handle_smooth_point_toggle.after(input::collect_selection_input_events))
+            // NOTE: Input handling moved to SelectionInputConsumer in input_consumer.rs
+            // to prevent event consumption conflicts
             .add_systems(Update, input::handle_point_drag)
             // Processing systems
             .add_systems(
