@@ -91,6 +91,10 @@ pub struct SavedRowContainer;
 #[derive(Component, Default)]
 pub struct ExportedRowContainer;
 
+/// Component marker for the designspace row container
+#[derive(Component, Default)]
+pub struct DesignspaceRowContainer;
+
 /// Component for master selection buttons
 #[derive(Component)]
 pub struct MasterButton {
@@ -209,12 +213,16 @@ pub fn spawn_file_pane(
 
             // Designspace path row (first text row, below master selector)
             parent
-                .spawn(Node {
-                    flex_direction: FlexDirection::Row,
-                    align_items: AlignItems::Center,
-                    margin: UiRect::bottom(Val::Px(ROW_SPACING)),
-                    ..default()
-                })
+                .spawn((
+                    Node {
+                        flex_direction: FlexDirection::Row,
+                        align_items: AlignItems::Center,
+                        margin: UiRect::bottom(Val::Px(ROW_SPACING)),
+                        display: Display::Flex, // Will be hidden for single UFOs
+                        ..default()
+                    },
+                    DesignspaceRowContainer,
+                ))
                 .with_children(|row| {
                     // Label
                     row.spawn((
@@ -396,25 +404,27 @@ fn update_file_info(
             })
             .unwrap_or(false);
 
-        // Update designspace path
-        if let Some(path_str) = state.source_path.to_str() {
-            if show_full_path {
-                // In fullscreen: show full path with ~/ notation
-                let home_dir = std::env::var("HOME").unwrap_or_else(|_| "/".to_string());
-                let full_path = if path_str.starts_with(&home_dir) {
-                    format!("~{}", &path_str[home_dir.len()..])
+        // Update designspace path (only for actual designspaces, not single UFOs)
+        if !state.is_single_ufo() {
+            if let Some(path_str) = state.source_path.to_str() {
+                if show_full_path {
+                    // In fullscreen: show full path with ~/ notation
+                    let home_dir = std::env::var("HOME").unwrap_or_else(|_| "/".to_string());
+                    let full_path = if path_str.starts_with(&home_dir) {
+                        format!("~{}", &path_str[home_dir.len()..])
+                    } else {
+                        path_str.to_string()
+                    };
+                    file_info.designspace_path = full_path;
                 } else {
-                    path_str.to_string()
-                };
-                file_info.designspace_path = full_path;
-            } else {
-                // In windowed mode: show just the filename
-                let filename = state
-                    .source_path
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .unwrap_or("Unknown");
-                file_info.designspace_path = filename.to_string();
+                    // In windowed mode: show just the filename
+                    let filename = state
+                        .source_path
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("Unknown");
+                    file_info.designspace_path = filename.to_string();
+                }
             }
         }
 
@@ -438,9 +448,34 @@ fn update_file_info(
             }
         }
 
-        // Update current UFO based on current master (show filename instead of style name)
-        if let Some(current_master) = file_info.masters.get(file_info.current_master_index) {
-            file_info.current_ufo = current_master.filename.clone();
+        // Update current UFO
+        if state.is_single_ufo() {
+            // For single UFOs, show the path with same logic as designspace would have
+            if let Some(path_str) = state.source_path.to_str() {
+                if show_full_path {
+                    // In fullscreen: show full path with ~/ notation
+                    let home_dir = std::env::var("HOME").unwrap_or_else(|_| "/".to_string());
+                    let full_path = if path_str.starts_with(&home_dir) {
+                        format!("~{}", &path_str[home_dir.len()..])
+                    } else {
+                        path_str.to_string()
+                    };
+                    file_info.current_ufo = full_path;
+                } else {
+                    // In windowed mode: show just the filename
+                    let filename = state
+                        .source_path
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("Unknown");
+                    file_info.current_ufo = filename.to_string();
+                }
+            }
+        } else {
+            // For designspaces, show the current master's filename
+            if let Some(current_master) = file_info.masters.get(file_info.current_master_index) {
+                file_info.current_ufo = current_master.filename.clone();
+            }
         }
     }
 }
@@ -612,17 +647,34 @@ type LastExportedTextQuery<'w, 's> = Query<
 /// Updates the displayed file information
 fn update_file_display(
     file_info: Res<FileInfo>,
+    fontir_state: Option<Res<FontIRAppState>>,
     mut designspace_query: DesignspaceTextQuery,
     mut ufo_query: CurrentUFOTextQuery,
     mut saved_query: LastSavedTextQuery,
     mut exported_query: LastExportedTextQuery,
-    mut saved_row_query: Query<&mut Node, (With<SavedRowContainer>, Without<ExportedRowContainer>)>,
+    mut designspace_row_query: Query<&mut Node, (With<DesignspaceRowContainer>, Without<SavedRowContainer>, Without<ExportedRowContainer>)>,
+    mut saved_row_query: Query<&mut Node, (With<SavedRowContainer>, Without<ExportedRowContainer>, Without<DesignspaceRowContainer>)>,
     mut exported_row_query: Query<
         &mut Node,
-        (With<ExportedRowContainer>, Without<SavedRowContainer>),
+        (With<ExportedRowContainer>, Without<SavedRowContainer>, Without<DesignspaceRowContainer>),
     >,
 ) {
-    // Update designspace path
+    // Check if this is a single UFO or designspace
+    let is_single_ufo = fontir_state
+        .as_ref()
+        .map(|state| state.is_single_ufo())
+        .unwrap_or(false);
+
+    // Show/hide designspace row based on source type
+    if let Ok(mut node) = designspace_row_query.single_mut() {
+        node.display = if is_single_ufo {
+            Display::None  // Hide DS row for single UFOs
+        } else {
+            Display::Flex  // Show DS row for designspaces
+        };
+    }
+
+    // Update designspace path (only relevant for designspaces)
     if let Ok(mut text) = designspace_query.single_mut() {
         *text = Text::new(file_info.designspace_path.clone());
     }
