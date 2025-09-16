@@ -14,6 +14,7 @@ pub mod font_metrics;
 pub mod fontir_app_state;
 pub mod navigation;
 pub mod text_editor;
+pub mod ufo_point;
 
 #[cfg(test)]
 mod test_components;
@@ -25,3 +26,4 @@ pub use font_metrics::*;
 pub use fontir_app_state::*;
 pub use navigation::*;
 pub use text_editor::*;
+pub use ufo_point::*;

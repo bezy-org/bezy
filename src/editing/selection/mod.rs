@@ -6,6 +6,7 @@ use bevy::prelude::*;
 
 pub mod components;
 pub mod coordinate_system;
+pub mod enhanced_point_component;
 pub mod entity_management;
 pub mod events;
 pub mod input;
@@ -15,6 +16,7 @@ pub mod systems;
 pub mod utils;
 
 pub use components::*;
+pub use enhanced_point_component::*;
 pub use entity_management::*;
 pub use events::{AppStateChanged, ClickWorldPosition, SELECTION_MARGIN};
 pub use input::*;
