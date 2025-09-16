@@ -120,11 +120,12 @@ fn handle_keyboard_shortcuts(
 fn handle_save_file_events(
     mut save_events: EventReader<SaveFileEvent>,
     fontir_state: Option<Res<FontIRAppState>>,
+    enhanced_attributes: Res<crate::editing::selection::entity_management::EnhancedPointAttributes>,
     mut file_info: ResMut<FileInfo>,
 ) {
     for _event in save_events.read() {
         if let Some(state) = fontir_state.as_ref() {
-            match save_font_files(&state.source_path, state) {
+            match save_font_files(&state.source_path, state, &enhanced_attributes) {
                 Ok(saved_paths) => {
                     info!("Successfully saved {} files", saved_paths.len());
                     for path in &saved_paths {
@@ -163,6 +164,7 @@ fn update_save_state(file_info: Res<FileInfo>) {
 fn save_font_files(
     source_path: &PathBuf,
     fontir_state: &FontIRAppState,
+    enhanced_attributes: &crate::editing::selection::entity_management::EnhancedPointAttributes,
 ) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
     let mut saved_paths = Vec::new();
 
@@ -227,8 +229,13 @@ fn save_font_files(
                             // Simple approach: recreate contours from BezPath
                             // This will lose the original starting point, but it's reliable
                             existing_glyph.contours.clear();
-                            for bez_path in &working_copy.contours {
-                                let contour = convert_bezpath_to_ufo_contour(bez_path);
+                            for (contour_index, bez_path) in working_copy.contours.iter().enumerate() {
+                                let contour = convert_bezpath_to_ufo_contour_with_attributes(
+                                    bez_path,
+                                    glyph_name,
+                                    contour_index,
+                                    &enhanced_attributes.attributes,
+                                );
                                 existing_glyph.contours.push(contour);
                             }
                         } else {
@@ -280,8 +287,13 @@ fn save_font_files(
                     // Simple approach: recreate contours from BezPath
                     // This will lose the original starting point, but it's reliable
                     existing_glyph.contours.clear();
-                    for bez_path in &working_copy.contours {
-                        let contour = convert_bezpath_to_ufo_contour(bez_path);
+                    for (contour_index, bez_path) in working_copy.contours.iter().enumerate() {
+                        let contour = convert_bezpath_to_ufo_contour_with_attributes(
+                            bez_path,
+                            glyph_name,
+                            contour_index,
+                            &enhanced_attributes.attributes,
+                        );
                         existing_glyph.contours.push(contour);
                     }
                 } else {
@@ -390,6 +402,155 @@ fn convert_bezpath_to_ufo_contour(bez_path: &kurbo::BezPath) -> norad::Contour {
                     None,
                     None,
                 ));
+            }
+            PathEl::ClosePath => {}
+        }
+    }
+
+    // For closed contours, ensure the first point corresponds to the MoveTo position
+    if is_closed && !all_points.is_empty() {
+        if let Some(start_pt) = move_to_pos {
+            // Find if any point matches the MoveTo position
+            if let Some(start_idx) = find_point_near_position(&all_points, start_pt) {
+                // Rotate the points so the matching point comes first
+                let rotated = rotate_points_to_start(&all_points, start_idx);
+                return norad::Contour::new(rotated, None);
+            } else {
+                info!("No matching point found for MoveTo position, using original order");
+            }
+        }
+    }
+
+    norad::Contour::new(all_points, None)
+}
+
+/// Convert BezPath to UFO contour with enhanced point attributes
+/// This version looks up enhanced point data to preserve attributes like smooth flags
+fn convert_bezpath_to_ufo_contour_with_attributes(
+    bez_path: &kurbo::BezPath,
+    glyph_name: &str,
+    contour_index: usize,
+    enhanced_attributes: &std::collections::HashMap<(String, usize, usize), crate::core::state::ufo_point::UfoPoint>,
+) -> norad::Contour {
+    let mut all_points = Vec::new();
+    let mut is_closed = false;
+    let mut move_to_pos: Option<kurbo::Point> = None;
+    let mut point_index = 0;
+
+    let elements = bez_path.elements();
+
+    // Check if path is closed
+    for element in elements {
+        if matches!(element, PathEl::ClosePath) {
+            is_closed = true;
+            break;
+        }
+    }
+
+    // Convert elements to points with enhanced attributes
+    for element in elements {
+        match element {
+            PathEl::MoveTo(pt) => {
+                move_to_pos = Some(*pt);
+                if !is_closed {
+                    // For open paths, include MoveTo as first point
+                    let key = (glyph_name.to_string(), contour_index, point_index);
+                    let smooth = enhanced_attributes
+                        .get(&key)
+                        .and_then(|attr| attr.smooth)
+                        .unwrap_or(false);
+
+                    all_points.push(norad::ContourPoint::new(
+                        pt.x,
+                        pt.y,
+                        norad::PointType::Move,
+                        smooth,
+                        None,
+                        None,
+                    ));
+                    point_index += 1;
+                }
+            }
+            PathEl::LineTo(pt) => {
+                let key = (glyph_name.to_string(), contour_index, point_index);
+                let smooth = enhanced_attributes
+                    .get(&key)
+                    .and_then(|attr| attr.smooth)
+                    .unwrap_or(false);
+
+                all_points.push(norad::ContourPoint::new(
+                    pt.x,
+                    pt.y,
+                    norad::PointType::Line,
+                    smooth,
+                    None,
+                    None,
+                ));
+                point_index += 1;
+            }
+            PathEl::CurveTo(cp1, cp2, pt) => {
+                // Off-curve points are never smooth
+                all_points.push(norad::ContourPoint::new(
+                    cp1.x,
+                    cp1.y,
+                    norad::PointType::OffCurve,
+                    false,
+                    None,
+                    None,
+                ));
+                all_points.push(norad::ContourPoint::new(
+                    cp2.x,
+                    cp2.y,
+                    norad::PointType::OffCurve,
+                    false,
+                    None,
+                    None,
+                ));
+
+                // On-curve point may be smooth
+                let key = (glyph_name.to_string(), contour_index, point_index);
+                let smooth = enhanced_attributes
+                    .get(&key)
+                    .and_then(|attr| attr.smooth)
+                    .unwrap_or(false);
+
+                all_points.push(norad::ContourPoint::new(
+                    pt.x,
+                    pt.y,
+                    norad::PointType::Curve,
+                    smooth,
+                    None,
+                    None,
+                ));
+                point_index += 1;
+            }
+            PathEl::QuadTo(cp, pt) => {
+                // Off-curve point is never smooth
+                all_points.push(norad::ContourPoint::new(
+                    cp.x,
+                    cp.y,
+                    norad::PointType::OffCurve,
+                    false,
+                    None,
+                    None,
+                ));
+
+                // On-curve point may be smooth
+                let key = (glyph_name.to_string(), contour_index, point_index);
+                let smooth = enhanced_attributes
+                    .get(&key)
+                    .and_then(|attr| attr.smooth)
+                    .unwrap_or(false);
+
+                all_points.push(norad::ContourPoint::new(
+                    pt.x,
+                    pt.y,
+                    norad::PointType::QCurve,
+                    smooth,
+                    None,
+                    None,
+                ));
+                point_index += 1;
             }
             PathEl::ClosePath => {}
         }

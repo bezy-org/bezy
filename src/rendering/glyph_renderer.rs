@@ -6,6 +6,7 @@
 #![allow(clippy::too_many_arguments)]
 
 use crate::editing::selection::components::{GlyphPointReference, PointType, Selected};
+use crate::editing::selection::enhanced_point_component::EnhancedPointType;
 use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::{ActiveSort, Sort};
 use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
@@ -15,6 +16,13 @@ use bevy::prelude::*;
 use bevy::render::mesh::Mesh2d;
 use bevy::sprite::{ColorMaterial, MeshMaterial2d};
 use std::collections::{HashMap, HashSet};
+
+/// Resource to collect rendering data and reduce system parameter count
+#[derive(Resource, Default)]
+pub struct GlyphRenderingData {
+    pub smooth_points: HashMap<Entity, bool>,
+    pub needs_update: bool,
+}
 
 // Lyon imports for filled glyph tessellation
 use lyon::geom::point;
@@ -60,6 +68,19 @@ const OUTLINE_Z: f32 = 8.0; // Above handles, behind points
 const POINT_Z: f32 = 10.0; // Unselected points
 const SELECTED_POINT_Z: f32 = 15.0; // Selected points - always above unselected
 
+/// System to collect rendering data with fewer parameters
+pub fn collect_rendering_data(
+    enhanced_points_query: Query<(Entity, &EnhancedPointType)>,
+    mut rendering_data: ResMut<GlyphRenderingData>,
+) {
+    // Collect enhanced point smooth status to avoid query parameter limits in main render system
+    rendering_data.smooth_points.clear();
+    for (entity, enhanced) in enhanced_points_query.iter() {
+        rendering_data.smooth_points.insert(entity, enhanced.is_smooth());
+    }
+    rendering_data.needs_update = !rendering_data.smooth_points.is_empty();
+}
+
 /// Main glyph rendering system - renders both active (with points/handles) and inactive (filled outlines) sorts
 /// This single system eliminates coordination complexity between separate rendering systems
 #[allow(clippy::type_complexity)]
@@ -94,8 +115,7 @@ pub fn render_glyphs(
     fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
     text_editor_state: Option<Res<crate::core::state::TextEditorState>>,
     existing_elements: Query<(Entity, &GlyphRenderElement)>,
-    // Debug: Check entities with just SortPointEntity
-    existing_sort_points: Query<Entity, With<SortPointEntity>>,
+    rendering_data: Res<GlyphRenderingData>,
     theme: Res<CurrentTheme>,
     presentation_mode: Option<Res<crate::ui::edit_mode_toolbar::PresentationMode>>,
 ) {
@@ -106,6 +126,9 @@ pub fn render_glyphs(
     // Check if we're in presentation mode
     let presentation_active = presentation_mode.as_ref().is_some_and(|pm| pm.active);
     let presentation_changed = presentation_mode.as_ref().is_some_and(|pm| pm.is_changed());
+
+    // Use pre-collected smooth point data from the resource
+    let smooth_points = &rendering_data.smooth_points;
 
     if presentation_active {
         info!("🎭 Unified rendering in presentation mode - only filled outlines will be shown");
@@ -129,18 +152,19 @@ pub fn render_glyphs(
     );
 
     // Debug: Check what components all entities with SortPointEntity have
-    if point_count == 0 && !existing_sort_points.is_empty() {
-        let all_sort_point_entities = existing_sort_points.iter().count();
-        info!("🔍 DEBUG: {} entities with SortPointEntity exist, but 0 match full point query - component mismatch!", all_sort_point_entities);
-
-        // Let's see what the first few SortPointEntity entities actually have
-        for (i, entity) in existing_sort_points.iter().enumerate() {
-            if i >= 3 {
-                break;
-            } // Only check first 3 for debugging
-            info!("🔍 DEBUG: Entity {:?} has SortPointEntity", entity);
-        }
-    }
+    // (Commented out - debug query removed to reduce parameter count)
+    // if point_count == 0 && !existing_sort_points.is_empty() {
+    //     let all_sort_point_entities = existing_sort_points.iter().count();
+    //     info!("🔍 DEBUG: {} entities with SortPointEntity exist, but 0 match full point query - component mismatch!", all_sort_point_entities);
+    //
+    //     // Let's see what the first few SortPointEntity entities actually have
+    //     for (i, entity) in existing_sort_points.iter().enumerate() {
+    //         if i >= 3 {
+    //             break;
+    //         } // Only check first 3 for debugging
+    //         info!("🔍 DEBUG: Entity {:?} has SortPointEntity", entity);
+    //     }
+    // }
 
     if active_count == 0 && inactive_count == 0 {
         update_tracker.needs_update = false;
@@ -334,6 +358,7 @@ pub fn render_glyphs(
                 &camera_scale,
                 &theme,
                 text_editor_state.as_deref(),
+                &smooth_points,
             );
         } else {
             info!(
@@ -651,6 +676,7 @@ fn render_glyph_points(
     camera_scale: &CameraResponsiveScale,
     theme: &CurrentTheme,
     _text_editor_state: Option<&crate::core::state::TextEditorState>,
+    smooth_points: &HashMap<Entity, bool>,
 ) {
     for (point_entity, position, _point_ref, point_type, is_selected) in sort_points {
         // Determine colors and z-depth for two-layer system
@@ -677,8 +703,12 @@ fn render_glyph_points(
         // All sorts use the same sizing now
         let root_size_multiplier = 1.0;
 
+        // Check if this point is smooth (smooth points should be circles)
+        let is_smooth = smooth_points.get(point_entity).unwrap_or(&false);
+
         // Create the three-layer point shape
-        if point_type.is_on_curve && USE_SQUARE_FOR_ON_CURVE {
+        // On-curve points are square UNLESS they are smooth (smooth points are always circles)
+        if point_type.is_on_curve && USE_SQUARE_FOR_ON_CURVE && !is_smooth {
             // On-curve points: square with three layers
             let base_size =
                 ON_CURVE_POINT_RADIUS * ON_CURVE_SQUARE_ADJUSTMENT * 2.0 * root_size_multiplier;
@@ -1500,13 +1530,15 @@ impl Plugin for GlyphRenderingPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<GlyphRenderEntities>()
             .init_resource::<SortVisualUpdateTracker>()
+            .init_resource::<GlyphRenderingData>()
             .add_systems(
                 Update,
-                (detect_sort_changes, render_glyphs)
-                    .chain()
+                detect_sort_changes
                     .after(crate::systems::sorts::spawn_active_sort_points_optimized)
                     .after(crate::editing::selection::nudge::handle_nudge_input),
-            );
+            )
+            .add_systems(Update, collect_rendering_data)
+            .add_systems(Update, render_glyphs.after(collect_rendering_data));
     }
 }
 

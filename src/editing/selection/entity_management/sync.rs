@@ -2,12 +2,20 @@
 
 use crate::core::state::AppState;
 use crate::editing::selection::components::{GlyphPointReference, Selected};
+use crate::editing::selection::enhanced_point_component::EnhancedPointType;
 use crate::editing::selection::nudge::NudgeState;
 use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::Sort;
 use bevy::ecs::system::ParamSet;
 use bevy::prelude::*;
 use std::collections::HashMap;
+
+/// Resource to track enhanced point attributes for UFO saving
+/// Maps (glyph_name, contour_index, point_index) to enhanced attributes
+#[derive(Resource, Default)]
+pub struct EnhancedPointAttributes {
+    pub attributes: HashMap<(String, usize, usize), crate::core::state::ufo_point::UfoPoint>,
+}
 
 /// System to update the actual glyph data when a point is moved
 #[allow(clippy::type_complexity)]
@@ -142,5 +150,45 @@ pub fn sync_point_positions_to_sort(
                 }
             }
         }
+    }
+}
+
+/// System to sync enhanced point attributes (like smooth) to a resource for UFO saving
+/// This ensures that when points are modified with enhanced attributes,
+/// those changes are preserved when saving to UFO files
+#[allow(clippy::type_complexity)]
+pub fn sync_enhanced_point_attributes(
+    enhanced_query: Query<
+        (&EnhancedPointType, &GlyphPointReference),
+        Changed<EnhancedPointType>,
+    >,
+    mut enhanced_attributes: ResMut<EnhancedPointAttributes>,
+) {
+    if enhanced_query.is_empty() {
+        return;
+    }
+
+    debug!(
+        "[sync_enhanced_point_attributes] Processing {} changed enhanced points",
+        enhanced_query.iter().count()
+    );
+
+    for (enhanced_point, point_ref) in enhanced_query.iter() {
+        let key = (
+            point_ref.glyph_name.clone(),
+            point_ref.contour_index,
+            point_ref.point_index,
+        );
+
+        // Store the enhanced point attributes for later UFO saving
+        enhanced_attributes.attributes.insert(key.clone(), enhanced_point.ufo_point.clone());
+
+        debug!(
+            "Stored enhanced point attributes: glyph='{}', contour={}, point={}, smooth={}",
+            point_ref.glyph_name,
+            point_ref.contour_index,
+            point_ref.point_index,
+            enhanced_point.ufo_point.smooth.unwrap_or(false)
+        );
     }
 }

@@ -10,21 +10,110 @@ use crate::editing::selection::events::{ClickWorldPosition, SELECTION_MARGIN};
 use crate::editing::selection::input::shortcuts::handle_selection_key_press;
 use crate::editing::selection::nudge::EditEvent;
 use crate::editing::selection::{DragPointState, DragSelectionState};
+use crate::editing::selection::enhanced_point_component::EnhancedPointType;
 use crate::geometry::world_space::DPoint;
 use bevy::input::mouse::MouseButton;
 use bevy::prelude::*;
+use std::time::Duration;
 
-/// System to process selection input events from the new input system
+/// Threshold for detecting double-clicks in seconds
+const DOUBLE_CLICK_THRESHOLD_SECS: f32 = 0.5;
+
+/// Resource to track double-click detection
+#[derive(Resource, Default)]
+pub struct DoubleClickState {
+    /// Entity that was last clicked
+    pub last_clicked_entity: Option<Entity>,
+    /// Time of the last click in seconds
+    pub last_click_time: Option<f32>,
+    /// Maximum time between clicks to count as double-click (in milliseconds)
+    pub double_click_threshold_ms: u64,
+}
+
+impl DoubleClickState {
+    pub fn new() -> Self {
+        Self {
+            last_clicked_entity: None,
+            last_click_time: None,
+            double_click_threshold_ms: 400, // 400ms threshold for double-click
+        }
+    }
+
+    /// Check if a click on an entity is a double-click
+    pub fn is_double_click(&self, entity: Entity, current_time: f32) -> bool {
+        if let (Some(last_entity), Some(last_time)) = (self.last_clicked_entity, self.last_click_time) {
+            if last_entity == entity {
+                let time_diff = current_time - last_time;
+                return time_diff <= (self.double_click_threshold_ms as f32 / 1000.0);
+            }
+        }
+        false
+    }
+
+    /// Update the state with a new click
+    pub fn update_click(&mut self, entity: Entity, time: f32) {
+        self.last_clicked_entity = Some(entity);
+        self.last_click_time = Some(time);
+    }
+}
+
+/// Resource to store input events for processing by smaller systems
+#[derive(Resource, Default)]
+pub struct SelectionInputEvents {
+    pub events: Vec<InputEvent>,
+}
+
+/// System to collect input events for selection processing
+pub fn collect_selection_input_events(
+    mut input_events: EventReader<InputEvent>,
+    mut selection_events: ResMut<SelectionInputEvents>,
+    input_state: Res<InputState>,
+    select_mode: Option<Res<crate::ui::edit_mode_toolbar::select::SelectModeActive>>,
+) {
+    // Early exit if no events to process
+    let event_count = input_events.len();
+    if event_count == 0 {
+        return;
+    }
+
+    // Check if select tool is active
+    if !crate::core::io::input::helpers::is_input_mode(
+        &input_state,
+        crate::core::io::input::InputMode::Select,
+    ) {
+        return;
+    }
+
+    // Only process if in select mode
+    if let Some(select_mode) = select_mode {
+        if !select_mode.0 {
+            return;
+        }
+    } else {
+        return;
+    }
+
+    // Collect events for processing
+    selection_events.events.clear();
+    for event in input_events.read() {
+        // Skip if UI is consuming input
+        if crate::core::io::input::helpers::is_ui_consuming(&input_state) {
+            continue;
+        }
+        selection_events.events.push(event.clone());
+    }
+}
+
+/// System to process selection input events from collected events
 #[allow(clippy::type_complexity)]
 #[allow(clippy::too_many_arguments)]
 pub fn process_selection_input_events(
     mut commands: Commands,
-    mut input_events: EventReader<InputEvent>,
-    input_state: Res<InputState>,
+    mut selection_events: ResMut<SelectionInputEvents>,
     mut drag_state: ResMut<DragSelectionState>,
     mut drag_point_state: ResMut<DragPointState>,
     mut event_writer: EventWriter<EditEvent>,
-    #[allow(clippy::type_complexity)] selectable_query: Query<
+    selectable_query: Query<
         (
             Entity,
             &GlobalTransform,
@@ -38,63 +127,34 @@ pub fn process_selection_input_events(
     mut selection_state: ResMut<SelectionState>,
     active_sort_state: Res<crate::editing::sort::ActiveSortState>,
     sort_point_entities: Query<&crate::editing::sort::manager::SortPointEntity>,
-    select_mode: Option<Res<crate::ui::edit_mode_toolbar::select::SelectModeActive>>,
     text_editor_state: ResMut<TextEditorState>,
     app_state: Option<Res<crate::core::state::AppState>>,
     buffer_entities: Res<crate::systems::sorts::sort_entities::BufferSortEntities>,
+    mut double_click_state: ResMut<DoubleClickState>,
+    time: Res<Time>,
 ) {
-    // Early exit if no events to process - this prevents expensive logging every frame
-    let event_count = input_events.len();
-    if event_count == 0 {
+    // Early exit if no events to process
+    if selection_events.events.is_empty() {
         return;
     }
 
     debug!(
-        "[process_selection_input_events] CALLED with {} events",
-        event_count
+        "[process_selection_input_events] Processing {} collected events",
+        selection_events.events.len()
     );
 
-    // Check if select tool is active by checking InputMode
-    if !crate::core::io::input::helpers::is_input_mode(
-        &input_state,
-        crate::core::io::input::InputMode::Select,
-    ) {
-        info!("[process_selection_input_events] Not in Select input mode (current: {:?}), skipping all events", input_state.mode);
-        return;
-    }
-    debug!("[process_selection_input_events] In Select input mode - continuing");
-
-    // Only log when we actually have events to process
-    let mode_status = select_mode.as_ref().map(|s| s.0).unwrap_or(false);
-    debug!(
-        "[process_selection_input_events] SelectModeActive exists: {}, active: {}",
-        select_mode.is_some(),
-        mode_status
-    );
-
-    // Only process if in select mode
-    if let Some(select_mode) = select_mode {
-        if !select_mode.0 {
-            info!("[process_selection_input_events] SelectModeActive is false, exiting");
-            return;
-        }
-    } else {
-        info!("[process_selection_input_events] SelectModeActive resource not found, exiting");
-        return;
-    }
-    debug!("[process_selection_input_events] All checks passed - processing events");
-
-    for event in input_events.read() {
+    for event in &selection_events.events {
         debug!(
             "[process_selection_input_events] Processing event: {:?}",
             event
         );
 
         // Skip if UI is consuming input
-        if crate::core::io::input::helpers::is_ui_consuming(&input_state) {
-            debug!("Selection: Skipping event - UI is consuming input");
-            continue;
-        }
+        // Note: input_state check removed as it's handled in event collection
+        // if crate::core::io::input::helpers::is_ui_consuming(&input_state) {
+        //     debug!("Selection: Skipping event - UI is consuming input");
+        //     continue;
+        // }
 
         // Only handle events that are relevant to selection
         match event {
@@ -230,6 +290,9 @@ pub fn process_selection_input_events(
                             &mut selection_state,
                             active_sort_entity,
                             &sort_point_entities,
+                            &mut double_click_state,
+                            &time,
+                            // Note: enhanced_points_query handled by separate handle_smooth_point_toggle system
                         );
                     }
                 }
@@ -328,6 +391,105 @@ pub fn process_selection_input_events(
             _ => {}
         }
     }
+
+    // Clear processed events to prevent re-processing next frame
+    selection_events.events.clear();
+}
+
+/// Find the closest clicked point entity within selection tolerance
+fn find_clicked_point(
+    position: &DPoint,
+    selectable_query: &Query<(Entity, &GlobalTransform, Option<&GlyphPointReference>, Option<&PointType>), With<Selectable>>,
+    active_sort_entity: Entity,
+    sort_point_entities: &Query<&crate::editing::sort::manager::SortPointEntity>,
+) -> Option<Entity> {
+    let cursor_pos = position.to_raw();
+    let mut best_hit = None;
+    let mut min_dist_sq = SELECTION_MARGIN * SELECTION_MARGIN;
+
+    // Find the closest selectable entity that belongs to the active sort
+    for (entity, transform, _glyph_ref, _point_type) in selectable_query.iter() {
+        // Check if this entity belongs to the active sort
+        if let Ok(sort_point_entity) = sort_point_entities.get(entity) {
+            // If we have a valid active sort, filter by it
+            if active_sort_entity != Entity::PLACEHOLDER
+                && sort_point_entity.sort_entity != active_sort_entity
+            {
+                continue; // Skip points that don't belong to the active sort
+            }
+        } else {
+            continue; // Skip entities that aren't sort points
+        }
+
+        let pos = transform.translation().truncate();
+        let dist_sq = cursor_pos.distance_squared(pos);
+
+        if dist_sq < min_dist_sq {
+            min_dist_sq = dist_sq;
+            best_hit = Some(entity);
+        }
+    }
+
+    best_hit
+}
+
+/// System to handle smooth point toggles on double-click
+/// This is split from the main selection system to reduce parameter count
+pub fn handle_smooth_point_toggle(
+    time: Res<Time>,
+    mut double_click_state: ResMut<DoubleClickState>,
+    selection_events: ResMut<SelectionInputEvents>,
+    selectable_query: Query<(Entity, &GlobalTransform, Option<&GlyphPointReference>, Option<&PointType>), With<Selectable>>,
+    active_sort_state: Res<crate::editing::sort::ActiveSortState>,
+    sort_point_entities: Query<&crate::editing::sort::manager::SortPointEntity>,
+    mut enhanced_points_query: Query<&mut EnhancedPointType>,
+) {
+    // Only process events that could result in smooth point toggles
+    for event in &selection_events.events {
+        if let InputEvent::MouseClick { button, position, .. } = event {
+            if *button == MouseButton::Left {
+                // Use a dummy entity if no active sort exists
+                let active_sort_entity = active_sort_state.active_sort_entity.unwrap_or(Entity::PLACEHOLDER);
+
+                // Check for double-click and point selection
+                if let Some(clicked_entity) = find_clicked_point(
+                    position,
+                    &selectable_query,
+                    active_sort_entity,
+                    &sort_point_entities,
+                ) {
+                    // Handle double-click detection
+                    let now = time.elapsed_secs();
+                    let is_double_click = if let Some(last_click) = double_click_state.last_click_time {
+                        (now - last_click) < DOUBLE_CLICK_THRESHOLD_SECS
+                            && double_click_state.last_clicked_entity == Some(clicked_entity)
+                    } else {
+                        false
+                    };
+
+                    if is_double_click {
+                        debug!("Double-click detected on entity {:?} - toggling smooth point", clicked_entity);
+
+                        // Handle smooth point toggle
+                        if let Ok(mut enhanced_point) = enhanced_points_query.get_mut(clicked_entity) {
+                            let current_smooth = enhanced_point.ufo_point.smooth.unwrap_or(false);
+                            enhanced_point.ufo_point.smooth = Some(!current_smooth);
+                            info!("Toggled smooth point: entity {:?} is now smooth={}",
+                                  clicked_entity, !current_smooth);
+                        }
+
+                        // Reset double-click state
+                        double_click_state.last_click_time = None;
+                        double_click_state.last_clicked_entity = None;
+                    } else {
+                        // Update double-click state
+                        double_click_state.last_click_time = Some(now);
+                        double_click_state.last_clicked_entity = Some(clicked_entity);
+                    }
+                }
+            }
+        }
+    }
 }
 
 /// Handle mouse click for selection
@@ -353,6 +515,9 @@ pub fn handle_selection_click(
     selection_state: &mut ResMut<SelectionState>,
     active_sort_entity: Entity,
     sort_point_entities: &Query<&crate::editing::sort::manager::SortPointEntity>,
+    double_click_state: &mut ResMut<DoubleClickState>,
+    time: &Res<Time>,
+    // enhanced_points_query handled by separate handle_smooth_point_toggle system
 ) {
     debug!(
         "=== HANDLE SELECTION CLICK === position={:?}, active_sort={:?}",
@@ -440,6 +605,12 @@ pub fn handle_selection_click(
         commands.insert_resource(ClickWorldPosition);
 
         let shift_held = modifiers.shift;
+        let current_time = time.elapsed_secs();
+
+        // Note: Double-click handling moved to separate handle_smooth_point_toggle system
+
+        // Update double-click state for this click
+        double_click_state.update_click(entity, current_time);
 
         if !shift_held && selection_state.selected.contains(&entity) {
             // Clicked on already selected entity - start drag
