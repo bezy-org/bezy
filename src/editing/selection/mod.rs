@@ -104,6 +104,7 @@ impl Plugin for SelectionPlugin {
                     // sync_selected_components,
                     // entity_management::update_glyph_data_from_selection,
                     entity_management::sync_enhanced_point_attributes,
+                    smooth_curves::auto_apply_smooth_constraints,
                     clear_selection_on_app_change,
                     entity_management::cleanup_click_resource,
                 )

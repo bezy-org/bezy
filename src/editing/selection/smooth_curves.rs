@@ -210,6 +210,127 @@ where
     updated_count
 }
 
+/// System to automatically apply smooth curve constraints when a point becomes smooth
+/// This is triggered when the Enhanced Point Type changes to smooth
+pub fn auto_apply_smooth_constraints(
+    // Query for points that just became smooth
+    changed_enhanced_points: Query<(Entity, &EnhancedPointType, &GlyphPointReference), Changed<EnhancedPointType>>,
+    // All points for finding handles and getting positions (mutable for updates)
+    mut all_points_query: Query<(Entity, &mut Transform, &GlyphPointReference, &PointType)>,
+) {
+    for (smooth_entity, enhanced_type, point_ref) in changed_enhanced_points.iter() {
+        // Only process if the point is now smooth and on-curve
+        if !enhanced_type.is_smooth() || !enhanced_type.is_on_curve {
+            continue;
+        }
+
+        debug!(
+            "Auto-applying smooth constraints for newly smooth point: glyph='{}', contour={}, point={}",
+            point_ref.glyph_name, point_ref.contour_index, point_ref.point_index
+        );
+
+        // Collect immutable data for constraint finding
+        let point_data: Vec<_> = all_points_query.iter()
+            .map(|(entity, transform, point_ref, point_type)| (entity, transform.translation.truncate(), point_ref.clone(), *point_type))
+            .collect();
+
+        // Find smooth curve constraints for this point
+        let constraint = {
+            let mut left_handle = None;
+            let mut right_handle = None;
+
+            // Find adjacent off-curve points
+            for (entity, _pos, p_ref, p_type) in &point_data {
+                if p_ref.glyph_name == point_ref.glyph_name
+                    && p_ref.contour_index == point_ref.contour_index
+                    && !p_type.is_on_curve
+                {
+                    // Check if this is the previous off-curve (left handle)
+                    if point_ref.point_index > 0
+                        && p_ref.point_index == point_ref.point_index - 1
+                    {
+                        left_handle = Some(*entity);
+                    }
+                    // Check if this is the next off-curve (right handle)
+                    else if p_ref.point_index == point_ref.point_index + 1 {
+                        right_handle = Some(*entity);
+                    }
+                }
+            }
+
+            if left_handle.is_some() || right_handle.is_some() {
+                Some(SmoothCurveConstraint {
+                    smooth_point: smooth_entity,
+                    smooth_point_ref: point_ref.clone(),
+                    left_handle,
+                    right_handle,
+                })
+            } else {
+                None
+            }
+        };
+
+        if let Some(constraint) = constraint {
+            // Get current smooth point position
+            let smooth_pos = point_data.iter()
+                .find(|(entity, _, _, _)| *entity == smooth_entity)
+                .map(|(_, pos, _, _)| *pos);
+
+            let smooth_pos = if let Some(pos) = smooth_pos {
+                pos
+            } else {
+                continue;
+            };
+
+            // If we have both handles, align them symmetrically around the smooth point
+            if let (Some(left_handle), Some(right_handle)) = (constraint.left_handle, constraint.right_handle) {
+                // Get handle positions from our collected data
+                let left_pos = point_data.iter()
+                    .find(|(entity, _, _, _)| *entity == left_handle)
+                    .map(|(_, pos, _, _)| *pos);
+                let right_pos = point_data.iter()
+                    .find(|(entity, _, _, _)| *entity == right_handle)
+                    .map(|(_, pos, _, _)| *pos);
+
+                if let (Some(left_pos), Some(right_pos)) = (left_pos, right_pos) {
+                    // Use the handle that's further from the smooth point as the reference
+                    let left_dist = smooth_pos.distance(left_pos);
+                    let right_dist = smooth_pos.distance(right_pos);
+
+                    let (target_handle, reference_pos) = if left_dist >= right_dist {
+                        (right_handle, left_pos)
+                    } else {
+                        (left_handle, right_pos)
+                    };
+
+                    // Calculate the collinear position for the target handle
+                    let reference_vector = reference_pos - smooth_pos;
+                    let target_vector = -reference_vector;
+                    let target_position = smooth_pos + target_vector;
+
+                    // Update the target handle position
+                    if let Ok((_, mut target_transform, _, _)) = all_points_query.get_mut(target_handle) {
+                        target_transform.translation.x = target_position.x;
+                        target_transform.translation.y = target_position.y;
+
+                        debug!(
+                            "Applied auto-smooth constraint: reference handle at ({:.1}, {:.1}), moved target handle to ({:.1}, {:.1})",
+                            reference_pos.x, reference_pos.y,
+                            target_position.x, target_position.y
+                        );
+                    }
+                }
+            }
+            // If we only have one handle, that's fine - it defines the tangent direction
+            else if constraint.left_handle.is_some() || constraint.right_handle.is_some() {
+                debug!("Smooth point has only one handle - no alignment needed");
+            }
+        } else {
+            debug!("No handles found for smooth point - no constraints to apply");
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

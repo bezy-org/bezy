@@ -409,6 +409,7 @@ pub fn process_selection_input_events(
 }
 
 /// Find the closest clicked point entity within selection tolerance
+/// Returns deterministic results when multiple entities are at the same location
 pub fn find_clicked_point(
     position: &DPoint,
     selectable_query: &Query<(Entity, &GlobalTransform, Option<&GlyphPointReference>, Option<&PointType>), With<Selectable>>,
@@ -416,33 +417,42 @@ pub fn find_clicked_point(
     sort_point_entities: &Query<&crate::editing::sort::manager::SortPointEntity>,
 ) -> Option<Entity> {
     let cursor_pos = position.to_raw();
-    let mut best_hit = None;
-    let mut min_dist_sq = SELECTION_MARGIN * SELECTION_MARGIN;
+    let mut candidates = Vec::new();
+    let selection_margin_sq = SELECTION_MARGIN * SELECTION_MARGIN;
 
-    // Find the closest selectable entity that belongs to the active sort
+    // Find all selectable entities within margin that belong to the active sort
     for (entity, transform, _glyph_ref, _point_type) in selectable_query.iter() {
         // Check if this entity belongs to the active sort
         if let Ok(sort_point_entity) = sort_point_entities.get(entity) {
-            // If we have a valid active sort, filter by it
             if active_sort_entity != Entity::PLACEHOLDER
                 && sort_point_entity.sort_entity != active_sort_entity
             {
-                continue; // Skip points that don't belong to the active sort
+                continue;
             }
         } else {
-            continue; // Skip entities that aren't sort points
+            continue;
         }
 
         let pos = transform.translation().truncate();
         let dist_sq = cursor_pos.distance_squared(pos);
 
-        if dist_sq < min_dist_sq {
-            min_dist_sq = dist_sq;
-            best_hit = Some(entity);
+        if dist_sq < selection_margin_sq {
+            candidates.push((entity, dist_sq));
         }
     }
 
-    best_hit
+    if candidates.is_empty() {
+        return None;
+    }
+
+    // Sort by distance first, then by entity ID for deterministic results
+    candidates.sort_by(|a, b| {
+        a.1.partial_cmp(&b.1)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| a.0.cmp(&b.0))
+    });
+
+    Some(candidates[0].0)
 }
 
 /// System to handle smooth point toggles on double-click
