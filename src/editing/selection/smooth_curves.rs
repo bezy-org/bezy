@@ -446,30 +446,56 @@ pub fn auto_apply_smooth_constraints(
                     .map(|(_, pos, _, _)| *pos);
 
                 if let (Some(left_pos), Some(right_pos)) = (left_pos, right_pos) {
-                    // Use the handle that's further from the smooth point as the reference
-                    let left_dist = smooth_pos.distance(left_pos);
-                    let right_dist = smooth_pos.distance(right_pos);
+                    // Check if handles are already collinear - if so, don't move anything
+                    let left_vector = left_pos - smooth_pos;
+                    let right_vector = right_pos - smooth_pos;
 
-                    let (target_handle, reference_pos) = if left_dist >= right_dist {
-                        (right_handle, left_pos)
-                    } else {
-                        (left_handle, right_pos)
-                    };
+                    // Check for collinearity using cross product (should be ~0 for collinear vectors)
+                    let cross_product = left_vector.x * right_vector.y - left_vector.y * right_vector.x;
+                    let collinearity_threshold = 0.1; // Small threshold for floating point precision
 
-                    // Calculate the collinear position for the target handle
-                    let reference_vector = reference_pos - smooth_pos;
-                    let target_vector = -reference_vector;
-                    let target_position = smooth_pos + target_vector;
+                    if cross_product.abs() < collinearity_threshold {
+                        debug!(
+                            "Handles already collinear (cross product: {:.6}), skipping auto-smooth adjustment",
+                            cross_product
+                        );
+                        continue;
+                    }
 
-                    // Update the target handle position
-                    if let Ok((_, mut target_transform, _, _)) = all_points_query.get_mut(target_handle) {
-                        target_transform.translation.x = target_position.x;
-                        target_transform.translation.y = target_position.y;
+                    debug!(
+                        "Handles not collinear (cross product: {:.6}), applying auto-smooth constraint",
+                        cross_product
+                    );
+
+                    // Calculate average direction and preserve both handle distances
+                    let left_vector = left_pos - smooth_pos;
+                    let right_vector = right_pos - smooth_pos;
+                    let left_dist = left_vector.length();
+                    let right_dist = right_vector.length();
+
+                    // Use the average direction of both handles
+                    let combined_vector = left_vector + right_vector;
+                    if combined_vector.length() > 0.001 {
+                        let avg_direction = combined_vector.normalize();
+
+                        // Position both handles along the averaged direction, preserving their distances
+                        let new_left_pos = smooth_pos + (avg_direction * left_dist);
+                        let new_right_pos = smooth_pos + (-avg_direction * right_dist);
+
+                        // Update both handles
+                        if let Ok((_, mut left_transform, _, _)) = all_points_query.get_mut(left_handle) {
+                            left_transform.translation.x = new_left_pos.x;
+                            left_transform.translation.y = new_left_pos.y;
+                        }
+
+                        if let Ok((_, mut right_transform, _, _)) = all_points_query.get_mut(right_handle) {
+                            right_transform.translation.x = new_right_pos.x;
+                            right_transform.translation.y = new_right_pos.y;
+                        }
 
                         debug!(
-                            "Applied auto-smooth constraint: reference handle at ({:.1}, {:.1}), moved target handle to ({:.1}, {:.1})",
-                            reference_pos.x, reference_pos.y,
-                            target_position.x, target_position.y
+                            "Applied auto-smooth constraint: aligned both handles preserving distances ({:.1}, {:.1})",
+                            left_dist, right_dist
                         );
                     }
                 }
@@ -601,13 +627,27 @@ pub fn universal_smooth_constraints(
                         // Determine which handle to adjust
                         let other_handle = if moved_is_left { right_handle } else { left_handle };
 
-                        if let Some((_, _, other_ref)) = other_handle {
-                            // Calculate collinear position for the opposite handle
-                            let handle_vector = moved_pos - smooth_pos;
-                            let opposite_vector = -handle_vector;
-                            let new_other_pos = smooth_pos + opposite_vector;
+                        if let Some((_, other_pos, other_ref)) = other_handle {
+                            // Calculate collinear position preserving the opposite handle's original distance
+                            let moved_vector = moved_pos - smooth_pos;
+                            let other_distance = smooth_pos.distance(other_pos);
 
-                            constraint_adjustments.push((other_ref.clone(), new_other_pos, *moved_entity));
+                            // Create a unit vector in the opposite direction of the moved handle
+                            let moved_length = moved_vector.length();
+                            if moved_length > 0.001 { // Avoid division by zero
+                                let moved_unit = moved_vector / moved_length;
+                                let opposite_unit = -moved_unit;
+
+                                // Position the opposite handle at its original distance but in the opposite direction
+                                let new_other_pos = smooth_pos + (opposite_unit * other_distance);
+
+                                info!(
+                                    "[SMOOTH UNIVERSAL] Constraint calculation: moved_dist={:.1}, other_dist={:.1}, preserving other distance",
+                                    moved_length, other_distance
+                                );
+
+                                constraint_adjustments.push((other_ref.clone(), new_other_pos, *moved_entity));
+                            }
                         }
                     }
                 }
