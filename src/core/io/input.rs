@@ -365,7 +365,7 @@ fn update_gamepad_state(_gamepad_state: &mut GamepadState) {
 }
 
 /// System to process input events and send them to consumers
-fn process_input_events(
+pub fn process_input_events(
     input_state: Res<InputState>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut input_events: EventWriter<InputEvent>,

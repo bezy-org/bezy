@@ -6,17 +6,21 @@ use bevy::prelude::*;
 
 pub mod components;
 pub mod coordinate_system;
+pub mod enhanced_point_component;
 pub mod entity_management;
 pub mod events;
 pub mod input;
 pub mod nudge;
+pub mod point_movement;
 pub mod systems;
 pub mod utils;
 
 pub use components::*;
+pub use enhanced_point_component::*;
 pub use entity_management::*;
 pub use events::{AppStateChanged, ClickWorldPosition, SELECTION_MARGIN};
 pub use input::*;
+pub use input::mouse::DoubleClickState;
 pub use nudge::*;
 pub use utils::{clear_selection_on_app_change, update_hover_state};
 
@@ -77,6 +81,9 @@ impl Plugin for SelectionPlugin {
             .init_resource::<SelectionState>()
             .init_resource::<DragSelectionState>()
             .init_resource::<DragPointState>()
+            .init_resource::<DoubleClickState>()
+            .init_resource::<input::SelectionInputEvents>()
+            .init_resource::<entity_management::EnhancedPointAttributes>()
             // TEMP FIX: Manually initialize SelectModeActive since it's not being created
             .insert_resource(crate::ui::edit_mode_toolbar::select::SelectModeActive(true))
             // Configure system sets for proper ordering
@@ -85,9 +92,8 @@ impl Plugin for SelectionPlugin {
                 (SelectionSystemSet::Input, SelectionSystemSet::Processing).chain(),
             )
             .configure_sets(PostUpdate, (SelectionSystemSet::Render,))
-            // Input systems - the process_selection_input_events system handles the actual selection logic
-            // It's called by the centralized input consumer system when in select mode
-            .add_systems(Update, input::process_selection_input_events)
+            // NOTE: Input handling moved to SelectionInputConsumer in input_consumer.rs
+            // to prevent event consumption conflicts
             .add_systems(Update, input::handle_point_drag)
             // Processing systems
             .add_systems(
@@ -95,7 +101,11 @@ impl Plugin for SelectionPlugin {
                 (
                     // TEMP DISABLED: Causing performance lag during text input
                     // sync_selected_components,
+                    // DISABLED: Uses old AppState instead of FontIRAppState
                     // entity_management::update_glyph_data_from_selection,
+                    entity_management::sync_enhanced_point_attributes,
+                    crate::editing::smooth_curves::auto_apply_smooth_constraints,
+                    crate::editing::smooth_curves::universal_smooth_constraints,
                     clear_selection_on_app_change,
                     entity_management::cleanup_click_resource,
                 )

@@ -1,5 +1,7 @@
 use crate::core::settings::BezySettings;
-use crate::editing::selection::components::Selected;
+use crate::editing::selection::components::{GlyphPointReference, PointType, Selected};
+use crate::editing::selection::point_movement::{find_connected_offcurve_points_nudge, sync_to_font_data, PointMovement};
+use crate::editing::selection::enhanced_point_component::EnhancedPointType;
 use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::ActiveSortState;
 use bevy::log::{debug, info, warn};
@@ -26,12 +28,22 @@ pub fn handle_nudge_input(
             (
                 Entity,
                 &mut Transform,
-                &crate::editing::selection::components::GlyphPointReference,
-                Option<&crate::editing::sort::manager::SortPointEntity>,
+                &GlyphPointReference,
+                Option<&SortPointEntity>,
+                Option<&PointType>,
             ),
             (With<Selected>, With<SortPointEntity>),
         >,
         Query<(&crate::editing::sort::Sort, &Transform)>,
+        Query<
+            (
+                Entity,
+                &mut Transform,
+                &GlyphPointReference,
+                &PointType,
+            ),
+            (With<SortPointEntity>, Without<Selected>),
+        >,
     )>,
     _app_state: Option<ResMut<crate::core::state::AppState>>,
     _fontir_app_state: Option<ResMut<crate::core::state::FontIRAppState>>,
@@ -113,11 +125,18 @@ pub fn handle_nudge_input(
             // ATOMIC UPDATE: Update FontIR working copies FIRST, then update Transforms
             // This ensures perfect sync between outline and points rendering
 
-            // Collect all point updates first
-            let mut point_updates = Vec::new();
+            // Collect all point movements using shared logic
+            let mut all_movements = Vec::new();
 
-            for (entity, transform, point_ref, sort_point_entity_opt) in queries.p0().iter() {
-                let old_pos = transform.translation.truncate();
+            // Collect selected point data to avoid borrowing conflicts
+            let selected_point_data: Vec<_> = queries.p0().iter()
+                .map(|(entity, transform, point_ref, sort_point_entity_opt, point_type)| {
+                    (entity, transform.translation.truncate(), point_ref.clone(), sort_point_entity_opt.is_some(), point_type.copied())
+                })
+                .collect();
+
+            // Process selected points and collect their movements
+            for (entity, old_pos, point_ref, has_sort_entity, point_type) in selected_point_data {
                 let new_pos = old_pos + nudge_direction;
 
                 debug!(
@@ -125,28 +144,54 @@ pub fn handle_nudge_input(
                     entity, old_pos.x, old_pos.y, new_pos.x, new_pos.y
                 );
 
-                // Collect point data for both FontIR and Transform updates
-                if let Some(sort_point_entity) = sort_point_entity_opt {
-                    point_updates.push((
+                // Add selected point movement
+                if has_sort_entity {
+                    all_movements.push(PointMovement {
                         entity,
-                        point_ref.clone(),
-                        sort_point_entity.sort_entity,
-                        new_pos,
-                    ));
+                        point_ref: point_ref.clone(),
+                        new_position: new_pos,
+                        is_connected_offcurve: false,
+                    });
+
+                    // Find connected off-curve points if this is an on-curve point
+                    if let Some(pt) = point_type {
+                        if pt.is_on_curve {
+                            let connected_movements = find_connected_offcurve_points_nudge(
+                                &point_ref, &pt, nudge_direction, &queries.p2()
+                            );
+                            all_movements.extend(connected_movements);
+                        }
+                    }
                 }
             }
 
             // STEP 1: Update Transform components FIRST (for immediate point rendering)
-            for (entity, _point_ref, _sort_entity, new_pos) in &point_updates {
-                if let Ok((_, mut transform, _, _)) = queries.p0().get_mut(*entity) {
-                    transform.translation.x = new_pos.x;
-                    transform.translation.y = new_pos.y;
-                    debug!(
-                        "[NUDGE] Transform: Updated position for {:?} to ({:.1}, {:.1})",
-                        entity, new_pos.x, new_pos.y
-                    );
+            for movement in &all_movements {
+                if movement.is_connected_offcurve {
+                    // Update connected off-curve points
+                    if let Ok((_, mut transform, _, _)) = queries.p2().get_mut(movement.entity) {
+                        transform.translation.x = movement.new_position.x;
+                        transform.translation.y = movement.new_position.y;
+                        debug!(
+                            "[NUDGE] Transform: Updated connected off-curve position for {:?} to ({:.1}, {:.1})",
+                            movement.entity, movement.new_position.x, movement.new_position.y
+                        );
+                    }
+                } else {
+                    // Update selected points
+                    if let Ok((_, mut transform, _, _, _)) = queries.p0().get_mut(movement.entity) {
+                        transform.translation.x = movement.new_position.x;
+                        transform.translation.y = movement.new_position.y;
+                        debug!(
+                            "[NUDGE] Transform: Updated position for {:?} to ({:.1}, {:.1})",
+                            movement.entity, movement.new_position.x, movement.new_position.y
+                        );
+                    }
                 }
             }
+
+            // Smooth constraints will be handled uniformly by update_glyph_data_from_selection
+            // when it detects the Transform changes from nudging
 
             // STEP 2: Skip FontIR working copy updates during active nudging
             // Working copy will be updated when nudging completes to avoid timing issues
@@ -181,15 +226,24 @@ pub fn reset_nudge_state(mut nudge_state: ResMut<NudgeState>, time: Res<Time>) {
 #[allow(clippy::type_complexity)]
 pub fn sync_nudged_points_on_completion(
     nudge_state: Res<NudgeState>,
-    query: Query<
+    selected_query: Query<
         (
             &Transform,
-            &crate::editing::selection::components::GlyphPointReference,
+            &GlyphPointReference,
             Option<&SortPointEntity>,
+            Option<&PointType>,
         ),
         With<Selected>,
     >,
-    sort_query: Query<(&crate::editing::sort::Sort, &Transform)>,
+    all_points_query: Query<
+        (
+            &Transform,
+            &GlyphPointReference,
+            &PointType,
+        ),
+        (With<SortPointEntity>, Without<Selected>),
+    >,
+    _sort_query: Query<(&crate::editing::sort::Sort, &Transform)>,
     mut app_state: Option<ResMut<crate::core::state::AppState>>,
     mut fontir_app_state: Option<ResMut<crate::core::state::FontIRAppState>>,
     mut last_nudge_state: Local<bool>,
@@ -198,94 +252,56 @@ pub fn sync_nudged_points_on_completion(
     if *last_nudge_state && !nudge_state.is_nudging {
         info!("[NUDGE] Nudging completed, syncing points to font data");
 
-        let mut sync_count = 0;
+        let mut all_sync_movements = Vec::new();
 
-        for (transform, point_ref, sort_point_entity_opt) in query.iter() {
-            // Calculate relative position from sort entity
-            let (relative_x, relative_y) = if let Some(sort_point_entity) = sort_point_entity_opt {
-                if let Ok((_sort, sort_transform)) = sort_query.get(sort_point_entity.sort_entity) {
-                    let world_pos = transform.translation.truncate();
-                    let sort_pos = sort_transform.translation.truncate();
-                    let rel = world_pos - sort_pos;
-                    (rel.x as f64, rel.y as f64)
-                } else {
-                    (
-                        transform.translation.x as f64,
-                        transform.translation.y as f64,
-                    )
-                }
-            } else {
-                (
-                    transform.translation.x as f64,
-                    transform.translation.y as f64,
-                )
-            };
+        // Collect selected points and their connected off-curves for syncing
+        for (transform, point_ref, _sort_point_entity_opt, point_type) in selected_query.iter() {
+            let current_pos = transform.translation.truncate();
 
-            // Try FontIR first, then fallback to UFO AppState (same pattern as drag system)
-            let mut handled = false;
+            // Add selected point
+            all_sync_movements.push(PointMovement {
+                entity: Entity::PLACEHOLDER, // We don't need entity for syncing
+                point_ref: point_ref.clone(),
+                new_position: current_pos,
+                is_connected_offcurve: false,
+            });
 
-            if let Some(ref mut fontir_state) = fontir_app_state {
-                match fontir_state.update_point_position(
-                    &point_ref.glyph_name,
-                    point_ref.contour_index,
-                    point_ref.point_index,
-                    relative_x,
-                    relative_y,
-                ) {
-                    Ok(was_updated) => {
-                        if was_updated {
-                            sync_count += 1;
-                            handled = true;
-                            debug!(
-                                "[NUDGE] FontIR: Updated point {} in glyph '{}'",
-                                point_ref.point_index, point_ref.glyph_name
-                            );
+            // Find connected off-curve points if this is an on-curve point
+            if let Some(pt) = point_type {
+                if pt.is_on_curve {
+                    for (other_transform, other_ref, other_type) in all_points_query.iter() {
+                        if other_ref.glyph_name == point_ref.glyph_name
+                            && other_ref.contour_index == point_ref.contour_index
+                            && !other_type.is_on_curve
+                        {
+                            // Check if this off-curve is adjacent (before or after)
+                            let is_next = other_ref.point_index == point_ref.point_index + 1;
+                            let is_prev = point_ref.point_index > 0
+                                && other_ref.point_index == point_ref.point_index - 1;
+
+                            if is_next || is_prev {
+                                let other_pos = other_transform.translation.truncate();
+                                all_sync_movements.push(PointMovement {
+                                    entity: Entity::PLACEHOLDER, // We don't need entity for syncing
+                                    point_ref: other_ref.clone(),
+                                    new_position: other_pos,
+                                    is_connected_offcurve: true,
+                                });
+                            }
                         }
                     }
-                    Err(e) => {
-                        warn!("[NUDGE] Failed to update FontIR point: {}", e);
-                    }
                 }
-            }
-
-            // Fallback to UFO AppState if FontIR didn't handle it
-            if !handled && app_state.is_some() {
-                if let Some(ref mut state) = app_state {
-                    let app_state = state.bypass_change_detection();
-                    let updated = app_state.set_point_position(
-                        &point_ref.glyph_name,
-                        point_ref.contour_index,
-                        point_ref.point_index,
-                        relative_x,
-                        relative_y,
-                    );
-
-                    if updated {
-                        sync_count += 1;
-                        handled = true;
-                        debug!(
-                            "[NUDGE] UFO: Synced point: glyph='{}' contour={} point={} pos=({:.1}, {:.1})",
-                            point_ref.glyph_name,
-                            point_ref.contour_index,
-                            point_ref.point_index,
-                            relative_x,
-                            relative_y
-                        );
-                    }
-                }
-            }
-
-            // If neither FontIR nor UFO handled it, just track the Transform update
-            if !handled {
-                sync_count += 1;
-                debug!("[NUDGE] Point update handled via Transform only (no source data update)");
             }
         }
 
-        if sync_count > 0 {
+        // Use shared utility to sync all movements
+        let result = sync_to_font_data(&all_sync_movements, &mut fontir_app_state, &mut app_state);
+        let total_synced = result.points_moved + result.connected_offcurves_moved;
+
+        if total_synced > 0 {
             info!(
-                "[NUDGE] Successfully synced {} points to font data",
-                sync_count
+                "[NUDGE] Successfully synced {} points ({} selected, {} connected off-curves) to font data",
+                total_synced, result.points_moved, result.connected_offcurves_moved
             );
         }
     }
