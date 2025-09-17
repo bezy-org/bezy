@@ -541,10 +541,12 @@ pub fn universal_smooth_constraints(
     // Track processed entities to avoid infinite loops
     mut processed: Local<std::collections::HashSet<Entity>>,
 ) {
-    // First, collect changed points data
+    // Clear processed set each frame to allow continuous constraint updates during drag
+    processed.clear();
+
+    // First, collect changed points data (no processed filtering for now)
     let changed_data: Vec<_> = param_set.p0()
         .iter()
-        .filter(|(entity, _, _, _)| !processed.contains(entity))
         .map(|(entity, transform, point_ref, point_type)| {
             (entity, transform.translation.truncate(), point_ref.clone(), *point_type)
         })
@@ -555,11 +557,6 @@ pub fn universal_smooth_constraints(
     }
 
     info!("[SMOOTH UNIVERSAL] System running - {} changed points total", changed_data.len());
-
-    // Mark all as processed first to prevent infinite loops
-    for (entity, _, _, _) in &changed_data {
-        processed.insert(*entity);
-    }
 
     // Build point data for constraint analysis
     let point_data: Vec<_> = param_set.p1()
@@ -619,12 +616,12 @@ pub fn universal_smooth_constraints(
     }
 
     // Apply all constraint adjustments in a separate phase using mutable query
-    for (other_ref, new_other_pos, moved_entity) in constraint_adjustments {
+    for (other_ref, new_other_pos, _moved_entity) in constraint_adjustments {
         // Find and update the other handle using p2 (mutable query)
         for (_, mut other_transform, other_point_ref, _, _) in param_set.p2().iter_mut() {
             if other_point_ref == &other_ref {
                 other_transform.translation = new_other_pos.extend(0.0);
-                processed.insert(moved_entity); // Mark as processed
+                // DON'T mark constraint-adjusted points as processed - they should be able to trigger constraints again
 
                 info!(
                     "[SMOOTH UNIVERSAL] Applied constraint: moved point {} to ({:.1}, {:.1})",
@@ -635,8 +632,5 @@ pub fn universal_smooth_constraints(
         }
     }
 
-    // Clear processed set every few frames to prevent it from growing indefinitely
-    if processed.len() > 100 {
-        processed.clear();
-    }
+    // Processed set is cleared each frame to allow continuous updates
 }
