@@ -62,7 +62,7 @@ pub struct PointType {
 }
 
 /// Component that links an entity to a specific point in a glyph outline
-#[derive(Component, Debug, Clone, Reflect)]
+#[derive(Component, Debug, Clone, PartialEq, Reflect)]
 #[reflect(Component)]
 pub struct GlyphPointReference {
     /// Name of the glyph this point belongs to

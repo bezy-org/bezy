@@ -51,6 +51,8 @@ pub fn handle_point_drag(
         return;
     }
 
+    debug!("DRAG HANDLER: handle_point_drag called - drag is active");
+
     let cursor_pos = pointer_info.design.to_raw();
     drag_point_state.current_position = Some(cursor_pos);
 
@@ -147,6 +149,7 @@ pub fn handle_point_drag(
         }
 
         // Handle smooth curve constraints for any off-curve points that were moved
+        debug!("[SMOOTH DRAG] Processing {} point movements", point_movements.len());
         let mut smooth_adjustments = Vec::new();
 
         // Get the current glyph name from any point reference
@@ -161,38 +164,26 @@ pub fn handle_point_drag(
                 })
                 .collect();
 
-            // Find all smooth curve constraints manually
-            for (_entity, enhanced, point_ref) in &enhanced_point_data {
+            // Find all smooth curve constraints using proper curve segment analysis
+            for (_smooth_entity, enhanced, point_ref) in &enhanced_point_data {
                 if point_ref.glyph_name == *glyph_name
                     && enhanced.is_on_curve
                     && enhanced.is_smooth()
                 {
-                    // Find handles for this smooth point
-                    let mut left_handle = None;
-                    let mut right_handle = None;
-
-                    for (other_entity, _pos, other_ref, other_type) in &all_point_data {
-                        if other_ref.glyph_name == point_ref.glyph_name
-                            && other_ref.contour_index == point_ref.contour_index
-                            && !other_type.is_on_curve
-                        {
-                            // Check if this is the previous off-curve (left handle)
-                            if point_ref.point_index > 0
-                                && other_ref.point_index == point_ref.point_index - 1
-                            {
-                                left_handle = Some(*other_entity);
-                            }
-                            // Check if this is the next off-curve (right handle)
-                            else if other_ref.point_index == point_ref.point_index + 1 {
-                                right_handle = Some(*other_entity);
-                            }
-                        }
-                    }
+                    // Use simplified neighbor detection to find handles
+                    let (left_handle, right_handle) =
+                        crate::editing::selection::smooth_curves::find_direct_neighbor_handles(
+                            point_ref,
+                            &all_point_data,
+                        );
 
                     // Check if any moved off-curve points are part of this constraint
                     for movement in &point_movements {
                         if movement.is_connected_offcurve {
-                            if left_handle == Some(movement.entity) || right_handle == Some(movement.entity) {
+                            let moved_is_left = left_handle.as_ref().map_or(false, |(entity, _, _)| *entity == movement.entity);
+                            let moved_is_right = right_handle.as_ref().map_or(false, |(entity, _, _)| *entity == movement.entity);
+
+                            if moved_is_left || moved_is_right {
                                 // Calculate opposite handle position
                                 let smooth_point_pos = enhanced.coords();
                                 let smooth_point_vec2 = Vec2::new(smooth_point_pos.0 as f32, smooth_point_pos.1 as f32);
@@ -201,13 +192,13 @@ pub fn handle_point_drag(
                                 let opposite_position = smooth_point_vec2 + opposite_vector;
 
                                 // Apply the constraint to the opposite handle
-                                if left_handle == Some(movement.entity) && right_handle.is_some() {
+                                if moved_is_left && right_handle.is_some() {
                                     // Left handle moved, adjust right handle
-                                    smooth_adjustments.push((right_handle.unwrap(), opposite_position));
+                                    smooth_adjustments.push((right_handle.as_ref().unwrap().0, opposite_position));
                                     debug!("Smooth constraint: left handle moved, adjusting right handle to ({:.1}, {:.1})", opposite_position.x, opposite_position.y);
-                                } else if right_handle == Some(movement.entity) && left_handle.is_some() {
+                                } else if moved_is_right && left_handle.is_some() {
                                     // Right handle moved, adjust left handle
-                                    smooth_adjustments.push((left_handle.unwrap(), opposite_position));
+                                    smooth_adjustments.push((left_handle.as_ref().unwrap().0, opposite_position));
                                     debug!("Smooth constraint: right handle moved, adjusting left handle to ({:.1}, {:.1})", opposite_position.x, opposite_position.y);
                                 }
                             }
@@ -253,4 +244,77 @@ pub fn handle_point_drag(
             });
         }
     }
+}
+
+/// Helper function to find curve handles for a smooth point during drag operations
+/// Returns (left_handle, right_handle) as Option<Entity> for each direction
+fn find_curve_handles_for_smooth_point_drag(
+    smooth_entity: Entity,
+    smooth_point_ref: &GlyphPointReference,
+    point_data: &[(Entity, Vec2, GlyphPointReference, crate::editing::selection::components::PointType)],
+) -> (Option<Entity>, Option<Entity>) {
+    // Get all points in the same contour, sorted by point index
+    let mut contour_points: Vec<_> = point_data.iter()
+        .filter(|(_, _, p_ref, _)| {
+            p_ref.glyph_name == smooth_point_ref.glyph_name
+                && p_ref.contour_index == smooth_point_ref.contour_index
+        })
+        .collect();
+
+    // Sort by point index to understand the contour order
+    contour_points.sort_by_key(|(_, _, p_ref, _)| p_ref.point_index);
+
+    // Find the position of our smooth point in the sorted list
+    let smooth_position = contour_points.iter()
+        .position(|(entity, _, _, _)| *entity == smooth_entity);
+
+    let smooth_idx = if let Some(pos) = smooth_position {
+        pos
+    } else {
+        debug!("Could not find smooth point in contour");
+        return (None, None);
+    };
+
+    let mut left_handle = None;
+    let mut right_handle = None;
+
+    // Look backwards from smooth point to find the previous on-curve point and any handles
+    let mut idx = if smooth_idx == 0 { contour_points.len() - 1 } else { smooth_idx - 1 };
+    while idx != smooth_idx {
+        let (entity, _, _, point_type) = contour_points[idx];
+
+        if point_type.is_on_curve {
+            // Found the previous on-curve point, stop looking
+            break;
+        } else {
+            // This is an off-curve point (handle) between previous on-curve and our smooth point
+            left_handle = Some(*entity);
+            debug!(
+                "Found left handle {:?} for smooth point {:?} (moving backwards)",
+                entity, smooth_entity
+            );
+            break; // We want the handle closest to our smooth point
+        }
+    }
+
+    // Look forwards from smooth point to find the next on-curve point and any handles
+    idx = (smooth_idx + 1) % contour_points.len();
+    while idx != smooth_idx {
+        let (entity, _, _, point_type) = contour_points[idx];
+
+        if point_type.is_on_curve {
+            // Found the next on-curve point, stop looking
+            break;
+        } else {
+            // This is an off-curve point (handle) between our smooth point and next on-curve
+            right_handle = Some(*entity);
+            debug!(
+                "Found right handle {:?} for smooth point {:?} (moving forwards)",
+                entity, smooth_entity
+            );
+            break; // We want the handle closest to our smooth point
+        }
+    }
+
+    (left_handle, right_handle)
 }
