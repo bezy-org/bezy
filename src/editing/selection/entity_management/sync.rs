@@ -4,7 +4,7 @@ use crate::core::state::AppState;
 use crate::editing::selection::components::{GlyphPointReference, Selected, PointType};
 use crate::editing::selection::enhanced_point_component::EnhancedPointType;
 use crate::editing::selection::nudge::NudgeState;
-use crate::editing::selection::smooth_curves::find_direct_neighbor_handles;
+use crate::editing::smooth_curves::find_direct_neighbor_handles;
 use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::Sort;
 use bevy::ecs::system::ParamSet;

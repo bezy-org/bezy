@@ -10,6 +10,7 @@
 
 pub mod edit_session;
 pub mod selection;
+pub mod smooth_curves;
 pub mod sort;
 pub mod system_sets;
 pub mod text_editor_plugin;

@@ -6,7 +6,7 @@ use crate::core::state::{AppState, FontIRAppState};
 use crate::editing::selection::components::{GlyphPointReference, PointType, Selected};
 use crate::editing::selection::nudge::{EditEvent, PointCoordinates};
 use crate::editing::selection::point_movement::{find_connected_offcurve_points_drag, sync_to_font_data, PointMovement};
-use crate::editing::selection::smooth_curves::{find_all_smooth_constraints, apply_smooth_curve_constraints, update_smooth_constraint_transforms};
+use crate::editing::smooth_curves::{find_all_smooth_constraints, apply_smooth_curve_constraints, update_smooth_constraint_transforms};
 use crate::editing::selection::enhanced_point_component::EnhancedPointType;
 use crate::editing::selection::DragPointState;
 use bevy::input::ButtonInput;
@@ -172,7 +172,7 @@ pub fn handle_point_drag(
                 {
                     // Use simplified neighbor detection to find handles
                     let (left_handle, right_handle) =
-                        crate::editing::selection::smooth_curves::find_direct_neighbor_handles(
+                        crate::editing::smooth_curves::find_direct_neighbor_handles(
                             point_ref,
                             &all_point_data,
                         );

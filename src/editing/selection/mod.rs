@@ -12,7 +12,6 @@ pub mod events;
 pub mod input;
 pub mod nudge;
 pub mod point_movement;
-pub mod smooth_curves;
 pub mod systems;
 pub mod utils;
 
@@ -105,8 +104,8 @@ impl Plugin for SelectionPlugin {
                     // DISABLED: Uses old AppState instead of FontIRAppState
                     // entity_management::update_glyph_data_from_selection,
                     entity_management::sync_enhanced_point_attributes,
-                    smooth_curves::auto_apply_smooth_constraints,
-                    smooth_curves::universal_smooth_constraints,
+                    crate::editing::smooth_curves::auto_apply_smooth_constraints,
+                    crate::editing::smooth_curves::universal_smooth_constraints,
                     clear_selection_on_app_change,
                     entity_management::cleanup_click_resource,
                 )
