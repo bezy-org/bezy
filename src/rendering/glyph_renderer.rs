@@ -731,10 +731,10 @@ fn render_glyph_points(
 
         // Create the three-layer point shape
         // On-curve points are square UNLESS they are smooth (smooth points are always circles)
-        if point_type.is_on_curve && USE_SQUARE_FOR_ON_CURVE && !is_smooth {
+        if point_type.is_on_curve && theme.theme().use_square_for_on_curve() && !is_smooth {
             // On-curve points: square with three layers
             let base_size =
-                ON_CURVE_POINT_RADIUS * ON_CURVE_SQUARE_ADJUSTMENT * 2.0 * root_size_multiplier;
+                theme.theme().on_curve_point_radius() * theme.theme().on_curve_square_adjustment() * 2.0 * root_size_multiplier;
             let size = camera_scale.adjusted_point_size(base_size);
 
             // Layer 1: Base shape (full width) - primary color
@@ -788,7 +788,7 @@ fn render_glyph_points(
 
             // Layer 3: Small center shape - primary color (only for non-selected points)
             if !*is_selected {
-                let center_size = size * ON_CURVE_INNER_CIRCLE_RATIO;
+                let center_size = size * theme.theme().on_curve_inner_circle_ratio();
                 let center_entity = commands
                     .spawn((
                         GlyphRenderElement {
@@ -815,9 +815,9 @@ fn render_glyph_points(
         } else {
             // Off-curve points and circular on-curve points: circle with three layers
             let base_radius = if point_type.is_on_curve {
-                ON_CURVE_POINT_RADIUS * root_size_multiplier
+                theme.theme().on_curve_point_radius() * root_size_multiplier
             } else {
-                OFF_CURVE_POINT_RADIUS * root_size_multiplier
+                theme.theme().off_curve_point_radius() * root_size_multiplier
             };
             let radius = camera_scale.adjusted_point_size(base_radius);
 
@@ -868,9 +868,9 @@ fn render_glyph_points(
             if !*is_selected {
                 let center_radius = radius
                     * if point_type.is_on_curve {
-                        ON_CURVE_INNER_CIRCLE_RATIO
+                        theme.theme().on_curve_inner_circle_ratio()
                     } else {
-                        OFF_CURVE_INNER_CIRCLE_RATIO
+                        theme.theme().off_curve_inner_circle_ratio()
                     };
                 let center_entity = commands
                     .spawn((
@@ -897,9 +897,9 @@ fn render_glyph_points(
         // Add crosshairs for selected points using two-color system
         if *is_selected {
             let base_line_size = if point_type.is_on_curve {
-                ON_CURVE_POINT_RADIUS
+                theme.theme().on_curve_point_radius()
             } else {
-                OFF_CURVE_POINT_RADIUS
+                theme.theme().off_curve_point_radius()
             };
             let line_size = camera_scale.adjusted_point_size(base_line_size);
             let line_width = camera_scale.adjusted_line_width();

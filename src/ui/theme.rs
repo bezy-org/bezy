@@ -8,4 +8,3 @@
 
 // Re-export the theme system and all organized constants
 pub use crate::ui::theme_system::*;
-pub use crate::ui::themes::*;

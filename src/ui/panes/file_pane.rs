@@ -232,7 +232,7 @@ pub fn spawn_file_pane(
                         },
                         Text::new("DS:"),
                         TextFont {
-                            font: _asset_server.load_font_with_fallback(MONO_FONT_PATH, &_embedded_fonts),
+                            font: _asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &_embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -242,7 +242,7 @@ pub fn spawn_file_pane(
                     row.spawn((
                         Text::new("Loading..."),
                         TextFont {
-                            font: _asset_server.load_font_with_fallback(MONO_FONT_PATH, &_embedded_fonts),
+                            font: _asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &_embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -268,7 +268,7 @@ pub fn spawn_file_pane(
                         },
                         Text::new("UFO:"),
                         TextFont {
-                            font: _asset_server.load_font_with_fallback(MONO_FONT_PATH, &_embedded_fonts),
+                            font: _asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &_embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -278,7 +278,7 @@ pub fn spawn_file_pane(
                     row.spawn((
                         Text::new("Loading..."),
                         TextFont {
-                            font: _asset_server.load_font_with_fallback(MONO_FONT_PATH, &_embedded_fonts),
+                            font: _asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &_embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -308,7 +308,7 @@ pub fn spawn_file_pane(
                         },
                         Text::new("Saved:"),
                         TextFont {
-                            font: _asset_server.load_font_with_fallback(MONO_FONT_PATH, &_embedded_fonts),
+                            font: _asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &_embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -318,7 +318,7 @@ pub fn spawn_file_pane(
                     row.spawn((
                         Text::new(""),
                         TextFont {
-                            font: _asset_server.load_font_with_fallback(MONO_FONT_PATH, &_embedded_fonts),
+                            font: _asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &_embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -347,7 +347,7 @@ pub fn spawn_file_pane(
                         },
                         Text::new("Exported:"),
                         TextFont {
-                            font: _asset_server.load_font_with_fallback(MONO_FONT_PATH, &_embedded_fonts),
+                            font: _asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &_embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -357,7 +357,7 @@ pub fn spawn_file_pane(
                     row.spawn((
                         Text::new(""),
                         TextFont {
-                            font: _asset_server.load_font_with_fallback(MONO_FONT_PATH, &_embedded_fonts),
+                            font: _asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &_embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },

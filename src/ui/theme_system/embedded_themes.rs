@@ -16,8 +16,12 @@ pub fn get_embedded_themes() -> HashMap<String, &'static str> {
 }
 
 pub fn get_user_themes_dir() -> PathBuf {
-    let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
-    home.join(".bezy").join("themes")
+    let config_dir = dirs::config_dir().unwrap_or_else(|| {
+        dirs::home_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join(".config")
+    });
+    config_dir.join("bezy").join("themes")
 }
 
 pub fn user_themes_dir_exists() -> bool {

@@ -8,20 +8,18 @@
 //! ## Creating a Custom Theme - Super Easy! 🎨
 //!
 //! To create a custom theme:
-//! 1. Create a new `.rs` file in `src/ui/themes/` (e.g., `ocean.rs`)
-//! 2. Copy the template below and customize colors
-//! 3. Add `pub mod ocean;` to this file
-//! 4. Your theme is automatically available!
+//! 1. Create a new `.json` file in this directory (e.g., `ocean.json`)
+//! 2. Copy an existing theme JSON and customize the colors
+//! 3. Your theme is automatically available!
+//! 4. Enjoy hot reloading - changes appear instantly!
 //!
-//! ```rust
-//! use bevy::prelude::*;
-//! use crate::ui::theme_system::BezyTheme;
-//!
-//! pub struct OceanTheme;
-//! impl BezyTheme for OceanTheme {
-//!     fn name(&self) -> &'static str { "Ocean" }
-//!     fn background_color(&self) -> Color { Color::srgb(0.05, 0.15, 0.25) }
-//!     // ... customize other colors
+//! Example JSON structure:
+//! ```json
+//! {
+//!   "name": "Ocean",
+//!   "background": [0.05, 0.15, 0.25],
+//!   "normal_text": [0.8, 0.9, 1.0],
+//!   // ... other color values
 //! }
 //! ```
 //!
@@ -35,11 +33,8 @@
 //! - **UI Components**: Buttons, toolbars, panels, and widgets
 //! - **Interaction**: Hover states, selection feedback, and tool previews
 
-// Import all theme implementations
-pub mod campfire;
-pub mod darkmode;
-pub mod lightmode;
-pub mod strawberry;
+// All themes are now JSON-based for easy editing and hot reloading
+// Theme files: darkmode.json, lightmode.json, campfire.json, strawberry.json
 
 // Re-export core theming infrastructure from theme_system
 pub use crate::ui::theme_system::{

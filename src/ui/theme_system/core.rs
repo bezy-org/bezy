@@ -12,7 +12,6 @@ use std::str::FromStr;
 use std::sync::OnceLock;
 
 use super::{embedded_themes, json_theme};
-use crate::ui::themes::{campfire, darkmode, lightmode, strawberry};
 
 // =================================================================
 // THEME REGISTRY - AUTOMATIC THEME DISCOVERY
@@ -33,9 +32,9 @@ impl ThemeRegistry {
         // Load themes from JSON files
         registry.load_json_themes();
 
-        // Fallback to built-in themes if no JSON themes found
+        // If no themes loaded, panic with helpful error message
         if registry.themes.is_empty() {
-            registry.load_builtin_themes();
+            panic!("No themes could be loaded! Check that JSON theme files are available.");
         }
 
         registry
@@ -87,21 +86,6 @@ impl ThemeRegistry {
         }
     }
 
-    /// Fallback to built-in Rust themes
-    fn load_builtin_themes(&mut self) {
-        warn!("No JSON themes found, using built-in themes");
-
-        self.themes
-            .insert("darkmode".to_string(), Box::new(darkmode::DarkModeTheme));
-        self.themes
-            .insert("lightmode".to_string(), Box::new(lightmode::LightModeTheme));
-        self.themes.insert(
-            "strawberry".to_string(),
-            Box::new(strawberry::StrawberryTheme),
-        );
-        self.themes
-            .insert("campfire".to_string(), Box::new(campfire::CampfireTheme));
-    }
 
     /// Get all available theme names
     pub fn get_theme_names(&self) -> Vec<String> {
@@ -240,7 +224,7 @@ pub trait BezyTheme: Send + Sync + 'static {
 
     /// Font file paths
     fn grotesk_font_path(&self) -> &'static str {
-        "fonts/bezy-grotesk-regular.ttf"
+        "fonts/BezyGrotesk-Regular.ttf"
     }
     fn mono_font_path(&self) -> &'static str {
         "fonts/HasubiMono-Regular.ttf"
@@ -650,7 +634,18 @@ impl CurrentTheme {
         // Try to load theme through the registry (which handles user dir and embedded themes)
         let theme = registry
             .create_theme(variant.name())
-            .unwrap_or_else(|| Box::new(darkmode::DarkModeTheme));
+            .unwrap_or_else(|| {
+                // Fallback to creating darkmode from embedded JSON
+                if let Some(content) = embedded_themes::get_embedded_themes().get("darkmode") {
+                    if let Ok(json_theme) = embedded_themes::load_theme_from_string(content) {
+                        Box::new(json_theme)
+                    } else {
+                        panic!("Failed to load fallback darkmode theme!")
+                    }
+                } else {
+                    panic!("No fallback theme available!")
+                }
+            });
 
         Self { variant, theme }
     }

@@ -56,9 +56,7 @@
 use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::ui::edit_mode_toolbar::*;
 use crate::ui::theme::{
-    BUTTON_ICON_SIZE, GROTESK_FONT_PATH, MONO_FONT_PATH, TOOLBAR_BORDER_WIDTH,
-    TOOLBAR_BUTTON_SIZE, TOOLBAR_CONTAINER_MARGIN, TOOLBAR_GRID_SPACING,
-    TOOLBAR_ITEM_SPACING, TOOLBAR_PADDING, WIDGET_TEXT_FONT_SIZE,
+    TOOLBAR_GRID_SPACING,
 };
 use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
 use bevy::prelude::*;
@@ -95,7 +93,7 @@ pub fn spawn_edit_mode_toolbar(
         ordered_tool_ids.len()
     );
     commands
-        .spawn(create_toolbar_container())
+        .spawn(create_toolbar_container(&theme))
         .with_children(|parent| {
             for tool_id in ordered_tool_ids {
                 if let Some(tool) = tool_registry.get_tool(tool_id) {
@@ -108,13 +106,13 @@ pub fn spawn_edit_mode_toolbar(
 }
 
 /// Creates the main toolbar container with proper positioning and styling
-fn create_toolbar_container() -> impl Bundle {
+fn create_toolbar_container(theme: &CurrentTheme) -> impl Bundle {
     Node {
         position_type: PositionType::Absolute,
-        top: Val::Px(TOOLBAR_CONTAINER_MARGIN),
-        left: Val::Px(TOOLBAR_CONTAINER_MARGIN),
+        top: Val::Px(theme.theme().toolbar_container_margin()),
+        left: Val::Px(theme.theme().toolbar_container_margin()),
         flex_direction: FlexDirection::Row,
-        padding: UiRect::all(Val::Px(TOOLBAR_PADDING)),
+        padding: UiRect::all(Val::Px(theme.theme().toolbar_padding())),
         margin: UiRect::all(Val::ZERO),
         row_gap: Val::ZERO,
         ..default()
@@ -154,7 +152,7 @@ fn create_button_entity(
             Button,
             EditModeToolbarButton,
             ToolButtonData { tool_id: tool.id() },
-            create_button_styling(),
+            create_button_styling(theme),
             BackgroundColor(theme.theme().normal_button_color()),
             BorderColor(theme.theme().normal_button_outline_color()),
             BorderRadius::all(Val::Px(theme.theme().toolbar_border_radius())),
@@ -167,13 +165,13 @@ fn create_button_entity(
 }
 
 /// Creates the button styling configuration
-fn create_button_styling() -> Node {
+fn create_button_styling(theme: &CurrentTheme) -> Node {
     Node {
-        width: Val::Px(TOOLBAR_BUTTON_SIZE),
-        height: Val::Px(TOOLBAR_BUTTON_SIZE),
+        width: Val::Px(theme.theme().toolbar_button_size()),
+        height: Val::Px(theme.theme().toolbar_button_size()),
         padding: UiRect::all(Val::ZERO),
         margin: UiRect::all(Val::ZERO),
-        border: UiRect::all(Val::Px(TOOLBAR_BORDER_WIDTH)),
+        border: UiRect::all(Val::Px(theme.theme().toolbar_border_width())),
         justify_content: JustifyContent::Center,
         align_items: AlignItems::Center,
         ..default()
@@ -208,8 +206,8 @@ pub fn create_button_icon_text(
         },
         Text::new(icon.to_string()),
         TextFont {
-            font: asset_server.load_font_with_fallback(GROTESK_FONT_PATH, embedded_fonts),
-            font_size: BUTTON_ICON_SIZE,
+            font: asset_server.load_font_with_fallback(theme.theme().grotesk_font_path(), embedded_fonts),
+            font_size: theme.theme().button_icon_size(),
             ..default()
         },
         TextColor(theme.theme().toolbar_icon_color()),
@@ -259,7 +257,7 @@ pub fn create_toolbar_button_with_hover_text<T: Bundle>(
                 .spawn((
                     Button,
                     additional_components,
-                    create_button_styling(),
+                    create_button_styling(theme),
                     BackgroundColor(theme.theme().normal_button_color()),
                     BorderColor(theme.theme().normal_button_outline_color()),
                     BorderRadius::all(Val::Px(theme.theme().toolbar_border_radius())),
@@ -553,7 +551,7 @@ pub fn update_hover_text_visibility(
 
     // Calculate vertical position based on submenu visibility
     // Use grid spacing for consistent layout - smaller gap for better visual connection
-    let base_offset = TOOLBAR_CONTAINER_MARGIN + TOOLBAR_BUTTON_SIZE + TOOLBAR_GRID_SPACING * 2.0;
+    let base_offset = theme.theme().toolbar_container_margin() + theme.theme().toolbar_button_size() + TOOLBAR_GRID_SPACING * 2.0;
 
     // Check if any submenu is visible
     let mut submenu_visible = false;
@@ -572,10 +570,10 @@ pub fn update_hover_text_visibility(
     // Calculate position: if submenu visible, position below submenu; otherwise below main toolbar
     let vertical_offset = if submenu_visible {
         // Position below submenu: container margin + main toolbar + spacing + submenu + smaller spacing
-        TOOLBAR_CONTAINER_MARGIN
-            + TOOLBAR_BUTTON_SIZE
+        theme.theme().toolbar_container_margin()
+            + theme.theme().toolbar_button_size()
             + TOOLBAR_GRID_SPACING * 2.0
-            + TOOLBAR_BUTTON_SIZE
+            + theme.theme().toolbar_button_size()
             + TOOLBAR_GRID_SPACING * 2.0
     } else {
         // Position below main toolbar with consistent spacing
@@ -616,15 +614,15 @@ pub fn update_hover_text_visibility(
             commands.spawn((
                 Text::new(display_text),
                 TextFont {
-                    font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
-                    font_size: WIDGET_TEXT_FONT_SIZE,
+                    font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
+                    font_size: theme.theme().widget_text_font_size(),
                     ..default()
                 },
                 TextColor(theme.theme().toolbar_icon_color()), // Light gray color to match unselected icons
                 Node {
                     position_type: PositionType::Absolute,
                     top: Val::Px(vertical_offset),
-                    left: Val::Px(TOOLBAR_CONTAINER_MARGIN + TOOLBAR_GRID_SPACING), // Align with button left edge
+                    left: Val::Px(theme.theme().toolbar_container_margin() + TOOLBAR_GRID_SPACING), // Align with button left edge
                     display: Display::Flex, // Show immediately
                     ..default()
                 },

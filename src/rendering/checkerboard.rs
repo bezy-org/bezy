@@ -15,7 +15,6 @@
 //! (not too small).
 
 use crate::rendering::cameras::DesignCamera;
-use crate::ui::theme::{WINDOW_HEIGHT, WINDOW_WIDTH};
 use crate::ui::themes::CurrentTheme;
 use bevy::prelude::*;
 use bevy::window::{PrimaryWindow, WindowResized};
@@ -293,7 +292,7 @@ pub fn update_checkerboard(
         Vec2::new(window.resolution.width(), window.resolution.height())
     } else {
         // Fallback to theme constants if window query fails
-        Vec2::new(WINDOW_WIDTH, WINDOW_HEIGHT)
+        Vec2::new(theme.theme().window_width(), theme.theme().window_height())
     };
 
     // Check if window size changed (e.g., fullscreen toggle)

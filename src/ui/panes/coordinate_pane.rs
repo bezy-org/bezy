@@ -125,8 +125,8 @@ pub fn spawn_coordinate_pane(
     theme: Res<CurrentTheme>,
 ) {
     let position = UiRect {
-        right: Val::Px(WIDGET_MARGIN),
-        bottom: Val::Px(WIDGET_MARGIN),
+        right: Val::Px(theme.theme().widget_margin()),
+        bottom: Val::Px(theme.theme().widget_margin()),
         top: Val::Auto,
         left: Val::Auto,
     };
@@ -160,7 +160,7 @@ pub fn spawn_coordinate_pane(
                         },
                         Text::new("X:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -170,7 +170,7 @@ pub fn spawn_coordinate_pane(
                     row.spawn((
                         Text::new("0"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -196,7 +196,7 @@ pub fn spawn_coordinate_pane(
                         },
                         Text::new("Y:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -206,7 +206,7 @@ pub fn spawn_coordinate_pane(
                     row.spawn((
                         Text::new("0"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -232,7 +232,7 @@ pub fn spawn_coordinate_pane(
                         },
                         Text::new("W:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -242,7 +242,7 @@ pub fn spawn_coordinate_pane(
                     row.spawn((
                         Text::new("0"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -268,7 +268,7 @@ pub fn spawn_coordinate_pane(
                         },
                         Text::new("H:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -278,7 +278,7 @@ pub fn spawn_coordinate_pane(
                     row.spawn((
                         Text::new("0"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },

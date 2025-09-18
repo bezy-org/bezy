@@ -58,6 +58,7 @@
   "sort_inactive_metrics": [0.5, 0.5, 0.5, 0.5],
   "sort_active_outline": [1.0, 0.4, 0.0],
   "sort_inactive_outline": [0.75, 0.75, 0.75],
+  "filled_glyph": [0.7, 0.7, 0.7],
   "widget_border_radius": 8.0,
   "toolbar_border_radius": 8.0,
   "ui_border_radius": 16.0

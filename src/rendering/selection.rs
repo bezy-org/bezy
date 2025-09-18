@@ -130,8 +130,8 @@ pub fn render_selected_entities(
 
         // Draw selection indicator with same shape and size as unselected points
         let point_radius = if point_type.is_on_curve {
-            if USE_SQUARE_FOR_ON_CURVE {
-                let adjusted_radius = ON_CURVE_POINT_RADIUS * ON_CURVE_SQUARE_ADJUSTMENT;
+            if theme.theme().use_square_for_on_curve() {
+                let adjusted_radius = theme.theme().on_curve_point_radius() * theme.theme().on_curve_square_adjustment();
                 gizmos.rect_2d(
                     position_2d,
                     Vec2::splat(adjusted_radius * 2.0),
@@ -139,13 +139,13 @@ pub fn render_selected_entities(
                 );
                 adjusted_radius
             } else {
-                gizmos.circle_2d(position_2d, ON_CURVE_POINT_RADIUS, selection_color);
-                ON_CURVE_POINT_RADIUS
+                gizmos.circle_2d(position_2d, theme.theme().on_curve_point_radius(), selection_color);
+                theme.theme().on_curve_point_radius()
             }
         } else {
             // Off-curve point - always a circle
-            gizmos.circle_2d(position_2d, OFF_CURVE_POINT_RADIUS, selection_color);
-            OFF_CURVE_POINT_RADIUS
+            gizmos.circle_2d(position_2d, theme.theme().off_curve_point_radius(), selection_color);
+            theme.theme().off_curve_point_radius()
         };
 
         // Draw cross at the point, sized to match point radius

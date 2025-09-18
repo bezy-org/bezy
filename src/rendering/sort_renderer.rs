@@ -8,7 +8,6 @@
 use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::core::state::{AppState, FontIRAppState, SortLayoutMode};
 use crate::editing::sort::{ActiveSort, InactiveSort, Sort};
-use crate::ui::theme::MONO_FONT_PATH;
 use crate::ui::themes::CurrentTheme;
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
@@ -100,7 +99,7 @@ pub fn manage_sort_labels(
         commands.spawn((
             Text2d(sort.glyph_name.clone()),
             TextFont {
-                font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
                 font_size: 12.0,
                 ..default()
             },
@@ -132,7 +131,7 @@ pub fn manage_sort_labels(
             commands.spawn((
                 Text2d(unicode_string),
                 TextFont {
-                    font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                    font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
                     font_size: 10.0,
                     ..default()
                 },

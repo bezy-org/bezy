@@ -83,9 +83,9 @@ pub fn render_points_with_meshes(
         };
 
         // Create the three-layer point shape
-        if point_type.is_on_curve && USE_SQUARE_FOR_ON_CURVE {
+        if point_type.is_on_curve && theme.theme().use_square_for_on_curve() {
             // On-curve points: square with three layers
-            let base_size = ON_CURVE_POINT_RADIUS * ON_CURVE_SQUARE_ADJUSTMENT * 2.0;
+            let base_size = theme.theme().on_curve_point_radius() * theme.theme().on_curve_square_adjustment() * 2.0;
 
             // Layer 1: Base shape (full width) - primary color
             commands.spawn((
@@ -126,7 +126,7 @@ pub fn render_points_with_meshes(
 
             // Layer 3: Small center shape - primary color (only for non-selected points)
             if selected.is_none() {
-                let center_size = base_size * ON_CURVE_INNER_CIRCLE_RATIO;
+                let center_size = base_size * theme.theme().on_curve_inner_circle_ratio();
                 commands.spawn((
                     PointMesh {
                         point_entity,
@@ -147,9 +147,9 @@ pub fn render_points_with_meshes(
         } else {
             // Off-curve points and circular on-curve points: circle with three layers
             let base_radius = if point_type.is_on_curve {
-                ON_CURVE_POINT_RADIUS
+                theme.theme().on_curve_point_radius()
             } else {
-                OFF_CURVE_POINT_RADIUS
+                theme.theme().off_curve_point_radius()
             };
 
             // Layer 1: Base circle (full size) - primary color
@@ -187,9 +187,9 @@ pub fn render_points_with_meshes(
             if selected.is_none() {
                 let center_radius = base_radius
                     * if point_type.is_on_curve {
-                        ON_CURVE_INNER_CIRCLE_RATIO
+                        theme.theme().on_curve_inner_circle_ratio()
                     } else {
-                        OFF_CURVE_INNER_CIRCLE_RATIO
+                        theme.theme().off_curve_inner_circle_ratio()
                     };
                 commands.spawn((
                     PointMesh {
@@ -210,9 +210,9 @@ pub fn render_points_with_meshes(
         // Add crosshairs for selected points using primary color only
         if selected.is_some() {
             let line_size = if point_type.is_on_curve {
-                ON_CURVE_POINT_RADIUS
+                theme.theme().on_curve_point_radius()
             } else {
-                OFF_CURVE_POINT_RADIUS
+                theme.theme().off_curve_point_radius()
             };
 
             // Use camera-responsive line width (1.0 base, same as outlines and handles)

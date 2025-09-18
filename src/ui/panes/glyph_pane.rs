@@ -225,8 +225,8 @@ pub fn spawn_glyph_pane(
 ) {
     // Create the position properties for the glyph pane (bottom left)
     let position_props = UiRect {
-        left: Val::Px(WIDGET_MARGIN),
-        bottom: Val::Px(WIDGET_MARGIN),
+        left: Val::Px(theme.theme().widget_margin()),
+        bottom: Val::Px(theme.theme().widget_margin()),
         top: Val::Auto,   // Explicitly set top to Auto to prevent stretching
         right: Val::Auto, // Explicitly set right to Auto for correct sizing
     };
@@ -261,7 +261,7 @@ pub fn spawn_glyph_pane(
                         },
                         Text::new("Glyph:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -272,7 +272,7 @@ pub fn spawn_glyph_pane(
                     row.spawn((
                         Text::new("Loading..."),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -301,7 +301,7 @@ pub fn spawn_glyph_pane(
                         },
                         Text::new("Unicode:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -312,7 +312,7 @@ pub fn spawn_glyph_pane(
                     row.spawn((
                         Text::new("Loading..."),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -341,7 +341,7 @@ pub fn spawn_glyph_pane(
                         },
                         Text::new("Advance:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -352,7 +352,7 @@ pub fn spawn_glyph_pane(
                     row.spawn((
                         Text::new("Loading..."),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -381,7 +381,7 @@ pub fn spawn_glyph_pane(
                         },
                         Text::new("LSB:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -392,7 +392,7 @@ pub fn spawn_glyph_pane(
                     row.spawn((
                         Text::new("Loading..."),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -421,7 +421,7 @@ pub fn spawn_glyph_pane(
                         },
                         Text::new("RSB:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -432,7 +432,7 @@ pub fn spawn_glyph_pane(
                     row.spawn((
                         Text::new("Loading..."),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -461,7 +461,7 @@ pub fn spawn_glyph_pane(
                         },
                         Text::new("Left Group:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -472,7 +472,7 @@ pub fn spawn_glyph_pane(
                     row.spawn((
                         Text::new("Loading..."),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -500,7 +500,7 @@ pub fn spawn_glyph_pane(
                         },
                         Text::new("Right Group:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
@@ -511,7 +511,7 @@ pub fn spawn_glyph_pane(
                     row.spawn((
                         Text::new("Loading..."),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
