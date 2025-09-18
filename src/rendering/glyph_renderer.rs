@@ -351,6 +351,7 @@ pub fn render_glyphs(
                 fontir_app_state.as_deref(),
                 app_state.as_deref(),
                 &camera_scale,
+                &theme,
             );
 
             // 2. Render handles using live Transform positions
@@ -362,6 +363,7 @@ pub fn render_glyphs(
                 sort_entity,
                 &sort_points,
                 &camera_scale,
+                &theme,
             );
 
             // 3. Render points using live Transform positions
@@ -394,6 +396,7 @@ pub fn render_glyphs(
                 fontir_app_state.as_deref(),
                 app_state.as_deref(),
                 &camera_scale,
+                &theme,
             );
         }
 
@@ -445,7 +448,7 @@ fn render_filled_outline(
     fontir_state: Option<&crate::core::state::FontIRAppState>,
     _app_state: Option<&crate::core::state::AppState>,
     _camera_scale: &CameraResponsiveScale,
-    _theme: &CurrentTheme,
+    theme: &CurrentTheme,
 ) {
     if let Some(fontir_state) = fontir_state {
         if let Some(paths) = fontir_state.get_glyph_paths_with_components(glyph_name) {
@@ -557,7 +560,7 @@ fn render_filled_outline(
                         },
                         Mesh2d(meshes.add(mesh)),
                         MeshMaterial2d(
-                            materials.add(ColorMaterial::from_color(FILLED_GLYPH_COLOR)),
+                            materials.add(ColorMaterial::from_color(theme.theme().filled_glyph_color())),
                         ),
                         Transform::from_translation(Vec3::new(0.0, 0.0, OUTLINE_Z)),
                         GlobalTransform::default(),
@@ -596,6 +599,7 @@ fn render_glyph_outline(
     fontir_state: Option<&crate::core::state::FontIRAppState>,
     _app_state: Option<&crate::core::state::AppState>,
     camera_scale: &CameraResponsiveScale,
+    theme: &CurrentTheme,
 ) {
     // Build position map from live Transform data
     let mut live_positions = HashMap::new();
@@ -622,6 +626,7 @@ fn render_glyph_outline(
                 &live_positions,
                 sort_position,
                 camera_scale,
+                &theme,
             );
         }
     }
@@ -636,6 +641,7 @@ fn render_glyph_handles(
     sort_entity: Entity,
     sort_points: &[(Entity, Vec2, &GlyphPointReference, &PointType, bool)],
     camera_scale: &CameraResponsiveScale,
+    theme: &CurrentTheme,
 ) {
     // Group points by contour
     let mut contours: HashMap<usize, Vec<_>> = HashMap::new();
@@ -670,7 +676,7 @@ fn render_glyph_handles(
                     current.1,
                     next.1,
                     1.0, // 1px width
-                    HANDLE_LINE_COLOR,
+                    theme.theme().handle_line_color(),
                     HANDLE_Z,
                     sort_entity,
                     GlyphElementType::Handle,
@@ -964,6 +970,7 @@ fn render_static_outline(
     fontir_state: Option<&crate::core::state::FontIRAppState>,
     _app_state: Option<&crate::core::state::AppState>,
     camera_scale: &CameraResponsiveScale,
+    theme: &CurrentTheme,
 ) {
     if let Some(fontir_state) = fontir_state {
         if let Some(paths) = fontir_state.get_glyph_paths_with_components(glyph_name) {
@@ -987,7 +994,7 @@ fn render_static_outline(
                                     start,
                                     end,
                                     1.0,
-                                    PATH_STROKE_COLOR,
+                                    theme.theme().path_stroke_color(),
                                     OUTLINE_Z,
                                     sort_entity,
                                     GlyphElementType::OutlineSegment,
@@ -1034,7 +1041,7 @@ fn render_static_outline(
                                         last_pos,
                                         curve_pos,
                                         1.0,
-                                        PATH_STROKE_COLOR,
+                                        theme.theme().path_stroke_color(),
                                         OUTLINE_Z,
                                         sort_entity,
                                         GlyphElementType::OutlineSegment,
@@ -1071,7 +1078,7 @@ fn render_static_outline(
                                         last_pos,
                                         curve_pos,
                                         1.0,
-                                        PATH_STROKE_COLOR,
+                                        theme.theme().path_stroke_color(),
                                         OUTLINE_Z,
                                         sort_entity,
                                         GlyphElementType::OutlineSegment,
@@ -1104,6 +1111,7 @@ fn render_fontir_outline(
     live_positions: &HashMap<(usize, usize), (Vec2, bool)>,
     sort_position: Vec2,
     camera_scale: &CameraResponsiveScale,
+    theme: &CurrentTheme,
 ) {
     // Process each contour with live positions
     for (contour_idx, original_path) in original_paths.iter().enumerate() {
@@ -1155,6 +1163,7 @@ fn render_fontir_outline(
                             direction,
                             sort_entity,
                             camera_scale,
+                            theme,
                         );
                         element_entities.push(arrow_entity);
                     }
@@ -1180,7 +1189,7 @@ fn render_fontir_outline(
                             start,
                             end,
                             1.0,
-                            PATH_STROKE_COLOR,
+                            theme.theme().path_stroke_color(),
                             OUTLINE_Z,
                             sort_entity,
                             GlyphElementType::OutlineSegment,
@@ -1254,7 +1263,7 @@ fn render_fontir_outline(
                                 last_pos,
                                 curve_pos,
                                 1.0,
-                                PATH_STROKE_COLOR,
+                                theme.theme().path_stroke_color(),
                                 OUTLINE_Z,
                                 sort_entity,
                                 GlyphElementType::OutlineSegment,
@@ -1309,7 +1318,7 @@ fn render_fontir_outline(
                                 last_pos,
                                 curve_pos,
                                 1.0,
-                                PATH_STROKE_COLOR,
+                                theme.theme().path_stroke_color(),
                                 OUTLINE_Z,
                                 sort_entity,
                                 GlyphElementType::OutlineSegment,
@@ -1345,7 +1354,7 @@ fn render_fontir_outline(
                                     end,
                                     start,
                                     1.0,
-                                    PATH_STROKE_COLOR,
+                                    theme.theme().path_stroke_color(),
                                     OUTLINE_Z,
                                     sort_entity,
                                     GlyphElementType::OutlineSegment,
@@ -1484,6 +1493,7 @@ fn spawn_contour_start_arrow(
     direction: Vec2,
     sort_entity: Entity,
     camera_scale: &CameraResponsiveScale,
+    theme: &CurrentTheme,
 ) -> Entity {
     // Create arrow shape - tall and narrow
     let arrow_height = 16.0 * camera_scale.scale_factor; // Height (how far the arrow extends)
@@ -1525,7 +1535,7 @@ fn spawn_contour_start_arrow(
     mesh.insert_indices(bevy::render::mesh::Indices::U32(vec![0, 1, 2]));
 
     // Use the theme's active orange color
-    let arrow_color = PRESSED_BUTTON_COLOR; // Active orange from theme
+    let arrow_color = theme.theme().pressed_button_color(); // Active orange from theme
 
     commands
         .spawn((

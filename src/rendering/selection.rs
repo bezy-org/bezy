@@ -99,6 +99,7 @@ pub fn render_selected_entities(
     drag_point_state: Res<DragPointState>,
     knife_mode: Option<Res<crate::ui::edit_mode_toolbar::knife::KnifeModeActive>>,
     _nudge_state: Res<NudgeState>,
+    theme: Res<CurrentTheme>,
 ) {
     // Always render selected points - no dual-mode rendering
 
@@ -114,7 +115,7 @@ pub fn render_selected_entities(
         }
     }
 
-    let selection_color = SELECTED_POINT_COLOR;
+    let selection_color = theme.theme().selected_color();
     let is_dragging = drag_point_state.is_dragging;
 
     // Render each selected point with selection styling

@@ -263,6 +263,10 @@ impl BezyTheme for StrawberryTheme {
         Color::srgb(0.6, 0.4, 0.4)
     }
 
+    fn filled_glyph_color(&self) -> Color {
+        Color::srgb(0.5, 0.4, 0.4)
+    }
+
     // =================================================================
     // INFO COLORS - SEMANTIC COLORS
     // =================================================================

@@ -259,4 +259,8 @@ impl BezyTheme for DarkModeTheme {
     fn sort_inactive_outline_color(&self) -> Color {
         Color::srgb(0.75, 0.75, 0.75)
     }
+
+    fn filled_glyph_color(&self) -> Color {
+        Color::srgb(0.7, 0.7, 0.7)
+    }
 }

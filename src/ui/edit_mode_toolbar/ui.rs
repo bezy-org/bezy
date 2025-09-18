@@ -56,10 +56,8 @@
 use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::ui::edit_mode_toolbar::*;
 use crate::ui::theme::{
-    BUTTON_ICON_SIZE, GROTESK_FONT_PATH, HOVERED_BUTTON_COLOR, HOVERED_BUTTON_OUTLINE_COLOR,
-    MONO_FONT_PATH, NORMAL_BUTTON_COLOR, NORMAL_BUTTON_OUTLINE_COLOR, PRESSED_BUTTON_COLOR,
-    PRESSED_BUTTON_ICON_COLOR, PRESSED_BUTTON_OUTLINE_COLOR, TOOLBAR_BORDER_WIDTH,
-    TOOLBAR_BUTTON_SIZE, TOOLBAR_CONTAINER_MARGIN, TOOLBAR_GRID_SPACING, TOOLBAR_ICON_COLOR,
+    BUTTON_ICON_SIZE, GROTESK_FONT_PATH, MONO_FONT_PATH, TOOLBAR_BORDER_WIDTH,
+    TOOLBAR_BUTTON_SIZE, TOOLBAR_CONTAINER_MARGIN, TOOLBAR_GRID_SPACING,
     TOOLBAR_ITEM_SPACING, TOOLBAR_PADDING, WIDGET_TEXT_FONT_SIZE,
 };
 use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
@@ -157,13 +155,13 @@ fn create_button_entity(
             EditModeToolbarButton,
             ToolButtonData { tool_id: tool.id() },
             create_button_styling(),
-            BackgroundColor(NORMAL_BUTTON_COLOR),
-            BorderColor(NORMAL_BUTTON_OUTLINE_COLOR),
+            BackgroundColor(theme.theme().normal_button_color()),
+            BorderColor(theme.theme().normal_button_outline_color()),
             BorderRadius::all(Val::Px(theme.theme().toolbar_border_radius())),
             ToolbarBorderRadius,
         ))
         .with_children(|button| {
-            create_button_text(button, tool, asset_server, embedded_fonts);
+            create_button_text(button, tool, asset_server, embedded_fonts, theme);
         })
         .id()
 }
@@ -188,8 +186,9 @@ fn create_button_text(
     tool: &dyn EditTool,
     asset_server: &AssetServer,
     embedded_fonts: &EmbeddedFonts,
+    theme: &CurrentTheme,
 ) {
-    create_button_icon_text(parent, tool.icon(), asset_server, embedded_fonts);
+    create_button_icon_text(parent, tool.icon(), asset_server, embedded_fonts, theme);
 }
 
 /// Creates properly centered button icon text - shared helper for consistent alignment
@@ -199,6 +198,7 @@ pub fn create_button_icon_text(
     icon: &str,
     asset_server: &AssetServer,
     embedded_fonts: &EmbeddedFonts,
+    theme: &CurrentTheme,
 ) {
     parent.spawn((
         Node {
@@ -212,7 +212,7 @@ pub fn create_button_icon_text(
             font_size: BUTTON_ICON_SIZE,
             ..default()
         },
-        TextColor(TOOLBAR_ICON_COLOR),
+        TextColor(theme.theme().toolbar_icon_color()),
     ));
 }
 
@@ -260,13 +260,13 @@ pub fn create_toolbar_button_with_hover_text<T: Bundle>(
                     Button,
                     additional_components,
                     create_button_styling(),
-                    BackgroundColor(NORMAL_BUTTON_COLOR),
-                    BorderColor(NORMAL_BUTTON_OUTLINE_COLOR),
+                    BackgroundColor(theme.theme().normal_button_color()),
+                    BorderColor(theme.theme().normal_button_outline_color()),
                     BorderRadius::all(Val::Px(theme.theme().toolbar_border_radius())),
                     ToolbarBorderRadius,
                 ))
                 .with_children(|button| {
-                    create_button_icon_text(button, icon, asset_server, embedded_fonts);
+                    create_button_icon_text(button, icon, asset_server, embedded_fonts, theme);
                 });
         });
 }
@@ -278,13 +278,14 @@ pub fn update_toolbar_button_colors(
     is_active: bool,
     background_color: &mut BackgroundColor,
     border_color: &mut BorderColor,
+    theme: &CurrentTheme,
 ) {
     let (bg_color, border_color_value) = match (interaction, is_active) {
         (Interaction::Pressed, _) | (_, true) => {
-            (PRESSED_BUTTON_COLOR, PRESSED_BUTTON_OUTLINE_COLOR)
+            (theme.theme().pressed_button_color(), theme.theme().pressed_button_outline_color())
         }
-        (Interaction::Hovered, false) => (HOVERED_BUTTON_COLOR, HOVERED_BUTTON_OUTLINE_COLOR),
-        (Interaction::None, false) => (NORMAL_BUTTON_COLOR, NORMAL_BUTTON_OUTLINE_COLOR),
+        (Interaction::Hovered, false) => (theme.theme().hovered_button_color(), theme.theme().hovered_button_outline_color()),
+        (Interaction::None, false) => (theme.theme().normal_button_color(), theme.theme().normal_button_outline_color()),
     };
 
     *background_color = BackgroundColor(bg_color);
@@ -298,6 +299,7 @@ pub fn update_toolbar_button_text_colors(
     is_active: bool,
     children_query: &Query<&Children>,
     text_query: &mut Query<&mut TextColor>,
+    theme: &CurrentTheme,
 ) {
     let children = match children_query.get(entity) {
         Ok(children) => children,
@@ -305,9 +307,9 @@ pub fn update_toolbar_button_text_colors(
     };
 
     let new_color = if is_active {
-        PRESSED_BUTTON_ICON_COLOR // Bright white for active buttons
+        theme.theme().pressed_button_icon_color() // Bright white for active buttons
     } else {
-        TOOLBAR_ICON_COLOR // Light gray for normal buttons
+        theme.theme().toolbar_icon_color() // Light gray for normal buttons
     };
 
     // Update text colors for all children of this button
@@ -356,6 +358,7 @@ pub fn update_toolbar_button_appearances(
     mut text_query: Query<&mut TextColor>,
     children_query: Query<&Children>,
     current_tool: Res<CurrentTool>,
+    theme: Res<CurrentTheme>,
 ) {
     let current_tool_id = current_tool.get_current();
     for (interaction, mut background_color, mut border_color, tool_button, entity) in
@@ -367,8 +370,9 @@ pub fn update_toolbar_button_appearances(
             is_current_tool,
             &mut background_color,
             &mut border_color,
+            &theme,
         );
-        update_button_text_color(entity, is_current_tool, &children_query, &mut text_query);
+        update_button_text_color(entity, is_current_tool, &children_query, &mut text_query, &theme);
     }
 }
 
@@ -415,9 +419,10 @@ fn update_button_colors(
     is_current_tool: bool,
     background_color: &mut BackgroundColor,
     border_color: &mut BorderColor,
+    theme: &CurrentTheme,
 ) {
     // Use consistent color system
-    update_toolbar_button_colors(interaction, is_current_tool, background_color, border_color);
+    update_toolbar_button_colors(interaction, is_current_tool, background_color, border_color, theme);
 }
 
 /// Updates text color for button children based on current tool state
@@ -426,9 +431,10 @@ fn update_button_text_color(
     is_current_tool: bool,
     children_query: &Query<&Children>,
     text_query: &mut Query<&mut TextColor>,
+    theme: &CurrentTheme,
 ) {
     // Use consistent text color system
-    update_toolbar_button_text_colors(entity, is_current_tool, children_query, text_query);
+    update_toolbar_button_text_colors(entity, is_current_tool, children_query, text_query, theme);
 }
 
 /// Updates hover text visibility based on button interaction states
@@ -489,6 +495,7 @@ pub fn update_hover_text_visibility(
     tool_registry: Res<ToolRegistry>,
     asset_server: Res<AssetServer>,
     embedded_fonts: Res<EmbeddedFonts>,
+    theme: Res<CurrentTheme>,
     // Get camera for zoom level
     camera_query: Query<&Projection, With<crate::rendering::cameras::DesignCamera>>,
 ) {
@@ -613,7 +620,7 @@ pub fn update_hover_text_visibility(
                     font_size: WIDGET_TEXT_FONT_SIZE,
                     ..default()
                 },
-                TextColor(TOOLBAR_ICON_COLOR), // Light gray color to match unselected icons
+                TextColor(theme.theme().toolbar_icon_color()), // Light gray color to match unselected icons
                 Node {
                     position_type: PositionType::Absolute,
                     top: Val::Px(vertical_offset),

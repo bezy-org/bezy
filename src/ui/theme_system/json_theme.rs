@@ -616,6 +616,15 @@ impl BezyTheme for JsonTheme {
         )
     }
 
+    fn filled_glyph_color(&self) -> Color {
+        // Default to a lighter version of sort_inactive_outline_color if not specified
+        Color::srgb(
+            self.sort_inactive_outline[0] * 1.2,
+            self.sort_inactive_outline[1] * 1.2,
+            self.sort_inactive_outline[2] * 1.2,
+        )
+    }
+
     // Border radius properties
     fn widget_border_radius(&self) -> f32 {
         self.widget_border_radius

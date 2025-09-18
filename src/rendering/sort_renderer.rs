@@ -8,7 +8,8 @@
 use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::core::state::{AppState, FontIRAppState, SortLayoutMode};
 use crate::editing::sort::{ActiveSort, InactiveSort, Sort};
-use crate::ui::theme::{MONO_FONT_PATH, SORT_ACTIVE_METRICS_COLOR, SORT_INACTIVE_METRICS_COLOR};
+use crate::ui::theme::MONO_FONT_PATH;
+use crate::ui::themes::CurrentTheme;
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
 use bevy::text::TextBounds;
@@ -33,6 +34,7 @@ pub fn manage_sort_labels(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     embedded_fonts: Res<EmbeddedFonts>,
+    theme: Res<CurrentTheme>,
     app_state: Option<Res<AppState>>,
     sorts_query: Query<
         (Entity, &Sort, &Transform),
@@ -73,9 +75,9 @@ pub fn manage_sort_labels(
             .iter()
             .any(|(entity, _)| entity == sort_entity)
         {
-            SORT_ACTIVE_METRICS_COLOR
+            theme.theme().sort_active_metrics_color()
         } else {
-            SORT_INACTIVE_METRICS_COLOR
+            theme.theme().sort_inactive_metrics_color()
         };
 
         let position = transform.translation.truncate();
@@ -198,6 +200,7 @@ pub fn update_sort_label_positions(
 
 /// System to update text label colors when sort states change
 pub fn update_sort_label_colors(
+    theme: Res<CurrentTheme>,
     active_sorts_query: Query<Entity, Added<ActiveSort>>,
     inactive_sorts_query: Query<Entity, Added<InactiveSort>>,
     mut name_text_query: Query<(&mut TextColor, &SortGlyphNameText), Without<SortUnicodeText>>,
@@ -207,12 +210,12 @@ pub fn update_sort_label_colors(
     for sort_entity in active_sorts_query.iter() {
         for (mut text_color, sort_name_text) in name_text_query.iter_mut() {
             if sort_name_text.sort_entity == sort_entity {
-                text_color.0 = SORT_ACTIVE_METRICS_COLOR;
+                text_color.0 = theme.theme().sort_active_metrics_color();
             }
         }
         for (mut text_color, sort_unicode_text) in unicode_text_query.iter_mut() {
             if sort_unicode_text.sort_entity == sort_entity {
-                text_color.0 = SORT_ACTIVE_METRICS_COLOR.with_alpha(0.7);
+                text_color.0 = theme.theme().sort_active_metrics_color().with_alpha(0.7);
             }
         }
     }
@@ -221,12 +224,12 @@ pub fn update_sort_label_colors(
     for sort_entity in inactive_sorts_query.iter() {
         for (mut text_color, sort_name_text) in name_text_query.iter_mut() {
             if sort_name_text.sort_entity == sort_entity {
-                text_color.0 = SORT_INACTIVE_METRICS_COLOR;
+                text_color.0 = theme.theme().sort_inactive_metrics_color();
             }
         }
         for (mut text_color, sort_unicode_text) in unicode_text_query.iter_mut() {
             if sort_unicode_text.sort_entity == sort_entity {
-                text_color.0 = SORT_INACTIVE_METRICS_COLOR.with_alpha(0.7);
+                text_color.0 = theme.theme().sort_inactive_metrics_color().with_alpha(0.7);
             }
         }
     }

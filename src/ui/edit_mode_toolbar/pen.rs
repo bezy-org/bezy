@@ -934,6 +934,7 @@ pub fn handle_pen_submenu_selection(
     mut current_mode: ResMut<PenDrawingMode>,
     children_query: Query<&Children>,
     mut text_query: Query<&mut TextColor>,
+    theme: Res<CurrentTheme>,
 ) {
     // Debug: Log if we find any submenu buttons
     let button_count = interaction_query.iter().len();
@@ -975,6 +976,7 @@ pub fn handle_pen_submenu_selection(
             is_current_mode,
             &mut color,
             &mut border_color,
+            &theme,
         );
 
         // Use the unified text color system for consistent icon colors with main toolbar
@@ -983,6 +985,7 @@ pub fn handle_pen_submenu_selection(
             is_current_mode,
             &children_query,
             &mut text_query,
+            &theme,
         );
     }
 }

@@ -1167,6 +1167,7 @@ pub fn handle_shapes_submenu_selection(
     mut current_shape_type: ResMut<CurrentShapeType>,
     children_query: Query<&Children>,
     mut text_query: Query<&mut TextColor>,
+    theme: Res<CurrentTheme>,
 ) {
     // Debug: Log if we find any submenu buttons
     let button_count = interaction_query.iter().len();
@@ -1209,6 +1210,7 @@ pub fn handle_shapes_submenu_selection(
             is_current_shape,
             &mut color,
             &mut border_color,
+            &theme,
         );
 
         // Use the unified text color system for consistent icon colors with main toolbar
@@ -1217,6 +1219,7 @@ pub fn handle_shapes_submenu_selection(
             is_current_shape,
             &children_query,
             &mut text_query,
+            &theme,
         );
     }
 }

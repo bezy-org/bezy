@@ -552,6 +552,9 @@ pub trait BezyTheme: Send + Sync + 'static {
     fn sort_active_outline_color(&self) -> Color;
     fn sort_inactive_outline_color(&self) -> Color;
 
+    /// Filled glyph color for inactive sorts
+    fn filled_glyph_color(&self) -> Color;
+
     /// Sort spacing
     fn sort_horizontal_padding(&self) -> f32 {
         256.0

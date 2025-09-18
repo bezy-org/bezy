@@ -2,7 +2,7 @@ use crate::core::state::FontIRAppState;
 use crate::editing::selection::components::{GlyphPointReference, PointType};
 use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::{ActiveSort, Sort};
-use crate::ui::theme::HANDLE_LINE_COLOR;
+use crate::ui::themes::CurrentTheme;
 use bevy::prelude::*;
 
 /// Component to mark handle line entities
@@ -38,6 +38,7 @@ fn update_handle_lines(
         With<SortPointEntity>,
     >,
     existing_handles: Query<(Entity, &HandleLine)>,
+    theme: Res<CurrentTheme>,
 ) {
     let point_count = point_query.iter().count();
 
@@ -76,6 +77,7 @@ fn update_handle_lines(
         &paths,
         &point_query,
         glyph_name,
+        &theme,
     );
 }
 
@@ -90,9 +92,10 @@ fn create_handles_from_fontir_paths(
         With<SortPointEntity>,
     >,
     glyph_name: &str,
+    theme: &CurrentTheme,
 ) {
     // Create material for handles
-    let handle_material = materials.add(ColorMaterial::from(HANDLE_LINE_COLOR));
+    let handle_material = materials.add(ColorMaterial::from(theme.theme().handle_line_color()));
     let mut _handles_created = 0;
 
     // Group existing point entities by contour and index for mapping

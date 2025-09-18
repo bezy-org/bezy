@@ -10,7 +10,7 @@ use crate::core::state::font_metrics::FontMetrics;
 use crate::core::state::fontir_app_state::FontIRMetrics;
 use crate::rendering::entity_pools::{update_metrics_entity, EntityPools};
 use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
-use crate::ui::theme::METRICS_GUIDE_COLOR;
+use crate::ui::themes::CurrentTheme;
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh2d;
 use bevy::sprite::{ColorMaterial, MeshMaterial2d};
@@ -255,6 +255,7 @@ pub fn render_mesh_metrics_lines(
     fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
     camera_scale: Res<CameraResponsiveScale>,
     presentation_mode: Option<Res<crate::ui::edit_mode_toolbar::PresentationMode>>,
+    theme: Res<crate::ui::themes::CurrentTheme>,
 ) {
     // Check presentation mode state
     let presentation_active = presentation_mode.as_ref().is_some_and(|pm| pm.active);
@@ -438,7 +439,8 @@ pub fn render_mesh_metrics_lines(
             // Use cached advance width lookup instead of expensive FontIR call
             let advance_width = metrics_cache.get_advance_width(&sort.glyph_name, &fontir_state);
             // Since query filters for ActiveSort, all sorts here are active - use active color
-            let color = crate::ui::theme::SORT_ACTIVE_METRICS_COLOR;
+            // Theme is now available as a parameter
+            let color = theme.theme().sort_active_metrics_color();
 
             let mut line_entities = Vec::new();
 
@@ -605,7 +607,8 @@ pub fn render_mesh_metrics_lines(
             let position = sort_transform.translation.truncate();
             // Use cached advance width lookup for active buffer sorts
             let advance_width = metrics_cache.get_advance_width(&sort.glyph_name, &fontir_state);
-            let color = crate::ui::theme::SORT_ACTIVE_METRICS_COLOR; // Green for active buffer sorts (text roots)
+            // Theme is now available as a parameter
+            let color = theme.theme().sort_active_metrics_color(); // Green for active buffer sorts (text roots)
 
             info!(
                 "🟢 RENDERING METRICS for active buffer sort {:?} at ({:.1}, {:.1})",
@@ -782,7 +785,8 @@ pub fn render_mesh_metrics_lines(
             let position = sort_transform.translation.truncate();
             // Use cached advance width lookup for inactive buffer sorts
             let advance_width = metrics_cache.get_advance_width(&sort.glyph_name, &fontir_state);
-            let color = crate::ui::theme::SORT_INACTIVE_METRICS_COLOR; // Gray for inactive buffer sorts (typed characters)
+            // Theme is now available as a parameter
+            let color = theme.theme().sort_inactive_metrics_color(); // Gray for inactive buffer sorts (typed characters)
 
             info!(
                 "🔘 RENDERING METRICS for inactive buffer sort {:?} at ({:.1}, {:.1})",

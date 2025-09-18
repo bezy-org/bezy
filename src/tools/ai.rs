@@ -206,6 +206,7 @@ pub fn handle_ai_operation_selection(
     mut current_operation: ResMut<CurrentAiOperation>,
     children_query: Query<&Children>,
     mut text_query: Query<&mut TextColor>,
+    theme: Res<crate::ui::themes::CurrentTheme>,
 ) {
     for (interaction, mut color, mut border_color, operation_button, entity) in
         &mut interaction_query
@@ -223,6 +224,7 @@ pub fn handle_ai_operation_selection(
             is_current_operation,
             &mut color,
             &mut border_color,
+            &theme,
         );
 
         // Use the unified text color system for consistent icon colors with main toolbar
@@ -231,6 +233,7 @@ pub fn handle_ai_operation_selection(
             is_current_operation,
             &children_query,
             &mut text_query,
+            &theme,
         );
     }
 }

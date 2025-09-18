@@ -16,7 +16,6 @@ pub mod runtime_reload;
 
 // Theme constants and utilities
 pub mod layout_constants;
-pub mod legacy_constants;
 pub mod theme_interface;
 
 // Re-export commonly used items
@@ -26,5 +25,4 @@ pub use runtime_reload::RuntimeThemePlugin;
 
 // Re-export constants and utilities for easy access
 pub use layout_constants::*;
-pub use legacy_constants::*;
 pub use theme_interface::*;

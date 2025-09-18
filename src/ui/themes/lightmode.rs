@@ -263,6 +263,10 @@ impl BezyTheme for LightModeTheme {
         Color::srgb(0.4, 0.4, 0.4)
     }
 
+    fn filled_glyph_color(&self) -> Color {
+        Color::srgb(0.3, 0.3, 0.3)
+    }
+
     // =================================================================
     // INFO COLORS - SEMANTIC COLORS
     // =================================================================

@@ -236,7 +236,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(SECONDARY_TEXT_COLOR),
+                        TextColor(theme.theme().secondary_text_color()),
                     ));
                     // Value
                     row.spawn((
@@ -246,7 +246,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(ON_CURVE_PRIMARY_COLOR),
+                        TextColor(theme.theme().on_curve_primary_color()),
                         DesignspacePathText,
                     ));
                 });
@@ -272,7 +272,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(SECONDARY_TEXT_COLOR),
+                        TextColor(theme.theme().secondary_text_color()),
                     ));
                     // Value
                     row.spawn((
@@ -282,7 +282,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(ON_CURVE_PRIMARY_COLOR),
+                        TextColor(theme.theme().on_curve_primary_color()),
                         CurrentUFOText,
                     ));
                 });
@@ -312,7 +312,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(SECONDARY_TEXT_COLOR),
+                        TextColor(theme.theme().secondary_text_color()),
                     ));
                     // Value
                     row.spawn((
@@ -322,7 +322,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(ON_CURVE_PRIMARY_COLOR),
+                        TextColor(theme.theme().on_curve_primary_color()),
                         LastSavedText,
                     ));
                 });
@@ -351,7 +351,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(SECONDARY_TEXT_COLOR),
+                        TextColor(theme.theme().secondary_text_color()),
                     ));
                     // Value
                     row.spawn((
@@ -361,7 +361,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(ON_CURVE_PRIMARY_COLOR),
+                        TextColor(theme.theme().on_curve_primary_color()),
                         LastExportedText,
                     ));
                 });
@@ -579,14 +579,14 @@ fn update_master_buttons(
                     ..default()
                 },
                 BackgroundColor(if is_selected {
-                    PRESSED_BUTTON_COLOR
+                    theme.theme().pressed_button_color()
                 } else {
-                    NORMAL_BUTTON_COLOR
+                    theme.theme().normal_button_color()
                 }),
                 BorderColor(if is_selected {
-                    PRESSED_BUTTON_OUTLINE_COLOR
+                    theme.theme().pressed_button_outline_color()
                 } else {
-                    NORMAL_BUTTON_OUTLINE_COLOR
+                    theme.theme().normal_button_outline_color()
                 }),
                 BorderRadius::all(Val::Px(theme.theme().ui_border_radius())),
                 UiBorderRadius,
@@ -719,6 +719,7 @@ fn handle_master_buttons(
     mut file_info: ResMut<FileInfo>,
     mut all_buttons: Query<(&MasterButton, &mut BackgroundColor, &mut BorderColor)>,
     mut switch_events: EventWriter<SwitchMasterEvent>,
+    theme: Res<CurrentTheme>,
 ) {
     for (interaction, button) in interaction_query.iter() {
         if *interaction == Interaction::Pressed {
@@ -730,14 +731,14 @@ fn handle_master_buttons(
                 for (other_button, mut bg, mut border) in all_buttons.iter_mut() {
                     let is_selected = other_button.master_index == button.master_index;
                     *bg = BackgroundColor(if is_selected {
-                        PRESSED_BUTTON_COLOR
+                        theme.theme().pressed_button_color()
                     } else {
-                        NORMAL_BUTTON_COLOR
+                        theme.theme().normal_button_color()
                     });
                     *border = BorderColor(if is_selected {
-                        PRESSED_BUTTON_OUTLINE_COLOR
+                        theme.theme().pressed_button_outline_color()
                     } else {
-                        NORMAL_BUTTON_OUTLINE_COLOR
+                        theme.theme().normal_button_outline_color()
                     });
                 }
 
