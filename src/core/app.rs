@@ -125,7 +125,18 @@ fn configure_resources(app: &mut App, cli_args: CliArgs) {
 
     // Configure platform-specific window settings
     #[cfg(not(target_arch = "wasm32"))]
-    app.insert_resource(WinitSettings::desktop_app());
+    {
+        // In debug mode, use continuous updates for instant theme reloading
+        // In release mode, use reactive mode for better performance
+        #[cfg(debug_assertions)]
+        app.insert_resource(WinitSettings {
+            focused_mode: bevy::winit::UpdateMode::Continuous,
+            unfocused_mode: bevy::winit::UpdateMode::Continuous,
+        });
+
+        #[cfg(not(debug_assertions))]
+        app.insert_resource(WinitSettings::desktop_app());
+    }
 
     #[cfg(target_arch = "wasm32")]
     app.insert_resource(WinitSettings::game());

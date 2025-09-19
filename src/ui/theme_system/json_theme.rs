@@ -816,37 +816,67 @@ pub fn check_json_theme_changes(
 
 use super::CurrentTheme;
 
-/// System to update border radius when theme changes
+/// System to update all theme properties when theme changes
 pub fn update_border_radius_on_theme_change(
     theme: Res<CurrentTheme>,
-    mut widget_query: Query<&mut BorderRadius, With<WidgetBorderRadius>>,
+    mut widget_query: Query<(&mut BorderRadius, &mut BackgroundColor, &mut BorderColor), With<WidgetBorderRadius>>,
     mut toolbar_query: Query<
-        &mut BorderRadius,
+        (&mut BorderRadius, &mut BackgroundColor, &mut BorderColor),
         (With<ToolbarBorderRadius>, Without<WidgetBorderRadius>),
     >,
     mut ui_query: Query<
-        &mut BorderRadius,
+        (&mut BorderRadius, &mut BackgroundColor, &mut BorderColor),
         (
             With<UiBorderRadius>,
             Without<WidgetBorderRadius>,
             Without<ToolbarBorderRadius>,
         ),
     >,
+    mut clear_color: ResMut<ClearColor>,
 ) {
+    // Only update in debug mode for hot-reload development
+    #[cfg(debug_assertions)]
     if theme.is_changed() {
-        // Update widget border radius
-        for mut border_radius in widget_query.iter_mut() {
+        // Update background color
+        clear_color.0 = theme.theme().background_color();
+
+        // Update widget properties
+        for (mut border_radius, mut bg_color, mut border_color) in widget_query.iter_mut() {
             *border_radius = BorderRadius::all(Val::Px(theme.theme().widget_border_radius()));
+            *bg_color = BackgroundColor(theme.theme().widget_background_color());
+            *border_color = BorderColor(theme.theme().widget_border_color());
         }
 
-        // Update toolbar border radius
-        for mut border_radius in toolbar_query.iter_mut() {
+        // Update toolbar properties
+        for (mut border_radius, mut bg_color, mut border_color) in toolbar_query.iter_mut() {
             *border_radius = BorderRadius::all(Val::Px(theme.theme().toolbar_border_radius()));
+            *bg_color = BackgroundColor(theme.theme().toolbar_background_color());
+            *border_color = BorderColor(theme.theme().toolbar_border_color());
         }
 
-        // Update UI border radius
-        for mut border_radius in ui_query.iter_mut() {
+        // Update UI properties
+        for (mut border_radius, mut bg_color, mut border_color) in ui_query.iter_mut() {
             *border_radius = BorderRadius::all(Val::Px(theme.theme().ui_border_radius()));
+            *bg_color = BackgroundColor(theme.theme().widget_background_color());
+            *border_color = BorderColor(theme.theme().widget_border_color());
+        }
+    }
+}
+
+/// System to update text colors and other UI elements when theme changes
+pub fn update_ui_colors_on_theme_change(
+    theme: Res<CurrentTheme>,
+    mut text_query: Query<&mut TextColor>,
+) {
+    // Only update in debug mode for hot-reload development
+    #[cfg(debug_assertions)]
+    if theme.is_changed() {
+        // Update all text colors to normal text color
+        for mut text_color in text_query.iter_mut() {
+            // Only update if color is not transparent (likely was set by theme)
+            if text_color.0.alpha() > 0.0 {
+                text_color.0 = theme.theme().normal_text_color();
+            }
         }
     }
 }

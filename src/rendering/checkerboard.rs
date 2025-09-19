@@ -140,6 +140,14 @@ pub fn update_checkerboard(
     if checkerboard_enabled.is_added() {
         checkerboard_enabled.enabled = theme.theme().checkerboard_enabled_by_default();
     }
+
+    // Force checkerboard rebuild when theme changes (to pick up new colors)
+    // Only in debug mode to avoid performance impact in release builds
+    #[cfg(debug_assertions)]
+    if theme.is_changed() && !state.spawned_squares.is_empty() {
+        despawn_all_squares(&mut commands, &mut state, &square_query);
+        return; // Let next frame rebuild with new colors
+    }
     // If checkerboard is disabled OR we're in presentation mode, despawn all squares and return early
     let presentation_active = presentation_mode.is_some_and(|pm| pm.active);
     if !checkerboard_enabled.enabled || presentation_active {
