@@ -112,6 +112,7 @@ pub struct JsonTheme {
     pub sort_inactive_metrics: [f32; 4],
     pub sort_active_outline: [f32; 3],
     pub sort_inactive_outline: [f32; 3],
+    pub filled_glyph: [f32; 3],
 
     // Border radius properties
     pub widget_border_radius: f32,
@@ -617,11 +618,10 @@ impl BezyTheme for JsonTheme {
     }
 
     fn filled_glyph_color(&self) -> Color {
-        // Default to a lighter version of sort_inactive_outline_color if not specified
         Color::srgb(
-            self.sort_inactive_outline[0] * 1.2,
-            self.sort_inactive_outline[1] * 1.2,
-            self.sort_inactive_outline[2] * 1.2,
+            self.filled_glyph[0],
+            self.filled_glyph[1],
+            self.filled_glyph[2],
         )
     }
 
