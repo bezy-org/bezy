@@ -36,6 +36,10 @@ pub struct JsonTheme {
     pub secondary_text: [f32; 3],
     pub highlight_text: [f32; 3],
 
+    // UI text colors for key-value pairs
+    pub ui_text_label: Option<[f32; 3]>,
+    pub ui_text_value: Option<[f32; 3]>,
+
     // Background colors
     pub background: [f32; 3],
     pub widget_background: [f32; 4],
@@ -173,6 +177,24 @@ impl BezyTheme for JsonTheme {
             self.highlight_text[1],
             self.highlight_text[2],
         )
+    }
+
+    fn ui_text_label(&self) -> Color {
+        if let Some(label_color) = self.ui_text_label {
+            Color::srgb(label_color[0], label_color[1], label_color[2])
+        } else {
+            // Default to secondary text color if not specified
+            self.secondary_text_color()
+        }
+    }
+
+    fn ui_text_value(&self) -> Color {
+        if let Some(value_color) = self.ui_text_value {
+            Color::srgb(value_color[0], value_color[1], value_color[2])
+        } else {
+            // Default to highlight text color if not specified
+            self.highlight_text_color()
+        }
     }
 
     // Backgrounds

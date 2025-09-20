@@ -236,7 +236,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.theme().secondary_text_color()),
+                        TextColor(theme.get_ui_text_label()),
                     ));
                     // Value
                     row.spawn((
@@ -246,7 +246,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.theme().on_curve_primary_color()),
+                        TextColor(theme.get_ui_text_value()),
                         DesignspacePathText,
                     ));
                 });
@@ -272,7 +272,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.theme().secondary_text_color()),
+                        TextColor(theme.get_ui_text_label()),
                     ));
                     // Value
                     row.spawn((
@@ -282,7 +282,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.theme().on_curve_primary_color()),
+                        TextColor(theme.get_ui_text_value()),
                         CurrentUFOText,
                     ));
                 });
@@ -312,7 +312,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.theme().secondary_text_color()),
+                        TextColor(theme.get_ui_text_label()),
                     ));
                     // Value
                     row.spawn((
@@ -322,7 +322,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.theme().on_curve_primary_color()),
+                        TextColor(theme.get_ui_text_value()),
                         LastSavedText,
                     ));
                 });
@@ -351,7 +351,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.theme().secondary_text_color()),
+                        TextColor(theme.get_ui_text_label()),
                     ));
                     // Value
                     row.spawn((
@@ -361,7 +361,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.theme().on_curve_primary_color()),
+                        TextColor(theme.get_ui_text_value()),
                         LastExportedText,
                     ));
                 });

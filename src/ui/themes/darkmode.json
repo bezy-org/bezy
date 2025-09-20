@@ -9,6 +9,9 @@
   "secondary_text": [0.6, 0.6, 0.6],
   "highlight_text": [1.0, 0.8, 0.0],
 
+  "ui_text_label": [0.7, 0.7, 0.7],
+  "ui_text_value": [0.0, 1.0, 0.5],
+
   "widget_background": [0.1, 0.1, 0.1, 1.0],
   "widget_border": [0.5, 0.5, 0.5],
 

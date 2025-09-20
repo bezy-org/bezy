@@ -258,6 +258,10 @@ pub trait BezyTheme: Send + Sync + 'static {
     fn secondary_text_color(&self) -> Color;
     fn highlight_text_color(&self) -> Color;
 
+    /// UI text colors for key-value pairs in panes
+    fn ui_text_label(&self) -> Color;
+    fn ui_text_value(&self) -> Color;
+
     // =================================================================
     // LAYOUT & SPACING
     // =================================================================
@@ -696,6 +700,16 @@ impl CurrentTheme {
     /// Get the highlight text color for the current theme
     pub fn get_highlight_text_color(&self) -> Color {
         self.theme().highlight_text_color()
+    }
+
+    /// Get the UI text label color (for keys in key-value pairs)
+    pub fn get_ui_text_label(&self) -> Color {
+        self.theme().ui_text_label()
+    }
+
+    /// Get the UI text value color (for values in key-value pairs)
+    pub fn get_ui_text_value(&self) -> Color {
+        self.theme().ui_text_value()
     }
 
     // =================================================================
