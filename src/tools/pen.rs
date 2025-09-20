@@ -403,7 +403,7 @@ pub fn render_pen_preview(
             &mut materials,
             pos,
             action_color,
-            camera_scale.adjusted_point_size(POINT_PREVIEW_SIZE),
+            camera_scale.adjusted_size(POINT_PREVIEW_SIZE),
         );
 
         // Draw dashed line to next point
@@ -432,7 +432,7 @@ pub fn render_pen_preview(
         &mut materials,
         final_position,
         action_color, // Same color as placed points (no alpha)
-        camera_scale.adjusted_point_size(POINT_PREVIEW_SIZE), // Same size as placed points
+        camera_scale.adjusted_size(POINT_PREVIEW_SIZE), // Same size as placed points
     );
 
     // Draw dashed preview line to cursor if we have at least one point

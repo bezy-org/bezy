@@ -735,7 +735,7 @@ fn render_glyph_points(
             // On-curve points: square with three layers
             let base_size =
                 theme.theme().on_curve_point_radius() * theme.theme().on_curve_square_adjustment() * 2.0 * root_size_multiplier;
-            let size = camera_scale.adjusted_point_size(base_size);
+            let size = camera_scale.adjusted_size(base_size);
 
             // Layer 1: Base shape (full width) - primary color
             let entity = commands
@@ -819,7 +819,7 @@ fn render_glyph_points(
             } else {
                 theme.theme().off_curve_point_radius() * root_size_multiplier
             };
-            let radius = camera_scale.adjusted_point_size(base_radius);
+            let radius = camera_scale.adjusted_size(base_radius);
 
             // Layer 1: Base circle (full size) - primary color
             let entity = commands
@@ -901,7 +901,7 @@ fn render_glyph_points(
             } else {
                 theme.theme().off_curve_point_radius()
             };
-            let line_size = camera_scale.adjusted_point_size(base_line_size);
+            let line_size = camera_scale.adjusted_size(base_line_size);
             let line_width = camera_scale.adjusted_line_width();
 
             // Make crosshair lines slightly shorter to fit within point bounds

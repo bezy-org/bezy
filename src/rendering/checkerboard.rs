@@ -30,6 +30,7 @@ const MIN_VISIBILITY_ZOOM: f32 = 0.01;
 
 /// When camera moves, how much does it need to move to trigger a grid respawn
 const GRID_SIZE_CHANGE_THRESHOLD: f32 = 1.25;
+#[allow(dead_code)]
 const VISIBLE_AREA_COVERAGE_MULTIPLIER: f32 = 1.2;
 const MAX_SQUARES_PER_FRAME: usize = 2000;
 

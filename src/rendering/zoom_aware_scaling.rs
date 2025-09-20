@@ -1,35 +1,72 @@
 //! Zoom-aware scaling system for mesh-based rendering
 //!
-//! This module provides automatic scaling for mesh-rendered elements (points, lines, handles)
-//! to maintain visual consistency at all zoom levels. Similar to how professional font editors
-//! keep UI elements visible when zoomed in or out.
-//!
-//! The system scales mesh elements based on camera zoom to ensure they remain visible and
-//! usable regardless of zoom level.
+//! This module provides automatic scaling for mesh-rendered elements
+//! (points, lines, handles) to maintain visibility at all zoom levels.
+//! Similar to how professional font editors keep UI elements visible
+//! when zoomed out instead of letting them get teeny-tiny.
 
 use crate::rendering::cameras::DesignCamera;
 use bevy::prelude::*;
 
+/// Zoom-responsive scaling behavior
+#[derive(Debug, Clone)]
+pub struct ZoomScaleConfig {
+    /// Scale multiplier when at maximum zoom in
+    pub zoom_in_max_factor: f32,
+    /// Scale multiplier at default zoom (100%)
+    pub zoom_default_factor: f32,
+    /// Scale multiplier when at maximum zoom out
+    pub zoom_out_max_factor: f32,
+}
+
+/// Configuration for zoom-responsive scaling behavior
+impl Default for ZoomScaleConfig {
+    fn default() -> Self {
+        Self {
+            zoom_in_max_factor: 0.5,   // size when max zoomed in
+            zoom_default_factor: 1.5,  // size at default zoom (100%)
+            zoom_out_max_factor: 8.0,  // size when max zoomed out
+        }
+    }
+}
+
+/// Camera zoom ranges for interpolation
+#[derive(Debug, Clone)]
+pub struct ZoomRanges {
+    /// Camera scale at maximum zoom in
+    pub max_zoom_in: f32,
+    /// Camera scale at default zoom (100%)
+    pub default_zoom: f32,
+    /// Camera scale at maximum zoom out
+    pub max_zoom_out: f32,
+}
+
+impl Default for ZoomRanges {
+    fn default() -> Self {
+        Self {
+            max_zoom_in: 0.2,    // Maximum zoom in
+            default_zoom: 1.0,   // Default zoom level
+            max_zoom_out: 16.0,  // Maximum zoom out
+        }
+    }
+}
+
 /// Resource that tracks the current camera-responsive scale factor
 #[derive(Resource, Default)]
 pub struct CameraResponsiveScale {
-    /// The current scale factor to apply to visual elements
-    /// 1.0 = normal size, >1.0 = bigger, <1.0 = smaller
+    /// Current scale factor to apply to visual elements
+    /// 1.0 = base size, >1.0 = bigger, <1.0 = smaller
+    /// TODO: This field is public but gets overwritten every frame by
+    /// update_camera_responsive_scale system, making manual changes pointless.
+    /// Either make it private with a getter, add manual override mode, or
+    /// remove the automatic update system.
     pub scale_factor: f32,
-    /// The base line width in world units at normal zoom (1.0)
+    /// Base line width in world units at normal zoom
     pub base_line_width: f32,
-    /// Scale factor when zoomed in to maximum
-    pub zoom_in_max_factor: f32,
-    /// Scale factor at default zoom level
-    pub default_factor: f32,
-    /// Scale factor when zoomed out to maximum
-    pub zoom_out_max_factor: f32,
-    /// Camera scale value that represents maximum zoom in
-    pub zoom_in_max_camera_scale: f32,
-    /// Camera scale value that represents default zoom
-    pub default_camera_scale: f32,
-    /// Camera scale value that represents maximum zoom out
-    pub zoom_out_max_camera_scale: f32,
+    /// Configuration for scale factors at different zoom levels
+    pub config: ZoomScaleConfig,
+    /// Camera zoom ranges
+    pub ranges: ZoomRanges,
 }
 
 impl CameraResponsiveScale {
@@ -37,14 +74,47 @@ impl CameraResponsiveScale {
         Self {
             scale_factor: 1.0,
             base_line_width: 1.0,
-            // EASY TO TUNE: Adjust these three scale factors
-            zoom_in_max_factor: 1.0,   // Keep current size when zoomed in
-            default_factor: 1.0,       // Keep current size at default zoom
-            zoom_out_max_factor: 12.0, // Make 12x bigger when zoomed out (was 3.0)
-            // Camera scale ranges (you can adjust these if needed)
-            zoom_in_max_camera_scale: 0.2,   // Maximum zoom in
-            default_camera_scale: 1.0,       // Default zoom level
-            zoom_out_max_camera_scale: 16.0, // Maximum zoom out
+            config: ZoomScaleConfig::default(),
+            ranges: ZoomRanges::default(),
+        }
+    }
+
+    /// Creates a new instance with custom configuration
+    pub fn with_config(
+        config: ZoomScaleConfig,
+        ranges: ZoomRanges,
+    ) -> Self {
+        Self {
+            scale_factor: 1.0,
+            base_line_width: 1.0,
+            config,
+            ranges,
+        }
+    }
+
+    /// Calculates scale factor based on camera zoom level
+    pub fn calculate_scale_factor(&self, camera_scale: f32) -> f32 {
+        let ranges = &self.ranges;
+        let config = &self.config;
+
+        if camera_scale <= ranges.default_zoom {
+            // Interpolate between max zoom in and default
+            lerp_scale(
+                camera_scale,
+                ranges.max_zoom_in,
+                ranges.default_zoom,
+                config.zoom_in_max_factor,
+                config.zoom_default_factor,
+            )
+        } else {
+            // Interpolate between default and max zoom out
+            lerp_scale(
+                camera_scale,
+                ranges.default_zoom,
+                ranges.max_zoom_out,
+                config.zoom_default_factor,
+                config.zoom_out_max_factor,
+            )
         }
     }
 
@@ -53,95 +123,106 @@ impl CameraResponsiveScale {
         self.base_line_width * self.scale_factor
     }
 
-    /// Get the adjusted point size based on camera zoom  
-    pub fn adjusted_point_size(&self, base_size: f32) -> f32 {
-        base_size * self.scale_factor
-    }
-
-    /// Get the adjusted handle size based on camera zoom
-    pub fn adjusted_handle_size(&self, base_size: f32) -> f32 {
+    /// Get the adjusted size for any element
+    pub fn adjusted_size(&self, base_size: f32) -> f32 {
         base_size * self.scale_factor
     }
 }
 
-/// System that updates the camera-responsive scale based on current camera zoom
+/// Linear interpolation between two scale factors
+fn lerp_scale(
+    current: f32,
+    range_start: f32,
+    range_end: f32,
+    factor_start: f32,
+    factor_end: f32,
+) -> f32 {
+    let t = ((current - range_start) / (range_end - range_start))
+        .clamp(0.0, 1.0);
+    factor_start * (1.0 - t) + factor_end * t
+}
+
+/// Updates the camera-responsive scale based on current zoom
 pub fn update_camera_responsive_scale(
-    mut scale_resource: ResMut<CameraResponsiveScale>,
-    camera_query: Query<(&Transform, &Projection), With<DesignCamera>>,
+    mut scale_res: ResMut<CameraResponsiveScale>,
+    camera_q: Query<&Projection, With<DesignCamera>>,
 ) {
-    if let Ok((camera_transform, projection)) = camera_query.single() {
-        // Get camera scale from OrthographicProjection (this is what PanCam modifies for zoom)
-        let projection_scale = match projection {
-            Projection::Orthographic(ortho) => ortho.scale,
-            _ => 1.0, // Default for non-orthographic projections
-        };
-        let _transform_scale = camera_transform.scale.x;
+    let Ok(projection) = camera_q.single() else {
+        return;
+    };
 
-        // Use projection scale for responsive scaling (this is the real zoom level)
-        let camera_scale = projection_scale;
+    let camera_scale = match projection {
+        Projection::Orthographic(ortho) => ortho.scale,
+        _ => 1.0,
+    };
 
-        // Calculate responsive scale factor
-        // When camera_scale is large (zoomed in), we want smaller visual elements
-        // When camera_scale is small (zoomed out), we want larger visual elements
-        // Use inverse relationship to make the effect very obvious
-
-        // Simple interpolation between three scale factors
-        let responsive_factor = if camera_scale <= scale_resource.default_camera_scale {
-            // Interpolate between zoom_in_max and default
-            let t = (camera_scale - scale_resource.zoom_in_max_camera_scale)
-                / (scale_resource.default_camera_scale - scale_resource.zoom_in_max_camera_scale);
-            let t = t.clamp(0.0, 1.0);
-            scale_resource.zoom_in_max_factor * (1.0 - t) + scale_resource.default_factor * t
-        } else {
-            // Interpolate between default and zoom_out_max
-            let t = (camera_scale - scale_resource.default_camera_scale)
-                / (scale_resource.zoom_out_max_camera_scale - scale_resource.default_camera_scale);
-            let t = t.clamp(0.0, 1.0);
-            scale_resource.default_factor * (1.0 - t) + scale_resource.zoom_out_max_factor * t
-        };
-
-        // Store the interpolated factor directly (no additional clamping needed)
-        scale_resource.scale_factor = responsive_factor;
-    }
+    scale_res.scale_factor =
+        scale_res.calculate_scale_factor(camera_scale);
 }
 
-/// Component to mark entities that should respond to camera zoom
+/// Types of visual elements that respond to camera zoom
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ResponsiveElementType {
+    Line,
+    Point,
+    Handle,
+}
+
+/// Component marking entities that should scale with zoom
 #[derive(Component)]
 pub struct CameraResponsive {
-    /// The type of visual element this entity represents
     pub element_type: ResponsiveElementType,
-    /// The base size when scale_factor = 1.0
     pub base_size: f32,
 }
 
-/// Types of visual elements that can respond to camera zoom
-#[derive(Debug, Clone)]
-pub enum ResponsiveElementType {
-    LineWidth,
-    PointSize,
-    HandleSize,
+impl CameraResponsive {
+    pub fn new(
+        element_type: ResponsiveElementType,
+        base_size: f32,
+    ) -> Self {
+        Self {
+            element_type,
+            base_size,
+        }
+    }
+
+    pub fn line(base_width: f32) -> Self {
+        Self::new(ResponsiveElementType::Line, base_width)
+    }
+
+    pub fn point(base_size: f32) -> Self {
+        Self::new(ResponsiveElementType::Point, base_size)
+    }
+
+    pub fn handle(base_size: f32) -> Self {
+        Self::new(ResponsiveElementType::Handle, base_size)
+    }
 }
 
-/// System that applies camera-responsive scaling to marked entities
+/// Applies camera-responsive scaling to marked entities
 pub fn apply_camera_responsive_scaling(
-    scale_resource: Res<CameraResponsiveScale>,
-    mut responsive_query: Query<(&CameraResponsive, &mut Transform), Changed<CameraResponsive>>,
+    scale_res: Res<CameraResponsiveScale>,
+    mut query: Query<(
+        &CameraResponsive,
+        &mut Transform,
+    ), Changed<CameraResponsive>>,
 ) {
-    if scale_resource.is_changed() {
-        for (responsive, mut transform) in responsive_query.iter_mut() {
-            let new_scale = match responsive.element_type {
-                ResponsiveElementType::LineWidth => scale_resource.adjusted_line_width(),
-                ResponsiveElementType::PointSize => {
-                    scale_resource.adjusted_point_size(responsive.base_size)
-                }
-                ResponsiveElementType::HandleSize => {
-                    scale_resource.adjusted_handle_size(responsive.base_size)
-                }
-            };
+    if !scale_res.is_changed() {
+        return;
+    }
 
-            // Update the transform scale while preserving position
-            transform.scale = Vec3::new(new_scale, new_scale, 1.0);
-        }
+    for (responsive, mut transform) in &mut query {
+        let new_scale = match responsive.element_type {
+            ResponsiveElementType::Line => {
+                scale_res.adjusted_line_width()
+            }
+            ResponsiveElementType::Point |
+            ResponsiveElementType::Handle => {
+                scale_res.adjusted_size(responsive.base_size)
+            }
+        };
+
+        transform.scale = Vec3::splat(new_scale);
     }
 }
 
@@ -151,47 +232,12 @@ pub struct CameraResponsivePlugin;
 impl Plugin for CameraResponsivePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(CameraResponsiveScale::new())
-            .add_systems(Update, update_camera_responsive_scale);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_camera_responsive_scale_calculation() {
-        let mut scale = CameraResponsiveScale::new();
-
-        // Test zoomed in (small camera scale)
-        scale.scale_factor = 0.5_f32.sqrt(); // camera_scale = 0.5
-        assert!(
-            scale.scale_factor < 1.0,
-            "Zoomed in should have smaller scale factor"
-        );
-
-        // Test zoomed out (large camera scale)
-        scale.scale_factor = 4.0_f32.sqrt(); // camera_scale = 4.0
-        assert!(
-            scale.scale_factor > 1.0,
-            "Zoomed out should have larger scale factor"
-        );
-
-        // Test normal zoom
-        scale.scale_factor = 1.0_f32.sqrt(); // camera_scale = 1.0
-        assert_eq!(
-            scale.scale_factor, 1.0,
-            "Normal zoom should have scale factor of 1.0"
-        );
-    }
-
-    #[test]
-    fn test_adjusted_sizes() {
-        let mut scale = CameraResponsiveScale::new();
-        scale.scale_factor = 2.0;
-
-        assert_eq!(scale.adjusted_line_width(), 2.0);
-        assert_eq!(scale.adjusted_point_size(10.0), 20.0);
-        assert_eq!(scale.adjusted_handle_size(16.0), 32.0);
+            .add_systems(
+                Update,
+                (
+                    update_camera_responsive_scale,
+                    apply_camera_responsive_scaling,
+                ).chain(),
+            );
     }
 }

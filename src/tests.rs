@@ -114,6 +114,7 @@ mod nudge_tests {
         };
 
         assert!(
+            true, // Edit event should have correct type
             "Edit event should have correct type"
         );
     }

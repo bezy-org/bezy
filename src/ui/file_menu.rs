@@ -316,6 +316,7 @@ fn save_font_files(
 ///
 /// The BezPath MoveTo defines where the contour starts. We ensure the UFO contour
 /// starts at the same logical position by organizing points accordingly.
+#[allow(dead_code)]
 fn convert_bezpath_to_ufo_contour(bez_path: &kurbo::BezPath) -> norad::Contour {
     let mut all_points = Vec::new();
     let mut is_closed = false;

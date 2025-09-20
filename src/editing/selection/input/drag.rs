@@ -70,7 +70,7 @@ pub fn handle_point_drag(
             }
         }
 
-        let mut updated_count = 0;
+        let mut _updated_count = 0;
         let mut point_movements = Vec::new();
 
         // First, process selected points and collect movement data
@@ -233,11 +233,11 @@ pub fn handle_point_drag(
 
         // Sync all movements to font data using shared utility
         let result = sync_to_font_data(&point_movements, &mut fontir_app_state, &mut app_state);
-        updated_count = result.points_moved + result.connected_offcurves_moved;
+        _updated_count = result.points_moved + result.connected_offcurves_moved;
 
-        if updated_count > 0 {
+        if _updated_count > 0 {
             debug!("Updated {} points ({} selected, {} connected off-curves) during drag",
-                   updated_count, result.points_moved, result.connected_offcurves_moved);
+                   _updated_count, result.points_moved, result.connected_offcurves_moved);
 
             // Send edit event
             event_writer.write(EditEvent {
@@ -248,6 +248,7 @@ pub fn handle_point_drag(
 
 /// Helper function to find curve handles for a smooth point during drag operations
 /// Returns (left_handle, right_handle) as Option<Entity> for each direction
+#[allow(dead_code)]
 fn find_curve_handles_for_smooth_point_drag(
     smooth_entity: Entity,
     smooth_point_ref: &GlyphPointReference,

@@ -210,7 +210,7 @@ pub fn render_measure_preview(
 
         // Draw start point (yellow circle like intersection markers)
         let point_color = theme.theme().selected_color(); // Use yellow selection color
-        let point_size = camera_scale.adjusted_point_size(4.0);
+        let point_size = camera_scale.adjusted_size(4.0);
         let point_entity = spawn_measure_point_mesh(
             &mut commands,
             &mut meshes,
@@ -256,7 +256,7 @@ pub fn render_measure_preview(
 
         for &intersection in &intersections {
             // Create yellow filled circles for intersection points (doubled size)
-            let intersection_size = camera_scale.adjusted_point_size(6.0); // Doubled from 3.0 to 6.0
+            let intersection_size = camera_scale.adjusted_size(6.0); // Doubled from 3.0 to 6.0
             let intersection_entity = spawn_measure_point_mesh(
                 &mut commands,
                 &mut meshes,
