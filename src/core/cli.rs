@@ -16,7 +16,7 @@ use std::path::PathBuf;
 ///   bezy --edit my-font.ufo             # Edit specific font
 ///   bezy --edit ~/Fonts/MyFont.ufo      # Edit font with full path
 ///   bezy --edit my-variable.designspace # Edit variable font
-///   bezy --theme lightmode              # Use light mode theme
+///   bezy --theme light                  # Use light theme
 ///   bezy --theme strawberry             # Use strawberry theme
 ///   bezy --no-default-buffer            # Start without default LTR buffer (for testing)
 #[derive(Parser, Debug, Resource)]
@@ -42,13 +42,13 @@ pub struct CliArgs {
 
     /// Theme to use for the interface
     ///
-    /// Available themes: darkmode (default), lightmode, strawberry, campfire.
+    /// Available themes: dark (default), light, strawberry, campfire.
     /// Custom themes can be added by creating new theme files.
     #[clap(
         long = "theme",
         short = 't',
         help = "Theme to use",
-        long_help = "Theme to use for the interface. Available themes: darkmode (default), lightmode, strawberry, campfire"
+        long_help = "Theme to use for the interface. Available themes: dark (default), light, strawberry, campfire"
     )]
     pub theme: Option<String>,
 

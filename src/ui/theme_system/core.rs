@@ -193,7 +193,7 @@ impl ThemeVariant {
 
 impl Default for ThemeVariant {
     fn default() -> Self {
-        Self::new("darkmode".to_string())
+        Self::new("dark".to_string())
     }
 }
 
@@ -639,12 +639,12 @@ impl CurrentTheme {
         let theme = registry
             .create_theme(variant.name())
             .unwrap_or_else(|| {
-                // Fallback to creating darkmode from embedded JSON
-                if let Some(content) = embedded_themes::get_embedded_themes().get("darkmode") {
+                // Fallback to creating dark theme from embedded JSON
+                if let Some(content) = embedded_themes::get_embedded_themes().get("dark") {
                     if let Ok(json_theme) = embedded_themes::load_theme_from_string(content) {
                         Box::new(json_theme)
                     } else {
-                        panic!("Failed to load fallback darkmode theme!")
+                        panic!("Failed to load fallback dark theme!")
                     }
                 } else {
                     panic!("No fallback theme available!")

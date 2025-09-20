@@ -1,15 +1,15 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-pub const DARKMODE_JSON: &str = include_str!("../themes/darkmode.json");
-pub const LIGHTMODE_JSON: &str = include_str!("../themes/lightmode.json");
+pub const DARK_JSON: &str = include_str!("../themes/dark.json");
+pub const LIGHT_JSON: &str = include_str!("../themes/light.json");
 pub const STRAWBERRY_JSON: &str = include_str!("../themes/strawberry.json");
 pub const CAMPFIRE_JSON: &str = include_str!("../themes/campfire.json");
 
 pub fn get_embedded_themes() -> HashMap<String, &'static str> {
     let mut themes = HashMap::new();
-    themes.insert("darkmode".to_string(), DARKMODE_JSON);
-    themes.insert("lightmode".to_string(), LIGHTMODE_JSON);
+    themes.insert("dark".to_string(), DARK_JSON);
+    themes.insert("light".to_string(), LIGHT_JSON);
     themes.insert("strawberry".to_string(), STRAWBERRY_JSON);
     themes.insert("campfire".to_string(), CAMPFIRE_JSON);
     themes

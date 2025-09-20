@@ -34,7 +34,7 @@
 //! - **Interaction**: Hover states, selection feedback, and tool previews
 
 // All themes are now JSON-based for easy editing and hot reloading
-// Theme files: darkmode.json, lightmode.json, campfire.json, strawberry.json
+// Theme files: dark.json, light.json, campfire.json, strawberry.json
 
 // Re-export core theming infrastructure from theme_system
 pub use crate::ui::theme_system::{
