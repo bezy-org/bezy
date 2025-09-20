@@ -603,14 +603,14 @@ fn update_master_buttons(
                     ..default()
                 },
                 BackgroundColor(if is_selected {
-                    theme.theme().pressed_button_color()
+                    theme.theme().button_pressed()
                 } else {
-                    theme.theme().normal_button_color()
+                    theme.theme().button_regular()
                 }),
                 BorderColor(if is_selected {
-                    theme.theme().pressed_button_outline_color()
+                    theme.theme().button_pressed_outline()
                 } else {
-                    theme.theme().normal_button_outline_color()
+                    theme.theme().button_regular_outline()
                 }),
                 BorderRadius::all(Val::Px(theme.theme().ui_border_radius())),
                 UiBorderRadius,
@@ -773,14 +773,14 @@ fn handle_master_buttons(
                 for (other_button, mut bg, mut border) in all_buttons.iter_mut() {
                     let is_selected = other_button.master_index == button.master_index;
                     *bg = BackgroundColor(if is_selected {
-                        theme.theme().pressed_button_color()
+                        theme.theme().button_pressed()
                     } else {
-                        theme.theme().normal_button_color()
+                        theme.theme().button_regular()
                     });
                     *border = BorderColor(if is_selected {
-                        theme.theme().pressed_button_outline_color()
+                        theme.theme().button_pressed_outline()
                     } else {
-                        theme.theme().normal_button_outline_color()
+                        theme.theme().button_regular_outline()
                     });
                 }
 

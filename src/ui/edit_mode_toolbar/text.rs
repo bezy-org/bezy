@@ -566,7 +566,7 @@ pub fn render_sort_preview(
             preview_metrics_state.position = snapped_position;
             preview_metrics_state.glyph_name = preview_glyph_name.clone();
             preview_metrics_state.advance_width = advance_width;
-            preview_metrics_state.color = theme.theme().pressed_button_color().with_alpha(0.8);
+            preview_metrics_state.color = theme.theme().button_pressed().with_alpha(0.8);
             debug!(
                 "[PREVIEW] Updated mesh-based preview metrics for '{}' at ({:.1}, {:.1})",
                 preview_glyph_name, snapped_position.x, snapped_position.y
@@ -596,7 +596,7 @@ pub fn render_sort_preview(
             preview_metrics_state.position = snapped_position;
             preview_metrics_state.glyph_name = preview_glyph_name.clone();
             preview_metrics_state.advance_width = advance_width;
-            preview_metrics_state.color = theme.theme().pressed_button_color().with_alpha(0.8);
+            preview_metrics_state.color = theme.theme().button_pressed().with_alpha(0.8);
             debug!(
                 "[PREVIEW] Updated mesh-based preview metrics for '{}' at ({:.1}, {:.1})",
                 preview_glyph_name, snapped_position.x, snapped_position.y

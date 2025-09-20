@@ -1549,7 +1549,7 @@ fn spawn_contour_start_arrow(
     mesh.insert_indices(bevy::render::mesh::Indices::U32(vec![0, 1, 2]));
 
     // Use the theme's active orange color
-    let arrow_color = theme.theme().pressed_button_color(); // Active orange from theme
+    let arrow_color = theme.theme().button_pressed(); // Active orange from theme
 
     commands
         .spawn((

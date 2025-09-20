@@ -339,28 +339,20 @@ pub trait BezyTheme: Send + Sync + 'static {
     /// Main background
     fn background_color(&self) -> Color;
 
-    /// Widget colors  
+    /// Widget colors
     fn widget_background_color(&self) -> Color;
     fn widget_border_color(&self) -> Color;
 
-    /// Toolbar colors
-    fn toolbar_background_color(&self) -> Color;
-    fn toolbar_icon_color(&self) -> Color;
-    fn toolbar_border_color(&self) -> Color;
-
-    /// Panel colors
-    fn panel_background_color(&self) -> Color;
-
-    /// Button colors
-    fn normal_button_color(&self) -> Color;
-    fn hovered_button_color(&self) -> Color;
-    fn pressed_button_color(&self) -> Color;
-
-    /// Button outline colors
-    fn normal_button_outline_color(&self) -> Color;
-    fn hovered_button_outline_color(&self) -> Color;
-    fn pressed_button_outline_color(&self) -> Color;
-    fn pressed_button_icon_color(&self) -> Color;
+    /// Button colors - covers buttons, toolbars, and interactive elements
+    fn button_regular(&self) -> Color;
+    fn button_hovered(&self) -> Color;
+    fn button_pressed(&self) -> Color;
+    fn button_regular_outline(&self) -> Color;
+    fn button_hovered_outline(&self) -> Color;
+    fn button_pressed_outline(&self) -> Color;
+    fn button_regular_icon(&self) -> Color;
+    fn button_hovered_icon(&self) -> Color;
+    fn button_pressed_icon(&self) -> Color;
 
     /// Focus and special states
     fn focus_background_color(&self) -> Color;

@@ -343,7 +343,7 @@ pub fn spawn_coordinate_pane(
                                         left: Val::Px(BUTTON_CENTER_POSITIONS[0]),
                                         ..default()
                                     },
-                                    BackgroundColor(theme.theme().normal_button_outline_color()),
+                                    BackgroundColor(theme.theme().button_regular_outline()),
                                 ));
                             }
                             // Vertical grid lines - aligned with button centers
@@ -359,7 +359,7 @@ pub fn spawn_coordinate_pane(
                                         top: Val::Px(BUTTON_CENTER_POSITIONS[0]),
                                         ..default()
                                     },
-                                    BackgroundColor(theme.theme().normal_button_outline_color()),
+                                    BackgroundColor(theme.theme().button_regular_outline()),
                                 ));
                             }
                         });
@@ -398,14 +398,14 @@ pub fn spawn_coordinate_pane(
                                 ..default()
                             },
                             BackgroundColor(if is_selected {
-                                theme.theme().pressed_button_color()
+                                theme.theme().button_pressed()
                             } else {
-                                theme.theme().normal_button_color()
+                                theme.theme().button_regular()
                             }),
                             BorderColor(if is_selected {
-                                theme.theme().pressed_button_outline_color()
+                                theme.theme().button_pressed_outline()
                             } else {
-                                theme.theme().normal_button_outline_color()
+                                theme.theme().button_regular_outline()
                             }),
                             BorderRadius::all(Val::Px(theme.theme().ui_border_radius())),
                             UiBorderRadius,
@@ -519,14 +519,14 @@ fn handle_quadrant_buttons(
             for (other_button, mut bg, mut border) in all_buttons.iter_mut() {
                 let is_selected = other_button.0 == button.0;
                 *bg = BackgroundColor(if is_selected {
-                    theme.theme().pressed_button_color()
+                    theme.theme().button_pressed()
                 } else {
-                    theme.theme().normal_button_color()
+                    theme.theme().button_regular()
                 });
                 *border = BorderColor(if is_selected {
-                    theme.theme().pressed_button_outline_color()
+                    theme.theme().button_pressed_outline()
                 } else {
-                    theme.theme().normal_button_outline_color()
+                    theme.theme().button_regular_outline()
                 });
             }
         }

@@ -41,19 +41,17 @@ pub struct JsonTheme {
     pub background: [f32; 3],
     pub widget_background: [f32; 4],
     pub widget_border: [f32; 3],
-    pub toolbar_background: [f32; 4],
-    pub toolbar_icon: [f32; 3],
-    pub toolbar_border: [f32; 4],
-    pub panel_background: [f32; 3],
 
-    // Button colors
-    pub normal_button: [f32; 3],
-    pub hovered_button: [f32; 3],
-    pub pressed_button: [f32; 3],
-    pub normal_button_outline: [f32; 3],
-    pub hovered_button_outline: [f32; 3],
-    pub pressed_button_outline: [f32; 3],
-    pub pressed_button_icon: [f32; 3],
+    // Button colors - covers buttons, toolbars, and interactive elements
+    pub button_regular: [f32; 3],
+    pub button_hovered: [f32; 3],
+    pub button_pressed: [f32; 3],
+    pub button_regular_outline: [f32; 3],
+    pub button_hovered_outline: [f32; 3],
+    pub button_pressed_outline: [f32; 3],
+    pub button_regular_icon: [f32; 3],
+    pub button_hovered_icon: [f32; 3],
+    pub button_pressed_icon: [f32; 3],
 
     // Special backgrounds
     pub focus_background: [f32; 3],
@@ -206,94 +204,76 @@ impl BezyTheme for JsonTheme {
         )
     }
 
-    fn toolbar_background_color(&self) -> Color {
-        Color::srgba(
-            self.toolbar_background[0],
-            self.toolbar_background[1],
-            self.toolbar_background[2],
-            self.toolbar_background[3],
-        )
-    }
-
-    fn toolbar_icon_color(&self) -> Color {
+    // Button colors
+    fn button_regular(&self) -> Color {
         Color::srgb(
-            self.toolbar_icon[0],
-            self.toolbar_icon[1],
-            self.toolbar_icon[2],
+            self.button_regular[0],
+            self.button_regular[1],
+            self.button_regular[2],
         )
     }
 
-    fn toolbar_border_color(&self) -> Color {
-        Color::srgba(
-            self.toolbar_border[0],
-            self.toolbar_border[1],
-            self.toolbar_border[2],
-            self.toolbar_border[3],
-        )
-    }
-
-    fn panel_background_color(&self) -> Color {
+    fn button_hovered(&self) -> Color {
         Color::srgb(
-            self.panel_background[0],
-            self.panel_background[1],
-            self.panel_background[2],
+            self.button_hovered[0],
+            self.button_hovered[1],
+            self.button_hovered[2],
         )
     }
 
-    // Buttons
-    fn normal_button_color(&self) -> Color {
+    fn button_pressed(&self) -> Color {
         Color::srgb(
-            self.normal_button[0],
-            self.normal_button[1],
-            self.normal_button[2],
+            self.button_pressed[0],
+            self.button_pressed[1],
+            self.button_pressed[2],
         )
     }
 
-    fn hovered_button_color(&self) -> Color {
+    fn button_regular_outline(&self) -> Color {
         Color::srgb(
-            self.hovered_button[0],
-            self.hovered_button[1],
-            self.hovered_button[2],
+            self.button_regular_outline[0],
+            self.button_regular_outline[1],
+            self.button_regular_outline[2],
         )
     }
 
-    fn pressed_button_color(&self) -> Color {
+    fn button_hovered_outline(&self) -> Color {
         Color::srgb(
-            self.pressed_button[0],
-            self.pressed_button[1],
-            self.pressed_button[2],
+            self.button_hovered_outline[0],
+            self.button_hovered_outline[1],
+            self.button_hovered_outline[2],
         )
     }
 
-    fn normal_button_outline_color(&self) -> Color {
+    fn button_pressed_outline(&self) -> Color {
         Color::srgb(
-            self.normal_button_outline[0],
-            self.normal_button_outline[1],
-            self.normal_button_outline[2],
+            self.button_pressed_outline[0],
+            self.button_pressed_outline[1],
+            self.button_pressed_outline[2],
         )
     }
 
-    fn hovered_button_outline_color(&self) -> Color {
+    fn button_regular_icon(&self) -> Color {
         Color::srgb(
-            self.hovered_button_outline[0],
-            self.hovered_button_outline[1],
-            self.hovered_button_outline[2],
+            self.button_regular_icon[0],
+            self.button_regular_icon[1],
+            self.button_regular_icon[2],
         )
     }
 
-    fn pressed_button_outline_color(&self) -> Color {
+    fn button_hovered_icon(&self) -> Color {
         Color::srgb(
-            self.pressed_button_outline[0],
-            self.pressed_button_outline[1],
-            self.pressed_button_outline[2],
+            self.button_hovered_icon[0],
+            self.button_hovered_icon[1],
+            self.button_hovered_icon[2],
         )
     }
 
-    fn pressed_button_icon_color(&self) -> Color {
+    fn button_pressed_icon(&self) -> Color {
         Color::srgb(
-            self.pressed_button_icon[0],
-            self.pressed_button_icon[1],
-            self.pressed_button_icon[2],
+            self.button_pressed_icon[0],
+            self.button_pressed_icon[1],
+            self.button_pressed_icon[2],
         )
     }
 
@@ -867,8 +847,8 @@ pub fn update_all_theme_properties_on_change(
         // Update toolbar properties
         for (mut border_radius, mut bg_color, mut border_color) in toolbar_query.iter_mut() {
             *border_radius = BorderRadius::all(Val::Px(theme.theme().toolbar_border_radius()));
-            *bg_color = BackgroundColor(theme.theme().toolbar_background_color());
-            *border_color = BorderColor(theme.theme().toolbar_border_color());
+            *bg_color = BackgroundColor(theme.theme().button_regular());
+            *border_color = BorderColor(theme.theme().button_regular_outline());
         }
 
         // Update UI properties

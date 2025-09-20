@@ -151,8 +151,8 @@ fn create_button_entity(
             EditModeToolbarButton,
             ToolButtonData { tool_id: tool.id() },
             create_button_styling(theme),
-            BackgroundColor(theme.theme().normal_button_color()),
-            BorderColor(theme.theme().normal_button_outline_color()),
+            BackgroundColor(theme.theme().button_regular()),
+            BorderColor(theme.theme().button_regular_outline()),
             BorderRadius::all(Val::Px(theme.theme().toolbar_border_radius())),
             ToolbarBorderRadius,
         ))
@@ -209,7 +209,7 @@ pub fn create_button_icon_text(
             font_size: theme.theme().button_icon_size(),
             ..default()
         },
-        TextColor(theme.theme().toolbar_icon_color()),
+        TextColor(theme.theme().button_regular_icon()),
     ));
 }
 
@@ -257,8 +257,8 @@ pub fn create_toolbar_button_with_hover_text<T: Bundle>(
                     Button,
                     additional_components,
                     create_button_styling(theme),
-                    BackgroundColor(theme.theme().normal_button_color()),
-                    BorderColor(theme.theme().normal_button_outline_color()),
+                    BackgroundColor(theme.theme().button_regular()),
+                    BorderColor(theme.theme().button_regular_outline()),
                     BorderRadius::all(Val::Px(theme.theme().toolbar_border_radius())),
                     ToolbarBorderRadius,
                 ))
@@ -279,16 +279,16 @@ pub fn update_toolbar_button_colors(
 ) {
     let (bg_color, border_color_value) = match (interaction, is_active) {
         (Interaction::Pressed, _) | (_, true) => (
-            theme.theme().pressed_button_color(),
-            theme.theme().pressed_button_outline_color(),
+            theme.theme().button_pressed(),
+            theme.theme().button_pressed_outline(),
         ),
         (Interaction::Hovered, false) => (
-            theme.theme().hovered_button_color(),
-            theme.theme().hovered_button_outline_color(),
+            theme.theme().button_hovered(),
+            theme.theme().button_hovered_outline(),
         ),
         (Interaction::None, false) => (
-            theme.theme().normal_button_color(),
-            theme.theme().normal_button_outline_color(),
+            theme.theme().button_regular(),
+            theme.theme().button_regular_outline(),
         ),
     };
 
@@ -311,9 +311,9 @@ pub fn update_toolbar_button_text_colors(
     };
 
     let new_color = if is_active {
-        theme.theme().pressed_button_icon_color() // Bright white for active buttons
+        theme.theme().button_pressed_icon() // Bright white for active buttons
     } else {
-        theme.theme().toolbar_icon_color() // Light gray for normal buttons
+        theme.theme().button_regular_icon() // Light gray for normal buttons
     };
 
     // Update text colors for all children of this button
@@ -639,7 +639,7 @@ pub fn update_hover_text_visibility(
                     font_size: theme.theme().widget_text_font_size(),
                     ..default()
                 },
-                TextColor(theme.theme().toolbar_icon_color()), // Light gray color to match unselected icons
+                TextColor(theme.theme().button_regular_icon()), // Light gray color to match unselected icons
                 Node {
                     position_type: PositionType::Absolute,
                     top: Val::Px(vertical_offset),
