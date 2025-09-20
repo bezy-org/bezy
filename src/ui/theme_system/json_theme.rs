@@ -826,7 +826,8 @@ pub fn check_json_theme_changes(
 use super::CurrentTheme;
 
 /// System to update all theme properties when theme changes
-pub fn update_border_radius_on_theme_change(
+pub fn update_all_theme_properties_on_change(
+    mut commands: Commands,
     theme: Res<CurrentTheme>,
     mut widget_query: Query<
         (&mut BorderRadius, &mut BackgroundColor, &mut BorderColor),
@@ -844,11 +845,15 @@ pub fn update_border_radius_on_theme_change(
             Without<ToolbarBorderRadius>,
         ),
     >,
+    checkerboard_query: Query<Entity, With<crate::rendering::checkerboard::CheckerboardSquare>>,
+    mut checkerboard_state: ResMut<crate::rendering::checkerboard::CheckerboardState>,
     mut clear_color: ResMut<ClearColor>,
 ) {
     // Only update in debug mode for hot-reload development
     #[cfg(debug_assertions)]
     if theme.is_changed() {
+        info!("🎨 Hot-reloading theme changes...");
+
         // Update background color
         clear_color.0 = theme.theme().background_color();
 
@@ -872,6 +877,54 @@ pub fn update_border_radius_on_theme_change(
             *bg_color = BackgroundColor(theme.theme().widget_background_color());
             *border_color = BorderColor(theme.theme().widget_border_color());
         }
+
+        // Force checkerboard respawn to update colors
+        // Remove all existing checkerboard squares to force recreation with new colors
+        for entity in checkerboard_query.iter() {
+            commands.entity(entity).despawn();
+        }
+
+        // Reset checkerboard state to force recreation
+        *checkerboard_state = Default::default();
+
+        info!("✅ Theme hot-reload complete");
+    }
+}
+
+/// System to update UI pane text colors when theme changes
+pub fn update_ui_pane_text_colors_on_theme_change(
+    theme: Res<CurrentTheme>,
+    mut text_query: Query<&mut TextColor, Or<(
+        With<crate::ui::panes::glyph_pane::GlyphNameText>,
+        With<crate::ui::panes::glyph_pane::GlyphUnicodeText>,
+        With<crate::ui::panes::glyph_pane::GlyphAdvanceText>,
+        With<crate::ui::panes::glyph_pane::GlyphLeftBearingText>,
+        With<crate::ui::panes::glyph_pane::GlyphRightBearingText>,
+        With<crate::ui::panes::glyph_pane::GlyphLeftGroupText>,
+        With<crate::ui::panes::glyph_pane::GlyphRightGroupText>,
+        With<crate::ui::panes::coordinate_pane::XValue>,
+        With<crate::ui::panes::coordinate_pane::YValue>,
+        With<crate::ui::panes::coordinate_pane::WidthValue>,
+        With<crate::ui::panes::coordinate_pane::HeightValue>,
+    )>>,
+) {
+    // Only update in debug mode for hot-reload development
+    #[cfg(debug_assertions)]
+    if theme.is_changed() {
+        info!("🎨 Hot-reloading UI pane text colors...");
+
+        // Update glyph pane text colors - all these components represent VALUES, not labels
+        // Labels don't have component markers, values do (and use secondary color)
+
+        // Values (secondary color) - All these components represent VALUES, not labels
+        let secondary_color = TextColor(theme.get_ui_text_secondary());
+
+        // Update all UI pane text colors at once
+        for mut text_color in text_query.iter_mut() {
+            *text_color = secondary_color;
+        }
+
+        info!("✅ UI pane text colors hot-reload complete");
     }
 }
 

@@ -7,8 +7,8 @@ use super::json_theme::JsonThemeManager;
 use bevy::prelude::*;
 
 use super::json_theme::{
-    check_json_theme_changes, update_border_radius_on_theme_change,
-    update_ui_colors_on_theme_change,
+    check_json_theme_changes, update_all_theme_properties_on_change,
+    update_ui_pane_text_colors_on_theme_change,
 };
 
 /// Plugin for runtime theme reloading
@@ -16,8 +16,11 @@ pub struct RuntimeThemePlugin;
 
 impl Plugin for RuntimeThemePlugin {
     fn build(&self, app: &mut App) {
-        // Always enable for testing - remove cfg(debug_assertions) temporarily
+        // Only enable hot reload in debug builds for performance
+        #[cfg(debug_assertions)]
         {
+            info!("🔥 Hot reload enabled for theme development");
+
             // Initialize JSON theme manager (don't preload themes to allow change detection)
             let theme_manager = JsonThemeManager::new();
 
@@ -25,10 +28,17 @@ impl Plugin for RuntimeThemePlugin {
                 Update,
                 (
                     check_json_theme_changes,
-                    update_border_radius_on_theme_change,
-                    update_ui_colors_on_theme_change,
+                    update_all_theme_properties_on_change,
+                    update_ui_pane_text_colors_on_theme_change,
+                    // Keep the disabled system for reference but don't run it
+                    // update_ui_colors_on_theme_change,
                 ),
             );
+        }
+
+        #[cfg(not(debug_assertions))]
+        {
+            info!("🚀 Hot reload disabled for release performance");
         }
     }
 }
