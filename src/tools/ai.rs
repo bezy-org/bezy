@@ -7,8 +7,8 @@
 //! - Weight consistency fixes
 //! - Curve smoothness optimization
 
-use crate::embedded_assets::EmbeddedFonts;
 use super::{EditTool, ToolInfo};
+use crate::embedded_assets::EmbeddedFonts;
 use bevy::prelude::*;
 
 /// AI operations that can be performed
@@ -185,7 +185,13 @@ pub fn spawn_ai_submenu(
         .spawn((submenu_node, Name::new("AiSubMenu")))
         .with_children(|parent| {
             for operation in operations {
-                spawn_ai_operation_button(parent, operation, &asset_server, &embedded_fonts, &theme);
+                spawn_ai_operation_button(
+                    parent,
+                    operation,
+                    &asset_server,
+                    &embedded_fonts,
+                    &theme,
+                );
             }
         });
 

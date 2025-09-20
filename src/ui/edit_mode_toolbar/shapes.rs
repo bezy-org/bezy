@@ -5,10 +5,10 @@
 
 #![allow(dead_code)]
 
-use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::core::settings::BezySettings;
 use crate::core::state::{AppState, GlyphNavigation};
 use crate::editing::selection::events::AppStateChanged;
+use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
 use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
 use crate::ui::theme::*;
@@ -872,7 +872,8 @@ fn spawn_shape_dimension_lines(
     commands.spawn((
         Text2d(format!("{width:.0}")),
         TextFont {
-            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
+            font: asset_server
+                .load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
             font_size: 14.0,
             ..default()
         },
@@ -925,7 +926,8 @@ fn spawn_shape_dimension_lines(
     commands.spawn((
         Text2d(format!("{height:.0}")),
         TextFont {
-            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
+            font: asset_server
+                .load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
             font_size: 14.0,
             ..default()
         },

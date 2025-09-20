@@ -72,7 +72,13 @@ const SELECTED_POINT_Z: f32 = 15.0; // Selected points - always above unselected
 pub fn collect_rendering_data(
     enhanced_points_query: Query<(Entity, &EnhancedPointType)>,
     enhanced_attributes: Res<crate::editing::selection::entity_management::EnhancedPointAttributes>,
-    point_refs_query: Query<(Entity, &crate::editing::selection::components::GlyphPointReference), Without<EnhancedPointType>>,
+    point_refs_query: Query<
+        (
+            Entity,
+            &crate::editing::selection::components::GlyphPointReference,
+        ),
+        Without<EnhancedPointType>,
+    >,
     mut rendering_data: ResMut<GlyphRenderingData>,
 ) {
     // Collect enhanced point smooth status to avoid query parameter limits in main render system
@@ -80,12 +86,18 @@ pub fn collect_rendering_data(
 
     // First, collect from enhanced components (preferred method)
     for (entity, enhanced) in enhanced_points_query.iter() {
-        rendering_data.smooth_points.insert(entity, enhanced.is_smooth());
+        rendering_data
+            .smooth_points
+            .insert(entity, enhanced.is_smooth());
     }
 
     // Then, collect from enhanced attributes for points that don't have enhanced components yet
     for (entity, point_ref) in point_refs_query.iter() {
-        let key = (point_ref.glyph_name.clone(), point_ref.contour_index, point_ref.point_index);
+        let key = (
+            point_ref.glyph_name.clone(),
+            point_ref.contour_index,
+            point_ref.point_index,
+        );
         if let Some(ufo_point) = enhanced_attributes.attributes.get(&key) {
             if let Some(smooth) = ufo_point.smooth {
                 if smooth {
@@ -559,9 +571,9 @@ fn render_filled_outline(
                             sort_entity,
                         },
                         Mesh2d(meshes.add(mesh)),
-                        MeshMaterial2d(
-                            materials.add(ColorMaterial::from_color(theme.theme().filled_glyph_color())),
-                        ),
+                        MeshMaterial2d(materials.add(ColorMaterial::from_color(
+                            theme.theme().filled_glyph_color(),
+                        ))),
                         Transform::from_translation(Vec3::new(0.0, 0.0, OUTLINE_Z)),
                         GlobalTransform::default(),
                         Visibility::Visible,
@@ -733,8 +745,10 @@ fn render_glyph_points(
         // On-curve points are square UNLESS they are smooth (smooth points are always circles)
         if point_type.is_on_curve && theme.theme().use_square_for_on_curve() && !is_smooth {
             // On-curve points: square with three layers
-            let base_size =
-                theme.theme().on_curve_point_radius() * theme.theme().on_curve_square_adjustment() * 2.0 * root_size_multiplier;
+            let base_size = theme.theme().on_curve_point_radius()
+                * theme.theme().on_curve_square_adjustment()
+                * 2.0
+                * root_size_multiplier;
             let size = camera_scale.adjusted_size(base_size);
 
             // Layer 1: Base shape (full width) - primary color

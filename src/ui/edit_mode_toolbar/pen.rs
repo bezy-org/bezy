@@ -6,7 +6,6 @@
 //!
 //! The tool converts placed points into UFO contours that are saved to the font file.
 
-use crate::embedded_assets::EmbeddedFonts;
 use super::EditModeSystem;
 use crate::core::io::input::{helpers, InputEvent, InputMode, InputState, ModifierState};
 use crate::core::io::pointer::PointerInfo;
@@ -17,6 +16,7 @@ use crate::editing::selection::systems::AppStateChanged;
 use crate::editing::selection::{DragPointState, DragSelectionState, SelectionState};
 use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::ActiveSortState;
+use crate::embedded_assets::EmbeddedFonts;
 use crate::geometry::world_space::DPoint;
 use crate::systems::ui_interaction::UiHoverState;
 use crate::ui::edit_mode_toolbar::select::SelectModeActive;

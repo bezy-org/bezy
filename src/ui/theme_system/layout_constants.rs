@@ -131,7 +131,3 @@ pub fn create_widget_style<T: Component + Default>(
         Name::new(name.to_string()),
     )
 }
-
-
-
-

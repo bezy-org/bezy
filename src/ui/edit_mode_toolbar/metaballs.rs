@@ -302,7 +302,11 @@ pub fn render_metaball_gizmos(
 
         // Draw selection indicator
         if gizmo.is_selected {
-            gizmos.circle_2d(gizmo.position, gizmo.radius + 2.0, theme.theme().metaball_outline_color());
+            gizmos.circle_2d(
+                gizmo.position,
+                gizmo.radius + 2.0,
+                theme.theme().metaball_outline_color(),
+            );
         }
     }
 }

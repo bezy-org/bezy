@@ -10,11 +10,11 @@
 
 #![allow(clippy::manual_map)]
 
-use crate::embedded_assets::EmbeddedFonts;
 use crate::core::settings::BezySettings;
 use crate::core::state::{
     AppState, FontIRAppState, GlyphNavigation, SortLayoutMode, TextEditorState, TextModeConfig,
 };
+use crate::embedded_assets::EmbeddedFonts;
 use bevy::input::ButtonState;
 use bevy::log::info;
 use bevy::prelude::*;

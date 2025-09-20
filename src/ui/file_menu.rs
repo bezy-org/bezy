@@ -202,9 +202,10 @@ fn save_font_files(
             // Check if any modified glyphs belong to this UFO source
             // For now, save to all UFO sources that exist. In a full implementation,
             // you'd match the location to the correct UFO source based on the designspace coordinates
-            let source_has_changes = ufo_path.exists() && modified_glyphs.iter().any(|((_, _), working_copy)| {
-                working_copy.is_dirty
-            });
+            let source_has_changes = ufo_path.exists()
+                && modified_glyphs
+                    .iter()
+                    .any(|((_, _), working_copy)| working_copy.is_dirty);
 
             if source_has_changes {
                 info!("Saving changes to UFO: {}", ufo_path.display());
@@ -229,7 +230,9 @@ fn save_font_files(
                             // Simple approach: recreate contours from BezPath
                             // This will lose the original starting point, but it's reliable
                             existing_glyph.contours.clear();
-                            for (contour_index, bez_path) in working_copy.contours.iter().enumerate() {
+                            for (contour_index, bez_path) in
+                                working_copy.contours.iter().enumerate()
+                            {
                                 let contour = convert_bezpath_to_ufo_contour_with_attributes(
                                     bez_path,
                                     glyph_name,
@@ -431,7 +434,10 @@ fn convert_bezpath_to_ufo_contour_with_attributes(
     bez_path: &kurbo::BezPath,
     glyph_name: &str,
     contour_index: usize,
-    enhanced_attributes: &std::collections::HashMap<(String, usize, usize), crate::core::state::ufo_point::UfoPoint>,
+    enhanced_attributes: &std::collections::HashMap<
+        (String, usize, usize),
+        crate::core::state::ufo_point::UfoPoint,
+    >,
 ) -> norad::Contour {
     let mut all_points = Vec::new();
     let mut is_closed = false;

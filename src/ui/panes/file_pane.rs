@@ -4,8 +4,8 @@
 //! information about the currently loaded font files and allows switching between
 //! UFO masters in a designspace.
 
-use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::core::state::fontir_app_state::FontIRAppState;
+use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::systems::sorts::sort_entities::BufferSortEntities;
 use crate::ui::theme::*;
 use crate::ui::themes::{CurrentTheme, UiBorderRadius};
@@ -232,21 +232,27 @@ pub fn spawn_file_pane(
                         },
                         Text::new("DS:"),
                         TextFont {
-                            font: _asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &_embedded_fonts),
+                            font: _asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &_embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_label()),
+                        TextColor(theme.get_ui_text_secondary()),
                     ));
                     // Value
                     row.spawn((
                         Text::new("Loading..."),
                         TextFont {
-                            font: _asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &_embedded_fonts),
+                            font: _asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &_embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_value()),
+                        TextColor(theme.get_ui_text_primary()),
                         DesignspacePathText,
                     ));
                 });
@@ -268,21 +274,27 @@ pub fn spawn_file_pane(
                         },
                         Text::new("UFO:"),
                         TextFont {
-                            font: _asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &_embedded_fonts),
+                            font: _asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &_embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_label()),
+                        TextColor(theme.get_ui_text_secondary()),
                     ));
                     // Value
                     row.spawn((
                         Text::new("Loading..."),
                         TextFont {
-                            font: _asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &_embedded_fonts),
+                            font: _asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &_embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_value()),
+                        TextColor(theme.get_ui_text_primary()),
                         CurrentUFOText,
                     ));
                 });
@@ -308,21 +320,27 @@ pub fn spawn_file_pane(
                         },
                         Text::new("Saved:"),
                         TextFont {
-                            font: _asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &_embedded_fonts),
+                            font: _asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &_embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_label()),
+                        TextColor(theme.get_ui_text_secondary()),
                     ));
                     // Value
                     row.spawn((
                         Text::new(""),
                         TextFont {
-                            font: _asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &_embedded_fonts),
+                            font: _asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &_embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_value()),
+                        TextColor(theme.get_ui_text_primary()),
                         LastSavedText,
                     ));
                 });
@@ -347,21 +365,27 @@ pub fn spawn_file_pane(
                         },
                         Text::new("Exported:"),
                         TextFont {
-                            font: _asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &_embedded_fonts),
+                            font: _asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &_embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_label()),
+                        TextColor(theme.get_ui_text_secondary()),
                     ));
                     // Value
                     row.spawn((
                         Text::new(""),
                         TextFont {
-                            font: _asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &_embedded_fonts),
+                            font: _asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &_embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_value()),
+                        TextColor(theme.get_ui_text_primary()),
                         LastExportedText,
                     ));
                 });
@@ -652,11 +676,29 @@ fn update_file_display(
     mut ufo_query: CurrentUFOTextQuery,
     mut saved_query: LastSavedTextQuery,
     mut exported_query: LastExportedTextQuery,
-    mut designspace_row_query: Query<&mut Node, (With<DesignspaceRowContainer>, Without<SavedRowContainer>, Without<ExportedRowContainer>)>,
-    mut saved_row_query: Query<&mut Node, (With<SavedRowContainer>, Without<ExportedRowContainer>, Without<DesignspaceRowContainer>)>,
+    mut designspace_row_query: Query<
+        &mut Node,
+        (
+            With<DesignspaceRowContainer>,
+            Without<SavedRowContainer>,
+            Without<ExportedRowContainer>,
+        ),
+    >,
+    mut saved_row_query: Query<
+        &mut Node,
+        (
+            With<SavedRowContainer>,
+            Without<ExportedRowContainer>,
+            Without<DesignspaceRowContainer>,
+        ),
+    >,
     mut exported_row_query: Query<
         &mut Node,
-        (With<ExportedRowContainer>, Without<SavedRowContainer>, Without<DesignspaceRowContainer>),
+        (
+            With<ExportedRowContainer>,
+            Without<SavedRowContainer>,
+            Without<DesignspaceRowContainer>,
+        ),
     >,
 ) {
     // Check if this is a single UFO or designspace
@@ -668,9 +710,9 @@ fn update_file_display(
     // Show/hide designspace row based on source type
     if let Ok(mut node) = designspace_row_query.single_mut() {
         node.display = if is_single_ufo {
-            Display::None  // Hide DS row for single UFOs
+            Display::None // Hide DS row for single UFOs
         } else {
-            Display::Flex  // Show DS row for designspaces
+            Display::Flex // Show DS row for designspaces
         };
     }
 

@@ -585,7 +585,12 @@ fn spawn_needed_squares(
 
 /// Spawns a single checkerboard square at the given grid position
 #[allow(static_mut_refs)]
-fn spawn_square(commands: &mut Commands, grid_pos: IVec2, current_grid_size: f32, theme: &CurrentTheme) {
+fn spawn_square(
+    commands: &mut Commands,
+    grid_pos: IVec2,
+    current_grid_size: f32,
+    theme: &CurrentTheme,
+) {
     let world_pos = grid_to_world_position(grid_pos, current_grid_size);
 
     // Debug log the first few squares spawned to verify design space alignment

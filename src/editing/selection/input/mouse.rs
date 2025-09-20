@@ -6,11 +6,11 @@ use crate::editing::selection::components::{
     GlyphPointReference, PointType, Selectable, Selected, SelectionRect, SelectionState,
 };
 use crate::editing::selection::coordinate_system::SelectionCoordinateSystem;
+use crate::editing::selection::enhanced_point_component::EnhancedPointType;
 use crate::editing::selection::events::{ClickWorldPosition, SELECTION_MARGIN};
 use crate::editing::selection::input::shortcuts::handle_selection_key_press;
 use crate::editing::selection::nudge::EditEvent;
 use crate::editing::selection::{DragPointState, DragSelectionState};
-use crate::editing::selection::enhanced_point_component::EnhancedPointType;
 use crate::geometry::world_space::DPoint;
 use bevy::input::mouse::MouseButton;
 use bevy::prelude::*;
@@ -41,7 +41,9 @@ impl DoubleClickState {
 
     /// Check if a click on an entity is a double-click
     pub fn is_double_click(&self, entity: Entity, current_time: f32) -> bool {
-        if let (Some(last_entity), Some(last_time)) = (self.last_clicked_entity, self.last_click_time) {
+        if let (Some(last_entity), Some(last_time)) =
+            (self.last_clicked_entity, self.last_click_time)
+        {
             if last_entity == entity {
                 let time_diff = current_time - last_time;
                 return time_diff <= (self.double_click_threshold_ms as f32 / 1000.0);
@@ -76,14 +78,20 @@ pub fn collect_selection_input_events(
         return;
     }
 
-    debug!("collect_selection_input_events: Processing {} input events", event_count);
+    debug!(
+        "collect_selection_input_events: Processing {} input events",
+        event_count
+    );
 
     // Check if select tool is active
     let is_select_mode = crate::core::io::input::helpers::is_input_mode(
         &input_state,
         crate::core::io::input::InputMode::Select,
     );
-    debug!("collect_selection_input_events: is_select_mode = {}", is_select_mode);
+    debug!(
+        "collect_selection_input_events: is_select_mode = {}",
+        is_select_mode
+    );
     if !is_select_mode {
         debug!("collect_selection_input_events: Not in select mode, skipping events");
         return;
@@ -91,13 +99,18 @@ pub fn collect_selection_input_events(
 
     // Only process if in select mode
     if let Some(select_mode) = select_mode {
-        debug!("collect_selection_input_events: SelectModeActive = {}", select_mode.0);
+        debug!(
+            "collect_selection_input_events: SelectModeActive = {}",
+            select_mode.0
+        );
         if !select_mode.0 {
             debug!("collect_selection_input_events: SelectModeActive is false, skipping events");
             return;
         }
     } else {
-        debug!("collect_selection_input_events: SelectModeActive resource not found, skipping events");
+        debug!(
+            "collect_selection_input_events: SelectModeActive resource not found, skipping events"
+        );
         return;
     }
 
@@ -113,7 +126,10 @@ pub fn collect_selection_input_events(
         selection_events.events.push(event.clone());
         collected_count += 1;
     }
-    debug!("collect_selection_input_events: Collected {} events for selection processing", collected_count);
+    debug!(
+        "collect_selection_input_events: Collected {} events for selection processing",
+        collected_count
+    );
 }
 
 /// System to process selection input events from collected events
@@ -412,7 +428,15 @@ pub fn process_selection_input_events(
 /// Returns deterministic results when multiple entities are at the same location
 pub fn find_clicked_point(
     position: &DPoint,
-    selectable_query: &Query<(Entity, &GlobalTransform, Option<&GlyphPointReference>, Option<&PointType>), With<Selectable>>,
+    selectable_query: &Query<
+        (
+            Entity,
+            &GlobalTransform,
+            Option<&GlyphPointReference>,
+            Option<&PointType>,
+        ),
+        With<Selectable>,
+    >,
     active_sort_entity: Entity,
     sort_point_entities: &Query<&crate::editing::sort::manager::SortPointEntity>,
 ) -> Option<Entity> {
@@ -461,24 +485,43 @@ pub fn handle_smooth_point_toggle(
     time: Res<Time>,
     mut double_click_state: ResMut<DoubleClickState>,
     selection_events: ResMut<SelectionInputEvents>,
-    selectable_query: Query<(Entity, &GlobalTransform, Option<&GlyphPointReference>, Option<&PointType>), With<Selectable>>,
+    selectable_query: Query<
+        (
+            Entity,
+            &GlobalTransform,
+            Option<&GlyphPointReference>,
+            Option<&PointType>,
+        ),
+        With<Selectable>,
+    >,
     active_sort_state: Res<crate::editing::sort::ActiveSortState>,
     sort_point_entities: Query<&crate::editing::sort::manager::SortPointEntity>,
     mut enhanced_points_query: Query<&mut EnhancedPointType>,
 ) {
     // Debug: Log when the system runs and what events it processes
     if !selection_events.events.is_empty() {
-        debug!("handle_smooth_point_toggle: Processing {} selection events", selection_events.events.len());
+        debug!(
+            "handle_smooth_point_toggle: Processing {} selection events",
+            selection_events.events.len()
+        );
     }
 
     // Only process events that could result in smooth point toggles
     for event in &selection_events.events {
-        if let InputEvent::MouseClick { button, position, .. } = event {
+        if let InputEvent::MouseClick {
+            button, position, ..
+        } = event
+        {
             if *button == MouseButton::Left {
-                debug!("handle_smooth_point_toggle: Processing left mouse click at {:?}", position);
+                debug!(
+                    "handle_smooth_point_toggle: Processing left mouse click at {:?}",
+                    position
+                );
 
                 // Use a dummy entity if no active sort exists
-                let active_sort_entity = active_sort_state.active_sort_entity.unwrap_or(Entity::PLACEHOLDER);
+                let active_sort_entity = active_sort_state
+                    .active_sort_entity
+                    .unwrap_or(Entity::PLACEHOLDER);
 
                 // Check for double-click and point selection
                 if let Some(clicked_entity) = find_clicked_point(
@@ -489,22 +532,30 @@ pub fn handle_smooth_point_toggle(
                 ) {
                     // Handle double-click detection
                     let now = time.elapsed_secs();
-                    let is_double_click = if let Some(last_click) = double_click_state.last_click_time {
-                        (now - last_click) < DOUBLE_CLICK_THRESHOLD_SECS
-                            && double_click_state.last_clicked_entity == Some(clicked_entity)
-                    } else {
-                        false
-                    };
+                    let is_double_click =
+                        if let Some(last_click) = double_click_state.last_click_time {
+                            (now - last_click) < DOUBLE_CLICK_THRESHOLD_SECS
+                                && double_click_state.last_clicked_entity == Some(clicked_entity)
+                        } else {
+                            false
+                        };
 
                     if is_double_click {
-                        debug!("Double-click detected on entity {:?} - toggling smooth point", clicked_entity);
+                        debug!(
+                            "Double-click detected on entity {:?} - toggling smooth point",
+                            clicked_entity
+                        );
 
                         // Handle smooth point toggle
-                        if let Ok(mut enhanced_point) = enhanced_points_query.get_mut(clicked_entity) {
+                        if let Ok(mut enhanced_point) =
+                            enhanced_points_query.get_mut(clicked_entity)
+                        {
                             let current_smooth = enhanced_point.ufo_point.smooth.unwrap_or(false);
                             enhanced_point.ufo_point.smooth = Some(!current_smooth);
-                            info!("Toggled smooth point: entity {:?} is now smooth={}",
-                                  clicked_entity, !current_smooth);
+                            info!(
+                                "Toggled smooth point: entity {:?} is now smooth={}",
+                                clicked_entity, !current_smooth
+                            );
                         }
 
                         // Reset double-click state
@@ -720,8 +771,7 @@ pub fn handle_selection_click(
             .entry(entity)
             .or_insert(pos);
 
-        event_writer.write(EditEvent {
-        });
+        event_writer.write(EditEvent {});
 
         debug!(
             "Selection updated and drag started. Current selection count: {}",

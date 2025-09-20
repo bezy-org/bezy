@@ -23,9 +23,9 @@ pub struct ZoomScaleConfig {
 impl Default for ZoomScaleConfig {
     fn default() -> Self {
         Self {
-            zoom_in_max_factor: 0.5,   // size when max zoomed in
-            zoom_default_factor: 1.5,  // size at default zoom (100%)
-            zoom_out_max_factor: 8.0,  // size when max zoomed out
+            zoom_in_max_factor: 0.5,  // size when max zoomed in
+            zoom_default_factor: 1.5, // size at default zoom (100%)
+            zoom_out_max_factor: 8.0, // size when max zoomed out
         }
     }
 }
@@ -44,9 +44,9 @@ pub struct ZoomRanges {
 impl Default for ZoomRanges {
     fn default() -> Self {
         Self {
-            max_zoom_in: 0.2,    // Maximum zoom in
-            default_zoom: 1.0,   // Default zoom level
-            max_zoom_out: 16.0,  // Maximum zoom out
+            max_zoom_in: 0.2,   // Maximum zoom in
+            default_zoom: 1.0,  // Default zoom level
+            max_zoom_out: 16.0, // Maximum zoom out
         }
     }
 }
@@ -80,10 +80,7 @@ impl CameraResponsiveScale {
     }
 
     /// Creates a new instance with custom configuration
-    pub fn with_config(
-        config: ZoomScaleConfig,
-        ranges: ZoomRanges,
-    ) -> Self {
+    pub fn with_config(config: ZoomScaleConfig, ranges: ZoomRanges) -> Self {
         Self {
             scale_factor: 1.0,
             base_line_width: 1.0,
@@ -137,8 +134,7 @@ fn lerp_scale(
     factor_start: f32,
     factor_end: f32,
 ) -> f32 {
-    let t = ((current - range_start) / (range_end - range_start))
-        .clamp(0.0, 1.0);
+    let t = ((current - range_start) / (range_end - range_start)).clamp(0.0, 1.0);
     factor_start * (1.0 - t) + factor_end * t
 }
 
@@ -156,8 +152,7 @@ pub fn update_camera_responsive_scale(
         _ => 1.0,
     };
 
-    scale_res.scale_factor =
-        scale_res.calculate_scale_factor(camera_scale);
+    scale_res.scale_factor = scale_res.calculate_scale_factor(camera_scale);
 }
 
 /// Types of visual elements that respond to camera zoom
@@ -176,10 +171,7 @@ pub struct CameraResponsive {
 }
 
 impl CameraResponsive {
-    pub fn new(
-        element_type: ResponsiveElementType,
-        base_size: f32,
-    ) -> Self {
+    pub fn new(element_type: ResponsiveElementType, base_size: f32) -> Self {
         Self {
             element_type,
             base_size,
@@ -202,10 +194,7 @@ impl CameraResponsive {
 /// Applies camera-responsive scaling to marked entities
 pub fn apply_camera_responsive_scaling(
     scale_res: Res<CameraResponsiveScale>,
-    mut query: Query<(
-        &CameraResponsive,
-        &mut Transform,
-    ), Changed<CameraResponsive>>,
+    mut query: Query<(&CameraResponsive, &mut Transform), Changed<CameraResponsive>>,
 ) {
     if !scale_res.is_changed() {
         return;
@@ -213,11 +202,8 @@ pub fn apply_camera_responsive_scaling(
 
     for (responsive, mut transform) in &mut query {
         let new_scale = match responsive.element_type {
-            ResponsiveElementType::Line => {
-                scale_res.adjusted_line_width()
-            }
-            ResponsiveElementType::Point |
-            ResponsiveElementType::Handle => {
+            ResponsiveElementType::Line => scale_res.adjusted_line_width(),
+            ResponsiveElementType::Point | ResponsiveElementType::Handle => {
                 scale_res.adjusted_size(responsive.base_size)
             }
         };
@@ -237,7 +223,8 @@ impl Plugin for CameraResponsivePlugin {
                 (
                     update_camera_responsive_scale,
                     apply_camera_responsive_scaling,
-                ).chain(),
+                )
+                    .chain(),
             );
     }
 }

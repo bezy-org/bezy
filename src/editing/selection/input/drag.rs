@@ -4,11 +4,16 @@ use crate::core::io::pointer::PointerInfo;
 use crate::core::settings::BezySettings;
 use crate::core::state::{AppState, FontIRAppState};
 use crate::editing::selection::components::{GlyphPointReference, PointType, Selected};
-use crate::editing::selection::nudge::{EditEvent, PointCoordinates};
-use crate::editing::selection::point_movement::{find_connected_offcurve_points_drag, sync_to_font_data, PointMovement};
-use crate::editing::smooth_curves::{find_all_smooth_constraints, apply_smooth_curve_constraints, update_smooth_constraint_transforms};
 use crate::editing::selection::enhanced_point_component::EnhancedPointType;
+use crate::editing::selection::nudge::{EditEvent, PointCoordinates};
+use crate::editing::selection::point_movement::{
+    find_connected_offcurve_points_drag, sync_to_font_data, PointMovement,
+};
 use crate::editing::selection::DragPointState;
+use crate::editing::smooth_curves::{
+    apply_smooth_curve_constraints, find_all_smooth_constraints,
+    update_smooth_constraint_transforms,
+};
 use bevy::input::ButtonInput;
 use bevy::log::{debug, warn};
 use bevy::prelude::*;
@@ -74,7 +79,9 @@ pub fn handle_point_drag(
         let mut point_movements = Vec::new();
 
         // First, process selected points and collect movement data
-        for (entity, mut transform, mut coordinates, point_ref, sort_crosshair, point_type) in &mut query {
+        for (entity, mut transform, mut coordinates, point_ref, sort_crosshair, point_type) in
+            &mut query
+        {
             if let Some(original_pos) = drag_point_state.original_positions.get(&entity) {
                 let new_pos = *original_pos + movement;
 
@@ -109,7 +116,10 @@ pub fn handle_point_drag(
                     if let Some(pt) = point_type {
                         if pt.is_on_curve {
                             let connected_movements = find_connected_offcurve_points_drag(
-                                point_ref, pt, movement, &all_points_query
+                                point_ref,
+                                pt,
+                                movement,
+                                &all_points_query,
                             );
                             point_movements.extend(connected_movements);
                         }
@@ -129,9 +139,14 @@ pub fn handle_point_drag(
         // Update connected off-curve points using shared utility
         for movement in &point_movements {
             if movement.is_connected_offcurve {
-                if let Ok((_, mut transform, mut coordinates, _, _)) = all_points_query.get_mut(movement.entity) {
+                if let Ok((_, mut transform, mut coordinates, _, _)) =
+                    all_points_query.get_mut(movement.entity)
+                {
                     // Store original position if not already stored
-                    if !drag_point_state.original_positions.contains_key(&movement.entity) {
+                    if !drag_point_state
+                        .original_positions
+                        .contains_key(&movement.entity)
+                    {
                         drag_point_state.original_positions.insert(
                             movement.entity,
                             Vec2::new(transform.translation.x, transform.translation.y),
@@ -149,7 +164,10 @@ pub fn handle_point_drag(
         }
 
         // Handle smooth curve constraints for any off-curve points that were moved
-        debug!("[SMOOTH DRAG] Processing {} point movements", point_movements.len());
+        debug!(
+            "[SMOOTH DRAG] Processing {} point movements",
+            point_movements.len()
+        );
         let mut smooth_adjustments = Vec::new();
 
         // Get the current glyph name from any point reference
@@ -158,9 +176,15 @@ pub fn handle_point_drag(
 
             // Create a simpler query interface by collecting data first
             let enhanced_point_data: Vec<_> = enhanced_points_query.iter().collect();
-            let all_point_data: Vec<_> = all_points_query.iter()
+            let all_point_data: Vec<_> = all_points_query
+                .iter()
                 .map(|(entity, transform, _coords, point_ref, point_type)| {
-                    (entity, transform.translation.truncate(), point_ref.clone(), *point_type)
+                    (
+                        entity,
+                        transform.translation.truncate(),
+                        point_ref.clone(),
+                        *point_type,
+                    )
                 })
                 .collect();
 
@@ -180,13 +204,18 @@ pub fn handle_point_drag(
                     // Check if any moved off-curve points are part of this constraint
                     for movement in &point_movements {
                         if movement.is_connected_offcurve {
-                            let moved_is_left = left_handle.as_ref().map_or(false, |(entity, _, _)| *entity == movement.entity);
-                            let moved_is_right = right_handle.as_ref().map_or(false, |(entity, _, _)| *entity == movement.entity);
+                            let moved_is_left = left_handle
+                                .as_ref()
+                                .map_or(false, |(entity, _, _)| *entity == movement.entity);
+                            let moved_is_right = right_handle
+                                .as_ref()
+                                .map_or(false, |(entity, _, _)| *entity == movement.entity);
 
                             if moved_is_left || moved_is_right {
                                 // Calculate opposite handle position
                                 let smooth_point_pos = enhanced.coords();
-                                let smooth_point_vec2 = Vec2::new(smooth_point_pos.0 as f32, smooth_point_pos.1 as f32);
+                                let smooth_point_vec2 =
+                                    Vec2::new(smooth_point_pos.0 as f32, smooth_point_pos.1 as f32);
                                 let handle_vector = movement.new_position - smooth_point_vec2;
                                 let opposite_vector = -handle_vector;
                                 let opposite_position = smooth_point_vec2 + opposite_vector;
@@ -194,11 +223,15 @@ pub fn handle_point_drag(
                                 // Apply the constraint to the opposite handle
                                 if moved_is_left && right_handle.is_some() {
                                     // Left handle moved, adjust right handle
-                                    smooth_adjustments.push((right_handle.as_ref().unwrap().0, opposite_position));
+                                    smooth_adjustments.push((
+                                        right_handle.as_ref().unwrap().0,
+                                        opposite_position,
+                                    ));
                                     debug!("Smooth constraint: left handle moved, adjusting right handle to ({:.1}, {:.1})", opposite_position.x, opposite_position.y);
                                 } else if moved_is_right && left_handle.is_some() {
                                     // Right handle moved, adjust left handle
-                                    smooth_adjustments.push((left_handle.as_ref().unwrap().0, opposite_position));
+                                    smooth_adjustments
+                                        .push((left_handle.as_ref().unwrap().0, opposite_position));
                                     debug!("Smooth constraint: right handle moved, adjusting left handle to ({:.1}, {:.1})", opposite_position.x, opposite_position.y);
                                 }
                             }
@@ -210,7 +243,9 @@ pub fn handle_point_drag(
             // Apply smooth constraint adjustments
             if !smooth_adjustments.is_empty() {
                 for (entity, new_position) in &smooth_adjustments {
-                    if let Ok((_, mut transform, mut coordinates, _, _)) = all_points_query.get_mut(*entity) {
+                    if let Ok((_, mut transform, mut coordinates, _, _)) =
+                        all_points_query.get_mut(*entity)
+                    {
                         transform.translation.x = new_position.x;
                         transform.translation.y = new_position.y;
                         transform.translation.z = 5.0;
@@ -219,15 +254,17 @@ pub fn handle_point_drag(
 
                         // Store original position for newly adjusted points
                         if !drag_point_state.original_positions.contains_key(entity) {
-                            drag_point_state.original_positions.insert(
-                                *entity,
-                                *new_position,
-                            );
+                            drag_point_state
+                                .original_positions
+                                .insert(*entity, *new_position);
                         }
                     }
                 }
 
-                debug!("Applied {} smooth curve constraint adjustments", smooth_adjustments.len());
+                debug!(
+                    "Applied {} smooth curve constraint adjustments",
+                    smooth_adjustments.len()
+                );
             }
         }
 
@@ -236,12 +273,13 @@ pub fn handle_point_drag(
         _updated_count = result.points_moved + result.connected_offcurves_moved;
 
         if _updated_count > 0 {
-            debug!("Updated {} points ({} selected, {} connected off-curves) during drag",
-                   _updated_count, result.points_moved, result.connected_offcurves_moved);
+            debug!(
+                "Updated {} points ({} selected, {} connected off-curves) during drag",
+                _updated_count, result.points_moved, result.connected_offcurves_moved
+            );
 
             // Send edit event
-            event_writer.write(EditEvent {
-            });
+            event_writer.write(EditEvent {});
         }
     }
 }
@@ -252,10 +290,16 @@ pub fn handle_point_drag(
 fn find_curve_handles_for_smooth_point_drag(
     smooth_entity: Entity,
     smooth_point_ref: &GlyphPointReference,
-    point_data: &[(Entity, Vec2, GlyphPointReference, crate::editing::selection::components::PointType)],
+    point_data: &[(
+        Entity,
+        Vec2,
+        GlyphPointReference,
+        crate::editing::selection::components::PointType,
+    )],
 ) -> (Option<Entity>, Option<Entity>) {
     // Get all points in the same contour, sorted by point index
-    let mut contour_points: Vec<_> = point_data.iter()
+    let mut contour_points: Vec<_> = point_data
+        .iter()
         .filter(|(_, _, p_ref, _)| {
             p_ref.glyph_name == smooth_point_ref.glyph_name
                 && p_ref.contour_index == smooth_point_ref.contour_index
@@ -266,7 +310,8 @@ fn find_curve_handles_for_smooth_point_drag(
     contour_points.sort_by_key(|(_, _, p_ref, _)| p_ref.point_index);
 
     // Find the position of our smooth point in the sorted list
-    let smooth_position = contour_points.iter()
+    let smooth_position = contour_points
+        .iter()
         .position(|(entity, _, _, _)| *entity == smooth_entity);
 
     let smooth_idx = if let Some(pos) = smooth_position {
@@ -280,7 +325,11 @@ fn find_curve_handles_for_smooth_point_drag(
     let mut right_handle = None;
 
     // Look backwards from smooth point to find the previous on-curve point and any handles
-    let mut idx = if smooth_idx == 0 { contour_points.len() - 1 } else { smooth_idx - 1 };
+    let mut idx = if smooth_idx == 0 {
+        contour_points.len() - 1
+    } else {
+        smooth_idx - 1
+    };
     while idx != smooth_idx {
         let (entity, _, _, point_type) = contour_points[idx];
 

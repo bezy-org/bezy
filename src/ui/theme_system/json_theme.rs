@@ -31,14 +31,11 @@ pub struct UiBorderRadius;
 pub struct JsonTheme {
     pub name: String,
 
-    // Typography colors
-    pub normal_text: [f32; 3],
-    pub secondary_text: [f32; 3],
-    pub highlight_text: [f32; 3],
-
-    // UI text colors for key-value pairs
-    pub ui_text_label: Option<[f32; 3]>,
-    pub ui_text_value: Option<[f32; 3]>,
+    // Unified UI text colors
+    pub ui_text_primary: [f32; 3],
+    pub ui_text_secondary: [f32; 3],
+    pub ui_text_tertiary: [f32; 3],
+    pub ui_text_quaternary: [f32; 3],
 
     // Background colors
     pub background: [f32; 3],
@@ -154,47 +151,37 @@ impl BezyTheme for JsonTheme {
         }
     }
 
-    // Typography
-    fn normal_text_color(&self) -> Color {
+    // Unified UI text colors
+    fn ui_text_primary(&self) -> Color {
         Color::srgb(
-            self.normal_text[0],
-            self.normal_text[1],
-            self.normal_text[2],
+            self.ui_text_primary[0],
+            self.ui_text_primary[1],
+            self.ui_text_primary[2],
         )
     }
 
-    fn secondary_text_color(&self) -> Color {
+    fn ui_text_secondary(&self) -> Color {
         Color::srgb(
-            self.secondary_text[0],
-            self.secondary_text[1],
-            self.secondary_text[2],
+            self.ui_text_secondary[0],
+            self.ui_text_secondary[1],
+            self.ui_text_secondary[2],
         )
     }
 
-    fn highlight_text_color(&self) -> Color {
+    fn ui_text_tertiary(&self) -> Color {
         Color::srgb(
-            self.highlight_text[0],
-            self.highlight_text[1],
-            self.highlight_text[2],
+            self.ui_text_tertiary[0],
+            self.ui_text_tertiary[1],
+            self.ui_text_tertiary[2],
         )
     }
 
-    fn ui_text_label(&self) -> Color {
-        if let Some(label_color) = self.ui_text_label {
-            Color::srgb(label_color[0], label_color[1], label_color[2])
-        } else {
-            // Default to secondary text color if not specified
-            self.secondary_text_color()
-        }
-    }
-
-    fn ui_text_value(&self) -> Color {
-        if let Some(value_color) = self.ui_text_value {
-            Color::srgb(value_color[0], value_color[1], value_color[2])
-        } else {
-            // Default to highlight text color if not specified
-            self.highlight_text_color()
-        }
+    fn ui_text_quaternary(&self) -> Color {
+        Color::srgb(
+            self.ui_text_quaternary[0],
+            self.ui_text_quaternary[1],
+            self.ui_text_quaternary[2],
+        )
     }
 
     // Backgrounds
@@ -841,7 +828,10 @@ use super::CurrentTheme;
 /// System to update all theme properties when theme changes
 pub fn update_border_radius_on_theme_change(
     theme: Res<CurrentTheme>,
-    mut widget_query: Query<(&mut BorderRadius, &mut BackgroundColor, &mut BorderColor), With<WidgetBorderRadius>>,
+    mut widget_query: Query<
+        (&mut BorderRadius, &mut BackgroundColor, &mut BorderColor),
+        With<WidgetBorderRadius>,
+    >,
     mut toolbar_query: Query<
         (&mut BorderRadius, &mut BackgroundColor, &mut BorderColor),
         (With<ToolbarBorderRadius>, Without<WidgetBorderRadius>),
@@ -886,19 +876,14 @@ pub fn update_border_radius_on_theme_change(
 }
 
 /// System to update text colors and other UI elements when theme changes
+///
+/// Note: This system is disabled because it was overriding specific UI text colors
+/// (like ui_text_label and ui_text_value) with normal_text_color, preventing
+/// proper color differentiation in panes.
 pub fn update_ui_colors_on_theme_change(
-    theme: Res<CurrentTheme>,
-    mut text_query: Query<&mut TextColor>,
+    _theme: Res<CurrentTheme>,
+    _text_query: Query<&mut TextColor>,
 ) {
-    // Only update in debug mode for hot-reload development
-    #[cfg(debug_assertions)]
-    if theme.is_changed() {
-        // Update all text colors to normal text color
-        for mut text_color in text_query.iter_mut() {
-            // Only update if color is not transparent (likely was set by theme)
-            if text_color.0.alpha() > 0.0 {
-                text_color.0 = theme.theme().normal_text_color();
-            }
-        }
-    }
+    // This system is intentionally disabled to preserve specific text colors
+    // set by individual UI components (like pane labels vs values)
 }

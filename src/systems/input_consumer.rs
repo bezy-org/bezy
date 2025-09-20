@@ -50,7 +50,10 @@ impl InputConsumer for SelectionInputConsumer {
     }
 
     fn handle_input(&mut self, event: &InputEvent, _input_state: &InputState) {
-        println!("[SELECTION INPUT CONSUMER] Storing event for ECS processing: {:?}", event);
+        println!(
+            "[SELECTION INPUT CONSUMER] Storing event for ECS processing: {:?}",
+            event
+        );
         // Store the event for processing by the ECS system
         self.pending_events.push(event.clone());
     }
@@ -782,15 +785,27 @@ pub fn process_selection_events(
     mut selection_consumer: ResMut<SelectionInputConsumer>,
     time: Res<Time>,
     mut double_click_state: ResMut<crate::editing::selection::input::mouse::DoubleClickState>,
-    selectable_query: Query<(Entity, &GlobalTransform, Option<&GlyphPointReference>, Option<&PointType>), With<Selectable>>,
+    selectable_query: Query<
+        (
+            Entity,
+            &GlobalTransform,
+            Option<&GlyphPointReference>,
+            Option<&PointType>,
+        ),
+        With<Selectable>,
+    >,
     active_sort_state: Res<crate::editing::sort::ActiveSortState>,
     sort_point_entities: Query<&crate::editing::sort::manager::SortPointEntity>,
-    mut enhanced_points_query: Query<&mut crate::editing::selection::enhanced_point_component::EnhancedPointType>,
+    mut enhanced_points_query: Query<
+        &mut crate::editing::selection::enhanced_point_component::EnhancedPointType,
+    >,
     point_refs_query: Query<&crate::editing::selection::components::GlyphPointReference>,
     mut selection_state: ResMut<SelectionState>,
     _selected_query: Query<Entity, With<Selected>>,
     mut visual_update_tracker: ResMut<crate::rendering::glyph_renderer::SortVisualUpdateTracker>,
-    mut enhanced_attributes: ResMut<crate::editing::selection::entity_management::EnhancedPointAttributes>,
+    mut enhanced_attributes: ResMut<
+        crate::editing::selection::entity_management::EnhancedPointAttributes,
+    >,
 ) {
     if selection_consumer.pending_events.is_empty() {
         return;
@@ -800,9 +815,17 @@ pub fn process_selection_events(
     let events = std::mem::take(&mut selection_consumer.pending_events);
 
     for event in events {
-        if let InputEvent::MouseClick { button, position, modifiers } = event {
+        if let InputEvent::MouseClick {
+            button,
+            position,
+            modifiers,
+        } = event
+        {
             if button == bevy::input::mouse::MouseButton::Left {
-                println!("[SELECTION PROCESSOR] Processing mouse click at {:?}", position);
+                println!(
+                    "[SELECTION PROCESSOR] Processing mouse click at {:?}",
+                    position
+                );
 
                 // Use the existing selection logic from the original mouse.rs
                 let active_sort_entity = active_sort_state
@@ -810,26 +833,31 @@ pub fn process_selection_events(
                     .unwrap_or(Entity::PLACEHOLDER);
 
                 // Check for point selection and double-click
-                if let Some(clicked_entity) = crate::editing::selection::input::mouse::find_clicked_point(
-                    &position,
-                    &selectable_query,
-                    active_sort_entity,
-                    &sort_point_entities,
-                ) {
+                if let Some(clicked_entity) =
+                    crate::editing::selection::input::mouse::find_clicked_point(
+                        &position,
+                        &selectable_query,
+                        active_sort_entity,
+                        &sort_point_entities,
+                    )
+                {
                     // Handle double-click detection for smooth point toggle
                     let now = time.elapsed_secs();
-                    let is_double_click = if let Some(last_click) = double_click_state.last_click_time {
-                        (now - last_click) < crate::editing::selection::input::mouse::DOUBLE_CLICK_THRESHOLD_SECS
+                    let is_double_click =
+                        if let Some(last_click) = double_click_state.last_click_time {
+                            (now - last_click)
+                            < crate::editing::selection::input::mouse::DOUBLE_CLICK_THRESHOLD_SECS
                             && double_click_state.last_clicked_entity == Some(clicked_entity)
-                    } else {
-                        false
-                    };
+                        } else {
+                            false
+                        };
 
                     if is_double_click {
                         println!("[SELECTION PROCESSOR] Double-click detected - toggling smooth point for entity {:?}", clicked_entity);
 
                         // Get point reference information for enhanced attributes
-                        let point_ref = if let Ok(point_ref) = point_refs_query.get(clicked_entity) {
+                        let point_ref = if let Ok(point_ref) = point_refs_query.get(clicked_entity)
+                        {
                             point_ref
                         } else {
                             println!("[SELECTION PROCESSOR] Could not get point reference for entity {:?}", clicked_entity);
@@ -837,19 +865,27 @@ pub fn process_selection_events(
                         };
 
                         // Create key for enhanced attributes lookup
-                        let attr_key = (point_ref.glyph_name.clone(), point_ref.contour_index, point_ref.point_index);
+                        let attr_key = (
+                            point_ref.glyph_name.clone(),
+                            point_ref.contour_index,
+                            point_ref.point_index,
+                        );
 
                         // Handle smooth point toggle
                         match enhanced_points_query.get_mut(clicked_entity) {
                             Ok(mut enhanced_point) => {
-                                let current_smooth = enhanced_point.ufo_point.smooth.unwrap_or(false);
+                                let current_smooth =
+                                    enhanced_point.ufo_point.smooth.unwrap_or(false);
                                 let new_smooth = !current_smooth;
                                 enhanced_point.ufo_point.smooth = Some(new_smooth);
 
                                 // Also update enhanced attributes for UFO save persistence
-                                let ufo_point = enhanced_attributes.attributes.entry(attr_key.clone()).or_insert_with(|| {
-                                    crate::core::state::ufo_point::UfoPoint::line_to(0.0, 0.0)
-                                });
+                                let ufo_point = enhanced_attributes
+                                    .attributes
+                                    .entry(attr_key.clone())
+                                    .or_insert_with(|| {
+                                        crate::core::state::ufo_point::UfoPoint::line_to(0.0, 0.0)
+                                    });
                                 ufo_point.smooth = Some(new_smooth);
 
                                 println!("[SELECTION PROCESSOR] Toggled smooth point: entity {:?} is now smooth={}",
@@ -886,7 +922,8 @@ pub fn process_selection_events(
                                 println!("[SELECTION PROCESSOR] Adding EnhancedPointType component to entity {:?}", clicked_entity);
 
                                 // Create a default UfoPoint (we'll use Line type as a safe default for on-curve points)
-                                let mut ufo_point = crate::core::state::ufo_point::UfoPoint::line_to(0.0, 0.0);
+                                let mut ufo_point =
+                                    crate::core::state::ufo_point::UfoPoint::line_to(0.0, 0.0);
                                 ufo_point.smooth = Some(true); // Set to smooth since we're toggling
 
                                 let enhanced_point = crate::editing::selection::enhanced_point_component::EnhancedPointType::new(ufo_point.clone());
@@ -964,7 +1001,10 @@ impl Plugin for InputConsumerPlugin {
             .init_resource::<TextInputConsumer>()
             .init_resource::<CameraInputConsumer>()
             .init_resource::<MeasureInputConsumer>()
-            .add_systems(Update, (process_input_events, process_selection_events).chain());
+            .add_systems(
+                Update,
+                (process_input_events, process_selection_events).chain(),
+            );
 
         info!("[INPUT CONSUMER] InputConsumerPlugin registration complete");
     }

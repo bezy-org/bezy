@@ -5,12 +5,10 @@
 
   "filled_glyph": [0.5, 0.4, 0.35],
 
-  "normal_text": [0.95, 0.85, 0.7],
-  "secondary_text": [0.7, 0.6, 0.5],
-  "highlight_text": [1.0, 0.9, 0.3],
-
-  "ui_text_label": [0.7, 0.6, 0.5],
-  "ui_text_value": [1.0, 0.7, 0.2],
+  "ui_text_primary": [0.95, 0.85, 0.7],
+  "ui_text_secondary": [0.7, 0.6, 0.5],
+  "ui_text_tertiary": [0.6, 0.5, 0.4],
+  "ui_text_quaternary": [0.5, 0.4, 0.3],
 
   "widget_background": [0.2, 0.1, 0.05, 1.0],
   "widget_border": [0.6, 0.4, 0.2],

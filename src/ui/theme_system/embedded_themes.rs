@@ -28,7 +28,9 @@ pub fn user_themes_dir_exists() -> bool {
     get_user_themes_dir().exists()
 }
 
-pub fn load_theme_from_string(content: &str) -> Result<super::json_theme::JsonTheme, Box<dyn std::error::Error>> {
+pub fn load_theme_from_string(
+    content: &str,
+) -> Result<super::json_theme::JsonTheme, Box<dyn std::error::Error>> {
     let theme = serde_json::from_str(content)?;
     Ok(theme)
 }

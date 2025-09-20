@@ -1,7 +1,7 @@
 //! Data synchronization between ECS entities and UFO font data
 
 use crate::core::state::AppState;
-use crate::editing::selection::components::{GlyphPointReference, Selected, PointType};
+use crate::editing::selection::components::{GlyphPointReference, PointType, Selected};
 use crate::editing::selection::enhanced_point_component::EnhancedPointType;
 use crate::editing::selection::nudge::NudgeState;
 use crate::editing::smooth_curves::find_direct_neighbor_handles;
@@ -21,12 +21,15 @@ pub struct EnhancedPointAttributes {
 /// System to update the actual glyph data when a point is moved
 #[allow(clippy::type_complexity)]
 pub fn update_glyph_data_from_selection(
-    query: Query<
-        (&Transform, &GlyphPointReference, Option<&SortPointEntity>),
-        Changed<Transform>,
-    >,
+    query: Query<(&Transform, &GlyphPointReference, Option<&SortPointEntity>), Changed<Transform>>,
     sort_query: Query<(&Sort, &Transform)>,
-    all_points_query: Query<(Entity, &Transform, &GlyphPointReference, &PointType, Option<&EnhancedPointType>)>,
+    all_points_query: Query<(
+        Entity,
+        &Transform,
+        &GlyphPointReference,
+        &PointType,
+        Option<&EnhancedPointType>,
+    )>,
     mut app_state: ResMut<AppState>,
     _nudge_state: Res<NudgeState>,
     knife_mode: Option<Res<crate::ui::edit_mode_toolbar::knife::KnifeModeActive>>,
@@ -48,10 +51,7 @@ pub fn update_glyph_data_from_selection(
         return;
     }
 
-    info!(
-        "[SMOOTH] Processing {} moved points",
-        query.iter().count()
-    );
+    info!("[SMOOTH] Processing {} moved points", query.iter().count());
 
     let app_state = app_state.bypass_change_detection();
     let mut any_updates = false;
@@ -126,7 +126,12 @@ pub fn update_glyph_data_from_selection(
     let point_data: Vec<_> = all_points_query
         .iter()
         .map(|(entity, transform, point_ref, point_type, _)| {
-            (entity, transform.translation.truncate(), point_ref.clone(), *point_type)
+            (
+                entity,
+                transform.translation.truncate(),
+                point_ref.clone(),
+                *point_type,
+            )
         })
         .collect();
 
@@ -140,7 +145,8 @@ pub fn update_glyph_data_from_selection(
         );
 
         // Check if this is an off-curve handle that was moved
-        if let Some((_moved_entity, _, _, moved_point_type)) = point_data.iter()
+        if let Some((_moved_entity, _, _, moved_point_type)) = point_data
+            .iter()
             .find(|(_, _, ref_comp, _)| ref_comp == moved_ref)
         {
             info!(
@@ -156,14 +162,17 @@ pub fn update_glyph_data_from_selection(
                 );
 
                 // Find smooth on-curve points in the same contour that could be adjacent
-                for (_, smooth_transform, smooth_ref, smooth_point_type, smooth_enhanced) in all_points_query.iter() {
+                for (_, smooth_transform, smooth_ref, smooth_point_type, smooth_enhanced) in
+                    all_points_query.iter()
+                {
                     if smooth_ref.glyph_name == moved_ref.glyph_name
                         && smooth_ref.contour_index == moved_ref.contour_index
                         && smooth_point_type.is_on_curve
                         && smooth_enhanced.map_or(false, |e| e.is_smooth())
                     {
                         // Use simplified neighbor check
-                        let (left_handle, right_handle) = find_direct_neighbor_handles(smooth_ref, &point_data);
+                        let (left_handle, right_handle) =
+                            find_direct_neighbor_handles(smooth_ref, &point_data);
 
                         info!(
                             "[SMOOTH] Checking smooth point {} - left_handle: {:?}, right_handle: {:?}",
@@ -173,8 +182,12 @@ pub fn update_glyph_data_from_selection(
                         );
 
                         let smooth_pos = smooth_transform.translation.truncate();
-                        let moved_is_left = left_handle.as_ref().map_or(false, |(_, _, ref_comp)| ref_comp == moved_ref);
-                        let moved_is_right = right_handle.as_ref().map_or(false, |(_, _, ref_comp)| ref_comp == moved_ref);
+                        let moved_is_left = left_handle
+                            .as_ref()
+                            .map_or(false, |(_, _, ref_comp)| ref_comp == moved_ref);
+                        let moved_is_right = right_handle
+                            .as_ref()
+                            .map_or(false, |(_, _, ref_comp)| ref_comp == moved_ref);
 
                         if moved_is_left || moved_is_right {
                             info!(
@@ -219,9 +232,11 @@ pub fn update_glyph_data_from_selection(
         // Update transform for visual feedback
         for (handle_entity, _, handle_ref, _, _) in all_points_query.iter() {
             if handle_ref == &adjustment.handle_ref {
-                commands.entity(handle_entity).insert(Transform::from_translation(
-                    adjustment.new_position.extend(0.0)
-                ));
+                commands
+                    .entity(handle_entity)
+                    .insert(Transform::from_translation(
+                        adjustment.new_position.extend(0.0),
+                    ));
                 break;
             }
         }
@@ -300,10 +315,7 @@ pub fn sync_point_positions_to_sort(
 /// those changes are preserved when saving to UFO files
 #[allow(clippy::type_complexity)]
 pub fn sync_enhanced_point_attributes(
-    enhanced_query: Query<
-        (&EnhancedPointType, &GlyphPointReference),
-        Changed<EnhancedPointType>,
-    >,
+    enhanced_query: Query<(&EnhancedPointType, &GlyphPointReference), Changed<EnhancedPointType>>,
     mut enhanced_attributes: ResMut<EnhancedPointAttributes>,
 ) {
     if enhanced_query.is_empty() {
@@ -323,7 +335,9 @@ pub fn sync_enhanced_point_attributes(
         );
 
         // Store the enhanced point attributes for later UFO saving
-        enhanced_attributes.attributes.insert(key.clone(), enhanced_point.ufo_point.clone());
+        enhanced_attributes
+            .attributes
+            .insert(key.clone(), enhanced_point.ufo_point.clone());
 
         debug!(
             "Stored enhanced point attributes: glyph='{}', contour={}, point={}, smooth={}",

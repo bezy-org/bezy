@@ -1,7 +1,9 @@
 use crate::core::settings::BezySettings;
 use crate::editing::selection::components::{GlyphPointReference, PointType, Selected};
-use crate::editing::selection::point_movement::{find_connected_offcurve_points_nudge, sync_to_font_data, PointMovement};
 use crate::editing::selection::enhanced_point_component::EnhancedPointType;
+use crate::editing::selection::point_movement::{
+    find_connected_offcurve_points_nudge, sync_to_font_data, PointMovement,
+};
 use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::ActiveSortState;
 use bevy::log::{debug, info, warn};
@@ -36,12 +38,7 @@ pub fn handle_nudge_input(
         >,
         Query<(&crate::editing::sort::Sort, &Transform)>,
         Query<
-            (
-                Entity,
-                &mut Transform,
-                &GlyphPointReference,
-                &PointType,
-            ),
+            (Entity, &mut Transform, &GlyphPointReference, &PointType),
             (With<SortPointEntity>, Without<Selected>),
         >,
     )>,
@@ -129,10 +126,20 @@ pub fn handle_nudge_input(
             let mut all_movements = Vec::new();
 
             // Collect selected point data to avoid borrowing conflicts
-            let selected_point_data: Vec<_> = queries.p0().iter()
-                .map(|(entity, transform, point_ref, sort_point_entity_opt, point_type)| {
-                    (entity, transform.translation.truncate(), point_ref.clone(), sort_point_entity_opt.is_some(), point_type.copied())
-                })
+            let selected_point_data: Vec<_> = queries
+                .p0()
+                .iter()
+                .map(
+                    |(entity, transform, point_ref, sort_point_entity_opt, point_type)| {
+                        (
+                            entity,
+                            transform.translation.truncate(),
+                            point_ref.clone(),
+                            sort_point_entity_opt.is_some(),
+                            point_type.copied(),
+                        )
+                    },
+                )
                 .collect();
 
             // Process selected points and collect their movements
@@ -157,7 +164,10 @@ pub fn handle_nudge_input(
                     if let Some(pt) = point_type {
                         if pt.is_on_curve {
                             let connected_movements = find_connected_offcurve_points_nudge(
-                                &point_ref, &pt, nudge_direction, &queries.p2()
+                                &point_ref,
+                                &pt,
+                                nudge_direction,
+                                &queries.p2(),
                             );
                             all_movements.extend(connected_movements);
                         }
@@ -200,8 +210,7 @@ pub fn handle_nudge_input(
             );
 
             // Create an edit event for undo/redo
-            event_writer.write(EditEvent {
-            });
+            event_writer.write(EditEvent {});
         } else {
             debug!("[NUDGE] Arrow key pressed but no selected points found");
         }
@@ -236,11 +245,7 @@ pub fn sync_nudged_points_on_completion(
         With<Selected>,
     >,
     all_points_query: Query<
-        (
-            &Transform,
-            &GlyphPointReference,
-            &PointType,
-        ),
+        (&Transform, &GlyphPointReference, &PointType),
         (With<SortPointEntity>, Without<Selected>),
     >,
     _sort_query: Query<(&crate::editing::sort::Sort, &Transform)>,
@@ -329,8 +334,7 @@ impl Plugin for NudgePlugin {
 
 /// Event for nudge operations
 #[derive(Event)]
-pub struct EditEvent {
-}
+pub struct EditEvent {}
 
 /// Point coordinates component
 #[derive(Component, Debug, Clone, Copy)]

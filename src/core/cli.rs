@@ -4,6 +4,7 @@
 //! validation for user inputs. Many CLI options are documented with
 //! examples to help users understand the expected format.
 
+use crate::core::config_file::ConfigFile;
 use crate::ui::themes::ThemeVariant;
 use bevy::prelude::*;
 use clap::Parser;
@@ -63,6 +64,19 @@ pub struct CliArgs {
         long_help = "Disable creation of the default LTR text buffer on startup. Useful for testing isolated text flows or debugging positioning issues."
     )]
     pub no_default_buffer: bool,
+
+    /// Initialize user configuration directory with settings and themes
+    ///
+    /// This creates the ~/.config/bezy directory with:
+    /// - settings.json: User preferences like default theme
+    /// - themes/: Copies of all default themes that you can customize
+    /// This allows full customization without modifying the app installation.
+    #[clap(
+        long = "new-config",
+        help = "Initialize user config directory with settings and themes",
+        long_help = "Initialize the ~/.config/bezy directory with a settings.json file and copies of all default themes. This allows you to customize themes and set preferences like default theme without needing command line arguments."
+    )]
+    pub new_config: bool,
 }
 
 impl CliArgs {
@@ -153,11 +167,33 @@ impl CliArgs {
         self.font_source.as_ref()
     }
 
-    /// Get the theme variant from CLI args or default
+    /// Get the theme variant from CLI args, config file, or default
+    ///
+    /// Priority order:
+    /// 1. CLI argument (--theme)
+    /// 2. Config file setting (~/.config/bezy/settings.json)
+    /// 3. Built-in default (dark theme)
     pub fn get_theme_variant(&self) -> ThemeVariant {
-        self.theme
-            .as_ref()
-            .and_then(|theme_name| ThemeVariant::parse(theme_name))
-            .unwrap_or_default()
+        // First check CLI args
+        if let Some(theme_name) = &self.theme {
+            if let Some(variant) = ThemeVariant::parse(theme_name) {
+                info!("Using theme from CLI: {}", theme_name);
+                return variant;
+            }
+        }
+
+        // Then check config file
+        if let Some(config) = ConfigFile::load() {
+            if let Some(theme_name) = config.default_theme {
+                if let Some(variant) = ThemeVariant::parse(&theme_name) {
+                    info!("Using theme from config file: {}", theme_name);
+                    return variant;
+                }
+            }
+        }
+
+        // Finally use built-in default
+        info!("Using default theme: dark");
+        ThemeVariant::default()
     }
 }

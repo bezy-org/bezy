@@ -86,7 +86,6 @@ impl ThemeRegistry {
         }
     }
 
-
     /// Get all available theme names
     pub fn get_theme_names(&self) -> Vec<String> {
         let mut names: Vec<String> = self.themes.keys().cloned().collect();
@@ -253,14 +252,11 @@ pub trait BezyTheme: Send + Sync + 'static {
         24.0
     }
 
-    /// Text colors
-    fn normal_text_color(&self) -> Color;
-    fn secondary_text_color(&self) -> Color;
-    fn highlight_text_color(&self) -> Color;
-
-    /// UI text colors for key-value pairs in panes
-    fn ui_text_label(&self) -> Color;
-    fn ui_text_value(&self) -> Color;
+    /// Unified UI text colors
+    fn ui_text_primary(&self) -> Color;
+    fn ui_text_secondary(&self) -> Color;
+    fn ui_text_tertiary(&self) -> Color;
+    fn ui_text_quaternary(&self) -> Color;
 
     // =================================================================
     // LAYOUT & SPACING
@@ -636,20 +632,18 @@ impl CurrentTheme {
         let registry = get_theme_registry();
 
         // Try to load theme through the registry (which handles user dir and embedded themes)
-        let theme = registry
-            .create_theme(variant.name())
-            .unwrap_or_else(|| {
-                // Fallback to creating dark theme from embedded JSON
-                if let Some(content) = embedded_themes::get_embedded_themes().get("dark") {
-                    if let Ok(json_theme) = embedded_themes::load_theme_from_string(content) {
-                        Box::new(json_theme)
-                    } else {
-                        panic!("Failed to load fallback dark theme!")
-                    }
+        let theme = registry.create_theme(variant.name()).unwrap_or_else(|| {
+            // Fallback to creating dark theme from embedded JSON
+            if let Some(content) = embedded_themes::get_embedded_themes().get("dark") {
+                if let Ok(json_theme) = embedded_themes::load_theme_from_string(content) {
+                    Box::new(json_theme)
                 } else {
-                    panic!("No fallback theme available!")
+                    panic!("Failed to load fallback dark theme!")
                 }
-            });
+            } else {
+                panic!("No fallback theme available!")
+            }
+        });
 
         Self { variant, theme }
     }
@@ -687,29 +681,24 @@ impl Default for CurrentTheme {
 /// These functions provide a simple way to access theme values from systems
 /// without having to write out the full resource access pattern every time.
 impl CurrentTheme {
-    /// Get the normal text color for the current theme
-    pub fn get_normal_text_color(&self) -> Color {
-        self.theme().normal_text_color()
+    /// Get the primary UI text color (most prominent text)
+    pub fn get_ui_text_primary(&self) -> Color {
+        self.theme().ui_text_primary()
     }
 
-    /// Get the secondary text color for the current theme
-    pub fn get_secondary_text_color(&self) -> Color {
-        self.theme().secondary_text_color()
+    /// Get the secondary UI text color (labels, less prominent text)
+    pub fn get_ui_text_secondary(&self) -> Color {
+        self.theme().ui_text_secondary()
     }
 
-    /// Get the highlight text color for the current theme
-    pub fn get_highlight_text_color(&self) -> Color {
-        self.theme().highlight_text_color()
+    /// Get the tertiary UI text color (supporting text, hints)
+    pub fn get_ui_text_tertiary(&self) -> Color {
+        self.theme().ui_text_tertiary()
     }
 
-    /// Get the UI text label color (for keys in key-value pairs)
-    pub fn get_ui_text_label(&self) -> Color {
-        self.theme().ui_text_label()
-    }
-
-    /// Get the UI text value color (for values in key-value pairs)
-    pub fn get_ui_text_value(&self) -> Color {
-        self.theme().ui_text_value()
+    /// Get the quaternary UI text color (subtle text, placeholders)
+    pub fn get_ui_text_quaternary(&self) -> Color {
+        self.theme().ui_text_quaternary()
     }
 
     // =================================================================

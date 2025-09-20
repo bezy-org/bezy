@@ -55,9 +55,7 @@
 
 use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::ui::edit_mode_toolbar::*;
-use crate::ui::theme::{
-    TOOLBAR_GRID_SPACING,
-};
+use crate::ui::theme::TOOLBAR_GRID_SPACING;
 use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
 use bevy::prelude::*;
 
@@ -206,7 +204,8 @@ pub fn create_button_icon_text(
         },
         Text::new(icon.to_string()),
         TextFont {
-            font: asset_server.load_font_with_fallback(theme.theme().grotesk_font_path(), embedded_fonts),
+            font: asset_server
+                .load_font_with_fallback(theme.theme().grotesk_font_path(), embedded_fonts),
             font_size: theme.theme().button_icon_size(),
             ..default()
         },
@@ -279,11 +278,18 @@ pub fn update_toolbar_button_colors(
     theme: &CurrentTheme,
 ) {
     let (bg_color, border_color_value) = match (interaction, is_active) {
-        (Interaction::Pressed, _) | (_, true) => {
-            (theme.theme().pressed_button_color(), theme.theme().pressed_button_outline_color())
-        }
-        (Interaction::Hovered, false) => (theme.theme().hovered_button_color(), theme.theme().hovered_button_outline_color()),
-        (Interaction::None, false) => (theme.theme().normal_button_color(), theme.theme().normal_button_outline_color()),
+        (Interaction::Pressed, _) | (_, true) => (
+            theme.theme().pressed_button_color(),
+            theme.theme().pressed_button_outline_color(),
+        ),
+        (Interaction::Hovered, false) => (
+            theme.theme().hovered_button_color(),
+            theme.theme().hovered_button_outline_color(),
+        ),
+        (Interaction::None, false) => (
+            theme.theme().normal_button_color(),
+            theme.theme().normal_button_outline_color(),
+        ),
     };
 
     *background_color = BackgroundColor(bg_color);
@@ -370,7 +376,13 @@ pub fn update_toolbar_button_appearances(
             &mut border_color,
             &theme,
         );
-        update_button_text_color(entity, is_current_tool, &children_query, &mut text_query, &theme);
+        update_button_text_color(
+            entity,
+            is_current_tool,
+            &children_query,
+            &mut text_query,
+            &theme,
+        );
     }
 }
 
@@ -420,7 +432,13 @@ fn update_button_colors(
     theme: &CurrentTheme,
 ) {
     // Use consistent color system
-    update_toolbar_button_colors(interaction, is_current_tool, background_color, border_color, theme);
+    update_toolbar_button_colors(
+        interaction,
+        is_current_tool,
+        background_color,
+        border_color,
+        theme,
+    );
 }
 
 /// Updates text color for button children based on current tool state
@@ -551,7 +569,9 @@ pub fn update_hover_text_visibility(
 
     // Calculate vertical position based on submenu visibility
     // Use grid spacing for consistent layout - smaller gap for better visual connection
-    let base_offset = theme.theme().toolbar_container_margin() + theme.theme().toolbar_button_size() + TOOLBAR_GRID_SPACING * 2.0;
+    let base_offset = theme.theme().toolbar_container_margin()
+        + theme.theme().toolbar_button_size()
+        + TOOLBAR_GRID_SPACING * 2.0;
 
     // Check if any submenu is visible
     let mut submenu_visible = false;
@@ -614,7 +634,8 @@ pub fn update_hover_text_visibility(
             commands.spawn((
                 Text::new(display_text),
                 TextFont {
-                    font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
+                    font: asset_server
+                        .load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
                     font_size: theme.theme().widget_text_font_size(),
                     ..default()
                 },

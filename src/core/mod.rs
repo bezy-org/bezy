@@ -9,6 +9,7 @@
 
 pub mod app;
 pub mod cli;
+pub mod config_file;
 pub mod errors;
 pub mod io;
 pub mod platform;

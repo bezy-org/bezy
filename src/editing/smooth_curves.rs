@@ -15,9 +15,13 @@ use bevy::prelude::*;
 pub fn find_direct_neighbor_handles(
     smooth_point_ref: &GlyphPointReference,
     point_data: &[(Entity, Vec2, GlyphPointReference, PointType)],
-) -> (Option<(Entity, Vec2, GlyphPointReference)>, Option<(Entity, Vec2, GlyphPointReference)>) {
+) -> (
+    Option<(Entity, Vec2, GlyphPointReference)>,
+    Option<(Entity, Vec2, GlyphPointReference)>,
+) {
     // Get all points in the same contour
-    let mut contour_points: Vec<_> = point_data.iter()
+    let mut contour_points: Vec<_> = point_data
+        .iter()
         .filter(|(_, _, p_ref, _)| {
             p_ref.glyph_name == smooth_point_ref.glyph_name
                 && p_ref.contour_index == smooth_point_ref.contour_index
@@ -33,33 +37,36 @@ pub fn find_direct_neighbor_handles(
     }
 
     // Find our smooth point position
-    let smooth_pos = contour_points.iter()
+    let smooth_pos = contour_points
+        .iter()
         .position(|(_, _, p_ref, _)| p_ref.point_index == smooth_point_ref.point_index);
 
     if let Some(pos) = smooth_pos {
         // Check previous point (wrapping around for closed contours)
         let prev_idx = if pos > 0 { pos - 1 } else { num_points - 1 };
-        let left_handle = if let Some((entity, pos, p_ref, point_type)) = contour_points.get(prev_idx) {
-            if !point_type.is_on_curve {
-                Some((*entity, *pos, (*p_ref).clone()))
+        let left_handle =
+            if let Some((entity, pos, p_ref, point_type)) = contour_points.get(prev_idx) {
+                if !point_type.is_on_curve {
+                    Some((*entity, *pos, (*p_ref).clone()))
+                } else {
+                    None
+                }
             } else {
                 None
-            }
-        } else {
-            None
-        };
+            };
 
         // Check next point (wrapping around for closed contours)
         let next_idx = (pos + 1) % num_points;
-        let right_handle = if let Some((entity, pos, p_ref, point_type)) = contour_points.get(next_idx) {
-            if !point_type.is_on_curve {
-                Some((*entity, *pos, (*p_ref).clone()))
+        let right_handle =
+            if let Some((entity, pos, p_ref, point_type)) = contour_points.get(next_idx) {
+                if !point_type.is_on_curve {
+                    Some((*entity, *pos, (*p_ref).clone()))
+                } else {
+                    None
+                }
             } else {
                 None
-            }
-        } else {
-            None
-        };
+            };
 
         (left_handle, right_handle)
     } else {
@@ -116,7 +123,8 @@ pub fn find_curve_handles_for_smooth_point(
     point_data: &[(Entity, Vec2, GlyphPointReference, PointType)],
 ) -> Option<SmoothCurveConstraint> {
     // Get all points in the same contour, sorted by point index
-    let mut contour_points: Vec<_> = point_data.iter()
+    let mut contour_points: Vec<_> = point_data
+        .iter()
         .filter(|(_, _, p_ref, _)| {
             p_ref.glyph_name == smooth_point_ref.glyph_name
                 && p_ref.contour_index == smooth_point_ref.contour_index
@@ -127,7 +135,8 @@ pub fn find_curve_handles_for_smooth_point(
     contour_points.sort_by_key(|(_, _, p_ref, _)| p_ref.point_index);
 
     // Find the position of our smooth point in the sorted list
-    let smooth_position = contour_points.iter()
+    let smooth_position = contour_points
+        .iter()
         .position(|(entity, _, _, _)| *entity == smooth_entity);
 
     let smooth_idx = if let Some(pos) = smooth_position {
@@ -141,7 +150,11 @@ pub fn find_curve_handles_for_smooth_point(
     let mut right_handle = None;
 
     // Look backwards from smooth point to find the previous on-curve point and any handles
-    let mut idx = if smooth_idx == 0 { contour_points.len() - 1 } else { smooth_idx - 1 };
+    let mut idx = if smooth_idx == 0 {
+        contour_points.len() - 1
+    } else {
+        smooth_idx - 1
+    };
     while idx != smooth_idx {
         let (entity, _, _, point_type) = contour_points[idx];
 
@@ -256,12 +269,13 @@ pub fn apply_smooth_curve_constraints(
     let mut adjusted_points = Vec::new();
 
     // Get the smooth point position
-    let smooth_point_pos = if let Ok((_, transform, _, _)) = all_points_query.get(constraint.smooth_point) {
-        transform.translation.truncate()
-    } else {
-        debug!("Could not find smooth point position");
-        return SmoothCurveResult { adjusted_points };
-    };
+    let smooth_point_pos =
+        if let Ok((_, transform, _, _)) = all_points_query.get(constraint.smooth_point) {
+            transform.translation.truncate()
+        } else {
+            debug!("Could not find smooth point position");
+            return SmoothCurveResult { adjusted_points };
+        };
 
     // Determine which handle was moved and calculate the opposite handle position
     let moved_is_left = constraint.left_handle == Some(moved_handle);
@@ -307,10 +321,7 @@ pub fn apply_smooth_curve_constraints(
 }
 
 /// Check if a point is marked as smooth using enhanced point data
-pub fn is_point_smooth(
-    entity: Entity,
-    enhanced_points: &Query<&EnhancedPointType>,
-) -> bool {
+pub fn is_point_smooth(entity: Entity, enhanced_points: &Query<&EnhancedPointType>) -> bool {
     if let Ok(enhanced) = enhanced_points.get(entity) {
         enhanced.is_smooth()
     } else {
@@ -328,19 +339,15 @@ pub fn find_all_smooth_constraints(
 
     // Find all smooth on-curve points
     for (entity, enhanced, point_ref) in enhanced_points.iter() {
-        if point_ref.glyph_name == glyph_name
-            && enhanced.is_on_curve
-            && enhanced.is_smooth()
-        {
-            if let Some(constraint) = find_smooth_curve_constraints(
-                entity,
-                point_ref,
-                all_points_query
-            ) {
+        if point_ref.glyph_name == glyph_name && enhanced.is_on_curve && enhanced.is_smooth() {
+            if let Some(constraint) =
+                find_smooth_curve_constraints(entity, point_ref, all_points_query)
+            {
                 debug!(
                     "Found smooth constraint for point {:?} with {} handles",
                     entity,
-                    constraint.left_handle.is_some() as usize + constraint.right_handle.is_some() as usize
+                    constraint.left_handle.is_some() as usize
+                        + constraint.right_handle.is_some() as usize
                 );
                 constraints.push(constraint);
             }
@@ -396,7 +403,10 @@ where
 /// they are marked as smooth, without requiring manual handle adjustment.
 pub fn auto_apply_smooth_constraints(
     // Query for points that just became smooth
-    changed_enhanced_points: Query<(Entity, &EnhancedPointType, &GlyphPointReference), Changed<EnhancedPointType>>,
+    changed_enhanced_points: Query<
+        (Entity, &EnhancedPointType, &GlyphPointReference),
+        Changed<EnhancedPointType>,
+    >,
     // All points for finding handles and getting positions (mutable for updates)
     mut all_points_query: Query<(Entity, &mut Transform, &GlyphPointReference, &PointType)>,
 ) {
@@ -412,20 +422,25 @@ pub fn auto_apply_smooth_constraints(
         );
 
         // Collect immutable data for constraint finding
-        let point_data: Vec<_> = all_points_query.iter()
-            .map(|(entity, transform, point_ref, point_type)| (entity, transform.translation.truncate(), point_ref.clone(), *point_type))
+        let point_data: Vec<_> = all_points_query
+            .iter()
+            .map(|(entity, transform, point_ref, point_type)| {
+                (
+                    entity,
+                    transform.translation.truncate(),
+                    point_ref.clone(),
+                    *point_type,
+                )
+            })
             .collect();
 
         // Find smooth curve constraints for this point using proper curve segment analysis
-        let constraint = find_curve_handles_for_smooth_point(
-            smooth_entity,
-            point_ref,
-            &point_data
-        );
+        let constraint = find_curve_handles_for_smooth_point(smooth_entity, point_ref, &point_data);
 
         if let Some(constraint) = constraint {
             // Get current smooth point position
-            let smooth_pos = point_data.iter()
+            let smooth_pos = point_data
+                .iter()
                 .find(|(entity, _, _, _)| *entity == smooth_entity)
                 .map(|(_, pos, _, _)| *pos);
 
@@ -436,12 +451,16 @@ pub fn auto_apply_smooth_constraints(
             };
 
             // If we have both handles, align them symmetrically around the smooth point
-            if let (Some(left_handle), Some(right_handle)) = (constraint.left_handle, constraint.right_handle) {
+            if let (Some(left_handle), Some(right_handle)) =
+                (constraint.left_handle, constraint.right_handle)
+            {
                 // Get handle positions from our collected data
-                let left_pos = point_data.iter()
+                let left_pos = point_data
+                    .iter()
                     .find(|(entity, _, _, _)| *entity == left_handle)
                     .map(|(_, pos, _, _)| *pos);
-                let right_pos = point_data.iter()
+                let right_pos = point_data
+                    .iter()
                     .find(|(entity, _, _, _)| *entity == right_handle)
                     .map(|(_, pos, _, _)| *pos);
 
@@ -451,7 +470,8 @@ pub fn auto_apply_smooth_constraints(
                     let right_vector = right_pos - smooth_pos;
 
                     // Check for collinearity using cross product (should be ~0 for collinear vectors)
-                    let cross_product = left_vector.x * right_vector.y - left_vector.y * right_vector.x;
+                    let cross_product =
+                        left_vector.x * right_vector.y - left_vector.y * right_vector.x;
                     let collinearity_threshold = 0.1; // Small threshold for floating point precision
 
                     if cross_product.abs() < collinearity_threshold {
@@ -483,12 +503,16 @@ pub fn auto_apply_smooth_constraints(
                         let new_right_pos = smooth_pos + (-avg_direction * right_dist);
 
                         // Update both handles
-                        if let Ok((_, mut left_transform, _, _)) = all_points_query.get_mut(left_handle) {
+                        if let Ok((_, mut left_transform, _, _)) =
+                            all_points_query.get_mut(left_handle)
+                        {
                             left_transform.translation.x = new_left_pos.x;
                             left_transform.translation.y = new_left_pos.y;
                         }
 
-                        if let Ok((_, mut right_transform, _, _)) = all_points_query.get_mut(right_handle) {
+                        if let Ok((_, mut right_transform, _, _)) =
+                            all_points_query.get_mut(right_handle)
+                        {
                             right_transform.translation.x = new_right_pos.x;
                             right_transform.translation.y = new_right_pos.y;
                         }
@@ -560,9 +584,21 @@ pub fn universal_smooth_constraints(
         // Query for points that have moved (immutable access)
         Query<(Entity, &Transform, &GlyphPointReference, &PointType), Changed<Transform>>,
         // Query for all points to analyze constraints (immutable access)
-        Query<(Entity, &Transform, &GlyphPointReference, &PointType, Option<&EnhancedPointType>)>,
+        Query<(
+            Entity,
+            &Transform,
+            &GlyphPointReference,
+            &PointType,
+            Option<&EnhancedPointType>,
+        )>,
         // Query for all points to modify (mutable access)
-        Query<(Entity, &mut Transform, &GlyphPointReference, &PointType, Option<&EnhancedPointType>)>,
+        Query<(
+            Entity,
+            &mut Transform,
+            &GlyphPointReference,
+            &PointType,
+            Option<&EnhancedPointType>,
+        )>,
     )>,
     // Track processed entities to avoid infinite loops
     mut processed: Local<std::collections::HashSet<Entity>>,
@@ -571,10 +607,16 @@ pub fn universal_smooth_constraints(
     processed.clear();
 
     // First, collect changed points data (no processed filtering for now)
-    let changed_data: Vec<_> = param_set.p0()
+    let changed_data: Vec<_> = param_set
+        .p0()
         .iter()
         .map(|(entity, transform, point_ref, point_type)| {
-            (entity, transform.translation.truncate(), point_ref.clone(), *point_type)
+            (
+                entity,
+                transform.translation.truncate(),
+                point_ref.clone(),
+                *point_type,
+            )
         })
         .collect();
 
@@ -582,13 +624,22 @@ pub fn universal_smooth_constraints(
         return;
     }
 
-    info!("[SMOOTH UNIVERSAL] System running - {} changed points total", changed_data.len());
+    info!(
+        "[SMOOTH UNIVERSAL] System running - {} changed points total",
+        changed_data.len()
+    );
 
     // Build point data for constraint analysis
-    let point_data: Vec<_> = param_set.p1()
+    let point_data: Vec<_> = param_set
+        .p1()
         .iter()
         .map(|(entity, transform, point_ref, point_type, _)| {
-            (entity, transform.translation.truncate(), point_ref.clone(), *point_type)
+            (
+                entity,
+                transform.translation.truncate(),
+                point_ref.clone(),
+                *point_type,
+            )
         })
         .collect();
 
@@ -604,17 +655,24 @@ pub fn universal_smooth_constraints(
             );
 
             // Find smooth on-curve points in the same contour using p1 query
-            for (_, smooth_transform, smooth_ref, smooth_point_type, smooth_enhanced) in param_set.p1().iter() {
+            for (_, smooth_transform, smooth_ref, smooth_point_type, smooth_enhanced) in
+                param_set.p1().iter()
+            {
                 if smooth_ref.glyph_name == moved_ref.glyph_name
                     && smooth_ref.contour_index == moved_ref.contour_index
                     && smooth_point_type.is_on_curve
                     && smooth_enhanced.map_or(false, |e| e.is_smooth())
                 {
                     // Use simplified neighbor detection
-                    let (left_handle, right_handle) = find_direct_neighbor_handles(smooth_ref, &point_data);
+                    let (left_handle, right_handle) =
+                        find_direct_neighbor_handles(smooth_ref, &point_data);
 
-                    let moved_is_left = left_handle.as_ref().map_or(false, |(_, _, ref_comp)| ref_comp == moved_ref);
-                    let moved_is_right = right_handle.as_ref().map_or(false, |(_, _, ref_comp)| ref_comp == moved_ref);
+                    let moved_is_left = left_handle
+                        .as_ref()
+                        .map_or(false, |(_, _, ref_comp)| ref_comp == moved_ref);
+                    let moved_is_right = right_handle
+                        .as_ref()
+                        .map_or(false, |(_, _, ref_comp)| ref_comp == moved_ref);
 
                     if moved_is_left || moved_is_right {
                         info!(
@@ -625,7 +683,11 @@ pub fn universal_smooth_constraints(
                         let smooth_pos = smooth_transform.translation.truncate();
 
                         // Determine which handle to adjust
-                        let other_handle = if moved_is_left { right_handle } else { left_handle };
+                        let other_handle = if moved_is_left {
+                            right_handle
+                        } else {
+                            left_handle
+                        };
 
                         if let Some((_, other_pos, other_ref)) = other_handle {
                             // Calculate collinear position preserving the opposite handle's original distance
@@ -634,7 +696,8 @@ pub fn universal_smooth_constraints(
 
                             // Create a unit vector in the opposite direction of the moved handle
                             let moved_length = moved_vector.length();
-                            if moved_length > 0.001 { // Avoid division by zero
+                            if moved_length > 0.001 {
+                                // Avoid division by zero
                                 let moved_unit = moved_vector / moved_length;
                                 let opposite_unit = -moved_unit;
 
@@ -646,7 +709,11 @@ pub fn universal_smooth_constraints(
                                     moved_length, other_distance
                                 );
 
-                                constraint_adjustments.push((other_ref.clone(), new_other_pos, *moved_entity));
+                                constraint_adjustments.push((
+                                    other_ref.clone(),
+                                    new_other_pos,
+                                    *moved_entity,
+                                ));
                             }
                         }
                     }

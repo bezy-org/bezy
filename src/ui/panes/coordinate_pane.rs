@@ -6,8 +6,8 @@
 #![allow(unused_mut)]
 #![allow(unused_variables)]
 
-use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::editing::selection::components::Selected;
+use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::geometry::quadrant::Quadrant;
 use crate::ui::theme::*;
 use crate::ui::themes::{CurrentTheme, UiBorderRadius};
@@ -160,21 +160,27 @@ pub fn spawn_coordinate_pane(
                         },
                         Text::new("X:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_label()),
+                        TextColor(theme.get_ui_text_secondary()),
                     ));
                     // X value
                     row.spawn((
                         Text::new("0"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_value()),
+                        TextColor(theme.get_ui_text_primary()),
                         XValue,
                     ));
                 });
@@ -196,21 +202,27 @@ pub fn spawn_coordinate_pane(
                         },
                         Text::new("Y:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_label()),
+                        TextColor(theme.get_ui_text_secondary()),
                     ));
                     // Y value
                     row.spawn((
                         Text::new("0"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_value()),
+                        TextColor(theme.get_ui_text_primary()),
                         YValue,
                     ));
                 });
@@ -232,21 +244,27 @@ pub fn spawn_coordinate_pane(
                         },
                         Text::new("W:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_label()),
+                        TextColor(theme.get_ui_text_secondary()),
                     ));
                     // Width value
                     row.spawn((
                         Text::new("0"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_value()),
+                        TextColor(theme.get_ui_text_primary()),
                         WidthValue,
                     ));
                 });
@@ -268,21 +286,27 @@ pub fn spawn_coordinate_pane(
                         },
                         Text::new("H:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_label()),
+                        TextColor(theme.get_ui_text_secondary()),
                     ));
                     // Height value
                     row.spawn((
                         Text::new("0"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_value()),
+                        TextColor(theme.get_ui_text_primary()),
                         HeightValue,
                     ));
                 });

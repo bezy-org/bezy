@@ -85,7 +85,9 @@ pub fn render_points_with_meshes(
         // Create the three-layer point shape
         if point_type.is_on_curve && theme.theme().use_square_for_on_curve() {
             // On-curve points: square with three layers
-            let base_size = theme.theme().on_curve_point_radius() * theme.theme().on_curve_square_adjustment() * 2.0;
+            let base_size = theme.theme().on_curve_point_radius()
+                * theme.theme().on_curve_square_adjustment()
+                * 2.0;
 
             // Layer 1: Base shape (full width) - primary color
             commands.spawn((

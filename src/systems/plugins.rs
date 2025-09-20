@@ -38,7 +38,6 @@ fn configure_gizmos(mut gizmo_store: ResMut<GizmoConfigStore>, theme: Res<Curren
     info!("Configured gizmo line width to {}px", line_width);
 }
 
-
 /// Plugin to organize toolbar-related plugins
 pub struct ToolbarPlugin;
 

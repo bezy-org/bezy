@@ -114,12 +114,16 @@ Bezy is designed to be used as a command line tool in Unix-style workflows.
 |------|-------|-------------|---------|
 | `--edit <PATH>` | `-e` | Edit a font source (UFO directory or .designspace file) | `bezy --edit MyFont.ufo` |
 | `--theme <NAME>` | `-t` | Set the color theme | `bezy --theme lightmode` |
+| `--new-config` | | Initialize user configuration directory | `bezy --new-config` |
 | `--no-default-buffer` | | Start without default text buffer | `bezy --no-default-buffer` |
 | `--help` | `-h` | Show help information | `bezy --help` |
 | `--version` | `-V` | Show version information | `bezy --version` |
 
 ### Examples
 ```bash
+# Initialize user configuration (run once)
+bezy --new-config
+
 # Edit a single UFO
 bezy --edit ~/Fonts/MyFont.ufo
 
@@ -130,7 +134,7 @@ bezy --edit ~/Fonts/MyVariable.designspace
 bezy --theme strawberry
 
 # Combine as many flags as you need
-bezy --edit ~/Fonts/MyFont.ufo --theme lightmode
+bezy --edit ~/Fonts/MyFont.ufo --theme light
 
 # Short form using -e
 bezy -e MyFont.ufo
@@ -169,40 +173,73 @@ The edit-mode toolbar provides access to various editing tools. Each tool has sp
 - **Text Tool**: A text editor built with editable type sorts 
 - **Measure Tool**: Measure distances between contours
 
-# Themes
+# Themes & Configuration
 
-Bezy includes four built-in themes embedded in the application and supports optional custom theme creation:
+Bezy includes four built-in themes and supports user configuration and theme customization.
 
 ## Built-in Themes
-- `darkmode` (default) - Dark background with light text
-- `lightmode` - Light background with dark text
+- `dark` (default) - Dark background with light text
+- `light` - Light background with dark text
 - `strawberry` - Pink/red/green theme
 - `campfire` - Warm orange/red/brown/black theme
 
-These themes are embedded in the application and work in both development and installed modes.
+## User Configuration
 
-## Custom Themes (Optional)
-You can optionally create and edit your own themes by creating a `~/.bezy/themes/` directory. The theme system works as follows:
+### Initialize Configuration (Optional)
+You can set up a user configuration directory to customize settings and themes:
 
-**Default behavior**: Uses embedded themes (no setup required)
-**With `~/.bezy/themes/`**: Uses themes from this directory when it exists
-
-### Theme Loading Priority:
-1. If `~/.bezy/themes/` exists → Load themes from `~/.bezy/themes/*.json`
-2. If not → Use embedded themes (default)
-3. Hot-reload: When using custom themes, changes are reflected instantly when you save the file
-
-##### Creating Custom Themes:
 ```bash
-# Optional: Create themes directory for customization
-mkdir -p ~/.bezy/themes
+# Initialize your user config directory (run once)
+bezy --new-config
+```
 
-# Copy built-in theme as starting point (get from src/ui/themes/ in source)
-# Or create your own JSON file following the theme structure
+This creates:
+- `~/.config/bezy/settings.json` - User preferences like default theme
+- `~/.config/bezy/themes/` - Editable copies of all themes
+
+### Setting a Default Theme
+After running `--new-config`, edit `~/.config/bezy/settings.json`:
+
+```json
+{
+  "default_theme": "strawberry"
+}
+```
+
+Now you can run `bezy` without the `--theme` flag and it will use your preferred theme.
+
+### Theme Priority
+Bezy uses this priority order for themes:
+1. **CLI argument**: `bezy --theme light` (highest priority)
+2. **Config file**: `default_theme` in `~/.config/bezy/settings.json`
+3. **Built-in default**: "dark" theme (fallback)
+
+## Custom Themes
+
+### Theme Loading System
+- **Without user config**: Uses embedded themes (no setup required)
+- **With `~/.config/bezy/themes/`**: Uses themes from this directory
+
+### Creating Custom Themes
+```bash
+# Initialize config to get editable theme files
+bezy --new-config
+
+# Now you can edit any theme file:
+nano ~/.config/bezy/themes/strawberry.json
+
+# Or create a new theme file:
+cp ~/.config/bezy/themes/dark.json ~/.config/bezy/themes/mytheme.json
+nano ~/.config/bezy/themes/mytheme.json
 
 # Use your custom theme
 bezy --theme mytheme
+
+# Or set it as default in settings.json
 ```
+
+### Hot Reload
+When using custom themes from `~/.config/bezy/themes/`, changes are reflected instantly when you save theme files (in debug builds).
 
 # License
 [GNU GENERAL PUBLIC LICENSE](https://www.gnu.org/licenses/gpl-3.0.en.html) Version 3, 29 June 2007
