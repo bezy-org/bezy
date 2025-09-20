@@ -167,7 +167,7 @@ pub fn spawn_coordinate_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
                     // X value
                     row.spawn((
@@ -180,7 +180,7 @@ pub fn spawn_coordinate_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_primary()),
+                        TextColor(theme.get_ui_text_secondary()),
                         XValue,
                     ));
                 });
@@ -209,7 +209,7 @@ pub fn spawn_coordinate_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
                     // Y value
                     row.spawn((
@@ -222,7 +222,7 @@ pub fn spawn_coordinate_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_primary()),
+                        TextColor(theme.get_ui_text_secondary()),
                         YValue,
                     ));
                 });
@@ -251,7 +251,7 @@ pub fn spawn_coordinate_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
                     // Width value
                     row.spawn((
@@ -264,7 +264,7 @@ pub fn spawn_coordinate_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_primary()),
+                        TextColor(theme.get_ui_text_secondary()),
                         WidthValue,
                     ));
                 });
@@ -293,7 +293,7 @@ pub fn spawn_coordinate_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
                     // Height value
                     row.spawn((
@@ -306,7 +306,7 @@ pub fn spawn_coordinate_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_primary()),
+                        TextColor(theme.get_ui_text_secondary()),
                         HeightValue,
                     ));
                 });

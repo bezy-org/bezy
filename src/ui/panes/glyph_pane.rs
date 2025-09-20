@@ -268,7 +268,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
 
                     // Value
@@ -282,7 +282,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_primary()),
+                        TextColor(theme.get_ui_text_secondary()),
                         GlyphNameText,
                     ));
                 });
@@ -314,7 +314,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
 
                     // Value
@@ -328,7 +328,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_primary()),
+                        TextColor(theme.get_ui_text_secondary()),
                         GlyphUnicodeText,
                     ));
                 });
@@ -360,7 +360,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
 
                     // Value
@@ -374,7 +374,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_primary()),
+                        TextColor(theme.get_ui_text_secondary()),
                         GlyphAdvanceText,
                     ));
                 });
@@ -406,7 +406,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
 
                     // Value
@@ -420,7 +420,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_primary()),
+                        TextColor(theme.get_ui_text_secondary()),
                         GlyphLeftBearingText,
                     ));
                 });
@@ -452,7 +452,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
 
                     // Value
@@ -466,7 +466,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_primary()),
+                        TextColor(theme.get_ui_text_secondary()),
                         GlyphRightBearingText,
                     ));
                 });
@@ -498,7 +498,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
 
                     // Value
@@ -512,7 +512,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_primary()),
+                        TextColor(theme.get_ui_text_secondary()),
                         GlyphLeftGroupText,
                     ));
                 });
@@ -543,7 +543,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
 
                     // Value
@@ -557,7 +557,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_primary()),
+                        TextColor(theme.get_ui_text_secondary()),
                         GlyphRightGroupText,
                     ));
                 });

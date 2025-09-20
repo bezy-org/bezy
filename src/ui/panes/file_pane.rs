@@ -239,7 +239,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
                     // Value
                     row.spawn((
@@ -252,7 +252,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_primary()),
+                        TextColor(theme.get_ui_text_secondary()),
                         DesignspacePathText,
                     ));
                 });
@@ -281,7 +281,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
                     // Value
                     row.spawn((
@@ -294,7 +294,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_primary()),
+                        TextColor(theme.get_ui_text_secondary()),
                         CurrentUFOText,
                     ));
                 });
@@ -327,7 +327,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
                     // Value
                     row.spawn((
@@ -340,7 +340,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_primary()),
+                        TextColor(theme.get_ui_text_secondary()),
                         LastSavedText,
                     ));
                 });
@@ -372,7 +372,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
                     // Value
                     row.spawn((
@@ -385,7 +385,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_primary()),
+                        TextColor(theme.get_ui_text_secondary()),
                         LastExportedText,
                     ));
                 });
