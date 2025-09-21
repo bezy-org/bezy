@@ -336,7 +336,9 @@ pub fn render_pen_preview(
 ) {
     // Clean up existing preview elements
     for entity in existing_preview_query.iter() {
-        commands.entity(entity).despawn();
+        if let Ok(mut entity_commands) = commands.get_entity(entity) {
+            entity_commands.despawn();
+        }
     }
 
     // Check if pen tool is active via multiple methods

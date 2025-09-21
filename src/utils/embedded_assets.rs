@@ -7,8 +7,8 @@ use bevy::prelude::*;
 use std::path::Path;
 
 // Embed the font files at compile time
-pub const BEZY_GROTESK_BYTES: &[u8] = include_bytes!("../assets/fonts/BezyGrotesk-Regular.ttf");
-pub const HASUBI_MONO_BYTES: &[u8] = include_bytes!("../assets/fonts/HasubiMono-Regular.ttf");
+pub const BEZY_GROTESK_BYTES: &[u8] = include_bytes!("../../assets/fonts/BezyGrotesk-Regular.ttf");
+pub const HASUBI_MONO_BYTES: &[u8] = include_bytes!("../../assets/fonts/HasubiMono-Regular.ttf");
 
 // Store font handles as resources so they can be accessed globally
 #[derive(Resource, Default)]
@@ -99,7 +99,7 @@ impl AssetServerFontExt for AssetServer {
 #[macro_export]
 macro_rules! load_font {
     ($asset_server:expr, $embedded_fonts:expr, $path:expr) => {{
-        use $crate::embedded_assets::AssetServerFontExt;
+        use $crate::utils::embedded_assets::AssetServerFontExt;
         $asset_server.load_font_with_fallback($path, $embedded_fonts)
     }};
 }

@@ -315,8 +315,10 @@ pub fn regenerate_points_on_fontir_change(
             if parent.0 == sort_entity {
                 // Remove from selection if selected
                 selection_state.selected.remove(&point_entity);
-                commands.entity(point_entity).despawn();
-                despawn_count += 1;
+                if let Ok(mut entity_commands) = commands.get_entity(point_entity) {
+                    entity_commands.despawn();
+                    despawn_count += 1;
+                }
             }
         }
 
@@ -426,8 +428,11 @@ pub fn despawn_inactive_sort_points_optimized(
         let mut despawn_count = 0;
         for (point_entity, parent) in point_query.iter() {
             if parent.0 == inactive_sort_entity {
-                commands.entity(point_entity).despawn();
-                despawn_count += 1;
+                // Use get_entity to check if entity exists before despawning
+                if let Ok(mut entity_commands) = commands.get_entity(point_entity) {
+                    entity_commands.despawn();
+                    despawn_count += 1;
+                }
             }
         }
 
@@ -462,8 +467,11 @@ pub fn detect_sort_glyph_changes(
             let mut despawn_count = 0;
             for (point_entity, sort_point) in existing_point_query.iter() {
                 if sort_point.sort_entity == sort_entity {
-                    commands.entity(point_entity).despawn();
-                    despawn_count += 1;
+                    // Use get_entity to check if entity exists before despawning
+                    if let Ok(mut entity_commands) = commands.get_entity(point_entity) {
+                        entity_commands.despawn();
+                        despawn_count += 1;
+                    }
                 }
             }
 

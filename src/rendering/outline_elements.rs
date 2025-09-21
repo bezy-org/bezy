@@ -49,7 +49,9 @@ fn update_handle_lines(
 
     // First clear existing handles
     for (entity, _) in existing_handles.iter() {
-        commands.entity(entity).despawn();
+        if let Ok(mut entity_commands) = commands.get_entity(entity) {
+            entity_commands.despawn();
+        }
     }
 
     // Check if we have any points to work with
@@ -171,7 +173,9 @@ fn cleanup_orphaned_handles(
         if points.get(handle_line.start_entity).is_err()
             || points.get(handle_line.end_entity).is_err()
         {
-            commands.entity(handle_entity).despawn();
+            if let Ok(mut entity_commands) = commands.get_entity(handle_entity) {
+                entity_commands.despawn();
+            }
         }
     }
 }

@@ -1055,7 +1055,9 @@ pub fn handle_selection_release(
         );
         // Clean up the selection rectangle entity
         if let Some(rect_entity) = rect_entity {
-            commands.entity(rect_entity).despawn();
+            if let Ok(mut entity_commands) = commands.get_entity(rect_entity) {
+                entity_commands.despawn();
+            }
             debug!("SelectionRect entity despawned on release");
         }
     }

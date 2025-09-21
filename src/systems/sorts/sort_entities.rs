@@ -287,7 +287,9 @@ pub fn spawn_missing_sort_entities(
                 "🔄 Respawning entity for buffer index {} due to content change",
                 index
             );
-            commands.entity(entity).despawn();
+            if let Ok(mut entity_commands) = commands.get_entity(entity) {
+                entity_commands.despawn();
+            }
         }
     }
     respawn_queue.indices.clear(); // Clear the queue after processing

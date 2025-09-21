@@ -348,7 +348,9 @@ pub fn despawn_inactive_sort_points(
                 );
             }
 
-            commands.entity(entity).despawn();
+            if let Ok(mut entity_commands) = commands.get_entity(entity) {
+                entity_commands.despawn();
+            }
             debug!(
                 "[despawn_inactive_sort_points] Despawned point entity {:?} for inactive sort {:?}",
                 entity, sort_point.sort_entity
@@ -1244,7 +1246,9 @@ pub fn handle_selection_release(
         );
         // Clean up the selection rectangle entity
         if let Some(rect_entity) = rect_entity {
-            commands.entity(rect_entity).despawn();
+            if let Ok(mut entity_commands) = commands.get_entity(rect_entity) {
+                entity_commands.despawn();
+            }
             debug!("SelectionRect entity despawned on release");
         }
     }

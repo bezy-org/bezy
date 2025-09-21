@@ -89,7 +89,9 @@ pub fn despawn_inactive_sort_points(
                 );
             }
 
-            commands.entity(entity).despawn();
+            if let Ok(mut entity_commands) = commands.get_entity(entity) {
+                entity_commands.despawn();
+            }
             debug!(
                 "[despawn_inactive_sort_points] Despawned point entity {:?} for inactive sort {:?}",
                 entity, sort_point.sort_entity

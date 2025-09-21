@@ -5,7 +5,7 @@
 //! UFO masters in a designspace.
 
 use crate::core::state::fontir_app_state::FontIRAppState;
-use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
+use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::systems::sorts::sort_entities::BufferSortEntities;
 use crate::ui::theme::*;
 use crate::ui::themes::{CurrentTheme, UiBorderRadius};
@@ -567,7 +567,9 @@ fn update_master_buttons(
     if let Ok(children) = children_query.get(container_entity) {
         for child in children.iter() {
             if existing_buttons.contains(child) {
-                commands.entity(child).despawn();
+                if let Ok(mut entity_commands) = commands.get_entity(child) {
+                    entity_commands.despawn();
+                }
             }
         }
     }
@@ -839,7 +841,9 @@ fn handle_switch_master_events(
                 // with the new glyph data and advance widths from the new master
                 for (&_buffer_index, &entity) in buffer_entities.entities.iter() {
                     if sort_query.get(entity).is_ok() {
-                        commands.entity(entity).despawn();
+                        if let Ok(mut entity_commands) = commands.get_entity(entity) {
+                            entity_commands.despawn();
+                        }
                         debug!(
                             "🗑️ Despawned sort entity {:?} to force refresh with new master",
                             entity

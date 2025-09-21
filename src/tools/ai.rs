@@ -8,7 +8,7 @@
 //! - Curve smoothness optimization
 
 use super::{EditTool, ToolInfo};
-use crate::embedded_assets::EmbeddedFonts;
+use crate::utils::embedded_assets::EmbeddedFonts;
 use bevy::prelude::*;
 
 /// AI operations that can be performed

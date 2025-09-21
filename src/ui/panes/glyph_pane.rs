@@ -5,7 +5,7 @@
 
 use crate::core::state::fontir_app_state::FontIRAppState;
 use crate::core::state::AppState;
-use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
+use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::ui::theme::*;
 use crate::ui::themes::CurrentTheme;
 use bevy::prelude::*;

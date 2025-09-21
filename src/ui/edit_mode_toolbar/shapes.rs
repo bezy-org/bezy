@@ -8,7 +8,7 @@
 use crate::core::settings::BezySettings;
 use crate::core::state::{AppState, GlyphNavigation};
 use crate::editing::selection::events::AppStateChanged;
-use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
+use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
 use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
 use crate::ui::theme::*;
@@ -341,7 +341,9 @@ pub fn render_active_shape_drawing_with_dimensions(
 ) {
     // Clean up existing preview elements
     for entity in existing_preview_query.iter() {
-        commands.entity(entity).despawn();
+        if let Ok(mut entity_commands) = commands.get_entity(entity) {
+            entity_commands.despawn();
+        }
     }
 
     // Check if shapes mode is active via multiple methods (same as input handling)

@@ -15,9 +15,10 @@ fn configure_logging() -> LogPlugin {
     #[cfg(debug_assertions)]
     {
         // Debug builds: Show more detailed logging for development
+        // Silence entity despawn warnings as they're expected in ECS
         LogPlugin {
             level: Level::INFO,
-            filter: "bezy=info,bevy_render=warn,bevy_winit=warn,wgpu=warn,winit=warn".to_string(),
+            filter: "bezy=info,bevy_render=warn,bevy_winit=warn,wgpu=warn,winit=warn,bevy_ecs::error::handler=error".to_string(),
             ..default()
         }
     }
@@ -25,9 +26,10 @@ fn configure_logging() -> LogPlugin {
     #[cfg(not(debug_assertions))]
     {
         // Release builds: Quieter logging, focus on warnings and errors
+        // Silence entity despawn warnings as they're expected in ECS
         LogPlugin {
             level: Level::WARN,
-            filter: "bezy=warn,bevy=warn,wgpu=error,winit=error".to_string(),
+            filter: "bezy=warn,bevy=warn,wgpu=error,winit=error,bevy_ecs::error::handler=error".to_string(),
             ..default()
         }
     }

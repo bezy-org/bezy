@@ -853,7 +853,9 @@ pub fn update_all_theme_properties_on_change(
         // Force checkerboard respawn to update colors
         // Remove all existing checkerboard squares to force recreation with new colors
         for entity in checkerboard_query.iter() {
-            commands.entity(entity).despawn();
+            if let Ok(mut entity_commands) = commands.get_entity(entity) {
+                entity_commands.despawn();
+            }
         }
 
         // Reset checkerboard state to force recreation

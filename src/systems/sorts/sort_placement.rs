@@ -29,10 +29,6 @@ pub fn handle_sort_placement_input(
     // Only handle input when text tool is active
     let current_tool_name = current_tool.get_current();
     if current_tool_name != Some("text") {
-        // Always log when we have a click so user knows what's happening
-        if mouse_button_input.just_pressed(MouseButton::Left) && !ui_hover_state.is_hovering_ui {
-            warn!("🖱️ SORT PLACEMENT: ❌ Click ignored - current tool is {:?}, need 'text' tool to place sorts", current_tool_name);
-        }
         return;
     }
 

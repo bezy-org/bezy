@@ -13,7 +13,7 @@
 use crate::core::state::fontir_app_state::FontIRAppState;
 use crate::core::state::text_editor::buffer::{SortData, SortKind};
 use crate::core::state::{SortLayoutMode, TextEditorState};
-use crate::embedded_assets::EmbeddedFonts;
+use crate::utils::embedded_assets::EmbeddedFonts;
 use bevy::prelude::*;
 use std::collections::HashMap;
 
@@ -368,7 +368,7 @@ pub fn compile_font_for_shaping(
     } else {
         // Use embedded font data
         debug!("🔤 Using embedded font for text shaping");
-        crate::embedded_assets::BEZY_GROTESK_BYTES.to_vec()
+        crate::utils::embedded_assets::BEZY_GROTESK_BYTES.to_vec()
     };
 
     debug!(

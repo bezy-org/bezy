@@ -545,8 +545,10 @@ fn despawn_unneeded_squares(
 
     for (entity, square) in square_query.iter() {
         if !needed_squares.contains(&square.grid_pos) {
-            commands.entity(entity).despawn();
-            to_remove.push(square.grid_pos);
+            if let Ok(mut entity_commands) = commands.get_entity(entity) {
+                entity_commands.despawn();
+                to_remove.push(square.grid_pos);
+            }
         }
     }
 
@@ -641,7 +643,9 @@ fn despawn_all_squares(
     square_query: &Query<(Entity, &CheckerboardSquare)>,
 ) {
     for (entity, _) in square_query.iter() {
-        commands.entity(entity).despawn();
+        if let Ok(mut entity_commands) = commands.get_entity(entity) {
+            entity_commands.despawn();
+        }
     }
     state.spawned_squares.clear();
 

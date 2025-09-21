@@ -53,7 +53,7 @@
 //! This approach ensures perfect visual consistency between main toolbar and all submenus,
 //! making it easy to maintain a professional, unified interface.
 
-use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
+use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::ui::edit_mode_toolbar::*;
 use crate::ui::theme::TOOLBAR_GRID_SPACING;
 use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};

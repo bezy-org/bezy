@@ -1448,7 +1448,9 @@ pub fn cleanup_orphaned_metrics(
                 "🗑️ CLEANUP: Removing orphaned metrics entity {:?} for sort {:?} (exists: {}, in_buffer: {})",
                 metrics_entity, sort_entity, sort_exists, sort_in_buffer
             );
-            commands.entity(metrics_entity).despawn();
+            if let Ok(mut entity_commands) = commands.get_entity(metrics_entity) {
+                entity_commands.despawn();
+            }
             cleanup_count += 1;
         }
     }

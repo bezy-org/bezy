@@ -184,7 +184,9 @@ fn delete_sort(
         active_sort_state.active_sort_entity = None;
     }
 
-    commands.entity(sort_entity).despawn();
+    if let Ok(mut entity_commands) = commands.get_entity(sort_entity) {
+        entity_commands.despawn();
+    }
     debug!("Deleted sort entity {:?}", sort_entity);
 }
 
@@ -341,7 +343,9 @@ fn despawn_point_entities_for_sort(
                 debug!("Removed despawned entity {:?} from selection", entity);
             }
 
-            commands.entity(entity).despawn();
+            if let Ok(mut entity_commands) = commands.get_entity(entity) {
+                entity_commands.despawn();
+            }
             debug!(
                 "Despawned point entity {:?} for sort {:?}",
                 entity, sort_entity

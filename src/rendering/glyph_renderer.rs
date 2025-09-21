@@ -249,8 +249,11 @@ pub fn render_glyphs(
     for (element_entity, glyph_element) in existing_elements.iter() {
         // Only despawn elements that belong to sorts that need clearing
         if sorts_to_clear.contains(&glyph_element.sort_entity) {
-            commands.entity(element_entity).despawn();
-            cleared_count += 1;
+            // Check if entity still exists before despawning
+            if let Ok(mut entity_commands) = commands.get_entity(element_entity) {
+                entity_commands.despawn();
+                cleared_count += 1;
+            }
         } else {
             skipped_count += 1;
         }

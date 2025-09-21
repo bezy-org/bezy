@@ -190,7 +190,7 @@ fn add_plugin_groups(app: &mut App) {
     debug!("Adding plugin groups...");
 
     // Add embedded assets plugin to provide fonts when installed via cargo install
-    app.add_plugins(crate::embedded_assets::EmbeddedAssetsPlugin);
+    app.add_plugins(crate::utils::embedded_assets::EmbeddedAssetsPlugin);
 
     app.add_plugins((RenderingPluginGroup, EditorPluginGroup, CorePluginGroup));
 

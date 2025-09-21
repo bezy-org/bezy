@@ -7,7 +7,7 @@
 
 use crate::core::state::{AppState, FontIRAppState, SortLayoutMode};
 use crate::editing::sort::{ActiveSort, InactiveSort, Sort};
-use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
+use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::ui::themes::CurrentTheme;
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
@@ -56,14 +56,18 @@ pub fn manage_sort_labels(
     // Clean up glyph name text entities
     for (text_entity, sort_name_text) in existing_name_text_query.iter() {
         if !existing_sort_entities.contains(&sort_name_text.sort_entity) {
-            commands.entity(text_entity).despawn();
+            if let Ok(mut entity_commands) = commands.get_entity(text_entity) {
+                entity_commands.despawn();
+            }
         }
     }
 
     // Clean up unicode text entities
     for (text_entity, sort_unicode_text) in existing_unicode_text_query.iter() {
         if !existing_sort_entities.contains(&sort_unicode_text.sort_entity) {
-            commands.entity(text_entity).despawn();
+            if let Ok(mut entity_commands) = commands.get_entity(text_entity) {
+                entity_commands.despawn();
+            }
         }
     }
 
@@ -89,7 +93,9 @@ pub fn manage_sort_labels(
         for (text_entity, sort_name_text) in existing_name_text_query.iter() {
             if sort_name_text.sort_entity == sort_entity {
                 // Update existing text
-                commands.entity(text_entity).despawn();
+                if let Ok(mut entity_commands) = commands.get_entity(text_entity) {
+                    entity_commands.despawn();
+                }
                 _name_text_exists = true;
                 break;
             }
@@ -118,7 +124,9 @@ pub fn manage_sort_labels(
             for (text_entity, sort_unicode_text) in existing_unicode_text_query.iter() {
                 if sort_unicode_text.sort_entity == sort_entity {
                     // Update existing text
-                    commands.entity(text_entity).despawn();
+                    if let Ok(mut entity_commands) = commands.get_entity(text_entity) {
+                        entity_commands.despawn();
+                    }
                     _unicode_text_exists = true;
                     break;
                 }

@@ -50,14 +50,18 @@ pub fn render_points_with_meshes(
     if active_sort_count == 0 {
         // Clean up existing point meshes when no active sorts
         for entity in existing_point_meshes.iter() {
-            commands.entity(entity).despawn();
+            if let Ok(mut entity_commands) = commands.get_entity(entity) {
+                entity_commands.despawn();
+            }
         }
         return;
     }
 
     // Clear existing point meshes
     for entity in existing_point_meshes.iter() {
-        commands.entity(entity).despawn();
+        if let Ok(mut entity_commands) = commands.get_entity(entity) {
+            entity_commands.despawn();
+        }
     }
 
     // Render all points using meshes
