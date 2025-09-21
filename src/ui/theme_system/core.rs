@@ -383,10 +383,10 @@ pub trait BezyTheme: Send + Sync + 'static {
         1.0
     }
     fn on_curve_inner_circle_ratio(&self) -> f32 {
-        0.5
+        0.25
     }
     fn off_curve_inner_circle_ratio(&self) -> f32 {
-        0.5
+        0.25
     }
     fn use_square_for_on_curve(&self) -> bool {
         true

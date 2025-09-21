@@ -65,20 +65,21 @@ pub fn render_points_with_meshes(
         let position = transform.translation().truncate();
 
         // Determine colors for two-layer system
-        let (primary_color, secondary_color) = if selected.is_some() {
+        // Swap primary and secondary to make secondary the outline/center (darker) and primary the middle (lighter)
+        let (outline_color, middle_color) = if selected.is_some() {
             (
-                theme.theme().selected_primary_color(),
-                theme.theme().selected_secondary_color(),
+                theme.theme().selected_secondary_color(), // darker color for outline/center
+                theme.theme().selected_primary_color(),   // lighter color for middle ring
             )
         } else if point_type.is_on_curve {
             (
-                theme.theme().on_curve_primary_color(),
-                theme.theme().on_curve_secondary_color(),
+                theme.theme().on_curve_secondary_color(), // darker color for outline/center
+                theme.theme().on_curve_primary_color(),   // lighter color for middle ring
             )
         } else {
             (
-                theme.theme().off_curve_primary_color(),
-                theme.theme().off_curve_secondary_color(),
+                theme.theme().off_curve_secondary_color(), // darker color for outline/center
+                theme.theme().off_curve_primary_color(),   // lighter color for middle ring
             )
         };
 
@@ -89,14 +90,14 @@ pub fn render_points_with_meshes(
                 * theme.theme().on_curve_square_adjustment()
                 * 2.0;
 
-            // Layer 1: Base shape (full width) - primary color
+            // Layer 1: Base shape (full width) - outline color (darker)
             commands.spawn((
                 PointMesh {
                     point_entity,
                     is_outer: true,
                 },
                 Sprite {
-                    color: primary_color,
+                    color: outline_color,
                     custom_size: Some(Vec2::splat(base_size)),
                     ..default()
                 },
@@ -107,7 +108,7 @@ pub fn render_points_with_meshes(
                 ViewVisibility::default(),
             ));
 
-            // Layer 2: Slightly smaller shape - secondary color
+            // Layer 2: Slightly smaller shape - middle color (lighter)
             let secondary_size = base_size * 0.7;
             commands.spawn((
                 PointMesh {
@@ -115,7 +116,7 @@ pub fn render_points_with_meshes(
                     is_outer: false,
                 },
                 Sprite {
-                    color: secondary_color,
+                    color: middle_color,
                     custom_size: Some(Vec2::splat(secondary_size)),
                     ..default()
                 },
@@ -126,7 +127,7 @@ pub fn render_points_with_meshes(
                 ViewVisibility::default(),
             ));
 
-            // Layer 3: Small center shape - primary color (only for non-selected points)
+            // Layer 3: Small center shape - outline color (darker, only for non-selected points)
             if selected.is_none() {
                 let center_size = base_size * theme.theme().on_curve_inner_circle_ratio();
                 commands.spawn((
@@ -135,7 +136,7 @@ pub fn render_points_with_meshes(
                         is_outer: false,
                     },
                     Sprite {
-                        color: primary_color,
+                        color: outline_color,
                         custom_size: Some(Vec2::splat(center_size)),
                         ..default()
                     },
@@ -154,14 +155,14 @@ pub fn render_points_with_meshes(
                 theme.theme().off_curve_point_radius()
             };
 
-            // Layer 1: Base circle (full size) - primary color
+            // Layer 1: Base circle (full size) - outline color (darker)
             commands.spawn((
                 PointMesh {
                     point_entity,
                     is_outer: true,
                 },
                 Mesh2d(meshes.add(Circle::new(base_radius))),
-                MeshMaterial2d(materials.add(ColorMaterial::from_color(primary_color))),
+                MeshMaterial2d(materials.add(ColorMaterial::from_color(outline_color))),
                 Transform::from_translation(position.extend(10.0)), // Above outlines
                 GlobalTransform::default(),
                 Visibility::Visible,
@@ -169,7 +170,7 @@ pub fn render_points_with_meshes(
                 ViewVisibility::default(),
             ));
 
-            // Layer 2: Slightly smaller circle - secondary color
+            // Layer 2: Slightly smaller circle - middle color (lighter)
             let secondary_radius = base_radius * 0.7;
             commands.spawn((
                 PointMesh {
@@ -177,7 +178,7 @@ pub fn render_points_with_meshes(
                     is_outer: false,
                 },
                 Mesh2d(meshes.add(Circle::new(secondary_radius))),
-                MeshMaterial2d(materials.add(ColorMaterial::from_color(secondary_color))),
+                MeshMaterial2d(materials.add(ColorMaterial::from_color(middle_color))),
                 Transform::from_translation(position.extend(11.0)), // Above base
                 GlobalTransform::default(),
                 Visibility::Visible,
@@ -185,7 +186,7 @@ pub fn render_points_with_meshes(
                 ViewVisibility::default(),
             ));
 
-            // Layer 3: Small center circle - primary color (only for non-selected points)
+            // Layer 3: Small center circle - outline color (darker, only for non-selected points)
             if selected.is_none() {
                 let center_radius = base_radius
                     * if point_type.is_on_curve {
@@ -199,7 +200,7 @@ pub fn render_points_with_meshes(
                         is_outer: false,
                     },
                     Mesh2d(meshes.add(Circle::new(center_radius))),
-                    MeshMaterial2d(materials.add(ColorMaterial::from_color(primary_color))),
+                    MeshMaterial2d(materials.add(ColorMaterial::from_color(outline_color))),
                     Transform::from_translation(position.extend(12.0)), // Above secondary
                     GlobalTransform::default(),
                     Visibility::Visible,
@@ -209,7 +210,7 @@ pub fn render_points_with_meshes(
             }
         }
 
-        // Add crosshairs for selected points using primary color only
+        // Add crosshairs for selected points using outline color
         if selected.is_some() {
             let line_size = if point_type.is_on_curve {
                 theme.theme().on_curve_point_radius()
@@ -223,14 +224,14 @@ pub fn render_points_with_meshes(
             // Make crosshair lines slightly shorter to fit within point bounds
             let crosshair_length = line_size * 1.6;
 
-            // Horizontal line - primary color only
+            // Horizontal line - outline color (darker)
             commands.spawn((
                 PointMesh {
                     point_entity,
                     is_outer: false,
                 },
                 Sprite {
-                    color: primary_color,
+                    color: outline_color,
                     custom_size: Some(Vec2::new(crosshair_length, line_width)),
                     ..default()
                 },
@@ -241,14 +242,14 @@ pub fn render_points_with_meshes(
                 ViewVisibility::default(),
             ));
 
-            // Vertical line - primary color only
+            // Vertical line - outline color (darker)
             commands.spawn((
                 PointMesh {
                     point_entity,
                     is_outer: false,
                 },
                 Sprite {
-                    color: primary_color,
+                    color: outline_color,
                     custom_size: Some(Vec2::new(line_width, crosshair_length)),
                     ..default()
                 },

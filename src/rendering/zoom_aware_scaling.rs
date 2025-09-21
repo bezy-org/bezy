@@ -23,7 +23,7 @@ pub struct ZoomScaleConfig {
 impl Default for ZoomScaleConfig {
     fn default() -> Self {
         Self {
-            zoom_in_max_factor: 0.5,  // size when max zoomed in
+            zoom_in_max_factor: 1.0,  // size when max zoomed in
             zoom_default_factor: 1.5, // size at default zoom (100%)
             zoom_out_max_factor: 8.0, // size when max zoomed out
         }
