@@ -216,7 +216,7 @@ pub fn update_sort_label_colors(
         }
         for (mut text_color, sort_unicode_text) in unicode_text_query.iter_mut() {
             if sort_unicode_text.sort_entity == sort_entity {
-                text_color.0 = theme.theme().sort_active_metrics_color().with_alpha(0.7);
+                text_color.0 = theme.theme().sort_active_metrics_color();
             }
         }
     }
@@ -230,7 +230,7 @@ pub fn update_sort_label_colors(
         }
         for (mut text_color, sort_unicode_text) in unicode_text_query.iter_mut() {
             if sort_unicode_text.sort_entity == sort_entity {
-                text_color.0 = theme.theme().sort_inactive_metrics_color().with_alpha(0.7);
+                text_color.0 = theme.theme().sort_inactive_metrics_color();
             }
         }
     }
