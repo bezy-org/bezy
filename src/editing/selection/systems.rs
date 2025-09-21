@@ -14,9 +14,9 @@ use crate::core::state::FontMetrics;
 use crate::core::state::TextEditorState;
 use crate::editing::selection::nudge::{EditEvent, NudgeState};
 #[allow(unused_imports)]
-use crate::geometry::world_space::DPoint;
-#[allow(unused_imports)]
 use crate::geometry::point::{EditPoint, EntityId, EntityKind};
+#[allow(unused_imports)]
+use crate::geometry::world_space::DPoint;
 use crate::rendering::cameras::DesignCamera;
 use bevy::ecs::system::ParamSet;
 use bevy::input::mouse::MouseButton;
@@ -110,8 +110,7 @@ pub fn handle_selection_shortcuts(
         debug!("Selected all {} entities", selection_state.selected.len());
 
         // Send edit event
-        event_writer.write(EditEvent {
-        });
+        event_writer.write(EditEvent {});
     }
 }
 
@@ -539,8 +538,7 @@ pub fn handle_point_drag(
             debug!("Updated {} UFO points during drag", updated_count);
 
             // Send edit event
-            event_writer.write(EditEvent {
-            });
+            event_writer.write(EditEvent {});
         }
     }
 }
@@ -962,8 +960,7 @@ pub fn handle_selection_click(
             .entry(entity)
             .or_insert(pos);
 
-        event_writer.write(EditEvent {
-        });
+        event_writer.write(EditEvent {});
 
         debug!(
             "Selection updated and drag started. Current selection count: {}",
@@ -1299,8 +1296,7 @@ pub fn handle_selection_key_press(
                     }
                 }
 
-                event_writer.write(EditEvent {
-                });
+                event_writer.write(EditEvent {});
                 debug!("Selected all {} points in active sort", selected_count);
             }
         }
@@ -1311,8 +1307,7 @@ pub fn handle_selection_key_press(
                 commands.entity(entity).remove::<Selected>();
             }
             selection_state.selected.clear();
-            event_writer.write(EditEvent {
-            });
+            event_writer.write(EditEvent {});
         }
         _ => {}
     }

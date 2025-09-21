@@ -143,7 +143,11 @@ impl From<crate::editing::selection::components::PointType> for EnhancedPointTyp
 pub fn migrate_point_types(
     mut commands: Commands,
     legacy_points: Query<
-        (Entity, &crate::editing::selection::components::PointType, &Transform),
+        (
+            Entity,
+            &crate::editing::selection::components::PointType,
+            &Transform,
+        ),
         Without<EnhancedPointType>,
     >,
 ) {
@@ -172,20 +176,19 @@ pub struct EnhancedPointTypePlugin;
 
 impl Plugin for EnhancedPointTypePlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<EnhancedPointType>()
-            .add_systems(
-                Update,
-                migrate_point_types.run_if(
-                    // Only run migration when we have legacy points without enhanced types
-                    |legacy_points: Query<
-                        (),
-                        (
-                            With<crate::editing::selection::components::PointType>,
-                            Without<EnhancedPointType>,
-                        ),
-                    >| !legacy_points.is_empty(),
-                ),
-            );
+        app.register_type::<EnhancedPointType>().add_systems(
+            Update,
+            migrate_point_types.run_if(
+                // Only run migration when we have legacy points without enhanced types
+                |legacy_points: Query<
+                    (),
+                    (
+                        With<crate::editing::selection::components::PointType>,
+                        Without<EnhancedPointType>,
+                    ),
+                >| !legacy_points.is_empty(),
+            ),
+        );
     }
 }
 

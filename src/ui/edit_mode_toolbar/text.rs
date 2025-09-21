@@ -10,11 +10,11 @@
 
 #![allow(clippy::manual_map)]
 
-use crate::embedded_assets::EmbeddedFonts;
 use crate::core::settings::BezySettings;
 use crate::core::state::{
     AppState, FontIRAppState, GlyphNavigation, SortLayoutMode, TextEditorState, TextModeConfig,
 };
+use crate::embedded_assets::EmbeddedFonts;
 use bevy::input::ButtonState;
 use bevy::log::info;
 use bevy::prelude::*;
@@ -25,7 +25,6 @@ use crate::rendering::cameras::DesignCamera;
 use crate::rendering::checkerboard::calculate_dynamic_grid_size;
 use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
 use crate::ui::theme::*;
-use crate::ui::theme::{PRESSED_BUTTON_COLOR, SORT_ACTIVE_METRICS_COLOR};
 use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
 
 /// Resource to track if text mode is active
@@ -258,6 +257,7 @@ pub fn handle_text_mode_selection(
     mut text_mode_config: ResMut<TextModeConfig>,
     children_query: Query<&Children>,
     mut text_query: Query<&mut TextColor>,
+    theme: Res<CurrentTheme>,
 ) {
     for (interaction, mut color, mut border_color, mode_button, entity) in &mut interaction_query {
         let is_current_mode = *current_mode == mode_button.mode;
@@ -274,6 +274,7 @@ pub fn handle_text_mode_selection(
             is_current_mode,
             &mut color,
             &mut border_color,
+            &theme,
         );
 
         // Use the unified text color system for consistent icon colors with main toolbar
@@ -282,6 +283,7 @@ pub fn handle_text_mode_selection(
             is_current_mode,
             &children_query,
             &mut text_query,
+            &theme,
         );
     }
 }
@@ -496,6 +498,7 @@ pub fn render_sort_preview(
     pointer_info: Res<crate::core::io::pointer::PointerInfo>,
     camera_query: Query<&Projection, With<DesignCamera>>,
     mut preview_metrics_state: ResMut<crate::rendering::metrics::PreviewMetricsState>,
+    theme: Res<CurrentTheme>,
 ) {
     info!(
         "[PREVIEW] Entered render_sort_preview - text_mode_active: {}, placement_mode: {:?}",
@@ -522,7 +525,7 @@ pub fn render_sort_preview(
             }
         })
         .unwrap_or(1.0);
-    let grid_size = calculate_dynamic_grid_size(zoom_scale);
+    let grid_size = calculate_dynamic_grid_size(zoom_scale, &theme);
     let snapped_position = (pointer_info.design.to_raw() / grid_size).round() * grid_size;
     debug!(
         "[PREVIEW] Placement mode: {:?}, snapped_position: ({:.1}, {:.1})",
@@ -563,7 +566,7 @@ pub fn render_sort_preview(
             preview_metrics_state.position = snapped_position;
             preview_metrics_state.glyph_name = preview_glyph_name.clone();
             preview_metrics_state.advance_width = advance_width;
-            preview_metrics_state.color = PRESSED_BUTTON_COLOR.with_alpha(0.8);
+            preview_metrics_state.color = theme.theme().button_pressed().with_alpha(0.8);
             debug!(
                 "[PREVIEW] Updated mesh-based preview metrics for '{}' at ({:.1}, {:.1})",
                 preview_glyph_name, snapped_position.x, snapped_position.y
@@ -593,7 +596,7 @@ pub fn render_sort_preview(
             preview_metrics_state.position = snapped_position;
             preview_metrics_state.glyph_name = preview_glyph_name.clone();
             preview_metrics_state.advance_width = advance_width;
-            preview_metrics_state.color = PRESSED_BUTTON_COLOR.with_alpha(0.8);
+            preview_metrics_state.color = theme.theme().button_pressed().with_alpha(0.8);
             debug!(
                 "[PREVIEW] Updated mesh-based preview metrics for '{}' at ({:.1}, {:.1})",
                 preview_glyph_name, snapped_position.x, snapped_position.y

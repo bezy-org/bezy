@@ -10,6 +10,7 @@ use crate::core::state::FontIRAppState;
 use crate::editing::selection::components::Selected;
 use crate::editing::sort::manager::SortPointEntity;
 use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
+use crate::ui::themes::CurrentTheme;
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh2d;
 use bevy::sprite::{ColorMaterial, MeshMaterial2d};
@@ -167,6 +168,7 @@ pub fn render_mesh_sort_handles(
     fontir_app_state: Option<Res<FontIRAppState>>,
     camera_scale: Res<CameraResponsiveScale>,
     presentation_mode: Option<Res<crate::ui::edit_mode_toolbar::PresentationMode>>,
+    theme: Res<CurrentTheme>,
 ) {
     // Clear existing handles with entity existence checks
     for entity in existing_handles.iter() {
@@ -201,9 +203,9 @@ pub fn render_mesh_sort_handles(
 
             // Determine the base color based on active/inactive state
             let base_color = if active.is_some() {
-                crate::ui::theme::SORT_ACTIVE_METRICS_COLOR
+                theme.theme().sort_active_metrics_color()
             } else {
-                crate::ui::theme::SORT_INACTIVE_METRICS_COLOR
+                theme.theme().sort_inactive_metrics_color()
             };
 
             // Override color to yellow if selected

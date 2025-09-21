@@ -11,13 +11,9 @@ pub mod embedded_themes;
 pub mod hot_reload;
 pub mod json_theme;
 pub mod runtime_reload;
-// Temporarily disabled - requires toml crate
-// pub mod hot_reload_toml;
 
 // Theme constants and utilities
 pub mod layout_constants;
-pub mod legacy_constants;
-pub mod theme_interface;
 
 // Re-export commonly used items
 pub use core::{get_theme_registry, BezyTheme, CurrentTheme, ThemeRegistry, ThemeVariant};
@@ -26,5 +22,3 @@ pub use runtime_reload::RuntimeThemePlugin;
 
 // Re-export constants and utilities for easy access
 pub use layout_constants::*;
-pub use legacy_constants::*;
-pub use theme_interface::*;

@@ -31,28 +31,27 @@ pub struct UiBorderRadius;
 pub struct JsonTheme {
     pub name: String,
 
-    // Typography colors
-    pub normal_text: [f32; 3],
-    pub secondary_text: [f32; 3],
-    pub highlight_text: [f32; 3],
+    // Unified UI text colors
+    pub ui_text_primary: [f32; 3],
+    pub ui_text_secondary: [f32; 3],
+    pub ui_text_tertiary: [f32; 3],
+    pub ui_text_quaternary: [f32; 3],
 
     // Background colors
     pub background: [f32; 3],
     pub widget_background: [f32; 4],
     pub widget_border: [f32; 3],
-    pub toolbar_background: [f32; 4],
-    pub toolbar_icon: [f32; 3],
-    pub toolbar_border: [f32; 4],
-    pub panel_background: [f32; 3],
 
-    // Button colors
-    pub normal_button: [f32; 3],
-    pub hovered_button: [f32; 3],
-    pub pressed_button: [f32; 3],
-    pub normal_button_outline: [f32; 3],
-    pub hovered_button_outline: [f32; 3],
-    pub pressed_button_outline: [f32; 3],
-    pub pressed_button_icon: [f32; 3],
+    // Button colors - covers buttons, toolbars, and interactive elements
+    pub button_regular: [f32; 3],
+    pub button_hovered: [f32; 3],
+    pub button_pressed: [f32; 3],
+    pub button_regular_outline: [f32; 3],
+    pub button_hovered_outline: [f32; 3],
+    pub button_pressed_outline: [f32; 3],
+    pub button_regular_icon: [f32; 3],
+    pub button_hovered_icon: [f32; 3],
+    pub button_pressed_icon: [f32; 3],
 
     // Special backgrounds
     pub focus_background: [f32; 3],
@@ -112,6 +111,7 @@ pub struct JsonTheme {
     pub sort_inactive_metrics: [f32; 4],
     pub sort_active_outline: [f32; 3],
     pub sort_inactive_outline: [f32; 3],
+    pub filled_glyph: [f32; 3],
 
     // Border radius properties
     pub widget_border_radius: f32,
@@ -149,28 +149,36 @@ impl BezyTheme for JsonTheme {
         }
     }
 
-    // Typography
-    fn normal_text_color(&self) -> Color {
+    // Unified UI text colors
+    fn ui_text_primary(&self) -> Color {
         Color::srgb(
-            self.normal_text[0],
-            self.normal_text[1],
-            self.normal_text[2],
+            self.ui_text_primary[0],
+            self.ui_text_primary[1],
+            self.ui_text_primary[2],
         )
     }
 
-    fn secondary_text_color(&self) -> Color {
+    fn ui_text_secondary(&self) -> Color {
         Color::srgb(
-            self.secondary_text[0],
-            self.secondary_text[1],
-            self.secondary_text[2],
+            self.ui_text_secondary[0],
+            self.ui_text_secondary[1],
+            self.ui_text_secondary[2],
         )
     }
 
-    fn highlight_text_color(&self) -> Color {
+    fn ui_text_tertiary(&self) -> Color {
         Color::srgb(
-            self.highlight_text[0],
-            self.highlight_text[1],
-            self.highlight_text[2],
+            self.ui_text_tertiary[0],
+            self.ui_text_tertiary[1],
+            self.ui_text_tertiary[2],
+        )
+    }
+
+    fn ui_text_quaternary(&self) -> Color {
+        Color::srgb(
+            self.ui_text_quaternary[0],
+            self.ui_text_quaternary[1],
+            self.ui_text_quaternary[2],
         )
     }
 
@@ -196,94 +204,76 @@ impl BezyTheme for JsonTheme {
         )
     }
 
-    fn toolbar_background_color(&self) -> Color {
-        Color::srgba(
-            self.toolbar_background[0],
-            self.toolbar_background[1],
-            self.toolbar_background[2],
-            self.toolbar_background[3],
-        )
-    }
-
-    fn toolbar_icon_color(&self) -> Color {
+    // Button colors
+    fn button_regular(&self) -> Color {
         Color::srgb(
-            self.toolbar_icon[0],
-            self.toolbar_icon[1],
-            self.toolbar_icon[2],
+            self.button_regular[0],
+            self.button_regular[1],
+            self.button_regular[2],
         )
     }
 
-    fn toolbar_border_color(&self) -> Color {
-        Color::srgba(
-            self.toolbar_border[0],
-            self.toolbar_border[1],
-            self.toolbar_border[2],
-            self.toolbar_border[3],
-        )
-    }
-
-    fn panel_background_color(&self) -> Color {
+    fn button_hovered(&self) -> Color {
         Color::srgb(
-            self.panel_background[0],
-            self.panel_background[1],
-            self.panel_background[2],
+            self.button_hovered[0],
+            self.button_hovered[1],
+            self.button_hovered[2],
         )
     }
 
-    // Buttons
-    fn normal_button_color(&self) -> Color {
+    fn button_pressed(&self) -> Color {
         Color::srgb(
-            self.normal_button[0],
-            self.normal_button[1],
-            self.normal_button[2],
+            self.button_pressed[0],
+            self.button_pressed[1],
+            self.button_pressed[2],
         )
     }
 
-    fn hovered_button_color(&self) -> Color {
+    fn button_regular_outline(&self) -> Color {
         Color::srgb(
-            self.hovered_button[0],
-            self.hovered_button[1],
-            self.hovered_button[2],
+            self.button_regular_outline[0],
+            self.button_regular_outline[1],
+            self.button_regular_outline[2],
         )
     }
 
-    fn pressed_button_color(&self) -> Color {
+    fn button_hovered_outline(&self) -> Color {
         Color::srgb(
-            self.pressed_button[0],
-            self.pressed_button[1],
-            self.pressed_button[2],
+            self.button_hovered_outline[0],
+            self.button_hovered_outline[1],
+            self.button_hovered_outline[2],
         )
     }
 
-    fn normal_button_outline_color(&self) -> Color {
+    fn button_pressed_outline(&self) -> Color {
         Color::srgb(
-            self.normal_button_outline[0],
-            self.normal_button_outline[1],
-            self.normal_button_outline[2],
+            self.button_pressed_outline[0],
+            self.button_pressed_outline[1],
+            self.button_pressed_outline[2],
         )
     }
 
-    fn hovered_button_outline_color(&self) -> Color {
+    fn button_regular_icon(&self) -> Color {
         Color::srgb(
-            self.hovered_button_outline[0],
-            self.hovered_button_outline[1],
-            self.hovered_button_outline[2],
+            self.button_regular_icon[0],
+            self.button_regular_icon[1],
+            self.button_regular_icon[2],
         )
     }
 
-    fn pressed_button_outline_color(&self) -> Color {
+    fn button_hovered_icon(&self) -> Color {
         Color::srgb(
-            self.pressed_button_outline[0],
-            self.pressed_button_outline[1],
-            self.pressed_button_outline[2],
+            self.button_hovered_icon[0],
+            self.button_hovered_icon[1],
+            self.button_hovered_icon[2],
         )
     }
 
-    fn pressed_button_icon_color(&self) -> Color {
+    fn button_pressed_icon(&self) -> Color {
         Color::srgb(
-            self.pressed_button_icon[0],
-            self.pressed_button_icon[1],
-            self.pressed_button_icon[2],
+            self.button_pressed_icon[0],
+            self.button_pressed_icon[1],
+            self.button_pressed_icon[2],
         )
     }
 
@@ -616,6 +606,14 @@ impl BezyTheme for JsonTheme {
         )
     }
 
+    fn filled_glyph_color(&self) -> Color {
+        Color::srgb(
+            self.filled_glyph[0],
+            self.filled_glyph[1],
+            self.filled_glyph[2],
+        )
+    }
+
     // Border radius properties
     fn widget_border_radius(&self) -> f32 {
         self.widget_border_radius
@@ -807,37 +805,118 @@ pub fn check_json_theme_changes(
 
 use super::CurrentTheme;
 
-/// System to update border radius when theme changes
-pub fn update_border_radius_on_theme_change(
+/// System to update all theme properties when theme changes
+pub fn update_all_theme_properties_on_change(
+    mut commands: Commands,
     theme: Res<CurrentTheme>,
-    mut widget_query: Query<&mut BorderRadius, With<WidgetBorderRadius>>,
+    mut widget_query: Query<
+        (&mut BorderRadius, &mut BackgroundColor, &mut BorderColor),
+        With<WidgetBorderRadius>,
+    >,
     mut toolbar_query: Query<
-        &mut BorderRadius,
+        (&mut BorderRadius, &mut BackgroundColor, &mut BorderColor),
         (With<ToolbarBorderRadius>, Without<WidgetBorderRadius>),
     >,
     mut ui_query: Query<
-        &mut BorderRadius,
+        (&mut BorderRadius, &mut BackgroundColor, &mut BorderColor),
         (
             With<UiBorderRadius>,
             Without<WidgetBorderRadius>,
             Without<ToolbarBorderRadius>,
         ),
     >,
+    checkerboard_query: Query<Entity, With<crate::rendering::checkerboard::CheckerboardSquare>>,
+    mut checkerboard_state: ResMut<crate::rendering::checkerboard::CheckerboardState>,
+    mut clear_color: ResMut<ClearColor>,
 ) {
+    // Only update in debug mode for hot-reload development
+    #[cfg(debug_assertions)]
     if theme.is_changed() {
-        // Update widget border radius
-        for mut border_radius in widget_query.iter_mut() {
+        info!("🎨 Hot-reloading theme changes...");
+
+        // Update background color
+        clear_color.0 = theme.theme().background_color();
+
+        // Update widget properties
+        for (mut border_radius, mut bg_color, mut border_color) in widget_query.iter_mut() {
             *border_radius = BorderRadius::all(Val::Px(theme.theme().widget_border_radius()));
+            *bg_color = BackgroundColor(theme.theme().widget_background_color());
+            *border_color = BorderColor(theme.theme().widget_border_color());
         }
 
-        // Update toolbar border radius
-        for mut border_radius in toolbar_query.iter_mut() {
+        // Update toolbar properties
+        for (mut border_radius, mut bg_color, mut border_color) in toolbar_query.iter_mut() {
             *border_radius = BorderRadius::all(Val::Px(theme.theme().toolbar_border_radius()));
+            *bg_color = BackgroundColor(theme.theme().button_regular());
+            *border_color = BorderColor(theme.theme().button_regular_outline());
         }
 
-        // Update UI border radius
-        for mut border_radius in ui_query.iter_mut() {
+        // Update UI properties
+        for (mut border_radius, mut bg_color, mut border_color) in ui_query.iter_mut() {
             *border_radius = BorderRadius::all(Val::Px(theme.theme().ui_border_radius()));
+            *bg_color = BackgroundColor(theme.theme().widget_background_color());
+            *border_color = BorderColor(theme.theme().widget_border_color());
         }
+
+        // Force checkerboard respawn to update colors
+        // Remove all existing checkerboard squares to force recreation with new colors
+        for entity in checkerboard_query.iter() {
+            commands.entity(entity).despawn();
+        }
+
+        // Reset checkerboard state to force recreation
+        *checkerboard_state = Default::default();
+
+        info!("✅ Theme hot-reload complete");
     }
+}
+
+/// System to update UI pane text colors when theme changes
+pub fn update_ui_pane_text_colors_on_theme_change(
+    theme: Res<CurrentTheme>,
+    mut text_query: Query<&mut TextColor, Or<(
+        With<crate::ui::panes::glyph_pane::GlyphNameText>,
+        With<crate::ui::panes::glyph_pane::GlyphUnicodeText>,
+        With<crate::ui::panes::glyph_pane::GlyphAdvanceText>,
+        With<crate::ui::panes::glyph_pane::GlyphLeftBearingText>,
+        With<crate::ui::panes::glyph_pane::GlyphRightBearingText>,
+        With<crate::ui::panes::glyph_pane::GlyphLeftGroupText>,
+        With<crate::ui::panes::glyph_pane::GlyphRightGroupText>,
+        With<crate::ui::panes::coordinate_pane::XValue>,
+        With<crate::ui::panes::coordinate_pane::YValue>,
+        With<crate::ui::panes::coordinate_pane::WidthValue>,
+        With<crate::ui::panes::coordinate_pane::HeightValue>,
+    )>>,
+) {
+    // Only update in debug mode for hot-reload development
+    #[cfg(debug_assertions)]
+    if theme.is_changed() {
+        info!("🎨 Hot-reloading UI pane text colors...");
+
+        // Update glyph pane text colors - all these components represent VALUES, not labels
+        // Labels don't have component markers, values do (and use secondary color)
+
+        // Values (secondary color) - All these components represent VALUES, not labels
+        let secondary_color = TextColor(theme.get_ui_text_secondary());
+
+        // Update all UI pane text colors at once
+        for mut text_color in text_query.iter_mut() {
+            *text_color = secondary_color;
+        }
+
+        info!("✅ UI pane text colors hot-reload complete");
+    }
+}
+
+/// System to update text colors and other UI elements when theme changes
+///
+/// Note: This system is disabled because it was overriding specific UI text colors
+/// (like ui_text_label and ui_text_value) with normal_text_color, preventing
+/// proper color differentiation in panes.
+pub fn update_ui_colors_on_theme_change(
+    _theme: Res<CurrentTheme>,
+    _text_query: Query<&mut TextColor>,
+) {
+    // This system is intentionally disabled to preserve specific text colors
+    // set by individual UI components (like pane labels vs values)
 }

@@ -3,9 +3,9 @@
 //! Shows glyph name, Unicode codepoint, advance width, side bearings,
 //! and side bearings in the lower left corner of the window.
 
-use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::core::state::fontir_app_state::FontIRAppState;
 use crate::core::state::AppState;
+use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::ui::theme::*;
 use crate::ui::themes::CurrentTheme;
 use bevy::prelude::*;
@@ -225,8 +225,8 @@ pub fn spawn_glyph_pane(
 ) {
     // Create the position properties for the glyph pane (bottom left)
     let position_props = UiRect {
-        left: Val::Px(WIDGET_MARGIN),
-        bottom: Val::Px(WIDGET_MARGIN),
+        left: Val::Px(theme.theme().widget_margin()),
+        bottom: Val::Px(theme.theme().widget_margin()),
         top: Val::Auto,   // Explicitly set top to Auto to prevent stretching
         right: Val::Auto, // Explicitly set right to Auto for correct sizing
     };
@@ -261,22 +261,28 @@ pub fn spawn_glyph_pane(
                         },
                         Text::new("Glyph:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(Color::srgba(0.7, 0.7, 0.7, 1.0)),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
 
                     // Value
                     row.spawn((
                         Text::new("Loading..."),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(Color::srgba(0.0, 1.0, 0.5, 1.0)),
+                        TextColor(theme.get_ui_text_secondary()),
                         GlyphNameText,
                     ));
                 });
@@ -301,22 +307,28 @@ pub fn spawn_glyph_pane(
                         },
                         Text::new("Unicode:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(Color::srgba(0.7, 0.7, 0.7, 1.0)),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
 
                     // Value
                     row.spawn((
                         Text::new("Loading..."),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(Color::srgba(0.0, 1.0, 0.5, 1.0)),
+                        TextColor(theme.get_ui_text_secondary()),
                         GlyphUnicodeText,
                     ));
                 });
@@ -341,22 +353,28 @@ pub fn spawn_glyph_pane(
                         },
                         Text::new("Advance:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(Color::srgba(0.7, 0.7, 0.7, 1.0)),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
 
                     // Value
                     row.spawn((
                         Text::new("Loading..."),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(Color::srgba(0.0, 1.0, 0.5, 1.0)),
+                        TextColor(theme.get_ui_text_secondary()),
                         GlyphAdvanceText,
                     ));
                 });
@@ -381,22 +399,28 @@ pub fn spawn_glyph_pane(
                         },
                         Text::new("LSB:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(Color::srgba(0.7, 0.7, 0.7, 1.0)),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
 
                     // Value
                     row.spawn((
                         Text::new("Loading..."),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(Color::srgba(0.0, 1.0, 0.5, 1.0)),
+                        TextColor(theme.get_ui_text_secondary()),
                         GlyphLeftBearingText,
                     ));
                 });
@@ -421,22 +445,28 @@ pub fn spawn_glyph_pane(
                         },
                         Text::new("RSB:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(Color::srgba(0.7, 0.7, 0.7, 1.0)),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
 
                     // Value
                     row.spawn((
                         Text::new("Loading..."),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(Color::srgba(0.0, 1.0, 0.5, 1.0)),
+                        TextColor(theme.get_ui_text_secondary()),
                         GlyphRightBearingText,
                     ));
                 });
@@ -461,22 +491,28 @@ pub fn spawn_glyph_pane(
                         },
                         Text::new("Left Group:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(Color::srgba(0.7, 0.7, 0.7, 1.0)),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
 
                     // Value
                     row.spawn((
                         Text::new("Loading..."),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(Color::srgba(0.0, 1.0, 0.5, 1.0)),
+                        TextColor(theme.get_ui_text_secondary()),
                         GlyphLeftGroupText,
                     ));
                 });
@@ -500,22 +536,28 @@ pub fn spawn_glyph_pane(
                         },
                         Text::new("Right Group:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(Color::srgba(0.7, 0.7, 0.7, 1.0)),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
 
                     // Value
                     row.spawn((
                         Text::new("Loading..."),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(Color::srgba(0.0, 1.0, 0.5, 1.0)),
+                        TextColor(theme.get_ui_text_secondary()),
                         GlyphRightGroupText,
                     ));
                 });

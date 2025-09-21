@@ -4,8 +4,8 @@
 //! information about the currently loaded font files and allows switching between
 //! UFO masters in a designspace.
 
-use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::core::state::fontir_app_state::FontIRAppState;
+use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::systems::sorts::sort_entities::BufferSortEntities;
 use crate::ui::theme::*;
 use crate::ui::themes::{CurrentTheme, UiBorderRadius};
@@ -232,21 +232,27 @@ pub fn spawn_file_pane(
                         },
                         Text::new("DS:"),
                         TextFont {
-                            font: _asset_server.load_font_with_fallback(MONO_FONT_PATH, &_embedded_fonts),
+                            font: _asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &_embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(SECONDARY_TEXT_COLOR),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
                     // Value
                     row.spawn((
                         Text::new("Loading..."),
                         TextFont {
-                            font: _asset_server.load_font_with_fallback(MONO_FONT_PATH, &_embedded_fonts),
+                            font: _asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &_embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(ON_CURVE_PRIMARY_COLOR),
+                        TextColor(theme.get_ui_text_secondary()),
                         DesignspacePathText,
                     ));
                 });
@@ -268,21 +274,27 @@ pub fn spawn_file_pane(
                         },
                         Text::new("UFO:"),
                         TextFont {
-                            font: _asset_server.load_font_with_fallback(MONO_FONT_PATH, &_embedded_fonts),
+                            font: _asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &_embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(SECONDARY_TEXT_COLOR),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
                     // Value
                     row.spawn((
                         Text::new("Loading..."),
                         TextFont {
-                            font: _asset_server.load_font_with_fallback(MONO_FONT_PATH, &_embedded_fonts),
+                            font: _asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &_embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(ON_CURVE_PRIMARY_COLOR),
+                        TextColor(theme.get_ui_text_secondary()),
                         CurrentUFOText,
                     ));
                 });
@@ -308,21 +320,27 @@ pub fn spawn_file_pane(
                         },
                         Text::new("Saved:"),
                         TextFont {
-                            font: _asset_server.load_font_with_fallback(MONO_FONT_PATH, &_embedded_fonts),
+                            font: _asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &_embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(SECONDARY_TEXT_COLOR),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
                     // Value
                     row.spawn((
                         Text::new(""),
                         TextFont {
-                            font: _asset_server.load_font_with_fallback(MONO_FONT_PATH, &_embedded_fonts),
+                            font: _asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &_embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(ON_CURVE_PRIMARY_COLOR),
+                        TextColor(theme.get_ui_text_secondary()),
                         LastSavedText,
                     ));
                 });
@@ -347,21 +365,27 @@ pub fn spawn_file_pane(
                         },
                         Text::new("Exported:"),
                         TextFont {
-                            font: _asset_server.load_font_with_fallback(MONO_FONT_PATH, &_embedded_fonts),
+                            font: _asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &_embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(SECONDARY_TEXT_COLOR),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
                     // Value
                     row.spawn((
                         Text::new(""),
                         TextFont {
-                            font: _asset_server.load_font_with_fallback(MONO_FONT_PATH, &_embedded_fonts),
+                            font: _asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &_embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(ON_CURVE_PRIMARY_COLOR),
+                        TextColor(theme.get_ui_text_secondary()),
                         LastExportedText,
                     ));
                 });
@@ -579,14 +603,14 @@ fn update_master_buttons(
                     ..default()
                 },
                 BackgroundColor(if is_selected {
-                    PRESSED_BUTTON_COLOR
+                    theme.theme().button_pressed()
                 } else {
-                    NORMAL_BUTTON_COLOR
+                    theme.theme().button_regular()
                 }),
                 BorderColor(if is_selected {
-                    PRESSED_BUTTON_OUTLINE_COLOR
+                    theme.theme().button_pressed_outline()
                 } else {
-                    NORMAL_BUTTON_OUTLINE_COLOR
+                    theme.theme().button_regular_outline()
                 }),
                 BorderRadius::all(Val::Px(theme.theme().ui_border_radius())),
                 UiBorderRadius,
@@ -652,11 +676,29 @@ fn update_file_display(
     mut ufo_query: CurrentUFOTextQuery,
     mut saved_query: LastSavedTextQuery,
     mut exported_query: LastExportedTextQuery,
-    mut designspace_row_query: Query<&mut Node, (With<DesignspaceRowContainer>, Without<SavedRowContainer>, Without<ExportedRowContainer>)>,
-    mut saved_row_query: Query<&mut Node, (With<SavedRowContainer>, Without<ExportedRowContainer>, Without<DesignspaceRowContainer>)>,
+    mut designspace_row_query: Query<
+        &mut Node,
+        (
+            With<DesignspaceRowContainer>,
+            Without<SavedRowContainer>,
+            Without<ExportedRowContainer>,
+        ),
+    >,
+    mut saved_row_query: Query<
+        &mut Node,
+        (
+            With<SavedRowContainer>,
+            Without<ExportedRowContainer>,
+            Without<DesignspaceRowContainer>,
+        ),
+    >,
     mut exported_row_query: Query<
         &mut Node,
-        (With<ExportedRowContainer>, Without<SavedRowContainer>, Without<DesignspaceRowContainer>),
+        (
+            With<ExportedRowContainer>,
+            Without<SavedRowContainer>,
+            Without<DesignspaceRowContainer>,
+        ),
     >,
 ) {
     // Check if this is a single UFO or designspace
@@ -668,9 +710,9 @@ fn update_file_display(
     // Show/hide designspace row based on source type
     if let Ok(mut node) = designspace_row_query.single_mut() {
         node.display = if is_single_ufo {
-            Display::None  // Hide DS row for single UFOs
+            Display::None // Hide DS row for single UFOs
         } else {
-            Display::Flex  // Show DS row for designspaces
+            Display::Flex // Show DS row for designspaces
         };
     }
 
@@ -719,6 +761,7 @@ fn handle_master_buttons(
     mut file_info: ResMut<FileInfo>,
     mut all_buttons: Query<(&MasterButton, &mut BackgroundColor, &mut BorderColor)>,
     mut switch_events: EventWriter<SwitchMasterEvent>,
+    theme: Res<CurrentTheme>,
 ) {
     for (interaction, button) in interaction_query.iter() {
         if *interaction == Interaction::Pressed {
@@ -730,14 +773,14 @@ fn handle_master_buttons(
                 for (other_button, mut bg, mut border) in all_buttons.iter_mut() {
                     let is_selected = other_button.master_index == button.master_index;
                     *bg = BackgroundColor(if is_selected {
-                        PRESSED_BUTTON_COLOR
+                        theme.theme().button_pressed()
                     } else {
-                        NORMAL_BUTTON_COLOR
+                        theme.theme().button_regular()
                     });
                     *border = BorderColor(if is_selected {
-                        PRESSED_BUTTON_OUTLINE_COLOR
+                        theme.theme().button_pressed_outline()
                     } else {
-                        NORMAL_BUTTON_OUTLINE_COLOR
+                        theme.theme().button_regular_outline()
                     });
                 }
 

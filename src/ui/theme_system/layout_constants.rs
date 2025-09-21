@@ -23,25 +23,12 @@ pub const FILLED_GLYPH_Z: f32 = 7.0;
 pub const GIZMO_LINE_WIDTH: f32 = 4.0;
 pub const DEBUG_SHOW_ORIGIN_CROSS: bool = false;
 
-// Point rendering constants
-pub const ON_CURVE_POINT_RADIUS: f32 = 4.0;
-pub const OFF_CURVE_POINT_RADIUS: f32 = 4.0;
-pub const ON_CURVE_SQUARE_ADJUSTMENT: f32 = 1.0;
-pub const ON_CURVE_INNER_CIRCLE_RATIO: f32 = 0.25;
-pub const OFF_CURVE_INNER_CIRCLE_RATIO: f32 = 0.25;
-pub const USE_SQUARE_FOR_ON_CURVE: bool = true;
-
-pub const SELECTION_POINT_RADIUS: f32 = 4.0;
-pub const SELECTED_CIRCLE_RADIUS_MULTIPLIER: f32 = 1.0;
-pub const HOVER_CIRCLE_RADIUS_MULTIPLIER: f32 = 1.0;
+// Point rendering constants - now moved to theme trait
 
 // =================================================================
 // WINDOW AND APPLICATION CONSTANTS
 // =================================================================
-
-pub const WINDOW_WIDTH: f32 = 1024.0;
-pub const WINDOW_HEIGHT: f32 = 768.0;
-pub const WINDOW_TITLE: &str = "Bezy";
+// Window constants now moved to theme trait
 
 // =================================================================
 // TOOLBAR AND UI LAYOUT CONSTANTS
@@ -49,19 +36,19 @@ pub const WINDOW_TITLE: &str = "Bezy";
 
 pub const TOOLBAR_PADDING: f32 = 0.0;
 pub const TOOLBAR_CONTAINER_MARGIN: f32 = 16.0;
-pub const TOOLBAR_BUTTON_SIZE: f32 = 64.0;
+// TOOLBAR_BUTTON_SIZE moved to theme trait
 pub const TOOLBAR_BORDER_WIDTH: f32 = 2.0;
 pub const TOOLBAR_BORDER_RADIUS: f32 = 0.0;
 
 /// Grid-based spacing between buttons - scales with button size
-pub const TOOLBAR_GRID_SPACING: f32 = TOOLBAR_BUTTON_SIZE * 0.0625; // 4px at 64px button size
+pub const TOOLBAR_GRID_SPACING: f32 = 64.0 * 0.0625; // 4px at 64px button size
 /// Legacy constant for compatibility - use TOOLBAR_GRID_SPACING instead
 pub const TOOLBAR_ITEM_SPACING: f32 = TOOLBAR_GRID_SPACING;
-pub const BUTTON_ICON_SIZE: f32 = 48.0;
+// BUTTON_ICON_SIZE moved to theme trait
 
 /// Helper function to calculate submenu position below main toolbar
 pub fn toolbar_submenu_top_position() -> f32 {
-    TOOLBAR_CONTAINER_MARGIN + TOOLBAR_BUTTON_SIZE + TOOLBAR_GRID_SPACING * 2.0
+    TOOLBAR_CONTAINER_MARGIN + 64.0 + TOOLBAR_GRID_SPACING * 2.0
 }
 
 // =================================================================
@@ -70,10 +57,7 @@ pub fn toolbar_submenu_top_position() -> f32 {
 
 pub const WIDGET_TEXT_FONT_SIZE: f32 = 20.0;
 pub const WIDGET_TITLE_FONT_SIZE: f32 = 20.0;
-pub const WIDGET_MARGIN: f32 = 24.0;
-pub const WIDGET_PADDING: f32 = 16.0;
-pub const WIDGET_BORDER_WIDTH: f32 = 2.0;
-pub const WIDGET_BORDER_RADIUS: f32 = 0.0;
+// Widget constants moved to theme trait
 pub const WIDGET_ROW_LEADING: f32 = 0.4; // Vertical spacing between rows in panes (negative for tighter spacing)
 
 pub const LINE_LEADING: f32 = 0.0;
@@ -82,8 +66,7 @@ pub const LINE_LEADING: f32 = 0.0;
 // SORT AND LAYOUT CONSTANTS
 // =================================================================
 
-pub const SORT_VERTICAL_PADDING: f32 = 256.0;
-pub const SORT_HORIZONTAL_PADDING: f32 = 256.0;
+// Sort padding moved to theme trait
 
 // Selection constants
 pub const SELECTION_MARGIN: f32 = 16.0;
@@ -100,8 +83,7 @@ pub const INITIAL_ZOOM_SCALE: f32 = 1.0;
 // FONT AND ASSET CONSTANTS
 // =================================================================
 
-pub const GROTESK_FONT_PATH: &str = "fonts/BezyGrotesk-Regular.ttf";
-pub const MONO_FONT_PATH: &str = "fonts/HasubiMono-Regular.ttf";
+// Font paths moved to theme trait
 
 // =================================================================
 // WIDGET CREATION FUNCTIONS
@@ -126,11 +108,11 @@ pub fn create_widget_style<T: Component + Default>(
             right: position_props.right,
             top: position_props.top,
             bottom: position_props.bottom,
-            padding: UiRect::all(Val::Px(WIDGET_PADDING)),
+            padding: UiRect::all(Val::Px(theme.theme().widget_padding())),
             margin: UiRect::all(Val::Px(0.0)),
             flex_direction: FlexDirection::Column,
             row_gap: Val::Px(WIDGET_ROW_LEADING),
-            border: UiRect::all(Val::Px(WIDGET_BORDER_WIDTH)),
+            border: UiRect::all(Val::Px(theme.theme().widget_border_width())),
             width: Val::Auto,
             height: Val::Auto,
             min_width: Val::Auto,
@@ -148,42 +130,4 @@ pub fn create_widget_style<T: Component + Default>(
         marker,
         Name::new(name.to_string()),
     )
-}
-
-/// Creates a text component with standard styling
-#[allow(dead_code)]
-pub fn create_widget_text(
-    _asset_server: &Res<AssetServer>,
-    text: &str,
-    _font_size: f32,
-    _color: Color,
-) -> Text {
-    Text(text.to_string())
-}
-
-/// Creates a label (dim) and value (bright) text pair for a widget row
-#[allow(dead_code)]
-pub fn create_widget_label_value_pair(
-    _asset_server: &Res<AssetServer>,
-    label: &str,
-    value: &str,
-) -> (Node, Text) {
-    (
-        Node {
-            ..Default::default()
-        },
-        Text(format!("{label} {value}")),
-    )
-}
-
-/// Create a default text style with the given font
-#[allow(dead_code)]
-pub fn get_default_text_style(_asset_server: &Res<AssetServer>) -> Text {
-    Text::new("")
-}
-
-/// Create a text style with custom content and font size
-#[allow(dead_code)]
-pub fn create_text_style(text: &str, _font_size: f32) -> Text {
-    Text::new(text)
 }

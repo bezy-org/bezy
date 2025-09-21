@@ -33,7 +33,7 @@ use crate::core::settings::BezySettings;
 use crate::core::state::{AppState, GlyphNavigation};
 use crate::editing::selection::systems::AppStateChanged;
 use crate::ui::edit_mode_toolbar::{EditTool, ToolId, ToolRegistry};
-use crate::ui::theme::{METABALL_GIZMO_COLOR, METABALL_OUTLINE_COLOR, METABALL_SELECTED_COLOR};
+use crate::ui::themes::CurrentTheme;
 use bevy::prelude::*;
 use contour_isobands::ContourBuilder;
 
@@ -279,6 +279,7 @@ pub fn render_metaball_gizmos(
     mut gizmos: Gizmos,
     metaball_gizmos: Res<MetaballGizmos>,
     metaballs_mode: Option<Res<MetaballsModeActive>>,
+    theme: Res<CurrentTheme>,
 ) {
     // Only render if metaballs tool is active
     if let Some(metaballs_mode) = metaballs_mode {
@@ -291,9 +292,9 @@ pub fn render_metaball_gizmos(
 
     for gizmo in &metaball_gizmos.gizmos {
         let color = if gizmo.is_selected {
-            METABALL_SELECTED_COLOR
+            theme.theme().metaball_selected_color()
         } else {
-            METABALL_GIZMO_COLOR
+            theme.theme().metaball_gizmo_color()
         };
 
         // Draw the metaball gizmo circle
@@ -301,7 +302,11 @@ pub fn render_metaball_gizmos(
 
         // Draw selection indicator
         if gizmo.is_selected {
-            gizmos.circle_2d(gizmo.position, gizmo.radius + 2.0, METABALL_OUTLINE_COLOR);
+            gizmos.circle_2d(
+                gizmo.position,
+                gizmo.radius + 2.0,
+                theme.theme().metaball_outline_color(),
+            );
         }
     }
 }
@@ -311,6 +316,7 @@ pub fn render_metaball_outline_preview(
     mut gizmos: Gizmos,
     metaball_gizmos: Res<MetaballGizmos>,
     metaballs_mode: Option<Res<MetaballsModeActive>>,
+    theme: Res<CurrentTheme>,
 ) {
     // Only render if metaballs tool is active
     if let Some(metaballs_mode) = metaballs_mode {
@@ -336,7 +342,7 @@ pub fn render_metaball_outline_preview(
         for i in 1..=steps {
             let t = i as f32 / steps as f32;
             let p = cubic_bezier(seg[0], seg[1], seg[2], seg[3], t);
-            gizmos.line_2d(prev, p, METABALL_OUTLINE_COLOR);
+            gizmos.line_2d(prev, p, theme.theme().metaball_outline_color());
             prev = p;
         }
     }

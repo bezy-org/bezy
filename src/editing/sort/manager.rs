@@ -14,8 +14,6 @@ use crate::editing::sort::{ActiveSort, ActiveSortState, InactiveSort, Sort, Sort
 #[allow(unused_imports)]
 use crate::rendering::cameras::DesignCamera;
 
-#[allow(unused_imports)]
-use crate::ui::theme::{SORT_HORIZONTAL_PADDING, SORT_VERTICAL_PADDING};
 use bevy::prelude::*;
 #[allow(unused_imports)]
 use bevy::window::PrimaryWindow;

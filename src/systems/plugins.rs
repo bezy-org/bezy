@@ -7,7 +7,7 @@ use bevy::gizmos::{config::DefaultGizmoConfigGroup, config::GizmoConfigStore};
 use bevy::prelude::*;
 
 use crate::editing::sort::SortPlugin;
-use crate::ui::theme::{GIZMO_LINE_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH};
+use crate::ui::themes::CurrentTheme;
 
 /// Configure default Bevy plugins for the application
 #[allow(dead_code)]
@@ -15,8 +15,8 @@ pub fn configure_default_plugins() -> bevy::app::PluginGroupBuilder {
     DefaultPlugins
         .set(WindowPlugin {
             primary_window: Some(Window {
-                title: WINDOW_TITLE.into(),
-                resolution: (WINDOW_WIDTH, WINDOW_HEIGHT).into(),
+                title: "Bezy".into(), // Default title, will be updated by theme system
+                resolution: (1024.0, 768.0).into(), // Default resolution, will be updated by theme system
                 // Tell wasm to resize the window according to the available canvas
                 fit_canvas_to_parent: true,
                 // Tells wasm not to override default event handling, like F5, Ctrl+R etc.
@@ -31,12 +31,12 @@ pub fn configure_default_plugins() -> bevy::app::PluginGroupBuilder {
 }
 
 /// System to configure gizmo appearance
-fn configure_gizmos(mut gizmo_store: ResMut<GizmoConfigStore>) {
+fn configure_gizmos(mut gizmo_store: ResMut<GizmoConfigStore>, theme: Res<CurrentTheme>) {
     let (config, _) = gizmo_store.config_mut::<DefaultGizmoConfigGroup>();
-    config.line.width = GIZMO_LINE_WIDTH;
-    info!("Configured gizmo line width to {}px", GIZMO_LINE_WIDTH);
+    let line_width = theme.theme().gizmo_line_width();
+    config.line.width = line_width;
+    info!("Configured gizmo line width to {}px", line_width);
 }
-
 
 /// Plugin to organize toolbar-related plugins
 pub struct ToolbarPlugin;

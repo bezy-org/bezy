@@ -17,7 +17,10 @@ mod tests {
 
         // Skip test if font file doesn't exist
         if !ufo_path.exists() {
-            eprintln!("Skipping component test - font file not found at {:?}", ufo_path);
+            eprintln!(
+                "Skipping component test - font file not found at {:?}",
+                ufo_path
+            );
             return;
         }
 

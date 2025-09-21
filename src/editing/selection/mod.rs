@@ -19,8 +19,8 @@ pub use components::*;
 pub use enhanced_point_component::*;
 pub use entity_management::*;
 pub use events::{AppStateChanged, ClickWorldPosition, SELECTION_MARGIN};
-pub use input::*;
 pub use input::mouse::DoubleClickState;
+pub use input::*;
 pub use nudge::*;
 pub use utils::{clear_selection_on_app_change, update_hover_state};
 

@@ -5,6 +5,7 @@
 #![allow(clippy::too_many_arguments)]
 
 use crate::rendering::checkerboard::calculate_dynamic_grid_size;
+use crate::ui::themes::CurrentTheme;
 use bevy::prelude::*;
 
 /// Handle sort placement input (mouse clicks in text modes)
@@ -21,6 +22,7 @@ pub fn handle_sort_placement_input(
     mut text_editor_state: ResMut<crate::core::state::TextEditorState>,
     ui_hover_state: Res<crate::systems::ui_interaction::UiHoverState>,
     fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
+    theme: Res<CurrentTheme>,
 ) {
     use crate::ui::edit_mode_toolbar::text::TextPlacementMode;
 
@@ -98,7 +100,7 @@ pub fn handle_sort_placement_input(
     };
 
     // Apply grid snapping to match the preview
-    let grid_size = calculate_dynamic_grid_size(zoom_scale);
+    let grid_size = calculate_dynamic_grid_size(zoom_scale, &theme);
     let snapped_position = (raw_world_position / grid_size).round() * grid_size;
 
     // Always create a new sort when clicking in placement mode

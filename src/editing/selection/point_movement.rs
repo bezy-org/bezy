@@ -31,7 +31,16 @@ pub fn find_connected_offcurve_points_drag(
     selected_point_ref: &GlyphPointReference,
     selected_point_type: &PointType,
     movement: Vec2,
-    all_points_query: &Query<(Entity, &mut Transform, &mut crate::editing::selection::nudge::PointCoordinates, &GlyphPointReference, &PointType), Without<Selected>>,
+    all_points_query: &Query<
+        (
+            Entity,
+            &mut Transform,
+            &mut crate::editing::selection::nudge::PointCoordinates,
+            &GlyphPointReference,
+            &PointType,
+        ),
+        Without<Selected>,
+    >,
 ) -> Vec<PointMovement> {
     let mut connected_movements = Vec::new();
 
@@ -78,7 +87,10 @@ pub fn find_connected_offcurve_points_nudge(
     selected_point_ref: &GlyphPointReference,
     selected_point_type: &PointType,
     movement: Vec2,
-    all_points_query: &Query<(Entity, &mut Transform, &GlyphPointReference, &PointType), (With<SortPointEntity>, Without<Selected>)>,
+    all_points_query: &Query<
+        (Entity, &mut Transform, &GlyphPointReference, &PointType),
+        (With<SortPointEntity>, Without<Selected>),
+    >,
 ) -> Vec<PointMovement> {
     let mut connected_movements = Vec::new();
 
@@ -139,7 +151,11 @@ where
 
             debug!(
                 "[POINT_MOVEMENT] Transform: Updated {} point {:?} to ({:.1}, {:.1})",
-                if movement.is_connected_offcurve { "connected off-curve" } else { "selected" },
+                if movement.is_connected_offcurve {
+                    "connected off-curve"
+                } else {
+                    "selected"
+                },
                 movement.entity,
                 movement.new_position.x,
                 movement.new_position.y
@@ -181,7 +197,11 @@ pub fn sync_to_font_data(
                         handled = true;
                         debug!(
                             "[POINT_MOVEMENT] FontIR: Updated {} point {} in glyph '{}'",
-                            if movement.is_connected_offcurve { "connected off-curve" } else { "selected" },
+                            if movement.is_connected_offcurve {
+                                "connected off-curve"
+                            } else {
+                                "selected"
+                            },
                             movement.point_ref.point_index,
                             movement.point_ref.glyph_name
                         );
@@ -230,7 +250,9 @@ pub fn sync_to_font_data(
             } else {
                 points_moved += 1;
             }
-            debug!("[POINT_MOVEMENT] Point update handled via Transform only (no source data update)");
+            debug!(
+                "[POINT_MOVEMENT] Point update handled via Transform only (no source data update)"
+            );
         }
     }
 

@@ -72,7 +72,13 @@ const SELECTED_POINT_Z: f32 = 15.0; // Selected points - always above unselected
 pub fn collect_rendering_data(
     enhanced_points_query: Query<(Entity, &EnhancedPointType)>,
     enhanced_attributes: Res<crate::editing::selection::entity_management::EnhancedPointAttributes>,
-    point_refs_query: Query<(Entity, &crate::editing::selection::components::GlyphPointReference), Without<EnhancedPointType>>,
+    point_refs_query: Query<
+        (
+            Entity,
+            &crate::editing::selection::components::GlyphPointReference,
+        ),
+        Without<EnhancedPointType>,
+    >,
     mut rendering_data: ResMut<GlyphRenderingData>,
 ) {
     // Collect enhanced point smooth status to avoid query parameter limits in main render system
@@ -80,12 +86,18 @@ pub fn collect_rendering_data(
 
     // First, collect from enhanced components (preferred method)
     for (entity, enhanced) in enhanced_points_query.iter() {
-        rendering_data.smooth_points.insert(entity, enhanced.is_smooth());
+        rendering_data
+            .smooth_points
+            .insert(entity, enhanced.is_smooth());
     }
 
     // Then, collect from enhanced attributes for points that don't have enhanced components yet
     for (entity, point_ref) in point_refs_query.iter() {
-        let key = (point_ref.glyph_name.clone(), point_ref.contour_index, point_ref.point_index);
+        let key = (
+            point_ref.glyph_name.clone(),
+            point_ref.contour_index,
+            point_ref.point_index,
+        );
         if let Some(ufo_point) = enhanced_attributes.attributes.get(&key) {
             if let Some(smooth) = ufo_point.smooth {
                 if smooth {
@@ -351,6 +363,7 @@ pub fn render_glyphs(
                 fontir_app_state.as_deref(),
                 app_state.as_deref(),
                 &camera_scale,
+                &theme,
             );
 
             // 2. Render handles using live Transform positions
@@ -362,6 +375,7 @@ pub fn render_glyphs(
                 sort_entity,
                 &sort_points,
                 &camera_scale,
+                &theme,
             );
 
             // 3. Render points using live Transform positions
@@ -394,6 +408,7 @@ pub fn render_glyphs(
                 fontir_app_state.as_deref(),
                 app_state.as_deref(),
                 &camera_scale,
+                &theme,
             );
         }
 
@@ -445,7 +460,7 @@ fn render_filled_outline(
     fontir_state: Option<&crate::core::state::FontIRAppState>,
     _app_state: Option<&crate::core::state::AppState>,
     _camera_scale: &CameraResponsiveScale,
-    _theme: &CurrentTheme,
+    theme: &CurrentTheme,
 ) {
     if let Some(fontir_state) = fontir_state {
         if let Some(paths) = fontir_state.get_glyph_paths_with_components(glyph_name) {
@@ -556,9 +571,9 @@ fn render_filled_outline(
                             sort_entity,
                         },
                         Mesh2d(meshes.add(mesh)),
-                        MeshMaterial2d(
-                            materials.add(ColorMaterial::from_color(FILLED_GLYPH_COLOR)),
-                        ),
+                        MeshMaterial2d(materials.add(ColorMaterial::from_color(
+                            theme.theme().filled_glyph_color(),
+                        ))),
                         Transform::from_translation(Vec3::new(0.0, 0.0, OUTLINE_Z)),
                         GlobalTransform::default(),
                         Visibility::Visible,
@@ -596,6 +611,7 @@ fn render_glyph_outline(
     fontir_state: Option<&crate::core::state::FontIRAppState>,
     _app_state: Option<&crate::core::state::AppState>,
     camera_scale: &CameraResponsiveScale,
+    theme: &CurrentTheme,
 ) {
     // Build position map from live Transform data
     let mut live_positions = HashMap::new();
@@ -622,6 +638,7 @@ fn render_glyph_outline(
                 &live_positions,
                 sort_position,
                 camera_scale,
+                &theme,
             );
         }
     }
@@ -636,6 +653,7 @@ fn render_glyph_handles(
     sort_entity: Entity,
     sort_points: &[(Entity, Vec2, &GlyphPointReference, &PointType, bool)],
     camera_scale: &CameraResponsiveScale,
+    theme: &CurrentTheme,
 ) {
     // Group points by contour
     let mut contours: HashMap<usize, Vec<_>> = HashMap::new();
@@ -670,7 +688,7 @@ fn render_glyph_handles(
                     current.1,
                     next.1,
                     1.0, // 1px width
-                    HANDLE_LINE_COLOR,
+                    theme.theme().handle_line_color(),
                     HANDLE_Z,
                     sort_entity,
                     GlyphElementType::Handle,
@@ -725,11 +743,13 @@ fn render_glyph_points(
 
         // Create the three-layer point shape
         // On-curve points are square UNLESS they are smooth (smooth points are always circles)
-        if point_type.is_on_curve && USE_SQUARE_FOR_ON_CURVE && !is_smooth {
+        if point_type.is_on_curve && theme.theme().use_square_for_on_curve() && !is_smooth {
             // On-curve points: square with three layers
-            let base_size =
-                ON_CURVE_POINT_RADIUS * ON_CURVE_SQUARE_ADJUSTMENT * 2.0 * root_size_multiplier;
-            let size = camera_scale.adjusted_point_size(base_size);
+            let base_size = theme.theme().on_curve_point_radius()
+                * theme.theme().on_curve_square_adjustment()
+                * 2.0
+                * root_size_multiplier;
+            let size = camera_scale.adjusted_size(base_size);
 
             // Layer 1: Base shape (full width) - primary color
             let entity = commands
@@ -782,7 +802,7 @@ fn render_glyph_points(
 
             // Layer 3: Small center shape - primary color (only for non-selected points)
             if !*is_selected {
-                let center_size = size * ON_CURVE_INNER_CIRCLE_RATIO;
+                let center_size = size * theme.theme().on_curve_inner_circle_ratio();
                 let center_entity = commands
                     .spawn((
                         GlyphRenderElement {
@@ -809,11 +829,11 @@ fn render_glyph_points(
         } else {
             // Off-curve points and circular on-curve points: circle with three layers
             let base_radius = if point_type.is_on_curve {
-                ON_CURVE_POINT_RADIUS * root_size_multiplier
+                theme.theme().on_curve_point_radius() * root_size_multiplier
             } else {
-                OFF_CURVE_POINT_RADIUS * root_size_multiplier
+                theme.theme().off_curve_point_radius() * root_size_multiplier
             };
-            let radius = camera_scale.adjusted_point_size(base_radius);
+            let radius = camera_scale.adjusted_size(base_radius);
 
             // Layer 1: Base circle (full size) - primary color
             let entity = commands
@@ -862,9 +882,9 @@ fn render_glyph_points(
             if !*is_selected {
                 let center_radius = radius
                     * if point_type.is_on_curve {
-                        ON_CURVE_INNER_CIRCLE_RATIO
+                        theme.theme().on_curve_inner_circle_ratio()
                     } else {
-                        OFF_CURVE_INNER_CIRCLE_RATIO
+                        theme.theme().off_curve_inner_circle_ratio()
                     };
                 let center_entity = commands
                     .spawn((
@@ -891,11 +911,11 @@ fn render_glyph_points(
         // Add crosshairs for selected points using two-color system
         if *is_selected {
             let base_line_size = if point_type.is_on_curve {
-                ON_CURVE_POINT_RADIUS
+                theme.theme().on_curve_point_radius()
             } else {
-                OFF_CURVE_POINT_RADIUS
+                theme.theme().off_curve_point_radius()
             };
-            let line_size = camera_scale.adjusted_point_size(base_line_size);
+            let line_size = camera_scale.adjusted_size(base_line_size);
             let line_width = camera_scale.adjusted_line_width();
 
             // Make crosshair lines slightly shorter to fit within point bounds
@@ -964,6 +984,7 @@ fn render_static_outline(
     fontir_state: Option<&crate::core::state::FontIRAppState>,
     _app_state: Option<&crate::core::state::AppState>,
     camera_scale: &CameraResponsiveScale,
+    theme: &CurrentTheme,
 ) {
     if let Some(fontir_state) = fontir_state {
         if let Some(paths) = fontir_state.get_glyph_paths_with_components(glyph_name) {
@@ -987,7 +1008,7 @@ fn render_static_outline(
                                     start,
                                     end,
                                     1.0,
-                                    PATH_STROKE_COLOR,
+                                    theme.theme().path_stroke_color(),
                                     OUTLINE_Z,
                                     sort_entity,
                                     GlyphElementType::OutlineSegment,
@@ -1034,7 +1055,7 @@ fn render_static_outline(
                                         last_pos,
                                         curve_pos,
                                         1.0,
-                                        PATH_STROKE_COLOR,
+                                        theme.theme().path_stroke_color(),
                                         OUTLINE_Z,
                                         sort_entity,
                                         GlyphElementType::OutlineSegment,
@@ -1071,7 +1092,7 @@ fn render_static_outline(
                                         last_pos,
                                         curve_pos,
                                         1.0,
-                                        PATH_STROKE_COLOR,
+                                        theme.theme().path_stroke_color(),
                                         OUTLINE_Z,
                                         sort_entity,
                                         GlyphElementType::OutlineSegment,
@@ -1104,6 +1125,7 @@ fn render_fontir_outline(
     live_positions: &HashMap<(usize, usize), (Vec2, bool)>,
     sort_position: Vec2,
     camera_scale: &CameraResponsiveScale,
+    theme: &CurrentTheme,
 ) {
     // Process each contour with live positions
     for (contour_idx, original_path) in original_paths.iter().enumerate() {
@@ -1155,6 +1177,7 @@ fn render_fontir_outline(
                             direction,
                             sort_entity,
                             camera_scale,
+                            theme,
                         );
                         element_entities.push(arrow_entity);
                     }
@@ -1180,7 +1203,7 @@ fn render_fontir_outline(
                             start,
                             end,
                             1.0,
-                            PATH_STROKE_COLOR,
+                            theme.theme().path_stroke_color(),
                             OUTLINE_Z,
                             sort_entity,
                             GlyphElementType::OutlineSegment,
@@ -1254,7 +1277,7 @@ fn render_fontir_outline(
                                 last_pos,
                                 curve_pos,
                                 1.0,
-                                PATH_STROKE_COLOR,
+                                theme.theme().path_stroke_color(),
                                 OUTLINE_Z,
                                 sort_entity,
                                 GlyphElementType::OutlineSegment,
@@ -1309,7 +1332,7 @@ fn render_fontir_outline(
                                 last_pos,
                                 curve_pos,
                                 1.0,
-                                PATH_STROKE_COLOR,
+                                theme.theme().path_stroke_color(),
                                 OUTLINE_Z,
                                 sort_entity,
                                 GlyphElementType::OutlineSegment,
@@ -1345,7 +1368,7 @@ fn render_fontir_outline(
                                     end,
                                     start,
                                     1.0,
-                                    PATH_STROKE_COLOR,
+                                    theme.theme().path_stroke_color(),
                                     OUTLINE_Z,
                                     sort_entity,
                                     GlyphElementType::OutlineSegment,
@@ -1484,6 +1507,7 @@ fn spawn_contour_start_arrow(
     direction: Vec2,
     sort_entity: Entity,
     camera_scale: &CameraResponsiveScale,
+    theme: &CurrentTheme,
 ) -> Entity {
     // Create arrow shape - tall and narrow
     let arrow_height = 16.0 * camera_scale.scale_factor; // Height (how far the arrow extends)
@@ -1525,7 +1549,7 @@ fn spawn_contour_start_arrow(
     mesh.insert_indices(bevy::render::mesh::Indices::U32(vec![0, 1, 2]));
 
     // Use the theme's active orange color
-    let arrow_color = PRESSED_BUTTON_COLOR; // Active orange from theme
+    let arrow_color = theme.theme().button_pressed(); // Active orange from theme
 
     commands
         .spawn((

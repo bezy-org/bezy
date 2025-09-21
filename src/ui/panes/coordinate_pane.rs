@@ -6,8 +6,8 @@
 #![allow(unused_mut)]
 #![allow(unused_variables)]
 
-use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::editing::selection::components::Selected;
+use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::geometry::quadrant::Quadrant;
 use crate::ui::theme::*;
 use crate::ui::themes::{CurrentTheme, UiBorderRadius};
@@ -125,8 +125,8 @@ pub fn spawn_coordinate_pane(
     theme: Res<CurrentTheme>,
 ) {
     let position = UiRect {
-        right: Val::Px(WIDGET_MARGIN),
-        bottom: Val::Px(WIDGET_MARGIN),
+        right: Val::Px(theme.theme().widget_margin()),
+        bottom: Val::Px(theme.theme().widget_margin()),
         top: Val::Auto,
         left: Val::Auto,
     };
@@ -160,21 +160,27 @@ pub fn spawn_coordinate_pane(
                         },
                         Text::new("X:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(SECONDARY_TEXT_COLOR),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
                     // X value
                     row.spawn((
                         Text::new("0"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(ON_CURVE_PRIMARY_COLOR),
+                        TextColor(theme.get_ui_text_secondary()),
                         XValue,
                     ));
                 });
@@ -196,21 +202,27 @@ pub fn spawn_coordinate_pane(
                         },
                         Text::new("Y:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(SECONDARY_TEXT_COLOR),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
                     // Y value
                     row.spawn((
                         Text::new("0"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(ON_CURVE_PRIMARY_COLOR),
+                        TextColor(theme.get_ui_text_secondary()),
                         YValue,
                     ));
                 });
@@ -232,21 +244,27 @@ pub fn spawn_coordinate_pane(
                         },
                         Text::new("W:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(SECONDARY_TEXT_COLOR),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
                     // Width value
                     row.spawn((
                         Text::new("0"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(ON_CURVE_PRIMARY_COLOR),
+                        TextColor(theme.get_ui_text_secondary()),
                         WidthValue,
                     ));
                 });
@@ -268,21 +286,27 @@ pub fn spawn_coordinate_pane(
                         },
                         Text::new("H:"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(SECONDARY_TEXT_COLOR),
+                        TextColor(theme.get_ui_text_primary()),
                     ));
                     // Height value
                     row.spawn((
                         Text::new("0"),
                         TextFont {
-                            font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
+                            font: asset_server.load_font_with_fallback(
+                                theme.theme().mono_font_path(),
+                                &embedded_fonts,
+                            ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(ON_CURVE_PRIMARY_COLOR),
+                        TextColor(theme.get_ui_text_secondary()),
                         HeightValue,
                     ));
                 });
@@ -319,7 +343,7 @@ pub fn spawn_coordinate_pane(
                                         left: Val::Px(BUTTON_CENTER_POSITIONS[0]),
                                         ..default()
                                     },
-                                    BackgroundColor(NORMAL_BUTTON_OUTLINE_COLOR),
+                                    BackgroundColor(theme.theme().button_regular_outline()),
                                 ));
                             }
                             // Vertical grid lines - aligned with button centers
@@ -335,7 +359,7 @@ pub fn spawn_coordinate_pane(
                                         top: Val::Px(BUTTON_CENTER_POSITIONS[0]),
                                         ..default()
                                     },
-                                    BackgroundColor(NORMAL_BUTTON_OUTLINE_COLOR),
+                                    BackgroundColor(theme.theme().button_regular_outline()),
                                 ));
                             }
                         });
@@ -374,14 +398,14 @@ pub fn spawn_coordinate_pane(
                                 ..default()
                             },
                             BackgroundColor(if is_selected {
-                                PRESSED_BUTTON_COLOR
+                                theme.theme().button_pressed()
                             } else {
-                                NORMAL_BUTTON_COLOR
+                                theme.theme().button_regular()
                             }),
                             BorderColor(if is_selected {
-                                PRESSED_BUTTON_OUTLINE_COLOR
+                                theme.theme().button_pressed_outline()
                             } else {
-                                NORMAL_BUTTON_OUTLINE_COLOR
+                                theme.theme().button_regular_outline()
                             }),
                             BorderRadius::all(Val::Px(theme.theme().ui_border_radius())),
                             UiBorderRadius,
@@ -485,6 +509,7 @@ fn handle_quadrant_buttons(
     mut interaction_query: Query<(&Interaction, &QuadrantButton), Changed<Interaction>>,
     mut coordinate_selection: ResMut<CoordinateSelection>,
     mut all_buttons: Query<(&QuadrantButton, &mut BackgroundColor, &mut BorderColor)>,
+    theme: Res<CurrentTheme>,
 ) {
     for (interaction, button) in interaction_query.iter() {
         if *interaction == Interaction::Pressed {
@@ -494,14 +519,14 @@ fn handle_quadrant_buttons(
             for (other_button, mut bg, mut border) in all_buttons.iter_mut() {
                 let is_selected = other_button.0 == button.0;
                 *bg = BackgroundColor(if is_selected {
-                    PRESSED_BUTTON_COLOR
+                    theme.theme().button_pressed()
                 } else {
-                    NORMAL_BUTTON_COLOR
+                    theme.theme().button_regular()
                 });
                 *border = BorderColor(if is_selected {
-                    PRESSED_BUTTON_OUTLINE_COLOR
+                    theme.theme().button_pressed_outline()
                 } else {
-                    NORMAL_BUTTON_OUTLINE_COLOR
+                    theme.theme().button_regular_outline()
                 });
             }
         }

@@ -77,8 +77,7 @@ pub fn handle_selection_shortcuts(
         debug!("Selected all {} entities", selection_state.selected.len());
 
         // Send edit event
-        event_writer.write(EditEvent {
-        });
+        event_writer.write(EditEvent {});
     }
 }
 
@@ -148,8 +147,7 @@ pub fn handle_selection_key_press(
                     }
                 }
 
-                event_writer.write(EditEvent {
-                });
+                event_writer.write(EditEvent {});
                 debug!("Selected all {} points in active sort", selected_count);
             }
         }
@@ -160,8 +158,7 @@ pub fn handle_selection_key_press(
                 commands.entity(entity).remove::<Selected>();
             }
             selection_state.selected.clear();
-            event_writer.write(EditEvent {
-            });
+            event_writer.write(EditEvent {});
         }
         _ => {}
     }

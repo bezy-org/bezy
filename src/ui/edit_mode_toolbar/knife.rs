@@ -423,7 +423,7 @@ pub fn render_knife_preview(
 
         // Draw start point (yellow circle like measure tool) - use world coordinates
         let point_color = theme.theme().selected_color(); // Use yellow selection color
-        let point_size = camera_scale.adjusted_point_size(4.0);
+        let point_size = camera_scale.adjusted_size(4.0);
         let start_entity = spawn_knife_point_mesh(
             &mut commands,
             &mut meshes,
@@ -483,7 +483,7 @@ pub fn render_knife_preview(
             let world_intersection = intersection + sort_position;
 
             // Create yellow filled circles for intersection points (like measure tool)
-            let intersection_size = camera_scale.adjusted_point_size(6.0); // Same size as measure tool
+            let intersection_size = camera_scale.adjusted_size(6.0); // Same size as measure tool
             let circle_entity = spawn_knife_point_mesh(
                 &mut commands,
                 &mut meshes,

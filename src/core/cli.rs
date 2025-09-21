@@ -4,6 +4,7 @@
 //! validation for user inputs. Many CLI options are documented with
 //! examples to help users understand the expected format.
 
+use crate::core::config_file::ConfigFile;
 use crate::ui::themes::ThemeVariant;
 use bevy::prelude::*;
 use clap::Parser;
@@ -16,7 +17,7 @@ use std::path::PathBuf;
 ///   bezy --edit my-font.ufo             # Edit specific font
 ///   bezy --edit ~/Fonts/MyFont.ufo      # Edit font with full path
 ///   bezy --edit my-variable.designspace # Edit variable font
-///   bezy --theme lightmode              # Use light mode theme
+///   bezy --theme light                  # Use light theme
 ///   bezy --theme strawberry             # Use strawberry theme
 ///   bezy --no-default-buffer            # Start without default LTR buffer (for testing)
 #[derive(Parser, Debug, Resource)]
@@ -42,13 +43,13 @@ pub struct CliArgs {
 
     /// Theme to use for the interface
     ///
-    /// Available themes: darkmode (default), lightmode, strawberry, campfire.
+    /// Available themes: dark (default), light, strawberry, campfire.
     /// Custom themes can be added by creating new theme files.
     #[clap(
         long = "theme",
         short = 't',
         help = "Theme to use",
-        long_help = "Theme to use for the interface. Available themes: darkmode (default), lightmode, strawberry, campfire"
+        long_help = "Theme to use for the interface. Available themes: dark (default), light, strawberry, campfire"
     )]
     pub theme: Option<String>,
 
@@ -63,6 +64,19 @@ pub struct CliArgs {
         long_help = "Disable creation of the default LTR text buffer on startup. Useful for testing isolated text flows or debugging positioning issues."
     )]
     pub no_default_buffer: bool,
+
+    /// Initialize user configuration directory with settings and themes
+    ///
+    /// This creates the ~/.config/bezy directory with:
+    /// - settings.json: User preferences like default theme
+    /// - themes/: Copies of all default themes that you can customize
+    /// This allows full customization without modifying the app installation.
+    #[clap(
+        long = "new-config",
+        help = "Initialize user config directory with settings and themes",
+        long_help = "Initialize the ~/.config/bezy directory with a settings.json file and copies of all default themes. This allows you to customize themes and set preferences like default theme without needing command line arguments."
+    )]
+    pub new_config: bool,
 }
 
 impl CliArgs {
@@ -153,11 +167,33 @@ impl CliArgs {
         self.font_source.as_ref()
     }
 
-    /// Get the theme variant from CLI args or default
+    /// Get the theme variant from CLI args, config file, or default
+    ///
+    /// Priority order:
+    /// 1. CLI argument (--theme)
+    /// 2. Config file setting (~/.config/bezy/settings.json)
+    /// 3. Built-in default (dark theme)
     pub fn get_theme_variant(&self) -> ThemeVariant {
-        self.theme
-            .as_ref()
-            .and_then(|theme_name| ThemeVariant::parse(theme_name))
-            .unwrap_or_default()
+        // First check CLI args
+        if let Some(theme_name) = &self.theme {
+            if let Some(variant) = ThemeVariant::parse(theme_name) {
+                info!("Using theme from CLI: {}", theme_name);
+                return variant;
+            }
+        }
+
+        // Then check config file
+        if let Some(config) = ConfigFile::load() {
+            if let Some(theme_name) = config.default_theme {
+                if let Some(variant) = ThemeVariant::parse(&theme_name) {
+                    info!("Using theme from config file: {}", theme_name);
+                    return variant;
+                }
+            }
+        }
+
+        // Finally use built-in default
+        info!("Using default theme: dark");
+        ThemeVariant::default()
     }
 }

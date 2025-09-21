@@ -11,13 +11,11 @@
 //! - **ZOOMED IN** (small projection scale) → **SMALL grid squares** (more detail)
 //!
 //! This prevents performance issues when viewing large areas while maintaining
-//! detail when editing at close zoom levels.
+//! detail when editing at close zoom levels. It also helps keep the grid usable
+//! (not too small).
 
 use crate::rendering::cameras::DesignCamera;
-use crate::ui::theme::{
-    CHECKERBOARD_COLOR, CHECKERBOARD_DEFAULT_UNIT_SIZE, CHECKERBOARD_ENABLED_BY_DEFAULT,
-    CHECKERBOARD_MAX_ZOOM_VISIBLE, CHECKERBOARD_SCALE_FACTOR, WINDOW_HEIGHT, WINDOW_WIDTH,
-};
+use crate::ui::themes::CurrentTheme;
 use bevy::prelude::*;
 use bevy::window::{PrimaryWindow, WindowResized};
 use bevy_pancam::PanCam;
@@ -32,6 +30,7 @@ const MIN_VISIBILITY_ZOOM: f32 = 0.01;
 
 /// When camera moves, how much does it need to move to trigger a grid respawn
 const GRID_SIZE_CHANGE_THRESHOLD: f32 = 1.25;
+#[allow(dead_code)]
 const VISIBLE_AREA_COVERAGE_MULTIPLIER: f32 = 1.2;
 const MAX_SQUARES_PER_FRAME: usize = 2000;
 
@@ -57,7 +56,7 @@ pub struct CheckerboardEnabled {
 impl Default for CheckerboardEnabled {
     fn default() -> Self {
         Self {
-            enabled: CHECKERBOARD_ENABLED_BY_DEFAULT,
+            enabled: true, // Will be initialized with theme value in system
         }
     }
 }
@@ -98,8 +97,8 @@ pub struct CheckerboardState {
 /// Bevy's OrthographicProjection.scale represents how much world space is visible:
 /// - LARGER scale = more world space visible = more ZOOMED OUT
 /// - SMALLER scale = less world space visible = more ZOOMED IN
-pub fn calculate_dynamic_grid_size(zoom_scale: f32) -> f32 {
-    let base_size = CHECKERBOARD_DEFAULT_UNIT_SIZE;
+pub fn calculate_dynamic_grid_size(zoom_scale: f32, theme: &CurrentTheme) -> f32 {
+    let base_size = theme.theme().checkerboard_default_unit_size();
 
     // CORRECTED LOGIC: Higher zoom_scale (more zoomed out) = larger grid squares
     // This prevents performance issues when viewing large areas
@@ -133,10 +132,23 @@ pub fn update_checkerboard(
     mut state: ResMut<CheckerboardState>,
     camera_query: Query<(&Transform, &Projection, Option<&PanCam>), With<DesignCamera>>,
     square_query: Query<(Entity, &CheckerboardSquare)>,
-    checkerboard_enabled: Res<CheckerboardEnabled>,
+    mut checkerboard_enabled: ResMut<CheckerboardEnabled>,
     window_query: Query<&Window, With<PrimaryWindow>>,
     presentation_mode: Option<Res<crate::ui::edit_mode_toolbar::PresentationMode>>,
+    theme: Res<CurrentTheme>,
 ) {
+    // Initialize checkerboard enabled with theme value if needed
+    if checkerboard_enabled.is_added() {
+        checkerboard_enabled.enabled = theme.theme().checkerboard_enabled_by_default();
+    }
+
+    // Force checkerboard rebuild when theme changes (to pick up new colors)
+    // Only in debug mode to avoid performance impact in release builds
+    #[cfg(debug_assertions)]
+    if theme.is_changed() && !state.spawned_squares.is_empty() {
+        despawn_all_squares(&mut commands, &mut state, &square_query);
+        return; // Let next frame rebuild with new colors
+    }
     // If checkerboard is disabled OR we're in presentation mode, despawn all squares and return early
     let presentation_active = presentation_mode.is_some_and(|pm| pm.active);
     if !checkerboard_enabled.enabled || presentation_active {
@@ -161,7 +173,7 @@ pub fn update_checkerboard(
 
     // Use projection scale for grid calculation (this is the real zoom level)
     let camera_scale = projection_scale;
-    let current_grid_size = calculate_dynamic_grid_size(camera_scale);
+    let current_grid_size = calculate_dynamic_grid_size(camera_scale, &theme);
 
     // Debug logging to help troubleshoot zoom issues (only log when scale
     // changes significantly)
@@ -184,7 +196,7 @@ pub fn update_checkerboard(
         );
 
         // Also show what zoom threshold this should trigger
-        let expected_grid_size = calculate_dynamic_grid_size(camera_scale);
+        let expected_grid_size = calculate_dynamic_grid_size(camera_scale, &theme);
         info!(
             "Grid size calculation: zoom={:.3} → expected_size={:.0}, \
                last_size={:?}",
@@ -193,11 +205,12 @@ pub fn update_checkerboard(
     }
 
     // Hide checkerboard if zoom is outside visible range
-    if !is_checkerboard_visible(camera_scale) {
+    if !is_checkerboard_visible(camera_scale, &theme) {
+        let max_zoom = theme.theme().checkerboard_max_zoom_visible();
         info!(
             "Checkerboard not visible at current zoom scale: {:.3} \
                (range: {:.3} to {:.1})",
-            camera_scale, MIN_VISIBILITY_ZOOM, CHECKERBOARD_MAX_ZOOM_VISIBLE
+            camera_scale, MIN_VISIBILITY_ZOOM, max_zoom
         );
         despawn_all_squares(&mut commands, &mut state, &square_query);
         return;
@@ -219,7 +232,7 @@ pub fn update_checkerboard(
         );
 
         // Calculate and show the actual grid level being used
-        let base_size = CHECKERBOARD_DEFAULT_UNIT_SIZE;
+        let base_size = theme.theme().checkerboard_default_unit_size();
         let scale_multiplier = current_grid_size / base_size;
         if scale_multiplier == 1.0 {
             info!(
@@ -244,7 +257,7 @@ pub fn update_checkerboard(
         }
         info!(
             "  → Checkerboard visible: {}",
-            is_checkerboard_visible(camera_scale)
+            is_checkerboard_visible(camera_scale, &theme)
         );
     }
 
@@ -288,7 +301,7 @@ pub fn update_checkerboard(
         Vec2::new(window.resolution.width(), window.resolution.height())
     } else {
         // Fallback to theme constants if window query fails
-        Vec2::new(WINDOW_WIDTH, WINDOW_HEIGHT)
+        Vec2::new(theme.theme().window_width(), theme.theme().window_height())
     };
 
     // Check if window size changed (e.g., fullscreen toggle)
@@ -322,6 +335,7 @@ pub fn update_checkerboard(
         &square_query,
         current_grid_size,
         window_size,
+        &theme,
     );
 }
 
@@ -329,10 +343,11 @@ pub fn update_checkerboard(
 ///
 /// The checkerboard is always visible within our defined zoom range
 /// since the dynamic scaling system ensures it's always useful.
-fn is_checkerboard_visible(zoom_scale: f32) -> bool {
+fn is_checkerboard_visible(zoom_scale: f32, theme: &CurrentTheme) -> bool {
     // Always show checkerboard within our zoom limits
     // The dynamic grid scaling ensures it's always useful
-    (0.05..=100.0).contains(&zoom_scale)
+    let max_zoom = theme.theme().checkerboard_max_zoom_visible();
+    (0.05..=max_zoom).contains(&zoom_scale)
 }
 
 /// Updates which squares are visible based on camera position
@@ -344,6 +359,7 @@ fn update_visible_squares(
     square_query: &Query<(Entity, &CheckerboardSquare)>,
     current_grid_size: f32,
     window_size: Vec2,
+    theme: &CurrentTheme,
 ) {
     let camera_pos = camera_transform.translation.truncate();
 
@@ -368,6 +384,7 @@ fn update_visible_squares(
         camera_scale,
         current_grid_size,
         window_size,
+        theme,
     );
     let needed_squares = get_needed_squares(&visible_area, current_grid_size);
 
@@ -388,7 +405,7 @@ fn update_visible_squares(
     despawn_unneeded_squares(commands, state, square_query, &needed_squares);
 
     // Spawn new squares that are needed
-    spawn_needed_squares(commands, state, &needed_squares, current_grid_size);
+    spawn_needed_squares(commands, state, &needed_squares, current_grid_size, theme);
 }
 
 /// Calculates the area visible to the camera
@@ -398,6 +415,7 @@ fn calculate_visible_area(
     camera_scale: f32,
     current_grid_size: f32,
     window_size: Vec2,
+    theme: &CurrentTheme,
 ) -> Rect {
     let camera_pos = camera_transform.translation.truncate();
 
@@ -415,10 +433,10 @@ fn calculate_visible_area(
     let edge_padding = current_grid_size * 2.0; // Always at least 2 grid squares beyond edges
 
     // Calculate conservative coverage for performance, but never less than screen coverage
-    let base_size = CHECKERBOARD_DEFAULT_UNIT_SIZE;
+    let base_size = theme.theme().checkerboard_default_unit_size();
     let grid_scale_factor = current_grid_size / base_size;
-    let performance_coverage_multiplier =
-        VISIBLE_AREA_COVERAGE_MULTIPLIER / grid_scale_factor.sqrt();
+    let coverage_multiplier = 1.2; // VISIBLE_AREA_COVERAGE_MULTIPLIER equivalent
+    let performance_coverage_multiplier = coverage_multiplier / grid_scale_factor.sqrt();
 
     // Performance-based coverage
     let perf_half_width = (screen_width * camera_scale * performance_coverage_multiplier) / 2.0;
@@ -543,6 +561,7 @@ fn spawn_needed_squares(
     state: &mut CheckerboardState,
     needed_squares: &HashSet<IVec2>,
     current_grid_size: f32,
+    theme: &CurrentTheme,
 ) {
     let new_squares: Vec<_> = needed_squares
         .iter()
@@ -559,14 +578,19 @@ fn spawn_needed_squares(
     }
 
     for grid_pos in new_squares {
-        spawn_square(commands, grid_pos, current_grid_size);
+        spawn_square(commands, grid_pos, current_grid_size, theme);
         state.spawned_squares.insert(grid_pos);
     }
 }
 
 /// Spawns a single checkerboard square at the given grid position
 #[allow(static_mut_refs)]
-fn spawn_square(commands: &mut Commands, grid_pos: IVec2, current_grid_size: f32) {
+fn spawn_square(
+    commands: &mut Commands,
+    grid_pos: IVec2,
+    current_grid_size: f32,
+    theme: &CurrentTheme,
+) {
     let world_pos = grid_to_world_position(grid_pos, current_grid_size);
 
     // Debug log the first few squares spawned to verify design space alignment
@@ -587,7 +611,7 @@ fn spawn_square(commands: &mut Commands, grid_pos: IVec2, current_grid_size: f32
     commands.spawn((
         CheckerboardSquare { grid_pos },
         Sprite {
-            color: CHECKERBOARD_COLOR,
+            color: theme.theme().checkerboard_color(),
             custom_size: Some(Vec2::splat(current_grid_size)),
             ..default()
         },

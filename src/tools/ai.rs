@@ -7,8 +7,8 @@
 //! - Weight consistency fixes
 //! - Curve smoothness optimization
 
-use crate::embedded_assets::EmbeddedFonts;
 use super::{EditTool, ToolInfo};
+use crate::embedded_assets::EmbeddedFonts;
 use bevy::prelude::*;
 
 /// AI operations that can be performed
@@ -185,7 +185,13 @@ pub fn spawn_ai_submenu(
         .spawn((submenu_node, Name::new("AiSubMenu")))
         .with_children(|parent| {
             for operation in operations {
-                spawn_ai_operation_button(parent, operation, &asset_server, &embedded_fonts, &theme);
+                spawn_ai_operation_button(
+                    parent,
+                    operation,
+                    &asset_server,
+                    &embedded_fonts,
+                    &theme,
+                );
             }
         });
 
@@ -206,6 +212,7 @@ pub fn handle_ai_operation_selection(
     mut current_operation: ResMut<CurrentAiOperation>,
     children_query: Query<&Children>,
     mut text_query: Query<&mut TextColor>,
+    theme: Res<crate::ui::themes::CurrentTheme>,
 ) {
     for (interaction, mut color, mut border_color, operation_button, entity) in
         &mut interaction_query
@@ -223,6 +230,7 @@ pub fn handle_ai_operation_selection(
             is_current_operation,
             &mut color,
             &mut border_color,
+            &theme,
         );
 
         // Use the unified text color system for consistent icon colors with main toolbar
@@ -231,6 +239,7 @@ pub fn handle_ai_operation_selection(
             is_current_operation,
             &children_query,
             &mut text_query,
+            &theme,
         );
     }
 }

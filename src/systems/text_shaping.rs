@@ -10,10 +10,10 @@
 //! proper Arabic text rendering support while maintaining compatibility
 //! with Latin text editing.
 
-use crate::embedded_assets::EmbeddedFonts;
 use crate::core::state::fontir_app_state::FontIRAppState;
 use crate::core::state::text_editor::buffer::{SortData, SortKind};
 use crate::core::state::{SortLayoutMode, TextEditorState};
+use crate::embedded_assets::EmbeddedFonts;
 use bevy::prelude::*;
 use std::collections::HashMap;
 

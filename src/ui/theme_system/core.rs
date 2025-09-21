@@ -12,7 +12,6 @@ use std::str::FromStr;
 use std::sync::OnceLock;
 
 use super::{embedded_themes, json_theme};
-use crate::ui::themes::{campfire, darkmode, lightmode, strawberry};
 
 // =================================================================
 // THEME REGISTRY - AUTOMATIC THEME DISCOVERY
@@ -33,9 +32,9 @@ impl ThemeRegistry {
         // Load themes from JSON files
         registry.load_json_themes();
 
-        // Fallback to built-in themes if no JSON themes found
+        // If no themes loaded, panic with helpful error message
         if registry.themes.is_empty() {
-            registry.load_builtin_themes();
+            panic!("No themes could be loaded! Check that JSON theme files are available.");
         }
 
         registry
@@ -85,22 +84,6 @@ impl ThemeRegistry {
                 }
             }
         }
-    }
-
-    /// Fallback to built-in Rust themes
-    fn load_builtin_themes(&mut self) {
-        warn!("No JSON themes found, using built-in themes");
-
-        self.themes
-            .insert("darkmode".to_string(), Box::new(darkmode::DarkModeTheme));
-        self.themes
-            .insert("lightmode".to_string(), Box::new(lightmode::LightModeTheme));
-        self.themes.insert(
-            "strawberry".to_string(),
-            Box::new(strawberry::StrawberryTheme),
-        );
-        self.themes
-            .insert("campfire".to_string(), Box::new(campfire::CampfireTheme));
     }
 
     /// Get all available theme names
@@ -209,7 +192,7 @@ impl ThemeVariant {
 
 impl Default for ThemeVariant {
     fn default() -> Self {
-        Self::new("darkmode".to_string())
+        Self::new("dark".to_string())
     }
 }
 
@@ -240,7 +223,7 @@ pub trait BezyTheme: Send + Sync + 'static {
 
     /// Font file paths
     fn grotesk_font_path(&self) -> &'static str {
-        "fonts/bezy-grotesk-regular.ttf"
+        "fonts/BezyGrotesk-Regular.ttf"
     }
     fn mono_font_path(&self) -> &'static str {
         "fonts/HasubiMono-Regular.ttf"
@@ -269,10 +252,11 @@ pub trait BezyTheme: Send + Sync + 'static {
         24.0
     }
 
-    /// Text colors
-    fn normal_text_color(&self) -> Color;
-    fn secondary_text_color(&self) -> Color;
-    fn highlight_text_color(&self) -> Color;
+    /// Unified UI text colors
+    fn ui_text_primary(&self) -> Color;
+    fn ui_text_secondary(&self) -> Color;
+    fn ui_text_tertiary(&self) -> Color;
+    fn ui_text_quaternary(&self) -> Color;
 
     // =================================================================
     // LAYOUT & SPACING
@@ -355,28 +339,20 @@ pub trait BezyTheme: Send + Sync + 'static {
     /// Main background
     fn background_color(&self) -> Color;
 
-    /// Widget colors  
+    /// Widget colors
     fn widget_background_color(&self) -> Color;
     fn widget_border_color(&self) -> Color;
 
-    /// Toolbar colors
-    fn toolbar_background_color(&self) -> Color;
-    fn toolbar_icon_color(&self) -> Color;
-    fn toolbar_border_color(&self) -> Color;
-
-    /// Panel colors
-    fn panel_background_color(&self) -> Color;
-
-    /// Button colors
-    fn normal_button_color(&self) -> Color;
-    fn hovered_button_color(&self) -> Color;
-    fn pressed_button_color(&self) -> Color;
-
-    /// Button outline colors
-    fn normal_button_outline_color(&self) -> Color;
-    fn hovered_button_outline_color(&self) -> Color;
-    fn pressed_button_outline_color(&self) -> Color;
-    fn pressed_button_icon_color(&self) -> Color;
+    /// Button colors - covers buttons, toolbars, and interactive elements
+    fn button_regular(&self) -> Color;
+    fn button_hovered(&self) -> Color;
+    fn button_pressed(&self) -> Color;
+    fn button_regular_outline(&self) -> Color;
+    fn button_hovered_outline(&self) -> Color;
+    fn button_pressed_outline(&self) -> Color;
+    fn button_regular_icon(&self) -> Color;
+    fn button_hovered_icon(&self) -> Color;
+    fn button_pressed_icon(&self) -> Color;
 
     /// Focus and special states
     fn focus_background_color(&self) -> Color;
@@ -407,10 +383,10 @@ pub trait BezyTheme: Send + Sync + 'static {
         1.0
     }
     fn on_curve_inner_circle_ratio(&self) -> f32 {
-        0.5
+        0.25
     }
     fn off_curve_inner_circle_ratio(&self) -> f32 {
-        0.5
+        0.25
     }
     fn use_square_for_on_curve(&self) -> bool {
         true
@@ -552,6 +528,9 @@ pub trait BezyTheme: Send + Sync + 'static {
     fn sort_active_outline_color(&self) -> Color;
     fn sort_inactive_outline_color(&self) -> Color;
 
+    /// Filled glyph color for inactive sorts
+    fn filled_glyph_color(&self) -> Color;
+
     /// Sort spacing
     fn sort_horizontal_padding(&self) -> f32 {
         256.0
@@ -645,9 +624,18 @@ impl CurrentTheme {
         let registry = get_theme_registry();
 
         // Try to load theme through the registry (which handles user dir and embedded themes)
-        let theme = registry
-            .create_theme(variant.name())
-            .unwrap_or_else(|| Box::new(darkmode::DarkModeTheme));
+        let theme = registry.create_theme(variant.name()).unwrap_or_else(|| {
+            // Fallback to creating dark theme from embedded JSON
+            if let Some(content) = embedded_themes::get_embedded_themes().get("dark") {
+                if let Ok(json_theme) = embedded_themes::load_theme_from_string(content) {
+                    Box::new(json_theme)
+                } else {
+                    panic!("Failed to load fallback dark theme!")
+                }
+            } else {
+                panic!("No fallback theme available!")
+            }
+        });
 
         Self { variant, theme }
     }
@@ -685,19 +673,24 @@ impl Default for CurrentTheme {
 /// These functions provide a simple way to access theme values from systems
 /// without having to write out the full resource access pattern every time.
 impl CurrentTheme {
-    /// Get the normal text color for the current theme
-    pub fn get_normal_text_color(&self) -> Color {
-        self.theme().normal_text_color()
+    /// Get the primary UI text color (most prominent text)
+    pub fn get_ui_text_primary(&self) -> Color {
+        self.theme().ui_text_primary()
     }
 
-    /// Get the secondary text color for the current theme
-    pub fn get_secondary_text_color(&self) -> Color {
-        self.theme().secondary_text_color()
+    /// Get the secondary UI text color (labels, less prominent text)
+    pub fn get_ui_text_secondary(&self) -> Color {
+        self.theme().ui_text_secondary()
     }
 
-    /// Get the highlight text color for the current theme
-    pub fn get_highlight_text_color(&self) -> Color {
-        self.theme().highlight_text_color()
+    /// Get the tertiary UI text color (supporting text, hints)
+    pub fn get_ui_text_tertiary(&self) -> Color {
+        self.theme().ui_text_tertiary()
+    }
+
+    /// Get the quaternary UI text color (subtle text, placeholders)
+    pub fn get_ui_text_quaternary(&self) -> Color {
+        self.theme().ui_text_quaternary()
     }
 
     // =================================================================

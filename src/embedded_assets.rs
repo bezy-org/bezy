@@ -77,13 +77,15 @@ impl AssetServerFontExt for AssetServer {
             // Use embedded fonts when assets don't exist
             match path {
                 "fonts/BezyGrotesk-Regular.ttf" | "fonts/bezy-grotesk-regular.ttf" => {
-                    embedded_fonts.bezy_grotesk.clone()
+                    embedded_fonts
+                        .bezy_grotesk
+                        .clone()
                         .unwrap_or_else(|| self.load(path))
                 }
-                "fonts/HasubiMono-Regular.ttf" => {
-                    embedded_fonts.hasubi_mono.clone()
-                        .unwrap_or_else(|| self.load(path))
-                }
+                "fonts/HasubiMono-Regular.ttf" => embedded_fonts
+                    .hasubi_mono
+                    .clone()
+                    .unwrap_or_else(|| self.load(path)),
                 _ => {
                     warn!("No embedded fallback for font: {}", path);
                     self.load(path)

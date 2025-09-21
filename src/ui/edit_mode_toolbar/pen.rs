@@ -6,7 +6,6 @@
 //!
 //! The tool converts placed points into UFO contours that are saved to the font file.
 
-use crate::embedded_assets::EmbeddedFonts;
 use super::EditModeSystem;
 use crate::core::io::input::{helpers, InputEvent, InputMode, InputState, ModifierState};
 use crate::core::io::pointer::PointerInfo;
@@ -17,6 +16,7 @@ use crate::editing::selection::systems::AppStateChanged;
 use crate::editing::selection::{DragPointState, DragSelectionState, SelectionState};
 use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::ActiveSortState;
+use crate::embedded_assets::EmbeddedFonts;
 use crate::geometry::world_space::DPoint;
 use crate::systems::ui_interaction::UiHoverState;
 use crate::ui::edit_mode_toolbar::select::SelectModeActive;
@@ -934,6 +934,7 @@ pub fn handle_pen_submenu_selection(
     mut current_mode: ResMut<PenDrawingMode>,
     children_query: Query<&Children>,
     mut text_query: Query<&mut TextColor>,
+    theme: Res<CurrentTheme>,
 ) {
     // Debug: Log if we find any submenu buttons
     let button_count = interaction_query.iter().len();
@@ -975,6 +976,7 @@ pub fn handle_pen_submenu_selection(
             is_current_mode,
             &mut color,
             &mut border_color,
+            &theme,
         );
 
         // Use the unified text color system for consistent icon colors with main toolbar
@@ -983,6 +985,7 @@ pub fn handle_pen_submenu_selection(
             is_current_mode,
             &children_query,
             &mut text_query,
+            &theme,
         );
     }
 }

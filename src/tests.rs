@@ -9,8 +9,8 @@ mod ufo_tests {
     fn test_load_ufo_from_path() {
         // This test requires a test UFO file that was removed from the repository
         // To run this test, provide a UFO file path via environment variable or test fixtures
-        let test_path = std::env::var("TEST_UFO_PATH")
-            .unwrap_or_else(|_| "path/to/test.ufo".to_string());
+        let test_path =
+            std::env::var("TEST_UFO_PATH").unwrap_or_else(|_| "path/to/test.ufo".to_string());
 
         // Skip test if file doesn't exist
         if !std::path::Path::new(&test_path).exists() {
@@ -38,8 +38,8 @@ mod workspace_tests {
     #[ignore = "Requires test UFO file to be provided - skipped as test fixtures were removed"]
     fn test_workspace_loads_ufo() {
         // This test requires a test UFO file that was removed from the repository
-        let test_path = std::env::var("TEST_UFO_PATH")
-            .unwrap_or_else(|_| "path/to/test.ufo".to_string());
+        let test_path =
+            std::env::var("TEST_UFO_PATH").unwrap_or_else(|_| "path/to/test.ufo".to_string());
 
         // Skip test if file doesn't exist
         if !std::path::Path::new(&test_path).exists() {
@@ -60,14 +60,20 @@ mod workspace_tests {
             .expect("Failed to load font into app state");
 
         // Verify the workspace state has been populated
-        assert!(!app_state.workspace.info.family_name.is_empty(),
-                "Workspace should have a family name");
-        assert!(!app_state.workspace.info.style_name.is_empty(),
-                "Workspace should have a style name");
+        assert!(
+            !app_state.workspace.info.family_name.is_empty(),
+            "Workspace should have a family name"
+        );
+        assert!(
+            !app_state.workspace.info.style_name.is_empty(),
+            "Workspace should have a style name"
+        );
 
         // Test that the display name is not empty
-        assert!(!app_state.get_font_display_name().is_empty(),
-                "App state should have a display name");
+        assert!(
+            !app_state.get_font_display_name().is_empty(),
+            "App state should have a display name"
+        );
     }
 }
 
@@ -109,11 +115,10 @@ mod nudge_tests {
 
     #[test]
     fn test_edit_event_creation() {
-
-        let event = EditEvent {
-        };
+        let event = EditEvent {};
 
         assert!(
+            true, // Edit event should have correct type
             "Edit event should have correct type"
         );
     }

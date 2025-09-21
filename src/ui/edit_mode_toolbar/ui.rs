@@ -55,13 +55,7 @@
 
 use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::ui::edit_mode_toolbar::*;
-use crate::ui::theme::{
-    BUTTON_ICON_SIZE, GROTESK_FONT_PATH, HOVERED_BUTTON_COLOR, HOVERED_BUTTON_OUTLINE_COLOR,
-    MONO_FONT_PATH, NORMAL_BUTTON_COLOR, NORMAL_BUTTON_OUTLINE_COLOR, PRESSED_BUTTON_COLOR,
-    PRESSED_BUTTON_ICON_COLOR, PRESSED_BUTTON_OUTLINE_COLOR, TOOLBAR_BORDER_WIDTH,
-    TOOLBAR_BUTTON_SIZE, TOOLBAR_CONTAINER_MARGIN, TOOLBAR_GRID_SPACING, TOOLBAR_ICON_COLOR,
-    TOOLBAR_ITEM_SPACING, TOOLBAR_PADDING, WIDGET_TEXT_FONT_SIZE,
-};
+use crate::ui::theme::TOOLBAR_GRID_SPACING;
 use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
 use bevy::prelude::*;
 
@@ -97,7 +91,7 @@ pub fn spawn_edit_mode_toolbar(
         ordered_tool_ids.len()
     );
     commands
-        .spawn(create_toolbar_container())
+        .spawn(create_toolbar_container(&theme))
         .with_children(|parent| {
             for tool_id in ordered_tool_ids {
                 if let Some(tool) = tool_registry.get_tool(tool_id) {
@@ -110,13 +104,13 @@ pub fn spawn_edit_mode_toolbar(
 }
 
 /// Creates the main toolbar container with proper positioning and styling
-fn create_toolbar_container() -> impl Bundle {
+fn create_toolbar_container(theme: &CurrentTheme) -> impl Bundle {
     Node {
         position_type: PositionType::Absolute,
-        top: Val::Px(TOOLBAR_CONTAINER_MARGIN),
-        left: Val::Px(TOOLBAR_CONTAINER_MARGIN),
+        top: Val::Px(theme.theme().toolbar_container_margin()),
+        left: Val::Px(theme.theme().toolbar_container_margin()),
         flex_direction: FlexDirection::Row,
-        padding: UiRect::all(Val::Px(TOOLBAR_PADDING)),
+        padding: UiRect::all(Val::Px(theme.theme().toolbar_padding())),
         margin: UiRect::all(Val::ZERO),
         row_gap: Val::ZERO,
         ..default()
@@ -156,26 +150,26 @@ fn create_button_entity(
             Button,
             EditModeToolbarButton,
             ToolButtonData { tool_id: tool.id() },
-            create_button_styling(),
-            BackgroundColor(NORMAL_BUTTON_COLOR),
-            BorderColor(NORMAL_BUTTON_OUTLINE_COLOR),
+            create_button_styling(theme),
+            BackgroundColor(theme.theme().button_regular()),
+            BorderColor(theme.theme().button_regular_outline()),
             BorderRadius::all(Val::Px(theme.theme().toolbar_border_radius())),
             ToolbarBorderRadius,
         ))
         .with_children(|button| {
-            create_button_text(button, tool, asset_server, embedded_fonts);
+            create_button_text(button, tool, asset_server, embedded_fonts, theme);
         })
         .id()
 }
 
 /// Creates the button styling configuration
-fn create_button_styling() -> Node {
+fn create_button_styling(theme: &CurrentTheme) -> Node {
     Node {
-        width: Val::Px(TOOLBAR_BUTTON_SIZE),
-        height: Val::Px(TOOLBAR_BUTTON_SIZE),
+        width: Val::Px(theme.theme().toolbar_button_size()),
+        height: Val::Px(theme.theme().toolbar_button_size()),
         padding: UiRect::all(Val::ZERO),
         margin: UiRect::all(Val::ZERO),
-        border: UiRect::all(Val::Px(TOOLBAR_BORDER_WIDTH)),
+        border: UiRect::all(Val::Px(theme.theme().toolbar_border_width())),
         justify_content: JustifyContent::Center,
         align_items: AlignItems::Center,
         ..default()
@@ -188,8 +182,9 @@ fn create_button_text(
     tool: &dyn EditTool,
     asset_server: &AssetServer,
     embedded_fonts: &EmbeddedFonts,
+    theme: &CurrentTheme,
 ) {
-    create_button_icon_text(parent, tool.icon(), asset_server, embedded_fonts);
+    create_button_icon_text(parent, tool.icon(), asset_server, embedded_fonts, theme);
 }
 
 /// Creates properly centered button icon text - shared helper for consistent alignment
@@ -199,6 +194,7 @@ pub fn create_button_icon_text(
     icon: &str,
     asset_server: &AssetServer,
     embedded_fonts: &EmbeddedFonts,
+    theme: &CurrentTheme,
 ) {
     parent.spawn((
         Node {
@@ -208,11 +204,12 @@ pub fn create_button_icon_text(
         },
         Text::new(icon.to_string()),
         TextFont {
-            font: asset_server.load_font_with_fallback(GROTESK_FONT_PATH, embedded_fonts),
-            font_size: BUTTON_ICON_SIZE,
+            font: asset_server
+                .load_font_with_fallback(theme.theme().grotesk_font_path(), embedded_fonts),
+            font_size: theme.theme().button_icon_size(),
             ..default()
         },
-        TextColor(TOOLBAR_ICON_COLOR),
+        TextColor(theme.theme().button_regular_icon()),
     ));
 }
 
@@ -259,14 +256,14 @@ pub fn create_toolbar_button_with_hover_text<T: Bundle>(
                 .spawn((
                     Button,
                     additional_components,
-                    create_button_styling(),
-                    BackgroundColor(NORMAL_BUTTON_COLOR),
-                    BorderColor(NORMAL_BUTTON_OUTLINE_COLOR),
+                    create_button_styling(theme),
+                    BackgroundColor(theme.theme().button_regular()),
+                    BorderColor(theme.theme().button_regular_outline()),
                     BorderRadius::all(Val::Px(theme.theme().toolbar_border_radius())),
                     ToolbarBorderRadius,
                 ))
                 .with_children(|button| {
-                    create_button_icon_text(button, icon, asset_server, embedded_fonts);
+                    create_button_icon_text(button, icon, asset_server, embedded_fonts, theme);
                 });
         });
 }
@@ -278,13 +275,21 @@ pub fn update_toolbar_button_colors(
     is_active: bool,
     background_color: &mut BackgroundColor,
     border_color: &mut BorderColor,
+    theme: &CurrentTheme,
 ) {
     let (bg_color, border_color_value) = match (interaction, is_active) {
-        (Interaction::Pressed, _) | (_, true) => {
-            (PRESSED_BUTTON_COLOR, PRESSED_BUTTON_OUTLINE_COLOR)
-        }
-        (Interaction::Hovered, false) => (HOVERED_BUTTON_COLOR, HOVERED_BUTTON_OUTLINE_COLOR),
-        (Interaction::None, false) => (NORMAL_BUTTON_COLOR, NORMAL_BUTTON_OUTLINE_COLOR),
+        (Interaction::Pressed, _) | (_, true) => (
+            theme.theme().button_pressed(),
+            theme.theme().button_pressed_outline(),
+        ),
+        (Interaction::Hovered, false) => (
+            theme.theme().button_hovered(),
+            theme.theme().button_hovered_outline(),
+        ),
+        (Interaction::None, false) => (
+            theme.theme().button_regular(),
+            theme.theme().button_regular_outline(),
+        ),
     };
 
     *background_color = BackgroundColor(bg_color);
@@ -298,6 +303,7 @@ pub fn update_toolbar_button_text_colors(
     is_active: bool,
     children_query: &Query<&Children>,
     text_query: &mut Query<&mut TextColor>,
+    theme: &CurrentTheme,
 ) {
     let children = match children_query.get(entity) {
         Ok(children) => children,
@@ -305,9 +311,9 @@ pub fn update_toolbar_button_text_colors(
     };
 
     let new_color = if is_active {
-        PRESSED_BUTTON_ICON_COLOR // Bright white for active buttons
+        theme.theme().button_pressed_icon() // Bright white for active buttons
     } else {
-        TOOLBAR_ICON_COLOR // Light gray for normal buttons
+        theme.theme().button_regular_icon() // Light gray for normal buttons
     };
 
     // Update text colors for all children of this button
@@ -356,6 +362,7 @@ pub fn update_toolbar_button_appearances(
     mut text_query: Query<&mut TextColor>,
     children_query: Query<&Children>,
     current_tool: Res<CurrentTool>,
+    theme: Res<CurrentTheme>,
 ) {
     let current_tool_id = current_tool.get_current();
     for (interaction, mut background_color, mut border_color, tool_button, entity) in
@@ -367,8 +374,15 @@ pub fn update_toolbar_button_appearances(
             is_current_tool,
             &mut background_color,
             &mut border_color,
+            &theme,
         );
-        update_button_text_color(entity, is_current_tool, &children_query, &mut text_query);
+        update_button_text_color(
+            entity,
+            is_current_tool,
+            &children_query,
+            &mut text_query,
+            &theme,
+        );
     }
 }
 
@@ -415,9 +429,16 @@ fn update_button_colors(
     is_current_tool: bool,
     background_color: &mut BackgroundColor,
     border_color: &mut BorderColor,
+    theme: &CurrentTheme,
 ) {
     // Use consistent color system
-    update_toolbar_button_colors(interaction, is_current_tool, background_color, border_color);
+    update_toolbar_button_colors(
+        interaction,
+        is_current_tool,
+        background_color,
+        border_color,
+        theme,
+    );
 }
 
 /// Updates text color for button children based on current tool state
@@ -426,9 +447,10 @@ fn update_button_text_color(
     is_current_tool: bool,
     children_query: &Query<&Children>,
     text_query: &mut Query<&mut TextColor>,
+    theme: &CurrentTheme,
 ) {
     // Use consistent text color system
-    update_toolbar_button_text_colors(entity, is_current_tool, children_query, text_query);
+    update_toolbar_button_text_colors(entity, is_current_tool, children_query, text_query, theme);
 }
 
 /// Updates hover text visibility based on button interaction states
@@ -489,6 +511,7 @@ pub fn update_hover_text_visibility(
     tool_registry: Res<ToolRegistry>,
     asset_server: Res<AssetServer>,
     embedded_fonts: Res<EmbeddedFonts>,
+    theme: Res<CurrentTheme>,
     // Get camera for zoom level
     camera_query: Query<&Projection, With<crate::rendering::cameras::DesignCamera>>,
 ) {
@@ -546,7 +569,9 @@ pub fn update_hover_text_visibility(
 
     // Calculate vertical position based on submenu visibility
     // Use grid spacing for consistent layout - smaller gap for better visual connection
-    let base_offset = TOOLBAR_CONTAINER_MARGIN + TOOLBAR_BUTTON_SIZE + TOOLBAR_GRID_SPACING * 2.0;
+    let base_offset = theme.theme().toolbar_container_margin()
+        + theme.theme().toolbar_button_size()
+        + TOOLBAR_GRID_SPACING * 2.0;
 
     // Check if any submenu is visible
     let mut submenu_visible = false;
@@ -565,10 +590,10 @@ pub fn update_hover_text_visibility(
     // Calculate position: if submenu visible, position below submenu; otherwise below main toolbar
     let vertical_offset = if submenu_visible {
         // Position below submenu: container margin + main toolbar + spacing + submenu + smaller spacing
-        TOOLBAR_CONTAINER_MARGIN
-            + TOOLBAR_BUTTON_SIZE
+        theme.theme().toolbar_container_margin()
+            + theme.theme().toolbar_button_size()
             + TOOLBAR_GRID_SPACING * 2.0
-            + TOOLBAR_BUTTON_SIZE
+            + theme.theme().toolbar_button_size()
             + TOOLBAR_GRID_SPACING * 2.0
     } else {
         // Position below main toolbar with consistent spacing
@@ -609,15 +634,16 @@ pub fn update_hover_text_visibility(
             commands.spawn((
                 Text::new(display_text),
                 TextFont {
-                    font: asset_server.load_font_with_fallback(MONO_FONT_PATH, &embedded_fonts),
-                    font_size: WIDGET_TEXT_FONT_SIZE,
+                    font: asset_server
+                        .load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
+                    font_size: theme.theme().widget_text_font_size(),
                     ..default()
                 },
-                TextColor(TOOLBAR_ICON_COLOR), // Light gray color to match unselected icons
+                TextColor(theme.theme().button_regular_icon()), // Light gray color to match unselected icons
                 Node {
                     position_type: PositionType::Absolute,
                     top: Val::Px(vertical_offset),
-                    left: Val::Px(TOOLBAR_CONTAINER_MARGIN + TOOLBAR_GRID_SPACING), // Align with button left edge
+                    left: Val::Px(theme.theme().toolbar_container_margin() + TOOLBAR_GRID_SPACING), // Align with button left edge
                     display: Display::Flex, // Show immediately
                     ..default()
                 },
