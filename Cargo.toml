@@ -1,8 +1,16 @@
 [package]
 name = "bezy"
-version = "0.0.2"
+version = "0.1.0"
 authors = ["Eli Heuer <elih@bezy.org>"]
 edition = "2021"
+description = "A next-gen font editor built with Rust and Bevy for customization and human-AI collaboration"
+license = "GPL-3.0"
+readme = "README.md"
+homepage = "https://bezy.org"
+repository = "https://github.com/bezy-dev/bezy"
+documentation = "https://docs.rs/bezy"
+keywords = ["font", "editor", "typography", "ufo", "bevy"]
+categories = ["graphics", "text-editors", "development-tools"]
 
 [dependencies]
 bevy = "0.16.1"
@@ -16,7 +24,7 @@ fontdrasil = "0.2.2"
 fontc = "0.3.0"
 smol_str = "0.2"
 anyhow = "1.0.86"
-spline = { git = "https://github.com/eliheuer/spline.git", rev = "229f7e7" }
+spline = { git = "https://github.com/eliheuer/spline.git", rev = "229f7e7", version = "0.1.0" }
 clap = { version = "4.5.4", features = ["derive"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracing = "0.1.40"
@@ -28,7 +36,7 @@ serde_json = "1.0.120"
 base64 = "0.22.1"
 contour-isobands = "0.4"
 cosmic-text = "0.14.2"
-harfrust = { git = "https://github.com/harfbuzz/harfrust.git" }
+harfrust = { git = "https://github.com/harfbuzz/harfrust.git", version = "0.3.1" }
 chrono = { version = "0.4", features = ["serde"] }
 tempfile = "3.8"
 dirs = "5.0"
