@@ -64,11 +64,11 @@ impl EditTool for PenTool {
     }
 
     fn on_enter(&self) {
-        info!("Entered Pen tool");
+        debug!("Entered Pen tool");
     }
 
     fn on_exit(&self) {
-        info!("Exited Pen tool");
+        debug!("Exited Pen tool");
     }
 }
 
@@ -184,7 +184,7 @@ impl crate::systems::input_consumer::InputConsumer for PenInputConsumer {
                 modifiers,
             } => {
                 if *button == MouseButton::Left {
-                    info!(
+                    debug!(
                         "Pen: Processing mouse release at {:?} with modifiers {:?}",
                         position, modifiers
                     );
@@ -298,11 +298,11 @@ impl EditModeSystem for PenMode {
     }
 
     fn on_enter(&self) {
-        info!("Entering Pen Mode");
+        debug!("Entering Pen Mode");
     }
 
     fn on_exit(&self) {
-        info!("Exiting Pen Mode");
+        debug!("Exiting Pen Mode");
     }
 }
 
@@ -343,7 +343,7 @@ fn try_commit_current_path(
 
     if let Some(_contour) = create_contour_from_points(&pen_state.points, Vec2::ZERO) {
         app_state_changed.write(AppStateChanged);
-        info!("Auto-committing path when switching modes");
+        debug!("Auto-committing path when switching modes");
     }
 }
 
@@ -485,7 +485,7 @@ fn start_new_path(pen_state: &mut ResMut<PenToolState>, position: Vec2) {
     pen_state.points.push(position);
     pen_state.state = PenState::Drawing;
 
-    info!("Started new path at: {:?}", position);
+    debug!("Started new path at: {:?}", position);
 }
 
 /// Check if we should close the path (clicked near start point)
@@ -539,7 +539,7 @@ fn add_point_to_path(pen_state: &mut ResMut<PenToolState>, position: Vec2) {
     if let Some(ref mut path) = pen_state.current_path {
         path.line_to((position.x as f64, position.y as f64));
         pen_state.points.push(position);
-        info!("Added point to path: {:?}", position);
+        debug!("Added point to path: {:?}", position);
     }
 }
 
@@ -554,7 +554,7 @@ fn handle_right_click(
     text_editor_state: Option<&crate::core::state::TextEditorState>,
 ) {
     if pen_state.state == PenState::Drawing && pen_state.points.len() >= 2 {
-        info!("Finishing open path with right click");
+        debug!("Finishing open path with right click");
 
         let active_sort_offset =
             if let (Some((sort_index, _)), Some(state)) = (active_sort_info, text_editor_state) {
@@ -590,7 +590,7 @@ fn add_contour_to_glyph(
     active_sort_info: Option<(usize, &crate::core::state::SortData)>,
 ) {
     let glyph_name = if let Some((_sort_index, sort_entry)) = active_sort_info {
-        info!(
+        debug!(
             "PEN TOOL: Using active sort glyph: {}",
             sort_entry.kind.glyph_name()
         );
@@ -600,11 +600,11 @@ fn add_contour_to_glyph(
             warn!("PEN TOOL: No glyph found in navigation and no active sort");
             return;
         };
-        info!("PEN TOOL: Using glyph navigation glyph: {}", glyph_name);
+        debug!("PEN TOOL: Using glyph navigation glyph: {}", glyph_name);
         glyph_name
     };
 
-    info!(
+    debug!(
         "PEN TOOL: Adding contour with {} points to glyph {}",
         contour.points.len(),
         glyph_name
@@ -636,7 +636,7 @@ fn add_contour_to_glyph(
         } else {
             "glyph navigation"
         };
-        info!(
+        debug!(
             "PEN TOOL: Successfully added {} contour to glyph {} (from {}). Total contours now: {}",
             path_type,
             glyph_name,
@@ -678,7 +678,7 @@ pub fn handle_pen_keyboard_events(
     // Escape key cancels the current path
     if keyboard.just_pressed(KeyCode::Escape) {
         reset_pen_state(&mut pen_state);
-        info!("Cancelled current path with Escape key");
+        debug!("Cancelled current path with Escape key");
     }
 }
 
@@ -802,7 +802,7 @@ fn create_contour_from_points(points: &[Vec2], active_sort_offset: Vec2) -> Opti
         return None;
     }
 
-    info!(
+    debug!(
         "PEN TOOL: Creating contour with active_sort_offset: ({:.1}, {:.1})",
         active_sort_offset.x, active_sort_offset.y
     );
@@ -813,7 +813,7 @@ fn create_contour_from_points(points: &[Vec2], active_sort_offset: Vec2) -> Opti
         // Convert from world coordinates to glyph-local coordinates
         let glyph_local_point = *point - active_sort_offset;
 
-        info!(
+        debug!(
             "  - Converting point: world({:.1}, {:.1}) -> local({:.1}, {:.1})",
             point.x, point.y, glyph_local_point.x, glyph_local_point.y
         );
@@ -861,8 +861,8 @@ pub fn spawn_pen_submenu(
     embedded_fonts: Res<EmbeddedFonts>,
     theme: Res<CurrentTheme>,
 ) {
-    info!("🖊️ Spawning pen submenu with Regular and Hyperbezier modes");
-    info!("🖊️ Default pen mode is: {:?}", PenDrawingMode::default());
+    debug!("🖊️ Spawning pen submenu with Regular and Hyperbezier modes");
+    debug!("🖊️ Default pen mode is: {:?}", PenDrawingMode::default());
 
     let modes = [PenDrawingMode::Regular, PenDrawingMode::Hyperbezier];
 
@@ -889,7 +889,7 @@ pub fn spawn_pen_submenu(
             }
         });
 
-    info!("🖊️ Pen submenu spawned successfully");
+    debug!("🖊️ Pen submenu spawned successfully");
 }
 
 /// Auto-show pen submenu when pen tool is active (like text tool)
@@ -910,7 +910,7 @@ pub fn toggle_pen_submenu_visibility(
 
             if node.display != new_display {
                 node.display = new_display;
-                info!(
+                debug!(
                     "🖊️ Pen submenu visibility changed: tool_active={}, display={:?}",
                     is_pen_tool_active, new_display
                 );
@@ -947,7 +947,7 @@ pub fn handle_pen_submenu_selection(
                 .as_secs_f32();
             if current_time - LAST_LOG > 2.0 {
                 LAST_LOG = current_time;
-                info!(
+                debug!(
                     "🖊️ Pen submenu selection system: found {} buttons",
                     button_count
                 );
@@ -959,7 +959,7 @@ pub fn handle_pen_submenu_selection(
 
         // Debug: Log interactions for debugging
         if *interaction != Interaction::None {
-            info!(
+            debug!(
                 "🖊️ Button interaction: {:?} for mode {:?} (current: {:?})",
                 interaction, mode_button.mode, *current_mode
             );
@@ -967,7 +967,7 @@ pub fn handle_pen_submenu_selection(
 
         if *interaction == Interaction::Pressed && !is_current_mode {
             *current_mode = mode_button.mode;
-            info!("🖊️ Switched to pen mode: {:?}", mode_button.mode);
+            debug!("🖊️ Switched to pen mode: {:?}", mode_button.mode);
         }
 
         // Use the unified button color system for consistent appearance with main toolbar

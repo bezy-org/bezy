@@ -26,13 +26,13 @@ impl EditTool for KnifeTool {
     fn on_activate(&mut self, commands: &mut Commands) {
         commands.insert_resource(KnifeModeActive(true));
         commands.insert_resource(crate::core::io::input::InputMode::Knife);
-        info!("Knife tool activated");
+        debug!("Knife tool activated");
     }
 
     fn on_deactivate(&mut self, commands: &mut Commands) {
         commands.insert_resource(KnifeModeActive(false));
         commands.insert_resource(crate::core::io::input::InputMode::Normal);
-        info!("Knife tool deactivated");
+        debug!("Knife tool deactivated");
     }
 }
 

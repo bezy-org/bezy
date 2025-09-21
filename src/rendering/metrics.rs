@@ -264,10 +264,10 @@ pub fn render_mesh_metrics_lines(
     // Hide metrics in presentation mode OR if presentation mode just activated
     if presentation_active || presentation_changed {
         if presentation_active {
-            info!("🎭 Metrics hidden for presentation mode - clearing all metrics entities");
+            debug!("🎭 Metrics hidden for presentation mode - clearing all metrics entities");
             // Despawn ALL metrics entities from the tracking resource
             for (sort_entity, line_entities) in metrics_entities.lines.drain() {
-                info!(
+                debug!(
                     "🎭 Clearing {} metrics entities for sort {:?}",
                     line_entities.len(),
                     sort_entity
@@ -317,7 +317,7 @@ pub fn render_mesh_metrics_lines(
     for (sort_entity, sort_transform, sort) in sort_query.iter() {
         if changed_sort_entities.insert(sort_entity) {
             changed_active_sorts.push((sort_entity, sort_transform, sort));
-            info!(
+            debug!(
                 "METRICS DEBUG: Sort {:?} collected as ACTIVE (green metrics)",
                 sort_entity
             );
@@ -331,7 +331,7 @@ pub fn render_mesh_metrics_lines(
     for (sort_entity, sort_transform, sort) in active_buffer_sort_query.iter() {
         if changed_sort_entities.insert(sort_entity) {
             changed_active_buffer_sorts.push((sort_entity, sort_transform, sort));
-            info!(
+            debug!(
                 "METRICS DEBUG: Sort {:?} collected as ACTIVE BUFFER (green metrics)",
                 sort_entity
             );
@@ -342,7 +342,7 @@ pub fn render_mesh_metrics_lines(
     for (sort_entity, sort_transform, sort) in inactive_buffer_sort_query.iter() {
         if changed_sort_entities.insert(sort_entity) {
             changed_inactive_buffer_sorts.push((sort_entity, sort_transform, sort));
-            info!(
+            debug!(
                 "METRICS DEBUG: Sort {:?} collected as INACTIVE BUFFER (gray metrics)",
                 sort_entity
             );
@@ -356,7 +356,7 @@ pub fn render_mesh_metrics_lines(
     let changed_sort_entities: Vec<Entity> = changed_sort_entities.into_iter().collect();
     for &sort_entity in &changed_sort_entities {
         if let Some(line_entities) = metrics_entities.lines.remove(&sort_entity) {
-            info!(
+            debug!(
                 "METRICS DEBUG: Clearing {} metrics entities for sort {:?}",
                 line_entities.len(),
                 sort_entity
@@ -408,19 +408,19 @@ pub fn render_mesh_metrics_lines(
 
     // DEBUG: Log details about the different sort types being processed
     if !changed_active_sorts.is_empty() {
-        info!(
+        debug!(
             "🔵 METRICS RENDER: Processing {} active sorts (green metrics)",
             changed_active_sorts.len()
         );
     }
     if !changed_active_buffer_sorts.is_empty() {
-        info!(
+        debug!(
             "🟢 METRICS RENDER: Processing {} active buffer sorts (green metrics)",
             changed_active_buffer_sorts.len()
         );
     }
     if !changed_inactive_buffer_sorts.is_empty() {
-        info!(
+        debug!(
             "🔘 METRICS RENDER: Processing {} inactive buffer sorts (gray metrics)",
             changed_inactive_buffer_sorts.len()
         );
@@ -610,7 +610,7 @@ pub fn render_mesh_metrics_lines(
             // Theme is now available as a parameter
             let color = theme.theme().sort_active_metrics_color(); // Green for active buffer sorts (text roots)
 
-            info!(
+            debug!(
                 "🟢 RENDERING METRICS for active buffer sort {:?} at ({:.1}, {:.1})",
                 sort_entity, position.x, position.y
             );
@@ -772,7 +772,7 @@ pub fn render_mesh_metrics_lines(
             );
             line_entities.push(left_entity);
 
-            info!(
+            debug!(
                 "🟢 METRICS STORED: {} metrics entities for active buffer sort {:?}",
                 line_entities.len(),
                 sort_entity
@@ -788,7 +788,7 @@ pub fn render_mesh_metrics_lines(
             // Theme is now available as a parameter
             let color = theme.theme().sort_inactive_metrics_color(); // Gray for inactive buffer sorts (typed characters)
 
-            info!(
+            debug!(
                 "🔘 RENDERING METRICS for inactive buffer sort {:?} at ({:.1}, {:.1})",
                 sort_entity, position.x, position.y
             );
@@ -950,7 +950,7 @@ pub fn render_mesh_metrics_lines(
             );
             line_entities.push(left_entity);
 
-            info!(
+            debug!(
                 "🔘 METRICS STORED: {} metrics entities for inactive buffer sort {:?}",
                 line_entities.len(),
                 sort_entity
@@ -1454,7 +1454,7 @@ pub fn cleanup_orphaned_metrics(
     }
 
     if cleanup_count > 0 {
-        info!(
+        debug!(
             "🗑️ CLEANUP: Removed {} orphaned metrics entities",
             cleanup_count
         );

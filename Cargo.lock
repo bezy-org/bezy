@@ -2979,13 +2979,13 @@ dependencies = [
 
 [[package]]
 name = "harfrust"
-version = "0.2.0"
-source = "git+https://github.com/harfbuzz/harfrust.git#3a56316ae32610069ea871cfdc1040db43143c0f"
+version = "0.3.1"
+source = "git+https://github.com/harfbuzz/harfrust.git#de9f66556b3bbdf5ef3fa257f6849ff94c279691"
 dependencies = [
  "bitflags 2.9.4",
  "bytemuck",
  "core_maths",
- "read-fonts 0.34.0",
+ "read-fonts 0.35.0",
  "smallvec",
 ]
 
@@ -4517,22 +4517,12 @@ dependencies = [
 
 [[package]]
 name = "read-fonts"
-version = "0.34.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8941f8e9d5f8ad3aebea330d01ac68c0167600eb31a86ecd86e97be4d13b51f5"
-dependencies = [
- "bytemuck",
- "core_maths",
- "font-types 0.9.0",
-]
-
-[[package]]
-name = "read-fonts"
 version = "0.35.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6717cf23b488adf64b9d711329542ba34de147df262370221940dfabc2c91358"
 dependencies = [
  "bytemuck",
+ "core_maths",
  "font-types 0.10.0",
  "serde",
 ]

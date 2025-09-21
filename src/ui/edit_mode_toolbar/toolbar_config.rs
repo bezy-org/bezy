@@ -203,7 +203,7 @@ impl ToolConfig {
 
 /// Print the current toolbar configuration for debugging
 pub fn print_toolbar_config() {
-    info!("=== CURRENT TOOLBAR CONFIGURATION ===");
+    debug!("=== CURRENT TOOLBAR CONFIGURATION ===");
     for tool in ToolConfig::get_all_tools() {
         let status = if tool.enabled { "✅" } else { "❌" };
         let shortcut = tool
@@ -211,10 +211,10 @@ pub fn print_toolbar_config() {
             .map(|c| format!("'{c}'"))
             .unwrap_or_else(|| "None".to_string());
 
-        info!(
+        debug!(
             "{} Order:{:2} | {} | {} | Key:{} | {}",
             status, tool.order, tool.id, tool.icon, shortcut, tool.name
         );
     }
-    info!("=====================================");
+    debug!("=====================================");
 }

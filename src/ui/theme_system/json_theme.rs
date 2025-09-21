@@ -672,7 +672,7 @@ impl JsonThemeManager {
                     if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
                         match JsonTheme::load_from_file(&path) {
                             Ok(theme) => {
-                                info!("Loaded user theme: {}", theme.name);
+                                debug!("Loaded user theme: {}", theme.name);
                                 self.loaded_themes.insert(stem.to_string(), theme);
 
                                 if let Ok(metadata) = fs::metadata(&path) {
@@ -695,7 +695,7 @@ impl JsonThemeManager {
             for (name, content) in embedded_themes::get_embedded_themes() {
                 match embedded_themes::load_theme_from_string(content) {
                     Ok(theme) => {
-                        info!("Loaded embedded theme: {}", theme.name);
+                        debug!("Loaded embedded theme: {}", theme.name);
                         self.loaded_themes.insert(name, theme);
                     }
                     Err(e) => {
@@ -708,45 +708,38 @@ impl JsonThemeManager {
         Ok(())
     }
 
-    /// Check for theme file changes and reload if needed
-    pub fn check_for_changes(&mut self) -> Vec<String> {
+    /// Check for theme file changes and reload if needed (only for current theme)
+    pub fn check_for_changes(&mut self, current_theme_name: &str) -> Vec<String> {
         let mut changed_themes = Vec::new();
 
         if !self.themes_dir.exists() {
             return changed_themes;
         }
 
-        if let Ok(entries) = fs::read_dir(&self.themes_dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
+        // Only check the current theme file, not all theme files
+        let theme_file_path = self.themes_dir.join(format!("{}.json", current_theme_name));
 
-                if path.extension().and_then(|s| s.to_str()) == Some("json") {
-                    if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
-                        if let Ok(metadata) = fs::metadata(&path) {
-                            if let Ok(modified) = metadata.modified() {
-                                let should_reload = match self.file_timestamps.get(stem) {
-                                    Some(&last_modified) => {
-                                        let is_newer = modified > last_modified;
-                                        is_newer
-                                    }
-                                    None => true,
-                                };
+        if !theme_file_path.exists() {
+            return changed_themes;
+        }
 
-                                if should_reload {
-                                    match JsonTheme::load_from_file(&path) {
-                                        Ok(theme) => {
-                                            self.loaded_themes.insert(stem.to_string(), theme);
-                                            self.file_timestamps.insert(stem.to_string(), modified);
-                                            changed_themes.push(stem.to_string());
-                                        }
-                                        Err(e) => {
-                                            println!(
-                                                "❌ Failed to reload theme from {path:?}: {e}"
-                                            );
-                                        }
-                                    }
-                                }
-                            }
+        if let Ok(metadata) = fs::metadata(&theme_file_path) {
+            if let Ok(modified) = metadata.modified() {
+                let should_reload = match self.file_timestamps.get(current_theme_name) {
+                    Some(&last_modified) => modified > last_modified,
+                    None => true,
+                };
+
+                if should_reload {
+                    match JsonTheme::load_from_file(&theme_file_path) {
+                        Ok(theme) => {
+                            self.loaded_themes.insert(current_theme_name.to_string(), theme);
+                            self.file_timestamps.insert(current_theme_name.to_string(), modified);
+                            changed_themes.push(current_theme_name.to_string());
+                            debug!("✅ Reloaded theme: {}", current_theme_name);
+                        }
+                        Err(e) => {
+                            debug!("❌ Failed to reload theme from {:?}: {}", theme_file_path, e);
                         }
                     }
                 }
@@ -780,12 +773,11 @@ pub fn check_json_theme_changes(
     theme_manager.check_timer.tick(time.delta());
 
     if theme_manager.check_timer.just_finished() {
-        let changed_themes = theme_manager.check_for_changes();
-
-        !changed_themes.is_empty();
+        // Only check the current theme for changes
+        let current_name = current_theme.variant.name().to_string();
+        let changed_themes = theme_manager.check_for_changes(&current_name);
 
         // If the current theme was changed, reload it
-        let current_name = current_theme.variant.name().to_string();
         if changed_themes.contains(&current_name) {
             // Force reload from user directory if it exists
             let user_themes_dir = embedded_themes::get_user_themes_dir();
@@ -832,7 +824,7 @@ pub fn update_all_theme_properties_on_change(
     // Only update in debug mode for hot-reload development
     #[cfg(debug_assertions)]
     if theme.is_changed() {
-        info!("🎨 Hot-reloading theme changes...");
+        debug!("🎨 Hot-reloading theme changes...");
 
         // Update background color
         clear_color.0 = theme.theme().background_color();
@@ -867,7 +859,7 @@ pub fn update_all_theme_properties_on_change(
         // Reset checkerboard state to force recreation
         *checkerboard_state = Default::default();
 
-        info!("✅ Theme hot-reload complete");
+        debug!("✅ Theme hot-reload complete");
     }
 }
 
@@ -891,7 +883,7 @@ pub fn update_ui_pane_text_colors_on_theme_change(
     // Only update in debug mode for hot-reload development
     #[cfg(debug_assertions)]
     if theme.is_changed() {
-        info!("🎨 Hot-reloading UI pane text colors...");
+        debug!("🎨 Hot-reloading UI pane text colors...");
 
         // Update glyph pane text colors - all these components represent VALUES, not labels
         // Labels don't have component markers, values do (and use secondary color)
@@ -904,7 +896,7 @@ pub fn update_ui_pane_text_colors_on_theme_change(
             *text_color = secondary_color;
         }
 
-        info!("✅ UI pane text colors hot-reload complete");
+        debug!("✅ UI pane text colors hot-reload complete");
     }
 }
 

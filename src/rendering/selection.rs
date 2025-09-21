@@ -40,7 +40,7 @@ pub fn render_selection_marquee(
 
     // Try to find the selection rect from the query first
     if let Some(rect) = marquee_query.iter().next() {
-        info!(
+        debug!(
             "[render_selection_marquee] Drawing marquee: start={:?}, end={:?}",
             rect.start, rect.end
         );
@@ -229,7 +229,7 @@ pub fn render_all_point_entities(
         let position = transform.translation().truncate();
 
         if i < 5 {
-            info!(
+            debug!(
                 "[render_all_point_entities] Rendering point {} at ({:.1}, {:.1}), is_on_curve={}",
                 i, position.x, position.y, point_type.is_on_curve
             );

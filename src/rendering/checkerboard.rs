@@ -183,7 +183,7 @@ pub fn update_checkerboard(
     });
 
     if significant_scale_change {
-        info!(
+        debug!(
             "Camera debug: projection_scale={:.3}, transform_scale={:.3}, \
                using={:.3}, transform=({:.1}, {:.1}, {:.1}), grid_size={:.0}",
             projection_scale,
@@ -197,7 +197,7 @@ pub fn update_checkerboard(
 
         // Also show what zoom threshold this should trigger
         let expected_grid_size = calculate_dynamic_grid_size(camera_scale, &theme);
-        info!(
+        debug!(
             "Grid size calculation: zoom={:.3} → expected_size={:.0}, \
                last_size={:?}",
             camera_scale, expected_grid_size, state.last_grid_size
@@ -207,7 +207,7 @@ pub fn update_checkerboard(
     // Hide checkerboard if zoom is outside visible range
     if !is_checkerboard_visible(camera_scale, &theme) {
         let max_zoom = theme.theme().checkerboard_max_zoom_visible();
-        info!(
+        debug!(
             "Checkerboard not visible at current zoom scale: {:.3} \
                (range: {:.3} to {:.1})",
             camera_scale, MIN_VISIBILITY_ZOOM, max_zoom
@@ -222,7 +222,7 @@ pub fn update_checkerboard(
         || state.last_grid_size.unwrap() != current_grid_size
         || significant_scale_change
     {
-        info!(
+        debug!(
             "Checkerboard: camera_scale={:.3}, grid_size={:.0} units, \
                camera_pos=({:.1}, {:.1})",
             camera_scale,
@@ -235,7 +235,7 @@ pub fn update_checkerboard(
         let base_size = theme.theme().checkerboard_default_unit_size();
         let scale_multiplier = current_grid_size / base_size;
         if scale_multiplier == 1.0 {
-            info!(
+            debug!(
                 "  → Grid: Base level ({:.0} units) at zoom ≥ 1.0",
                 base_size
             );
@@ -250,12 +250,12 @@ pub fn update_checkerboard(
                 64 => "15.0",
                 _ => "very high",
             };
-            info!(
+            debug!(
                 "  → Grid: {}x scale ({:.0} units) at zoom ≥ {}",
                 scale_multiplier, current_grid_size, zoom_threshold
             );
         }
-        info!(
+        debug!(
             "  → Checkerboard visible: {}",
             is_checkerboard_visible(camera_scale, &theme)
         );
@@ -282,7 +282,7 @@ pub fn update_checkerboard(
     });
 
     if grid_size_changed {
-        info!(
+        debug!(
             "🔄 GRID SIZE CHANGED! Respawning all squares: \
                old={:?} → new={:.0}",
             state.last_grid_size, current_grid_size
@@ -311,7 +311,7 @@ pub fn update_checkerboard(
     });
 
     if window_size_changed {
-        info!(
+        debug!(
             "🖥️ WINDOW SIZE CHANGED! Forcing checkerboard recalculation: \
                old={:?} → new=({:.0}x{:.0})",
             state.last_window_size, window_size.x, window_size.y
@@ -452,7 +452,7 @@ fn calculate_visible_area(
     static mut LAST_LOGGED_GRID_SIZE: Option<f32> = None;
     unsafe {
         if LAST_LOGGED_GRID_SIZE.is_none() || LAST_LOGGED_GRID_SIZE.unwrap() != current_grid_size {
-            info!(
+            debug!(
                 "✅ Screen coverage: window=({:.0}x{:.0}), camera_scale={:.3}, \
                    min_screen=({:.0}, {:.0}), final=({:.0}, {:.0}), \
                    grid_size={:.0}, padding={:.0}",
@@ -493,7 +493,7 @@ fn get_needed_squares(visible_area: &Rect, current_grid_size: f32) -> HashSet<IV
         BOUNDS_LOG_COUNT += 1;
         if BOUNDS_LOG_COUNT % 100 == 1 {
             // Log every 100th call
-            info!(
+            debug!(
                 "🔢 Grid bounds: visible_area=({:.0},{:.0} to {:.0},{:.0}), \
                    grid_bounds=({},{} to {},{}), grid_size={:.0}",
                 visible_area.min.x,
@@ -599,7 +599,7 @@ fn spawn_square(
     static mut SPAWN_COUNT: usize = 0;
     unsafe {
         if SPAWN_COUNT < 3 {
-            info!(
+            debug!(
                 "Design space square {} at grid=({}, {}), \
                    world=({:.0}, {:.0}), size={:.0}",
                 SPAWN_COUNT, grid_pos.x, grid_pos.y, world_pos.x, world_pos.y, current_grid_size

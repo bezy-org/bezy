@@ -40,7 +40,7 @@ impl ConfigFile {
         match fs::read_to_string(&path) {
             Ok(contents) => match serde_json::from_str(&contents) {
                 Ok(config) => {
-                    info!("Loaded user settings from {:?}", path);
+                    debug!("Loaded user settings from {:?}", path);
                     Some(config)
                 }
                 Err(e) => {
@@ -67,7 +67,7 @@ impl ConfigFile {
         let contents = serde_json::to_string_pretty(self)?;
         fs::write(&path, contents)?;
 
-        info!("Saved settings to {:?}", path);
+        debug!("Saved settings to {:?}", path);
         Ok(())
     }
 

@@ -19,7 +19,7 @@ impl Plugin for RuntimeThemePlugin {
         // Only enable hot reload in debug builds for performance
         #[cfg(debug_assertions)]
         {
-            info!("🔥 Hot reload enabled for theme development");
+            debug!("🔥 Hot reload enabled for theme development");
 
             // Initialize JSON theme manager (don't preload themes to allow change detection)
             let theme_manager = JsonThemeManager::new();
@@ -38,7 +38,7 @@ impl Plugin for RuntimeThemePlugin {
 
         #[cfg(not(debug_assertions))]
         {
-            info!("🚀 Hot reload disabled for release performance");
+            debug!("🚀 Hot reload disabled for release performance");
         }
     }
 }

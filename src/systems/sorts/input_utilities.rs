@@ -164,7 +164,7 @@ pub fn unicode_to_glyph_name_fontir(
 
     // Log when we can't find an Arabic character
     if is_arabic_character(unicode_char) {
-        info!(
+        debug!(
             "Arabic character '{}' (U+{:04X}) not found in font",
             unicode_char, unicode_char as u32
         );
@@ -207,7 +207,7 @@ fn try_arabic_glyph_naming(unicode_char: char, available_glyphs: &[String]) -> O
     // Check string-based naming attempts
     for name in string_attempts {
         if available_glyphs.contains(&name) {
-            info!(
+            debug!(
                 "Found Arabic glyph '{}' for character '{}' (U+{:04X})",
                 name, unicode_char, codepoint
             );
@@ -218,7 +218,7 @@ fn try_arabic_glyph_naming(unicode_char: char, available_glyphs: &[String]) -> O
     // Try Arabic character name
     if let Some(arabic_name) = arabic_character_name(unicode_char) {
         if available_glyphs.contains(&arabic_name) {
-            info!(
+            debug!(
                 "Found Arabic glyph '{}' for character '{}' (U+{:04X})",
                 arabic_name, unicode_char, codepoint
             );

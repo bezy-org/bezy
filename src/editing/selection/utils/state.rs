@@ -13,7 +13,7 @@ pub fn clear_selection_on_app_change(
     for _event in app_state_events.read() {
         // Clear selection when app state changes
         selection_state.selected.clear();
-        info!("Cleared selection due to app state change");
+        debug!("Cleared selection due to app state change");
     }
 }
 

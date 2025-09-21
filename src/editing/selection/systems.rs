@@ -155,7 +155,7 @@ pub fn update_glyph_data_from_selection(
         return;
     }
 
-    info!(
+    debug!(
         "[update_glyph_data_from_selection] Processing {} moved points",
         query.iter().count()
     );
@@ -192,7 +192,7 @@ pub fn update_glyph_data_from_selection(
             relative_y,
         );
 
-        info!(
+        debug!(
             "[update_glyph_data_from_selection] glyph='{}' contour={} point={} rel=({:.1}, {:.1}) updated={}",
             point_ref.glyph_name,
             point_ref.contour_index,
@@ -218,12 +218,12 @@ pub fn update_glyph_data_from_selection(
 
     // Log the results
     if any_updates {
-        info!(
+        debug!(
             "[update_glyph_data_from_selection] Successfully updated {} outline points",
             query.iter().count()
         );
     } else {
-        info!("[update_glyph_data_from_selection] No outline updates needed");
+        debug!("[update_glyph_data_from_selection] No outline updates needed");
     }
 }
 
@@ -247,7 +247,7 @@ pub fn spawn_active_sort_points(
 
             if !existing_points {
                 let position = transform.translation.truncate();
-                info!("[spawn_active_sort_points] Spawning points for active sort: '{}' at position {:?}", 
+                debug!("[spawn_active_sort_points] Spawning points for active sort: '{}' at position {:?}", 
                       sort.glyph_name, position);
 
                 // Get glyph data for the active sort
@@ -264,7 +264,7 @@ pub fn spawn_active_sort_points(
 
                                 // Debug: Print first few point positions
                                 if point_count <= 5 {
-                                    info!("[spawn_active_sort_points] Point {}: local=({:.1}, {:.1}), world=({:.1}, {:.1})", 
+                                    debug!("[spawn_active_sort_points] Point {}: local=({:.1}, {:.1}), world=({:.1}, {:.1})", 
                                           point_count, point.x, point.y, point_world_pos.x, point_world_pos.y);
                                 }
 
@@ -300,7 +300,7 @@ pub fn spawn_active_sort_points(
                                     .id();
                             }
                         }
-                        info!(
+                        debug!(
                             "[spawn_active_sort_points] Successfully spawned {} point entities",
                             point_count
                         );
@@ -342,7 +342,7 @@ pub fn despawn_inactive_sort_points(
             // Remove from selection state if selected
             if selection_state.selected.contains(&entity) {
                 selection_state.selected.remove(&entity);
-                info!(
+                debug!(
                     "[despawn_inactive_sort_points] Removed despawned entity {:?} from selection",
                     entity
                 );
@@ -1008,12 +1008,12 @@ pub fn handle_selection_drag(
     _sort_point_entities: &Query<&crate::editing::sort::manager::SortPointEntity>,
     _selection_rect_query: &Query<Entity, With<SelectionRect>>,
 ) {
-    info!(
+    debug!(
         "[handle_selection_drag] Called: start={:?}, current={:?}, delta={:?}, is_dragging={}",
         start_position, current_position, delta, drag_state.is_dragging
     );
     if !drag_state.is_dragging {
-        info!(
+        debug!(
             "[handle_selection_drag] Starting new drag selection at start={:?}, end={:?}",
             start_position.to_raw(),
             current_position.to_raw()
@@ -1038,17 +1038,17 @@ pub fn handle_selection_drag(
             })
             .id();
         drag_state.selection_rect_entity = Some(rect_entity);
-        info!(
+        debug!(
             "[handle_selection_drag] SelectionRect entity created with ID {:?}",
             rect_entity
         );
     } else {
         // Only update current_position during drag
-        info!("Continuing existing drag selection...");
+        debug!("Continuing existing drag selection...");
         drag_state.current_position = Some(*current_position);
         // Only update the entity if it exists
         if let Some(rect_entity) = drag_state.selection_rect_entity {
-            info!("Updating SelectionRect entity {:?}", rect_entity);
+            debug!("Updating SelectionRect entity {:?}", rect_entity);
             if let Ok(mut entity_commands) = commands.get_entity(rect_entity) {
                 entity_commands.insert(SelectionRect {
                     start: drag_state
@@ -1057,7 +1057,7 @@ pub fn handle_selection_drag(
                         .to_raw(),
                     end: current_position.to_raw(),
                 });
-                info!(
+                debug!(
                     "SelectionRect entity updated: start={:?}, end={:?}",
                     drag_state
                         .start_position
@@ -1066,13 +1066,13 @@ pub fn handle_selection_drag(
                     current_position.to_raw()
                 );
             } else {
-                info!(
+                debug!(
                     "ERROR: Could not get entity commands for SelectionRect entity {:?}",
                     rect_entity
                 );
             }
         } else {
-            info!("ERROR: No SelectionRect entity found in drag_state!");
+            debug!("ERROR: No SelectionRect entity found in drag_state!");
         }
     }
 
@@ -1080,7 +1080,7 @@ pub fn handle_selection_drag(
     if let (Some(start_pos), Some(current_pos)) =
         (drag_state.start_position, drag_state.current_position)
     {
-        info!(
+        debug!(
             "Selection: Marquee rect coordinates - start: {:?}, current: {:?}",
             start_pos, current_pos
         );
@@ -1113,7 +1113,7 @@ pub fn handle_selection_drag(
         let mut points_in_rect = 0;
         let mut points_selected = 0;
 
-        info!(
+        debug!(
             "Selection: Checking {} selectable entities for marquee selection",
             selectable_query.iter().count()
         );
@@ -1130,7 +1130,7 @@ pub fn handle_selection_drag(
             &start_pos,
             &current_pos,
         );
-        info!("Selection: {}", debug_info);
+        debug!("Selection: {}", debug_info);
 
         for (entity, entity_pos) in &entity_positions {
             // Use centralized coordinate system to check if entity is inside the marquee rectangle
@@ -1140,7 +1140,7 @@ pub fn handle_selection_drag(
                 &current_pos,
             ) {
                 points_in_rect += 1;
-                info!(
+                debug!(
                     "Selection: Entity {:?} is inside marquee rect! Position: {:?}",
                     entity, entity_pos
                 );
@@ -1148,13 +1148,13 @@ pub fn handle_selection_drag(
                     // Toggle off if previously selected
                     selection_state.selected.remove(entity);
                     commands.entity(*entity).remove::<Selected>();
-                    info!("Selection: Toggled off entity {:?}", entity);
+                    debug!("Selection: Toggled off entity {:?}", entity);
                 } else {
                     // Add to selection
                     selection_state.selected.insert(*entity);
                     commands.entity(*entity).insert(Selected);
                     points_selected += 1;
-                    info!("Selection: Added entity {:?} to selection", entity);
+                    debug!("Selection: Added entity {:?} to selection", entity);
                 }
             } else {
                 // Debug: Show why entity is not selected using centralized coordinate system
@@ -1180,7 +1180,7 @@ pub fn handle_selection_drag(
                 };
 
                 if distance_x > 0.0 || distance_y > 0.0 {
-                    info!(
+                    debug!(
                         "Selection: Entity {:?} outside rect - X: {:.1} units, Y: {:.1} units",
                         entity, distance_x, distance_y
                     );
@@ -1188,12 +1188,12 @@ pub fn handle_selection_drag(
             }
         }
 
-        info!(
+        debug!(
             "Marquee selection: {} points in rect, {} points selected",
             points_in_rect, points_selected
         );
 
-        info!(
+        debug!(
             "Marquee selection updated: {} points selected",
             selection_state.selected.len()
         );
@@ -1238,14 +1238,14 @@ pub fn handle_selection_release(
             selection_state.selected.len()
         );
 
-        info!(
+        debug!(
             "Marquee selection complete. {} points selected.",
             selection_state.selected.len()
         );
         // Clean up the selection rectangle entity
         if let Some(rect_entity) = rect_entity {
             commands.entity(rect_entity).despawn();
-            info!("SelectionRect entity despawned on release");
+            debug!("SelectionRect entity despawned on release");
         }
     }
 }
@@ -1317,12 +1317,12 @@ pub fn handle_selection_key_press(
 pub fn debug_print_selection_rects(selection_rects: Query<(Entity, &SelectionRect)>) {
     let count = selection_rects.iter().count();
     if count > 0 {
-        info!(
+        debug!(
             "[debug_print_selection_rects] Found {} SelectionRect entities:",
             count
         );
         for (entity, rect) in selection_rects.iter() {
-            info!(
+            debug!(
                 "  Entity {:?}: start={:?}, end={:?}",
                 entity, rect.start, rect.end
             );

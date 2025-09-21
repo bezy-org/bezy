@@ -76,7 +76,7 @@ pub fn handle_sort_events(
                 position,
                 layout_mode,
             } => {
-                info!(
+                debug!(
                     "Handling CreateSort event for '{}' at {:?} with layout mode {:?}",
                     glyph_name, position, layout_mode
                 );
@@ -99,7 +99,7 @@ pub fn handle_sort_events(
                     advance_width,
                     layout_mode.clone(),
                 );
-                info!(
+                debug!(
                     "Created sort entity {:?} for '{}' with layout mode {:?}",
                     entity, glyph_name, layout_mode
                 );
@@ -120,7 +120,7 @@ pub fn handle_sort_events(
                         .remove::<InactiveSort>()
                         .insert(ActiveSort);
                     active_sort_state.active_sort_entity = Some(*entity);
-                    info!("Activated sort entity {:?}", entity);
+                    debug!("Activated sort entity {:?}", entity);
                 }
             }
             SortEvent::DeactivateSort { entity } => {
@@ -131,7 +131,7 @@ pub fn handle_sort_events(
                 if active_sort_state.active_sort_entity == Some(*entity) {
                     active_sort_state.active_sort_entity = None;
                 }
-                info!("Deactivated sort entity {:?}", entity);
+                debug!("Deactivated sort entity {:?}", entity);
             }
             SortEvent::DeleteSort { entity } => {
                 delete_sort(&mut commands, &mut active_sort_state, *entity);
@@ -153,7 +153,7 @@ fn create_sort(
         layout_mode: layout_mode.clone(),
     };
 
-    info!(
+    debug!(
         "Creating sort '{}' at position ({:.1}, {:.1}) with layout mode {:?}",
         glyph_name, position.x, position.y, layout_mode
     );
@@ -185,7 +185,7 @@ fn delete_sort(
     }
 
     commands.entity(sort_entity).despawn();
-    info!("Deleted sort entity {:?}", sort_entity);
+    debug!("Deleted sort entity {:?}", sort_entity);
 }
 
 /// System to handle glyph navigation changes
@@ -226,7 +226,7 @@ pub fn respawn_sort_points_on_glyph_change(
             .map_or(true, |prev_name| prev_name != &current_glyph_name);
 
         if should_respawn {
-            info!("Sort {:?} glyph changed to '{}', respawning point entities",
+            debug!("Sort {:?} glyph changed to '{}', respawning point entities",
                   sort_entity, current_glyph_name);
 
             // Despawn existing point entities for this sort
@@ -315,7 +315,7 @@ pub fn spawn_point_entities_for_sort(
                         let entity = entity_cmds.id();
                         entity_cmds.insert(Selected);
                         selection_state.selected.insert(entity);
-                        info!(
+                        debug!(
                             "Restored selection for point at ({}, {})",
                             point_pos.x, point_pos.y
                         );
@@ -338,7 +338,7 @@ fn despawn_point_entities_for_sort(
             // Remove from selection state if selected
             if selection_state.selected.contains(&entity) {
                 selection_state.selected.remove(&entity);
-                info!("Removed despawned entity {:?} from selection", entity);
+                debug!("Removed despawned entity {:?} from selection", entity);
             }
 
             commands.entity(entity).despawn();
@@ -370,7 +370,7 @@ pub fn spawn_sort_point_entities(
 
     // Spawn point entities for newly active sorts
     for (sort_entity, sort, transform) in added_active_sorts.iter() {
-        info!(
+        debug!(
             "Spawning point entities for newly active sort {:?}",
             sort_entity
         );
@@ -386,7 +386,7 @@ pub fn spawn_sort_point_entities(
 
     // Despawn point entities for sorts that are no longer active
     for sort_entity in removed_active_sorts.read() {
-        info!(
+        debug!(
             "Despawning point entities for inactive sort {:?}",
             sort_entity
         );
@@ -445,7 +445,7 @@ pub fn spawn_current_glyph_sort(
         let sort_exists = sorts_query.iter().any(|sort| sort.glyph_name == glyph_name);
 
         if !sort_exists {
-            info!(
+            debug!(
                 "Creating inactive sort for current glyph '{}' to display pen tool results",
                 glyph_name
             );

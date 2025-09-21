@@ -57,7 +57,7 @@ pub fn handle_arabic_text_input(
         };
 
         if let Some(ch) = arabic_char {
-            info!("Arabic input detected: {}", ch);
+            debug!("Arabic input detected: {}", ch);
 
             // Build the current text context for shaping
             let mut context = String::new();
@@ -98,7 +98,7 @@ pub fn handle_arabic_text_input(
                 &_fontir_app_state,
             );
 
-            info!("Inserted Arabic glyph: {}", glyph_name);
+            debug!("Inserted Arabic glyph: {}", glyph_name);
         }
     }
 }
@@ -159,7 +159,7 @@ fn insert_arabic_glyph(
     // Get proper advance width from font metrics (same as LTR mode)
     let advance_width = get_glyph_advance_width(glyph_name, app_state, fontir_app_state);
 
-    info!(
+    debug!(
         "🔍 ARABIC INSERT: glyph '{}' with advance_width: {:.1}",
         glyph_name, advance_width
     );
@@ -195,7 +195,7 @@ fn get_glyph_advance_width(
     if let Some(app_state) = app_state.as_ref() {
         if let Some(glyph_data) = app_state.workspace.font.glyphs.get(glyph_name) {
             let width = glyph_data.advance_width as f32;
-            info!(
+            debug!(
                 "📏 ADVANCE WIDTH: Glyph '{}' from AppState = {}",
                 glyph_name, width
             );
@@ -207,7 +207,7 @@ fn get_glyph_advance_width(
         );
     } else if let Some(fontir_state) = fontir_app_state.as_ref() {
         let width = fontir_state.get_glyph_advance_width(glyph_name);
-        info!(
+        debug!(
             "📏 ADVANCE WIDTH: Glyph '{}' from FontIR = {}",
             glyph_name, width
         );

@@ -34,17 +34,17 @@ impl EditTool for MeasureTool {
     }
 
     fn update(&self, commands: &mut Commands) {
-        info!("📏 MEASURE_TOOL: update() called - setting measure mode active and input mode to Measure");
+        debug!("📏 MEASURE_TOOL: update() called - setting measure mode active and input mode to Measure");
         commands.insert_resource(MeasureModeActive(true));
         commands.insert_resource(crate::core::io::input::InputMode::Measure);
     }
 
     fn on_enter(&self) {
-        info!("Entered Measure tool");
+        debug!("Entered Measure tool");
     }
 
     fn on_exit(&self) {
-        info!("Exited Measure tool");
+        debug!("Exited Measure tool");
     }
 }
 
@@ -82,11 +82,11 @@ pub fn manage_measure_mode_state(
     if is_measure_active && !current_mode {
         // Measure tool is active but mode is not set - activate it
         commands.insert_resource(MeasureModeActive(true));
-        info!("📏 MANAGE_MEASURE_MODE: Activating measure mode");
+        debug!("📏 MANAGE_MEASURE_MODE: Activating measure mode");
     } else if !is_measure_active && current_mode {
         // Measure tool is not active but mode is set - deactivate it
         commands.insert_resource(MeasureModeActive(false));
-        info!("📏 MANAGE_MEASURE_MODE: Deactivating measure mode");
+        debug!("📏 MANAGE_MEASURE_MODE: Deactivating measure mode");
     }
 }
 
@@ -105,9 +105,9 @@ pub fn update_measure_shift_state(
         if measure_consumer.shift_locked != shift_pressed {
             measure_consumer.shift_locked = shift_pressed;
             if shift_pressed {
-                info!("📏 MEASURE: Shift constraint enabled - lines will be horizontal/vertical");
+                debug!("📏 MEASURE: Shift constraint enabled - lines will be horizontal/vertical");
             } else {
-                info!("📏 MEASURE: Shift constraint disabled - lines can be any angle");
+                debug!("📏 MEASURE: Shift constraint disabled - lines can be any angle");
             }
         }
     }
@@ -133,13 +133,13 @@ pub fn render_measure_preview(
         && measure_mode.as_ref().map(|m| m.0).unwrap_or(false);
 
     // Debug current state
-    info!(
+    debug!(
         "📏 RENDER_MEASURE_PREVIEW: current_tool={:?}, measure_mode={:?}, is_measure_active={}",
         current_tool.get_current(),
         measure_mode.as_ref().map(|m| m.0),
         is_measure_active
     );
-    info!(
+    debug!(
         "📏 RENDER_MEASURE_PREVIEW: measure_consumer.gesture={:?}",
         measure_consumer.gesture
     );
@@ -150,7 +150,7 @@ pub fn render_measure_preview(
     let tool_became_active = is_measure_active && measure_entities.is_empty();
     let needs_update = gesture_changed || cleanup_needed || tool_became_active;
 
-    info!("📏 RENDER_MEASURE_PREVIEW: gesture_changed={}, cleanup_needed={}, tool_became_active={}, needs_update={}, measure_entities.len()={}", 
+    debug!("📏 RENDER_MEASURE_PREVIEW: gesture_changed={}, cleanup_needed={}, tool_became_active={}, needs_update={}, measure_entities.len()={}", 
           gesture_changed, cleanup_needed, tool_became_active, needs_update, measure_entities.len());
 
     if !needs_update {
@@ -271,7 +271,7 @@ pub fn render_measure_preview(
 
         // Calculate and display distance measurements for ALL consecutive pairs
         if intersections.len() >= 2 {
-            info!(
+            debug!(
                 "📏 MEASURE: Found {} intersection points, calculating {} segment distances",
                 intersections.len(),
                 intersections.len() - 1
@@ -323,7 +323,7 @@ pub fn render_measure_preview(
                 );
                 measure_entities.extend(pill_entities);
 
-                info!(
+                debug!(
                     "📏 MEASURE: Segment {}: Distance between points {:?} and {:?} = {} units",
                     i + 1,
                     point1,
@@ -370,16 +370,16 @@ fn calculate_measure_intersections(
                 );
                 return intersections;
             } else {
-                info!(
+                debug!(
                     "📏 CALCULATE_MEASURE_INTERSECTIONS: No paths found for glyph '{}'",
                     current_glyph
                 );
             }
         } else {
-            info!("📏 CALCULATE_MEASURE_INTERSECTIONS: No current glyph selected");
+            debug!("📏 CALCULATE_MEASURE_INTERSECTIONS: No current glyph selected");
         }
     } else {
-        info!("📏 CALCULATE_MEASURE_INTERSECTIONS: No FontIR state available");
+        debug!("📏 CALCULATE_MEASURE_INTERSECTIONS: No FontIR state available");
     }
 
     intersections

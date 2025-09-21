@@ -98,7 +98,7 @@ fn update_glyph_pane(world: &mut World) {
         LOG_COUNT += 1;
         if LOG_COUNT % 60 == 0 {
             // Log every second at 60fps
-            info!("update_glyph_pane: Resource contains - glyph: '{}', advance: '{}', lsb: '{}', rsb: '{}'", 
+            debug!("update_glyph_pane: Resource contains - glyph: '{}', advance: '{}', lsb: '{}', rsb: '{}'", 
                   metrics.glyph_name, metrics.advance, metrics.left_bearing, metrics.right_bearing);
         }
     }
@@ -149,12 +149,12 @@ fn update_glyph_pane(world: &mut World) {
     // Update the texts in the UI
     let mut name_query = world.query_filtered::<&mut Text, With<GlyphNameText>>();
     let name_count = name_query.iter_mut(world).count();
-    info!(
+    debug!(
         "update_glyph_pane: Found {} GlyphNameText entities to update",
         name_count
     );
     for mut text in name_query.iter_mut(world) {
-        info!(
+        debug!(
             "update_glyph_pane: Setting glyph name text to '{}'",
             glyph_name
         );
@@ -168,12 +168,12 @@ fn update_glyph_pane(world: &mut World) {
 
     let mut advance_query = world.query_filtered::<&mut Text, With<GlyphAdvanceText>>();
     let advance_count = advance_query.iter_mut(world).count();
-    info!(
+    debug!(
         "update_glyph_pane: Found {} GlyphAdvanceText entities to update",
         advance_count
     );
     for mut text in advance_query.iter_mut(world) {
-        info!("update_glyph_pane: Setting advance text to '{}'", advance);
+        debug!("update_glyph_pane: Setting advance text to '{}'", advance);
         *text = Text::new(advance.clone());
     }
 
@@ -573,7 +573,7 @@ pub fn update_glyph_metrics(
 ) {
     // Debug: Always log when this system runs
     let active_sort = text_editor_state.get_active_sort();
-    info!(
+    debug!(
         "Glyph pane: update_glyph_metrics running, active_sort = {:?}",
         active_sort
             .as_ref()
@@ -608,7 +608,7 @@ pub fn update_glyph_metrics(
 
             // Get advance width from FontIR
             let advance_width = fontir_state.get_glyph_advance_width(&glyph_name);
-            info!(
+            debug!(
                 "Glyph pane: advance_width for '{}' = {}",
                 glyph_name, advance_width
             );
@@ -616,7 +616,7 @@ pub fn update_glyph_metrics(
 
             // Calculate sidebearings using FontIR paths
             if let Some(paths) = fontir_state.get_glyph_paths(&glyph_name) {
-                info!(
+                debug!(
                     "Glyph pane: Found {} paths for glyph '{}'",
                     paths.len(),
                     glyph_name
@@ -630,13 +630,13 @@ pub fn update_glyph_metrics(
                     // Right side bearing is the distance from the rightmost point to the advance width
                     let rsb = advance_width - max_x;
 
-                    info!("Glyph pane: bounds for '{}': min_x={}, max_x={}, advance={}, lsb={}, rsb={}", 
+                    debug!("Glyph pane: bounds for '{}': min_x={}, max_x={}, advance={}, lsb={}, rsb={}", 
                           glyph_name, min_x, max_x, advance_width, lsb, rsb);
 
                     metrics.left_bearing = format!("{}", lsb as i32);
                     metrics.right_bearing = format!("{}", rsb as i32);
                 } else {
-                    info!(
+                    debug!(
                         "Glyph pane: Could not calculate bounds for '{}'",
                         glyph_name
                     );
@@ -645,7 +645,7 @@ pub fn update_glyph_metrics(
                     metrics.right_bearing = "0".to_string();
                 }
             } else {
-                info!("Glyph pane: No paths found for glyph '{}'", glyph_name);
+                debug!("Glyph pane: No paths found for glyph '{}'", glyph_name);
                 // No paths found
                 metrics.left_bearing = "0".to_string();
                 metrics.right_bearing = "0".to_string();
@@ -662,7 +662,7 @@ pub fn update_glyph_metrics(
             }
         } else if let Some(state) = app_state.as_ref() {
             // Fallback to AppState (UFO data)
-            info!(
+            debug!(
                 "Glyph pane: FALLBACK BRANCH - Using AppState for glyph '{}'",
                 glyph_name
             );
@@ -729,7 +729,7 @@ pub fn update_glyph_metrics(
 
                 // Get kerning groups from FontIR
                 if let Some(fontir_state) = fontir_app_state.as_ref() {
-                    info!(
+                    debug!(
                         "Glyph pane: Using FontIR to get groups for '{}'",
                         glyph_name
                     );
@@ -737,12 +737,12 @@ pub fn update_glyph_metrics(
                         fontir_state.get_glyph_kerning_groups(&glyph_name);
                     metrics.left_group = left_group.unwrap_or_else(String::new);
                     metrics.right_group = right_group.unwrap_or_else(String::new);
-                    info!(
+                    debug!(
                         "Glyph pane: Set groups - left: '{}', right: '{}'",
                         metrics.left_group, metrics.right_group
                     );
                 } else {
-                    info!("Glyph pane: No FontIR state available for groups");
+                    debug!("Glyph pane: No FontIR state available for groups");
                     metrics.left_group = String::new();
                     metrics.right_group = String::new();
                 }
@@ -756,7 +756,7 @@ pub fn update_glyph_metrics(
             }
         } else {
             // Neither FontIR nor AppState available - show placeholders
-            info!("Glyph pane: NO STATE BRANCH - Neither FontIR nor AppState available for glyph '{}'", glyph_name);
+            debug!("Glyph pane: NO STATE BRANCH - Neither FontIR nor AppState available for glyph '{}'", glyph_name);
             metrics.unicode = String::new();
             metrics.advance = "-".to_string();
             metrics.left_bearing = "-".to_string();
@@ -766,20 +766,20 @@ pub fn update_glyph_metrics(
         }
     } else if debug_test {
         // DEBUG TEST: Force extract metrics for 'a' to verify FontIR is working
-        info!("DEBUG TEST: Forcing metrics extraction for glyph 'a'");
+        debug!("DEBUG TEST: Forcing metrics extraction for glyph 'a'");
         let glyph_name = "a".to_string();
         metrics.glyph_name = glyph_name.clone();
 
         // Try FontIR first
         if let Some(fontir_state) = fontir_app_state.as_ref() {
-            info!("DEBUG TEST: Using FontIR for glyph 'a'");
+            debug!("DEBUG TEST: Using FontIR for glyph 'a'");
 
             // Get Unicode
             metrics.unicode = "0061".to_string();
 
             // Get advance width from FontIR
             let advance_width = fontir_state.get_glyph_advance_width(&glyph_name);
-            info!(
+            debug!(
                 "DEBUG TEST: advance_width for '{}' = {}",
                 glyph_name, advance_width
             );
@@ -787,7 +787,7 @@ pub fn update_glyph_metrics(
 
             // Calculate sidebearings using FontIR paths
             if let Some(paths) = fontir_state.get_glyph_paths(&glyph_name) {
-                info!(
+                debug!(
                     "DEBUG TEST: Found {} paths for glyph '{}'",
                     paths.len(),
                     glyph_name
@@ -798,18 +798,18 @@ pub fn update_glyph_metrics(
                     let lsb = min_x;
                     let rsb = advance_width - max_x;
 
-                    info!("DEBUG TEST: bounds for '{}': min_x={}, max_x={}, advance={}, lsb={}, rsb={}", 
+                    debug!("DEBUG TEST: bounds for '{}': min_x={}, max_x={}, advance={}, lsb={}, rsb={}", 
                           glyph_name, min_x, max_x, advance_width, lsb, rsb);
 
                     metrics.left_bearing = format!("{}", lsb as i32);
                     metrics.right_bearing = format!("{}", rsb as i32);
                 } else {
-                    info!("DEBUG TEST: Could not calculate bounds");
+                    debug!("DEBUG TEST: Could not calculate bounds");
                     metrics.left_bearing = "0".to_string();
                     metrics.right_bearing = "0".to_string();
                 }
             } else {
-                info!("DEBUG TEST: No paths found");
+                debug!("DEBUG TEST: No paths found");
                 metrics.left_bearing = "0".to_string();
                 metrics.right_bearing = "0".to_string();
             }
@@ -817,7 +817,7 @@ pub fn update_glyph_metrics(
             metrics.left_group = String::new();
             metrics.right_group = String::new();
         } else {
-            info!("DEBUG TEST: FontIR not available");
+            debug!("DEBUG TEST: FontIR not available");
             metrics.unicode = String::new();
             metrics.advance = "-".to_string();
             metrics.left_bearing = "-".to_string();

@@ -15,6 +15,7 @@ use crate::rendering::{
 use crate::systems::{
     center_camera_on_startup_layout, create_startup_layout, exit_on_esc, load_fontir_font,
     BezySystems, CommandsPlugin, InputConsumerPlugin, TextShapingPlugin, UiInteractionPlugin,
+    plugins::configure_default_plugins,
 };
 use crate::ui::edit_mode_toolbar::EditModeToolbarPlugin;
 use crate::ui::file_menu::FileMenuPlugin;
@@ -152,7 +153,7 @@ fn configure_window_plugins(app: &mut App) {
 
     #[cfg(not(target_arch = "wasm32"))]
     {
-        app.add_plugins(DefaultPlugins.set(WindowPlugin {
+        app.add_plugins(configure_default_plugins().set(WindowPlugin {
             primary_window: Some(window_config),
             ..default()
         }));
@@ -186,7 +187,7 @@ fn configure_window_plugins(app: &mut App) {
 
 /// Add all plugin groups to the application
 fn add_plugin_groups(app: &mut App) {
-    info!("Adding plugin groups...");
+    debug!("Adding plugin groups...");
 
     // Add embedded assets plugin to provide fonts when installed via cargo install
     app.add_plugins(crate::embedded_assets::EmbeddedAssetsPlugin);
@@ -197,7 +198,7 @@ fn add_plugin_groups(app: &mut App) {
     #[cfg(debug_assertions)]
     app.add_plugins(RuntimeThemePlugin);
 
-    info!("All plugin groups added successfully");
+    debug!("All plugin groups added successfully");
 }
 
 /// Add startup and exit systems

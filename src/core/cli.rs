@@ -177,7 +177,7 @@ impl CliArgs {
         // First check CLI args
         if let Some(theme_name) = &self.theme {
             if let Some(variant) = ThemeVariant::parse(theme_name) {
-                info!("Using theme from CLI: {}", theme_name);
+                debug!("Using theme from CLI: {}", theme_name);
                 return variant;
             }
         }
@@ -186,14 +186,14 @@ impl CliArgs {
         if let Some(config) = ConfigFile::load() {
             if let Some(theme_name) = config.default_theme {
                 if let Some(variant) = ThemeVariant::parse(&theme_name) {
-                    info!("Using theme from config file: {}", theme_name);
+                    debug!("Using theme from config file: {}", theme_name);
                     return variant;
                 }
             }
         }
 
         // Finally use built-in default
-        info!("Using default theme: dark");
+        debug!("Using default theme: dark");
         ThemeVariant::default()
     }
 }

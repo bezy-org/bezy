@@ -164,7 +164,7 @@ pub fn sync_selected_components(
         // Only add the component if the entity is valid
         if entities.contains(entity) && !selected_entities.contains(entity) {
             commands.entity(entity).insert(Selected);
-            info!(
+            debug!(
                 "Adding Selected component to entity {:?} from selection state",
                 entity
             );
@@ -175,7 +175,7 @@ pub fn sync_selected_components(
     for entity in &selected_entities {
         if !selection_state.selected.contains(&entity) {
             commands.entity(entity).remove::<Selected>();
-            info!(
+            debug!(
                 "Removing Selected component from entity {:?} not in selection state",
                 entity
             );

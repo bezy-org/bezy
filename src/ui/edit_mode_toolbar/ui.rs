@@ -86,7 +86,7 @@ pub fn spawn_edit_mode_toolbar(
     mut tool_registry: ResMut<ToolRegistry>,
 ) {
     let ordered_tool_ids = tool_registry.get_ordered_tools().to_vec();
-    info!(
+    debug!(
         "Spawning edit-mode toolbar with {} tools",
         ordered_tool_ids.len()
     );
@@ -338,10 +338,6 @@ pub fn handle_toolbar_mode_selection(
 ) {
     for (interaction, tool_button) in interaction_query.iter() {
         if *interaction == Interaction::Pressed {
-            println!(
-                "🖊️ PEN_DEBUG: Button pressed for tool: {}",
-                tool_button.tool_id
-            );
             switch_to_tool(tool_button.tool_id, &mut current_tool, &tool_registry);
         }
     }
@@ -418,7 +414,7 @@ fn enter_new_tool(
         new_tool_impl.on_enter();
     }
     current_tool.switch_to(new_tool_id);
-    info!("Switched to tool: {}", new_tool_id);
+    debug!("Switched to tool: {}", new_tool_id);
 }
 
 // VISUAL UPDATES --------------------------------------------------------------

@@ -39,7 +39,7 @@ fn gamepad_connection_system(
     mut connection_events: EventReader<GamepadConnectionEvent>,
 ) {
     for event in connection_events.read() {
-        info!("Gamepad connection event: {:?}", event);
+        debug!("Gamepad connection event: {:?}", event);
 
         // For now, just track the first connected gamepad
         if gamepad_manager.active_gamepad.is_none() {

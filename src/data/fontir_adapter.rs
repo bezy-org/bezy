@@ -134,13 +134,13 @@ pub fn load_font_with_fontir(path: PathBuf) -> Result<FontIRData> {
 
     match extension {
         "designspace" => {
-            info!("Loading designspace file: {:?}", path);
+            debug!("Loading designspace file: {:?}", path);
             let _ir_source = DesignSpaceIrSource::new(&path)?;
             // TODO: Extract FontIR data from source
             Ok(FontIRData::new(Some(path)))
         }
         "ufo" => {
-            info!("Loading single UFO file: {:?}", path);
+            debug!("Loading single UFO file: {:?}", path);
             // For single UFO, we'd need to create a minimal designspace
             // TODO: Implement single UFO loading
             Ok(FontIRData::new(Some(path)))

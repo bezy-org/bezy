@@ -34,8 +34,8 @@ pub fn create_startup_layout(
 
     // Check if default buffer creation is disabled via CLI flag
     if cli_args.no_default_buffer {
-        info!("Skipping default LTR buffer creation due to --no-default-buffer flag");
-        info!("Ready for isolated text flow testing - use text tool to place sorts manually");
+        debug!("Skipping default LTR buffer creation due to --no-default-buffer flag");
+        debug!("Ready for isolated text flow testing - use text tool to place sorts manually");
         return;
     }
 
@@ -49,7 +49,7 @@ pub fn create_startup_layout(
         "a".to_string()
     };
 
-    info!(
+    debug!(
         "Creating startup layout with default LTR text sort for glyph '{}'",
         glyph_name
     );
@@ -86,7 +86,7 @@ pub fn create_startup_layout(
         advance_width,
     });
 
-    info!(
+    debug!(
         "Startup layout created. Camera will center at ({}, {})",
         visual_center_x, visual_center_y
     );
@@ -119,7 +119,7 @@ fn create_default_sort_at_position(
         buffer_id: Some(buffer_id), // Assign unique buffer ID for isolation
     };
 
-    info!(
+    debug!(
         "📍 STARTUP: Created sort with buffer_id: {:?} (cursor now managed by buffer entities)",
         sort.buffer_id
     );
@@ -131,7 +131,7 @@ fn create_default_sort_at_position(
     // Mark as changed using Bevy's change detection
     // The ResMut wrapper automatically tracks changes when we modify the resource
 
-    info!(
+    debug!(
         "Created default sort '{}' at position ({:.1}, {:.1})",
         glyph_name, position.x, position.y
     );
@@ -150,7 +150,7 @@ pub fn center_camera_on_startup_layout(
             transform.translation.x = center.center_x;
             transform.translation.y = center.center_y;
 
-            info!(
+            debug!(
                 "Centered camera on startup layout at ({}, {})",
                 center.center_x, center.center_y
             );

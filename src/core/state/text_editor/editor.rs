@@ -95,12 +95,12 @@ impl TextEditorState {
 
         // Debug: Verify the sort was added correctly
         if let Some(added_sort) = self.buffer.get(insert_index) {
-            info!(
+            debug!(
                 "Added freeform sort '{}' at buffer index {} with is_active = {}",
                 glyph_name, insert_index, added_sort.is_active
             );
         }
-        info!(
+        debug!(
             "Added and activated freeform sort '{}' at position ({:.1}, {:.1})",
             glyph_name, position.x, position.y
         );
@@ -352,7 +352,7 @@ impl TextEditorState {
             SortLayoutMode::RTLText => 0,
             _ => 1,
         };
-        info!("Created and activated new {} text root at world position ({:.1}, {:.1}), cursor at position {}", 
+        debug!("Created and activated new {} text root at world position ({:.1}, {:.1}), cursor at position {}", 
               match layout_mode {
                   SortLayoutMode::LTRText => "LTR",
                   SortLayoutMode::RTLText => "RTL",
@@ -362,7 +362,7 @@ impl TextEditorState {
 
         // Verify it was inserted correctly
         if let Some(inserted_root) = self.buffer.get(insert_index) {
-            info!(
+            debug!(
                 "Verified inserted root at index {}: is_active={}",
                 insert_index, inserted_root.is_active
             );
@@ -503,7 +503,7 @@ impl TextEditorState {
         // Then activate the specified sort
         if let Some(sort) = self.buffer.get_mut(position) {
             sort.is_active = true;
-            info!(
+            debug!(
                 "🔥 [activate_sort] Activated sort '{}' at buffer position {}",
                 sort.kind.glyph_name(),
                 position
@@ -594,7 +594,7 @@ impl TextEditorState {
         _respawn_queue: Option<&mut crate::systems::sorts::sort_entities::BufferSortRespawnQueue>,
     ) {
         debug!("Insert at cursor: Starting insertion of '{}'", glyph_name);
-        info!(
+        debug!(
             "insert_sort_at_cursor called with glyph '{}', advance_width {}",
             glyph_name, advance_width
         );
@@ -681,15 +681,15 @@ impl TextEditorState {
                 "Inserting: Insert successful - buffer now has {} entries",
                 self.buffer.len()
             );
-            info!(
+            debug!(
                 "🔤 Inserted character '{}' at buffer index {} (root stays at {})",
                 glyph_name, insert_buffer_index, root_index
             );
-            info!(
+            debug!(
                 "🔤 Buffer now has {} entries after insertion",
                 self.buffer.len()
             );
-            info!(
+            debug!(
                 "🔤 Layout mode: {:?}, insertion was RTL: {}",
                 root_layout_mode,
                 root_layout_mode == SortLayoutMode::RTLText
@@ -721,11 +721,11 @@ impl TextEditorState {
                     is_rtl_layout_mode(&root_layout_mode),
                     text_sort_count
                 );
-                info!("📍 Updated root cursor position to {} (mode: {:?}, text sorts: {}, insert_pos: {})", 
+                debug!("📍 Updated root cursor position to {} (mode: {:?}, text sorts: {}, insert_pos: {})", 
                       new_cursor_pos, root_layout_mode, text_sort_count, insert_buffer_index);
 
                 // CRITICAL: Keep the root active so it maintains its outline
-                info!(
+                debug!(
                     "🔥 Root sort '{}' remains active with is_active={}",
                     root_sort.kind.glyph_name(),
                     root_sort.is_active
@@ -733,7 +733,7 @@ impl TextEditorState {
             }
 
             // DEBUG: Show current buffer state after insertion (moved outside borrow)
-            info!("🔍 BUFFER STATE after insertion:");
+            debug!("🔍 BUFFER STATE after insertion:");
             for (i, entry) in self.buffer.iter().enumerate() {
                 if let SortKind::Glyph {
                     glyph_name,
@@ -741,7 +741,7 @@ impl TextEditorState {
                     ..
                 } = &entry.kind
                 {
-                    info!(
+                    debug!(
                         "  Buffer[{}]: glyph='{}', advance_width={:.1}, layout={:?}",
                         i, glyph_name, advance_width, entry.layout_mode
                     );
@@ -754,7 +754,7 @@ impl TextEditorState {
                 "Insert at cursor: Buffer has {} entries but no active root found",
                 self.buffer.len()
             );
-            info!(
+            debug!(
                 "No active buffer root found, creating new text root with glyph '{}'",
                 glyph_name
             );
@@ -785,7 +785,7 @@ impl TextEditorState {
                 // Must have more than just the root
                 let delete_buffer_index = buffer_len - 1; // Delete the last character
 
-                info!(
+                debug!(
                     "🗑️ Deleting character at buffer index {} (buffer length: {})",
                     delete_buffer_index, buffer_len
                 );
@@ -793,13 +793,13 @@ impl TextEditorState {
                 // Delete the character from the buffer
                 let deleted_sort = self.buffer.delete(delete_buffer_index);
                 if let Some(deleted) = deleted_sort {
-                    info!(
+                    debug!(
                         "🗑️ Successfully deleted sort: glyph='{}'",
                         deleted.kind.glyph_name()
                     );
                 }
 
-                info!("🗑️ Buffer length after deletion: {}", self.buffer.len());
+                debug!("🗑️ Buffer length after deletion: {}", self.buffer.len());
 
                 // Update cursor position in the root
                 // Since we're deleting from the end of the buffer, we need to count
@@ -823,28 +823,28 @@ impl TextEditorState {
                 let new_cursor_pos = text_sort_count + 1;
                 if let Some(root_sort) = self.buffer.get_mut(root_index) {
                     root_sort.buffer_cursor_position = Some(new_cursor_pos);
-                    info!(
+                    debug!(
                         "📍 Updated cursor position to {} (text sorts remaining: {}, +1 for root)",
                         new_cursor_pos, text_sort_count
                     );
                 }
             } else {
                 // Only root remains - delete the entire buffer root and clear the text buffer
-                info!("🗑️ Deleting root sort - clearing entire text buffer");
+                debug!("🗑️ Deleting root sort - clearing entire text buffer");
                 let deleted_root = self.buffer.delete(root_index);
                 if let Some(deleted) = deleted_root {
-                    info!(
+                    debug!(
                         "🗑️ Successfully deleted root sort: glyph='{}'",
                         deleted.kind.glyph_name()
                     );
                 }
-                info!(
+                debug!(
                     "🗑️ Text buffer cleared - buffer length after root deletion: {}",
                     self.buffer.len()
                 );
             }
         } else {
-            info!("🗑️ Cannot delete - no active buffer root found");
+            debug!("🗑️ Cannot delete - no active buffer root found");
         }
     }
 
@@ -858,7 +858,7 @@ impl TextEditorState {
                 // Clamp the position to valid range for this buffer sequence
                 let clamped_position = position.min(max_pos);
                 root_sort.buffer_cursor_position = Some(clamped_position);
-                info!(
+                debug!(
                     "Moved cursor to position {} in buffer root at index {}",
                     clamped_position, root_index
                 );
@@ -874,7 +874,7 @@ impl TextEditorState {
                 let current_pos = root_sort.buffer_cursor_position.unwrap_or(0);
                 if current_pos > 0 {
                     root_sort.buffer_cursor_position = Some(current_pos - 1);
-                    info!(
+                    debug!(
                         "Moved cursor left to position {} in buffer root at index {}",
                         current_pos - 1,
                         root_index
@@ -894,7 +894,7 @@ impl TextEditorState {
                 let current_pos = root_sort.buffer_cursor_position.unwrap_or(0);
                 if current_pos < max_pos {
                     root_sort.buffer_cursor_position = Some(current_pos + 1);
-                    info!(
+                    debug!(
                         "Moved cursor right to position {} in buffer root at index {}",
                         current_pos + 1,
                         root_index
@@ -923,7 +923,7 @@ impl TextEditorState {
                             prev_root.is_active = true;
                             // Set cursor to end of previous buffer
                             prev_root.buffer_cursor_position = Some(buffer_length);
-                            info!(
+                            debug!(
                                 "Moved up to buffer root at index {}, cursor at position {}",
                                 i, buffer_length
                             );
@@ -952,7 +952,7 @@ impl TextEditorState {
                             next_root.is_active = true;
                             // Set cursor to beginning of next buffer
                             next_root.buffer_cursor_position = Some(0);
-                            info!(
+                            debug!(
                                 "Moved down to buffer root at index {}, cursor at position 0",
                                 i
                             );
@@ -1089,7 +1089,7 @@ impl TextEditorState {
                 "Insert line break: Insert successful - buffer now has {} entries",
                 self.buffer.len()
             );
-            info!(
+            debug!(
                 "🔤 Inserted line break at buffer index {}",
                 insert_buffer_index
             );
@@ -1102,7 +1102,7 @@ impl TextEditorState {
                     "Insert line break: Updated cursor position to {} (after line break)",
                     new_cursor_pos
                 );
-                info!(
+                debug!(
                     "📍 Updated root cursor position to {} after line break",
                     new_cursor_pos
                 );

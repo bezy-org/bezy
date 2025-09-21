@@ -5,9 +5,33 @@
 
 use bevy::gizmos::{config::DefaultGizmoConfigGroup, config::GizmoConfigStore};
 use bevy::prelude::*;
+use bevy::log::{LogPlugin, Level};
 
 use crate::editing::sort::SortPlugin;
 use crate::ui::themes::CurrentTheme;
+
+/// Configure logging with performance optimization for release builds
+fn configure_logging() -> LogPlugin {
+    #[cfg(debug_assertions)]
+    {
+        // Debug builds: Show more detailed logging for development
+        LogPlugin {
+            level: Level::INFO,
+            filter: "bezy=info,bevy_render=warn,bevy_winit=warn,wgpu=warn,winit=warn".to_string(),
+            ..default()
+        }
+    }
+
+    #[cfg(not(debug_assertions))]
+    {
+        // Release builds: Quieter logging, focus on warnings and errors
+        LogPlugin {
+            level: Level::WARN,
+            filter: "bezy=warn,bevy=warn,wgpu=error,winit=error".to_string(),
+            ..default()
+        }
+    }
+}
 
 /// Configure default Bevy plugins for the application
 #[allow(dead_code)]
@@ -25,9 +49,7 @@ pub fn configure_default_plugins() -> bevy::app::PluginGroupBuilder {
             }),
             ..default()
         })
-        // Disable Bevy's default LogPlugin since we're using our own custom logger
-        .build()
-        .disable::<bevy::log::LogPlugin>()
+        .set(configure_logging())
 }
 
 /// System to configure gizmo appearance
@@ -35,7 +57,7 @@ fn configure_gizmos(mut gizmo_store: ResMut<GizmoConfigStore>, theme: Res<Curren
     let (config, _) = gizmo_store.config_mut::<DefaultGizmoConfigGroup>();
     let line_width = theme.theme().gizmo_line_width();
     config.line.width = line_width;
-    info!("Configured gizmo line width to {}px", line_width);
+    debug!("Configured gizmo line width to {}px", line_width);
 }
 
 /// Plugin to organize toolbar-related plugins

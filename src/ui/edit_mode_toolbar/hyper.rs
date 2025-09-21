@@ -227,7 +227,7 @@ pub fn handle_hyper_keyboard_events(
         hyper_state.is_drawing = false;
         hyper_state.points.clear();
         hyper_state.is_smooth.clear();
-        info!("Cancelled hyperbezier path");
+        debug!("Cancelled hyperbezier path");
     }
 }
 
@@ -352,7 +352,7 @@ fn create_hyper_contour(
                 points: contour_points,
             });
 
-            info!(
+            debug!(
                 "Created hyperbezier {} contour with {} points in glyph '{}'",
                 if closed { "closed" } else { "open" },
                 points.len(),

@@ -30,7 +30,7 @@ pub fn setup_camera(mut commands: Commands) {
     // This makes the design space origin appear at the center of the screen
     let camera_center_y = 0.0; // Center on design space origin
 
-    info!(
+    debug!(
         "Setting up camera at y={} to center on design space origin",
         camera_center_y
     );
@@ -91,7 +91,7 @@ fn toggle_camera_controls(mut query: Query<&mut PanCam>, keys: Res<ButtonInput<K
             } else {
                 "disabled"
             };
-            info!("Camera zoom to cursor {}", status);
+            debug!("Camera zoom to cursor {}", status);
         }
     }
 }

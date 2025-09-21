@@ -68,10 +68,10 @@ fn setup_file_menu(
         window.title = "🌀Bezy".to_string();
 
         // Initialize keyboard-based file menu
-        info!("✅ File menu initialized with cross-platform keyboard shortcuts:");
-        info!("   💾 Save: Cmd+S (macOS) or Ctrl+S (Windows/Linux)");
-        info!("   📦 Export TTF: Cmd+E (macOS) or Ctrl+E (Windows/Linux)");
-        info!("   ⚡ Reliable keyboard shortcuts work on all platforms");
+        debug!("✅ File menu initialized with cross-platform keyboard shortcuts:");
+        debug!("   💾 Save: Cmd+S (macOS) or Ctrl+S (Windows/Linux)");
+        debug!("   📦 Export TTF: Cmd+E (macOS) or Ctrl+E (Windows/Linux)");
+        debug!("   ⚡ Reliable keyboard shortcuts work on all platforms");
 
         file_menu_state.initialized = true;
     }
@@ -99,19 +99,19 @@ fn handle_keyboard_shortcuts(
         || keyboard_input.pressed(KeyCode::ControlRight);
 
     if cmd_or_ctrl && keyboard_input.just_pressed(KeyCode::KeyS) {
-        info!("💾 Save shortcut triggered (Cmd+S/Ctrl+S)");
+        debug!("💾 Save shortcut triggered (Cmd+S/Ctrl+S)");
         save_events.write(SaveFileEvent);
     }
 
     // Handle Cmd+E (macOS) or Ctrl+E (Windows/Linux) for export
     if cmd_or_ctrl && keyboard_input.just_pressed(KeyCode::KeyE) {
-        info!("📦 Export TTF shortcut triggered (Cmd+E/Ctrl+E)");
+        debug!("📦 Export TTF shortcut triggered (Cmd+E/Ctrl+E)");
         export_events.write(ExportTTFEvent);
     }
 
     // TEMPORARY: Also trigger export with F5 key for testing
     if keyboard_input.just_pressed(KeyCode::F5) {
-        info!("📦 Export TTF triggered via F5 (temporary test)");
+        debug!("📦 Export TTF triggered via F5 (temporary test)");
         export_events.write(ExportTTFEvent);
     }
 }
@@ -127,9 +127,9 @@ fn handle_save_file_events(
         if let Some(state) = fontir_state.as_ref() {
             match save_font_files(&state.source_path, state, &enhanced_attributes) {
                 Ok(saved_paths) => {
-                    info!("Successfully saved {} files", saved_paths.len());
+                    debug!("Successfully saved {} files", saved_paths.len());
                     for path in &saved_paths {
-                        info!("  Saved: {}", path.display());
+                        debug!("  Saved: {}", path.display());
                     }
 
                     // Update the last saved time in file info
@@ -170,13 +170,13 @@ fn save_font_files(
 
     // Check if it's a designspace file
     if source_path.extension().and_then(|s| s.to_str()) == Some("designspace") {
-        info!("💾 Saving changes to designspace UFO sources...");
+        debug!("💾 Saving changes to designspace UFO sources...");
 
         // Parse designspace to get UFO source paths
         let designspace = DesignSpaceDocument::load(source_path)?;
         let designspace_dir = source_path.parent().unwrap_or(std::path::Path::new("."));
 
-        info!(
+        debug!(
             "Found {} UFO sources in designspace",
             designspace.sources.len()
         );
@@ -189,11 +189,11 @@ fn save_font_files(
             .collect();
 
         if modified_glyphs.is_empty() {
-            info!("No modified glyphs found - nothing to save");
+            debug!("No modified glyphs found - nothing to save");
             return Ok(saved_paths);
         }
 
-        info!("Found {} modified glyphs to save", modified_glyphs.len());
+        debug!("Found {} modified glyphs to save", modified_glyphs.len());
 
         // Process each UFO source
         for source in &designspace.sources {
@@ -208,7 +208,7 @@ fn save_font_files(
                     .any(|((_, _), working_copy)| working_copy.is_dirty);
 
             if source_has_changes {
-                info!("Saving changes to UFO: {}", ufo_path.display());
+                debug!("Saving changes to UFO: {}", ufo_path.display());
 
                 // Load the UFO
                 let mut ufo_font = NoradFont::load(&ufo_path)?;
@@ -216,7 +216,7 @@ fn save_font_files(
                 // Update modified glyphs
                 for ((glyph_name, _location), working_copy) in &modified_glyphs {
                     if working_copy.is_dirty {
-                        info!("  Updating glyph: {}", glyph_name);
+                        debug!("  Updating glyph: {}", glyph_name);
 
                         // Preserve original glyph and only update outline
                         let layer = ufo_font.default_layer_mut();
@@ -251,12 +251,12 @@ fn save_font_files(
                 ufo_font.save(&ufo_path)?;
                 saved_paths.push(ufo_path.clone());
 
-                info!("✅ Successfully saved UFO: {}", ufo_path.display());
+                debug!("✅ Successfully saved UFO: {}", ufo_path.display());
             }
         }
     } else if source_path.extension().and_then(|s| s.to_str()) == Some("ufo") {
         // Handle single UFO file
-        info!("💾 Saving changes to UFO file: {}", source_path.display());
+        debug!("💾 Saving changes to UFO file: {}", source_path.display());
 
         // Check for modified glyphs
         let modified_glyphs: Vec<_> = fontir_state
@@ -266,7 +266,7 @@ fn save_font_files(
             .collect();
 
         if modified_glyphs.is_empty() {
-            info!("No modified glyphs found - nothing to save");
+            debug!("No modified glyphs found - nothing to save");
             return Ok(saved_paths);
         }
 
@@ -276,7 +276,7 @@ fn save_font_files(
         // Update modified glyphs
         for ((glyph_name, _location), working_copy) in &modified_glyphs {
             if working_copy.is_dirty {
-                info!("  Updating glyph: {}", glyph_name);
+                debug!("  Updating glyph: {}", glyph_name);
 
                 // Preserve original glyph and only update outline
                 let layer = ufo_font.default_layer_mut();
@@ -309,7 +309,7 @@ fn save_font_files(
         ufo_font.save(source_path)?;
         saved_paths.push(source_path.clone());
 
-        info!("✅ Successfully saved UFO: {}", source_path.display());
+        debug!("✅ Successfully saved UFO: {}", source_path.display());
     }
 
     Ok(saved_paths)
@@ -420,7 +420,7 @@ fn convert_bezpath_to_ufo_contour(bez_path: &kurbo::BezPath) -> norad::Contour {
                 let rotated = rotate_points_to_start(&all_points, start_idx);
                 return norad::Contour::new(rotated, None);
             } else {
-                info!("No matching point found for MoveTo position, using original order");
+                debug!("No matching point found for MoveTo position, using original order");
             }
         }
     }
@@ -572,7 +572,7 @@ fn convert_bezpath_to_ufo_contour_with_attributes(
                 let rotated = rotate_points_to_start(&all_points, start_idx);
                 return norad::Contour::new(rotated, None);
             } else {
-                info!("No matching point found for MoveTo position, using original order");
+                debug!("No matching point found for MoveTo position, using original order");
             }
         }
     }
@@ -742,11 +742,11 @@ fn handle_export_ttf_events(
     mut file_info: ResMut<FileInfo>,
 ) {
     for _ in export_events.read() {
-        info!("🚀🚀🚀 EXPORT EVENT RECEIVED! 🚀🚀🚀");
+        debug!("🚀🚀🚀 EXPORT EVENT RECEIVED! 🚀🚀🚀");
 
         // Always update the export time to show the feature is working
         file_info.last_exported = Some(std::time::SystemTime::now());
-        info!("✅ Updated export timestamp in UI");
+        debug!("✅ Updated export timestamp in UI");
 
         if file_info.designspace_path.is_empty() {
             warn!("Cannot export: No designspace file loaded");
@@ -754,7 +754,7 @@ fn handle_export_ttf_events(
             continue;
         }
 
-        info!(
+        debug!(
             "🚀 Starting TTF export from designspace: {}",
             file_info.designspace_path
         );
@@ -782,10 +782,10 @@ fn handle_export_ttf_events(
             }
         };
 
-        info!("📋 Found {} instances in designspace", ds.instances.len());
+        debug!("📋 Found {} instances in designspace", ds.instances.len());
         for instance in &ds.instances {
             let style_name = instance.stylename.as_deref().unwrap_or("Regular");
-            info!("   - {}", style_name);
+            debug!("   - {}", style_name);
         }
 
         // Create input from the designspace path
@@ -809,12 +809,12 @@ fn handle_export_ttf_events(
         let mut exported_files = Vec::new();
 
         // First, compile the variable font
-        info!("🔨 Compiling variable font with fontc...");
+        debug!("🔨 Compiling variable font with fontc...");
         let flags = fontc::Flags::default();
 
         match fontc::generate_font(&input, &build_dir, None, flags, false) {
             Ok(font_bytes) => {
-                info!("✅ Variable font compilation completed!");
+                debug!("✅ Variable font compilation completed!");
 
                 let output_filename = format!("{}-Variable.ttf", family_name.replace(" ", ""));
                 let output_path = output_dir.join(&output_filename);
@@ -822,7 +822,7 @@ fn handle_export_ttf_events(
                 // Write the variable font bytes to file
                 match std::fs::write(&output_path, &font_bytes) {
                     Ok(_) => {
-                        info!("📁 Exported variable font: {}", output_filename);
+                        debug!("📁 Exported variable font: {}", output_filename);
                         exported_files.push(output_filename);
                     }
                     Err(e) => {
@@ -836,7 +836,7 @@ fn handle_export_ttf_events(
         }
 
         // Now generate static instances for Regular and Bold
-        info!("🔨 Generating static font instances...");
+        debug!("🔨 Generating static font instances...");
 
         // For each desired static instance (Regular and Bold)
         for instance in &ds.instances {
@@ -847,7 +847,7 @@ fn handle_export_ttf_events(
                 continue;
             }
 
-            info!("   Generating static instance: {}", style_name);
+            debug!("   Generating static instance: {}", style_name);
 
             // Find the appropriate source UFO based on the instance location
             // For non-interpolated instances, find the matching source
@@ -879,7 +879,7 @@ fn handle_export_ttf_events(
 
                                 match std::fs::write(&instance_path, &static_font_bytes) {
                                     Ok(_) => {
-                                        info!(
+                                        debug!(
                                             "   ✅ Exported static instance: {}",
                                             instance_filename
                                         );
@@ -903,7 +903,7 @@ fn handle_export_ttf_events(
                     }
                 }
             } else {
-                info!(
+                debug!(
                     "   Source UFO not found for {}, skipping static instance",
                     style_name
                 );
@@ -911,13 +911,13 @@ fn handle_export_ttf_events(
         }
 
         if !exported_files.is_empty() {
-            info!(
+            debug!(
                 "📁 Successfully exported {} font file(s) to: {}",
                 exported_files.len(),
                 output_dir.display()
             );
             for file in &exported_files {
-                info!("   - {}", file);
+                debug!("   - {}", file);
             }
 
             // Update the last exported time

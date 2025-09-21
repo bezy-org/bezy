@@ -41,6 +41,6 @@ impl Plugin for FontEditorSystemSetsPlugin {
                 .chain(),
         );
 
-        info!("FontEditor system sets configured with guaranteed execution order");
+        debug!("FontEditor system sets configured with guaranteed execution order");
     }
 }

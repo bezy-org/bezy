@@ -94,17 +94,17 @@ impl EditTool for AiTool {
     }
 
     fn on_activate(&mut self, _commands: &mut Commands) {
-        info!("AI tool activated - Enhanced features:");
-        info!("• Auto Kerning: Intelligent character spacing");
-        info!("• Language Support: Expand script coverage");
-        info!("• Optical Correction: Visual harmony adjustments");
-        info!("• Weight Consistency: Fix thickness variations");
-        info!("• Curve Smoothing: Mathematical optimization");
-        info!("• Tab to switch between AI operations");
+        debug!("AI tool activated - Enhanced features:");
+        debug!("• Auto Kerning: Intelligent character spacing");
+        debug!("• Language Support: Expand script coverage");
+        debug!("• Optical Correction: Visual harmony adjustments");
+        debug!("• Weight Consistency: Fix thickness variations");
+        debug!("• Curve Smoothing: Mathematical optimization");
+        debug!("• Tab to switch between AI operations");
     }
 
     fn on_deactivate(&mut self, _commands: &mut Commands) {
-        info!("AI tool deactivated");
+        debug!("AI tool deactivated");
     }
 }
 
@@ -195,7 +195,7 @@ pub fn spawn_ai_submenu(
             }
         });
 
-    info!("Spawned AI submenu with {} operations", operations.len());
+    debug!("Spawned AI submenu with {} operations", operations.len());
 }
 
 pub fn handle_ai_operation_selection(
@@ -221,7 +221,7 @@ pub fn handle_ai_operation_selection(
 
         if *interaction == Interaction::Pressed && !is_current_operation {
             current_operation.0 = operation_button.operation;
-            info!("Switched to AI operation: {:?}", operation_button.operation);
+            debug!("Switched to AI operation: {:?}", operation_button.operation);
         }
 
         // Use the unified button color system for consistent appearance with main toolbar
@@ -293,7 +293,7 @@ pub fn handle_ai_tool_shortcuts(
         && !should_disable
     {
         current_tool.switch_to("ai");
-        info!("Activated AI tool via keyboard shortcut");
+        debug!("Activated AI tool via keyboard shortcut");
         keyboard_input.clear_just_pressed(KeyCode::KeyA);
     }
 
@@ -307,38 +307,38 @@ pub fn handle_ai_tool_shortcuts(
             AiOperation::CurveSmoothing => AiOperation::Kerning,
         };
         current_operation.0 = new_operation;
-        info!("Switched AI operation to: {:?}", new_operation);
+        debug!("Switched AI operation to: {:?}", new_operation);
         keyboard_input.clear_just_pressed(KeyCode::Tab);
     }
 
     // Show help with F1
     if current_tool.get_current() == Some("ai") && keyboard_input.just_pressed(KeyCode::F1) {
-        info!("=== AI TOOL HELP ===");
-        info!("A - Activate AI tool");
-        info!("Tab - Switch between AI operations");
-        info!("Enter - Execute current AI operation");
-        info!("AI OPERATIONS:");
-        info!("  • Auto Kerning - Intelligent character spacing");
-        info!("  • Language Support - Expand script coverage");
-        info!("  • Optical Correction - Visual harmony adjustments");
-        info!("  • Weight Consistency - Fix thickness variations");
-        info!("  • Curve Smoothing - Mathematical optimization");
-        info!("Escape - Exit AI tool");
-        info!("F1 - Show this help");
-        info!("==================");
+        debug!("=== AI TOOL HELP ===");
+        debug!("A - Activate AI tool");
+        debug!("Tab - Switch between AI operations");
+        debug!("Enter - Execute current AI operation");
+        debug!("AI OPERATIONS:");
+        debug!("  • Auto Kerning - Intelligent character spacing");
+        debug!("  • Language Support - Expand script coverage");
+        debug!("  • Optical Correction - Visual harmony adjustments");
+        debug!("  • Weight Consistency - Fix thickness variations");
+        debug!("  • Curve Smoothing - Mathematical optimization");
+        debug!("Escape - Exit AI tool");
+        debug!("F1 - Show this help");
+        debug!("==================");
     }
 
     // Exit AI tool with Escape
     if current_tool.get_current() == Some("ai") && keyboard_input.just_pressed(KeyCode::Escape) {
         if let Some(previous_tool) = current_tool.get_previous() {
             current_tool.switch_to(previous_tool);
-            info!(
+            debug!(
                 "Exited AI tool via Escape key, returned to: {}",
                 previous_tool
             );
         } else {
             current_tool.switch_to("select");
-            info!("Exited AI tool via Escape key, returned to select tool");
+            debug!("Exited AI tool via Escape key, returned to select tool");
         }
     }
 }
@@ -357,29 +357,29 @@ pub fn execute_ai_operations(
     if keyboard_input.just_pressed(KeyCode::Enter) {
         match current_operation.0 {
             AiOperation::Kerning => {
-                info!("🤖 Executing Auto Kerning...");
-                info!("   Analyzing character pairs for optimal spacing");
-                info!("   [PLACEHOLDER] This feature will be implemented later");
+                debug!("🤖 Executing Auto Kerning...");
+                debug!("   Analyzing character pairs for optimal spacing");
+                debug!("   [PLACEHOLDER] This feature will be implemented later");
             }
             AiOperation::LanguageSupport => {
-                info!("🤖 Executing Language Support Expansion...");
-                info!("   Analyzing missing glyphs for target languages");
-                info!("   [PLACEHOLDER] This feature will be implemented later");
+                debug!("🤖 Executing Language Support Expansion...");
+                debug!("   Analyzing missing glyphs for target languages");
+                debug!("   [PLACEHOLDER] This feature will be implemented later");
             }
             AiOperation::OpticalAdjustment => {
-                info!("🤖 Executing Optical Corrections...");
-                info!("   Analyzing visual balance and harmony");
-                info!("   [PLACEHOLDER] This feature will be implemented later");
+                debug!("🤖 Executing Optical Corrections...");
+                debug!("   Analyzing visual balance and harmony");
+                debug!("   [PLACEHOLDER] This feature will be implemented later");
             }
             AiOperation::WeightFix => {
-                info!("🤖 Executing Weight Consistency Fixes...");
-                info!("   Analyzing stroke thickness variations");
-                info!("   [PLACEHOLDER] This feature will be implemented later");
+                debug!("🤖 Executing Weight Consistency Fixes...");
+                debug!("   Analyzing stroke thickness variations");
+                debug!("   [PLACEHOLDER] This feature will be implemented later");
             }
             AiOperation::CurveSmoothing => {
-                info!("🤖 Executing Curve Smoothing...");
-                info!("   Optimizing mathematical precision of curves");
-                info!("   [PLACEHOLDER] This feature will be implemented later");
+                debug!("🤖 Executing Curve Smoothing...");
+                debug!("   Optimizing mathematical precision of curves");
+                debug!("   [PLACEHOLDER] This feature will be implemented later");
             }
         }
     }

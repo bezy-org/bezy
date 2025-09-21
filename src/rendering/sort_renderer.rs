@@ -46,7 +46,7 @@ pub fn manage_sort_labels(
 ) {
     // Early return if AppState not available
     let Some(app_state) = app_state else {
-        warn!("Sort labels skipped - AppState not available (using FontIR)");
+        debug!("Sort labels skipped - AppState not available (using FontIR)");
         return;
     };
 

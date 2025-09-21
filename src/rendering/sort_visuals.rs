@@ -181,7 +181,7 @@ pub fn render_mesh_sort_handles(
     // Hide sort handles in presentation mode
     let presentation_active = presentation_mode.is_some_and(|pm| pm.active);
     if presentation_active {
-        info!("🎭 Sort handles hidden for presentation mode");
+        debug!("🎭 Sort handles hidden for presentation mode");
         return;
     }
 
@@ -367,7 +367,7 @@ pub fn handle_sort_selection_and_drag_start(
                 // In multi-select mode, clicking a selected item deselects it
                 if let Ok(mut entity_commands) = commands.get_entity(sort_entity) {
                     entity_commands.remove::<Selected>();
-                    info!(
+                    debug!(
                         "Deselected sort {:?} via handle click (multi-select)",
                         sort_entity
                     );
@@ -383,7 +383,7 @@ pub fn handle_sort_selection_and_drag_start(
                 // Select the clicked sort
                 if let Ok(mut entity_commands) = commands.get_entity(sort_entity) {
                     entity_commands.insert(Selected);
-                    info!("Selected sort {:?} via handle click", sort_entity);
+                    debug!("Selected sort {:?} via handle click", sort_entity);
                 } else {
                     debug!(
                         "Skipping selection for non-existent entity {:?}",
@@ -408,13 +408,13 @@ pub fn handle_sort_selection_and_drag_start(
                         if let Ok(buffer_index) = buffer_index_query.get(entity) {
                             warn!("HANDLE SYSTEM: Deactivated BUFFER sort {:?} (index {}) - should show filled rendering!", entity, buffer_index.0);
                         } else {
-                            info!("HANDLE DEBUG: Deactivated non-buffer sort {:?} via handle selection", entity);
+                            debug!("HANDLE DEBUG: Deactivated non-buffer sort {:?} via handle selection", entity);
                         }
 
                         // DEBUG: Check if this is a buffer sort (which should get filled rendering when inactive)
                         if let Ok(_entity_ref) = commands.get_entity(entity) {
                             // We can't directly query components from EntityCommands, so let's add a marker
-                            info!("HANDLE DEBUG: Deactivated sort {:?} - checking if it's a buffer sort for filled rendering", entity);
+                            debug!("HANDLE DEBUG: Deactivated sort {:?} - checking if it's a buffer sort for filled rendering", entity);
                         }
                     } else {
                         debug!("Skipping deactivation for non-existent entity {:?}", entity);
@@ -427,7 +427,7 @@ pub fn handle_sort_selection_and_drag_start(
                 entity_commands
                     .remove::<crate::editing::sort::InactiveSort>()
                     .insert(crate::editing::sort::ActiveSort);
-                info!("HANDLE DEBUG: Activated sort {:?} via handle selection (should get green metrics)", sort_entity);
+                debug!("HANDLE DEBUG: Activated sort {:?} via handle selection (should get green metrics)", sort_entity);
             } else {
                 debug!(
                     "Skipping activation for non-existent entity {:?}",
@@ -456,11 +456,11 @@ pub fn handle_sort_selection_and_drag_start(
                 // Activate the selected sort in text editor state
                 if let Some(sort_entry) = text_editor_state.buffer.get_mut(buffer_index.0) {
                     sort_entry.is_active = true;
-                    info!("Activated buffer sort {} via handle click", buffer_index.0);
+                    debug!("Activated buffer sort {} via handle click", buffer_index.0);
                 }
             }
 
-            info!("Activated sort {:?} via handle click", sort_entity);
+            debug!("Activated sort {:?} via handle click", sort_entity);
 
             // Start dragging
             if let Ok((_, sort_transform, _)) = sort_query.get(sort_entity) {
@@ -468,7 +468,7 @@ pub fn handle_sort_selection_and_drag_start(
                 drag_state.dragging_sort = Some(sort_entity);
                 drag_state.drag_offset = sort_position - world_position;
                 drag_state.initial_position = sort_position;
-                info!(
+                debug!(
                     "Started dragging sort {:?} from position {:?}",
                     sort_entity, sort_position
                 );
@@ -553,7 +553,7 @@ pub fn handle_sort_drag_update(
                                     }
                                 }
                             }
-                            info!("Moved text sort group by delta: {:?}", delta);
+                            debug!("Moved text sort group by delta: {:?}", delta);
                         }
                         crate::core::state::SortLayoutMode::Freeform => {
                             // Freeform sorts move individually
@@ -578,7 +578,7 @@ pub fn handle_sort_drag_release(
 ) {
     if drag_state.dragging_sort.is_some() && mouse_button_input.just_released(MouseButton::Left) {
         if let Some(dragging_sort) = drag_state.dragging_sort.take() {
-            info!("Stopped dragging sort {:?}", dragging_sort);
+            debug!("Stopped dragging sort {:?}", dragging_sort);
 
             // Update the text editor state with the new position if applicable
             if let (Some(text_editor_state), Ok((_, buffer_index)), Ok(transform)) = (
@@ -589,7 +589,7 @@ pub fn handle_sort_drag_release(
                 if let Some(sort_entry) = text_editor_state.buffer.get_mut(buffer_index.0) {
                     let new_position = transform.translation.truncate();
                     sort_entry.root_position = new_position;
-                    info!(
+                    debug!(
                         "Updated buffer sort {} position to {:?}",
                         buffer_index.0, new_position
                     );

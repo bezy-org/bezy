@@ -22,12 +22,12 @@ impl EditTool for MeasureTool {
 
     fn on_activate(&mut self, commands: &mut Commands) {
         commands.insert_resource(crate::core::io::input::InputMode::Temporary);
-        info!("Measure tool activated");
+        debug!("Measure tool activated");
     }
 
     fn on_deactivate(&mut self, commands: &mut Commands) {
         commands.insert_resource(crate::core::io::input::InputMode::Normal);
-        info!("Measure tool deactivated");
+        debug!("Measure tool deactivated");
     }
 }
 

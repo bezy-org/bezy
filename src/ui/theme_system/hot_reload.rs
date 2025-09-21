@@ -66,7 +66,7 @@ pub fn hot_reload_themes(
 
             // If file was modified since last check, reload the theme
             if last_check.is_none_or(|last| modified > last) {
-                info!("Theme file {} was modified, reloading...", theme_file);
+                debug!("Theme file {} was modified, reloading...", theme_file);
                 hot_reload
                     .last_modified
                     .insert(theme_file.clone(), modified);
@@ -75,7 +75,7 @@ pub fn hot_reload_themes(
                 let variant = current_theme.variant.clone();
                 current_theme.switch_to(variant);
 
-                info!("Theme reloaded successfully!");
+                debug!("Theme reloaded successfully!");
             }
         }
     }
@@ -94,12 +94,12 @@ impl Plugin for ThemeHotReloadPlugin {
                 .add_systems(Update, hot_reload_themes);
 
             if embedded_themes::user_themes_dir_exists() {
-                info!(
+                debug!(
                     "Theme hot reloading enabled! Edit themes in {:?} to see changes live.",
                     embedded_themes::get_user_themes_dir()
                 );
             } else {
-                info!("Theme hot reloading enabled (no user themes directory found).");
+                debug!("Theme hot reloading enabled (no user themes directory found).");
             }
         }
     }
@@ -117,6 +117,6 @@ pub fn reload_theme_on_keypress(
     if ctrl_held && keyboard.just_pressed(KeyCode::KeyR) {
         let variant = current_theme.variant.clone();
         current_theme.switch_to(variant);
-        info!("Theme reloaded!");
+        debug!("Theme reloaded!");
     }
 }

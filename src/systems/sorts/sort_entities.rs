@@ -30,7 +30,7 @@ pub struct BufferSortRespawnQueue {
 pub fn initialize_text_editor_sorts(mut commands: Commands) {
     commands.init_resource::<BufferSortEntities>();
     commands.init_resource::<BufferSortRespawnQueue>();
-    info!("Initialized text editor sorts system");
+    debug!("Initialized text editor sorts system");
 }
 
 /// Manage sort activation based on mouse clicks
@@ -46,17 +46,17 @@ pub fn manage_sort_activation(
     ui_hover_state: Res<crate::systems::ui_interaction::UiHoverState>,
 ) {
     // System is working - debug confirmed
-    // info!("[manage_sort_activation] System called, ui_hover_state.is_hovering_ui = {}", ui_hover_state.is_hovering_ui);
+    // debug!("[manage_sort_activation] System called, ui_hover_state.is_hovering_ui = {}", ui_hover_state.is_hovering_ui);
 
     // Don't process clicks when hovering over UI
     if ui_hover_state.is_hovering_ui {
-        info!("[manage_sort_activation] Skipping - hovering over UI");
+        debug!("[manage_sort_activation] Skipping - hovering over UI");
         return;
     }
 
     // Check for left mouse click
     if !mouse_button_input.just_pressed(MouseButton::Left) {
-        // info!("[manage_sort_activation] No left mouse click this frame");
+        // debug!("[manage_sort_activation] No left mouse click this frame");
         return;
     }
 
@@ -69,7 +69,7 @@ pub fn manage_sort_activation(
         return;
     };
 
-    info!(
+    debug!(
         "[manage_sort_activation] Left mouse button pressed at screen pos: {:?}",
         window.cursor_position()
     );
@@ -122,7 +122,7 @@ pub fn manage_sort_activation(
             commands
                 .entity(entity)
                 .insert(crate::editing::selection::components::Selected);
-            info!(
+            debug!(
                 "Selected sort '{}' at position ({:.1}, {:.1})",
                 sort.glyph_name, sort_position.x, sort_position.y
             );
@@ -175,7 +175,7 @@ fn calculate_buffer_local_position(
         .iter()
         .position(|(idx, _)| *idx == global_buffer_index)?;
 
-    info!(
+    debug!(
         "🔍 ECS POSITIONING: Sort at global[{}] is buffer-local[{}] in buffer {:?} with {} total sorts",
         global_buffer_index, buffer_local_index, buffer_id.0, buffer_sorts.len()
     );
@@ -222,7 +222,7 @@ fn calculate_buffer_local_position(
 
     let final_position = Vec2::new(root_position.x + x_offset, root_position.y + y_offset);
 
-    info!(
+    debug!(
         "🎯 ECS POSITIONING: buffer-local[{}] '{}' at ({:.1}, {:.1}) (x_offset={:.1})",
         buffer_local_index,
         sort_entry.kind.glyph_name(),
@@ -251,13 +251,13 @@ pub fn spawn_missing_sort_entities(
 ) {
     // Debug: Log buffer state (only when buffer has content to reduce spam)
     if !text_editor_state.buffer.is_empty() {
-        info!(
+        debug!(
             "📋 spawn_missing_sort_entities: Processing {} buffer entries",
             text_editor_state.buffer.len()
         );
         for i in 0..text_editor_state.buffer.len() {
             if let Some(sort) = text_editor_state.buffer.get(i) {
-                info!(
+                debug!(
                     "  📋 Buffer[{}]: glyph='{}', is_active={}, layout_mode={:?}, pos=({:.1},{:.1})",
                     i,
                     sort.kind.glyph_name(),
@@ -274,7 +274,7 @@ pub fn spawn_missing_sort_entities(
     let mut buffer_id_to_entity = std::collections::HashMap::new();
     for (buffer_entity, text_buffer) in buffer_entity_query.iter() {
         buffer_id_to_entity.insert(text_buffer.id, buffer_entity);
-        info!(
+        debug!(
             "🔗 BUFFER MAPPING: BufferId {:?} -> Entity {:?}",
             text_buffer.id.0, buffer_entity
         );
@@ -283,7 +283,7 @@ pub fn spawn_missing_sort_entities(
     // Handle respawn requests first
     for &index in &respawn_queue.indices {
         if let Some(entity) = buffer_entities.entities.remove(&index) {
-            info!(
+            debug!(
                 "🔄 Respawning entity for buffer index {} due to content change",
                 index
             );
@@ -296,11 +296,11 @@ pub fn spawn_missing_sort_entities(
     for i in 0..text_editor_state.buffer.len() {
         // Skip if we already have an entity for this buffer index
         if buffer_entities.entities.contains_key(&i) {
-            warn!("🔄 spawn_missing_sort_entities: Entity already exists for buffer index {} - SKIPPING", i);
+            debug!("🔄 spawn_missing_sort_entities: Entity already exists for buffer index {} - SKIPPING", i);
             continue;
         }
 
-        warn!("🆕 spawn_missing_sort_entities: No entity exists for buffer index {} - SPAWNING NEW ENTITY", i);
+        debug!("🆕 spawn_missing_sort_entities: No entity exists for buffer index {} - SPAWNING NEW ENTITY", i);
 
         if let Some(sort_entry) = text_editor_state.buffer.get(i) {
             // Skip spawning entities for line breaks - they are invisible
@@ -348,7 +348,7 @@ pub fn spawn_missing_sort_entities(
                         &buffer_id_to_entity,
                         &buffer_entity_query,
                     );
-                    warn!(
+                    debug!(
                         "🔍 ECS ENTITY POSITIONING: buffer[{}] calculated at {:?}",
                         i, calculated_pos
                     );
@@ -358,7 +358,7 @@ pub fn spawn_missing_sort_entities(
             };
 
             if let Some(position) = position {
-                warn!("🎯 spawn_missing_sort_entities: Got position ({:.1}, {:.1}) for buffer index {}", position.x, position.y, i);
+                debug!("🎯 spawn_missing_sort_entities: Got position ({:.1}, {:.1}) for buffer index {}", position.x, position.y, i);
 
                 // Create Sort component
                 let sort = Sort {
@@ -385,11 +385,11 @@ pub fn spawn_missing_sort_entities(
                 let should_be_active = sort_entry.is_active;
                 if should_be_active {
                     entity_commands.insert(ActiveSort);
-                    warn!("🟢 Spawned ACTIVE sort entity for buffer index {} at position ({:.1}, {:.1}) - glyph '{}' (is_active: {})", 
+                    debug!("🟢 Spawned ACTIVE sort entity for buffer index {} at position ({:.1}, {:.1}) - glyph '{}' (is_active: {})",
                            i, position.x, position.y, sort_entry.kind.glyph_name(), sort_entry.is_active);
                 } else {
                     entity_commands.insert(InactiveSort);
-                    warn!("🔴 Spawned INACTIVE sort entity for buffer index {} at position ({:.1}, {:.1}) - glyph '{}' (is_active: {})", 
+                    debug!("🔴 Spawned INACTIVE sort entity for buffer index {} at position ({:.1}, {:.1}) - glyph '{}' (is_active: {})",
                            i, position.x, position.y, sort_entry.kind.glyph_name(), sort_entry.is_active);
                 }
 
@@ -415,20 +415,20 @@ pub fn spawn_missing_sort_entities(
                             ),
                         );
 
-                        info!("🔗 BUFFER MEMBERSHIP: Linked sort entity {:?} to buffer entity {:?} at buffer-local index {}", 
+                        debug!("🔗 BUFFER MEMBERSHIP: Linked sort entity {:?} to buffer entity {:?} at buffer-local index {}", 
                               entity, buffer_entity, buffer_local_index);
                     } else {
                         warn!("❌ No buffer entity found for buffer_id {:?} - sort will not have BufferMember component", buffer_id.0);
                     }
                 } else {
-                    info!("ℹ️ Sort at buffer[{}] has no buffer_id - adding as freeform sort (no BufferMember)", i);
+                    debug!("ℹ️ Sort at buffer[{}] has no buffer_id - adding as freeform sort (no BufferMember)", i);
                 }
 
                 // Track the entity
                 buffer_entities.entities.insert(i, entity);
 
                 // Debug logging
-                info!(
+                debug!(
                     "✅ Spawned buffer sort entity {} for glyph '{}' at position ({:.1}, {:.1})",
                     i,
                     sort_entry.kind.glyph_name(),
@@ -436,7 +436,7 @@ pub fn spawn_missing_sort_entities(
                     position.y
                 );
             } else {
-                warn!("❌ spawn_missing_sort_entities: Failed to get position for buffer sort index {} - SKIPPING ENTITY SPAWN", i);
+                debug!("❌ spawn_missing_sort_entities: Failed to get position for buffer sort index {} - SKIPPING ENTITY SPAWN", i);
             }
         }
     }
@@ -483,7 +483,7 @@ pub fn update_buffer_sort_positions(
     } else if let Some(app_state) = app_state.as_ref() {
         app_state.workspace.info.metrics.clone()
     } else {
-        warn!("Buffer sort position updates skipped - no font data available");
+        debug!("Buffer sort position updates skipped - no font data available");
         return;
     };
 
@@ -511,7 +511,7 @@ pub fn update_buffer_sort_positions(
                             &buffer_id_to_entity,
                             &buffer_entity_query,
                         );
-                        warn!(
+                        debug!(
                             "🔍 ECS POSITION UPDATE: buffer[{}] calculated at {:?}",
                             buffer_index, calculated_pos
                         );
@@ -523,7 +523,7 @@ pub fn update_buffer_sort_positions(
                 if let Some(new_pos) = new_position {
                     let new_pos_3d = new_pos.extend(transform.translation.z);
                     transform.translation = new_pos_3d;
-                    info!(
+                    debug!(
                         "Sort {} positioned at ({:.1}, {:.1})",
                         buffer_index, new_pos.x, new_pos.y
                     );
@@ -553,7 +553,7 @@ pub fn auto_activate_selected_sorts(
 
     // Debug: Log when this system runs and what it finds
     if selected_count > 0 || active_count > 0 {
-        info!(
+        debug!(
             "auto_activate_selected_sorts: selected={}, active={}",
             selected_count, active_count
         );
@@ -581,7 +581,7 @@ pub fn auto_activate_selected_sorts(
                     // Update text editor state to deactivate the sort
                     if let Ok(buffer_index) = buffer_index_query.get(active_entity) {
                         if let Some(sort) = text_editor_state.buffer.get_mut(buffer_index.0) {
-                            info!(
+                            debug!(
                                 "🔻 Deactivating buffer sort {} - glyph '{}'",
                                 buffer_index.0,
                                 sort.kind.glyph_name()
@@ -598,14 +598,14 @@ pub fn auto_activate_selected_sorts(
 
             // Update text editor state to activate the sort
             if let Some(buffer_index) = selected_buffer_index {
-                info!(
+                debug!(
                     "🔼 Activating buffer sort {} via auto_activate_selected_sorts",
                     buffer_index
                 );
                 text_editor_state.activate_sort(buffer_index);
             }
 
-            info!("Auto-activated selected sort {:?}", selected_sort);
+            debug!("Auto-activated selected sort {:?}", selected_sort);
         }
     } else if selected_count == 0 {
         // No sorts selected - keep current state for now
@@ -654,7 +654,7 @@ pub fn sync_buffer_sort_activation_state(
                     commands.entity(entity).remove::<InactiveSort>();
                 }
                 commands.entity(entity).insert(ActiveSort);
-                info!(
+                debug!(
                     "🟢 ACTIVATION SYNC: Activated entity for buffer[{}] - glyph '{}'",
                     buffer_index,
                     sort_entry.kind.glyph_name()
@@ -663,7 +663,7 @@ pub fn sync_buffer_sort_activation_state(
                 // Should be inactive but is active - deactivate it
                 commands.entity(entity).remove::<ActiveSort>();
                 commands.entity(entity).insert(InactiveSort);
-                info!(
+                debug!(
                     "🔴 ACTIVATION SYNC: Deactivated entity for buffer[{}] - glyph '{}'",
                     buffer_index,
                     sort_entry.kind.glyph_name()
@@ -693,17 +693,17 @@ pub fn despawn_missing_buffer_sort_entities(
     sort_unicode_text_query: Query<(Entity, &crate::rendering::sort_renderer::SortUnicodeText)>,
 ) {
     // Always log to see if system is running
-    info!("🔍 despawn_missing_buffer_sort_entities: SYSTEM CALLED - Buffer length: {}, Tracked entities: {}", 
+    debug!("🔍 despawn_missing_buffer_sort_entities: SYSTEM CALLED - Buffer length: {}, Tracked entities: {}", 
           text_editor_state.buffer.len(), buffer_entities.entities.len());
 
     // Debug: Log current state
     if !buffer_entities.entities.is_empty() {
-        info!("despawn_missing_buffer_sort_entities: Checking {} tracked entities against buffer length {}", 
+        debug!("despawn_missing_buffer_sort_entities: Checking {} tracked entities against buffer length {}", 
               buffer_entities.entities.len(), text_editor_state.buffer.len());
 
         // Log all tracked entities
         for (&idx, &entity) in buffer_entities.entities.iter() {
-            info!("  Tracked entity: buffer[{}] -> entity {:?}", idx, entity);
+            debug!("  Tracked entity: buffer[{}] -> entity {:?}", idx, entity);
         }
     }
 
@@ -715,7 +715,7 @@ pub fn despawn_missing_buffer_sort_entities(
     for (&buffer_index, &entity) in buffer_entities.entities.iter() {
         // Break early if we've hit our despawn limit for this frame
         if despawn_operations >= MAX_DESPAWN_PER_FRAME {
-            info!(
+            debug!(
                 "⚠️ Reached despawn limit ({}) for this frame - will continue next frame",
                 MAX_DESPAWN_PER_FRAME
             );
@@ -725,7 +725,7 @@ pub fn despawn_missing_buffer_sort_entities(
         if buffer_index >= text_editor_state.buffer.len() {
             // Buffer index no longer exists, despawn entity
             if sort_query.get(entity).is_ok() {
-                info!(
+                debug!(
                     "🗑️ Despawning sort entity for deleted buffer index {} (buffer len: {})",
                     buffer_index,
                     text_editor_state.buffer.len()
@@ -737,18 +737,22 @@ pub fn despawn_missing_buffer_sort_entities(
                 // Despawn all glyph elements (points, outlines, handles)
                 if let Some(element_entities) = glyph_entities.elements.get(&entity) {
                     for &element_entity in element_entities.iter() {
-                        commands.entity(element_entity).despawn();
-                        glyph_count += 1;
-                        despawn_operations += 1;
+                        if let Ok(mut entity_commands) = commands.get_entity(element_entity) {
+                            entity_commands.despawn();
+                            glyph_count += 1;
+                            despawn_operations += 1;
+                        }
                     }
                 }
 
                 // Also despawn any loose glyph elements that might not be tracked
                 for (glyph_entity, glyph_element) in glyph_element_query.iter() {
                     if glyph_element.sort_entity == entity {
-                        commands.entity(glyph_entity).despawn();
-                        glyph_count += 1;
-                        despawn_operations += 1;
+                        if let Ok(mut entity_commands) = commands.get_entity(glyph_entity) {
+                            entity_commands.despawn();
+                            glyph_count += 1;
+                            despawn_operations += 1;
+                        }
                     }
                 }
 
@@ -757,9 +761,11 @@ pub fn despawn_missing_buffer_sort_entities(
                 for point_entity in point_query.iter() {
                     if let Ok(sort_point) = sort_point_query.get(point_entity) {
                         if sort_point.sort_entity == entity {
-                            commands.entity(point_entity).despawn();
-                            point_count += 1;
-                            despawn_operations += 1;
+                            if let Ok(mut entity_commands) = commands.get_entity(point_entity) {
+                                entity_commands.despawn();
+                                point_count += 1;
+                                despawn_operations += 1;
+                            }
                         }
                     }
                 }
@@ -773,36 +779,42 @@ pub fn despawn_missing_buffer_sort_entities(
                 // Despawn glyph name text entities
                 for (text_entity, name_text) in sort_name_text_query.iter() {
                     if name_text.sort_entity == entity {
-                        commands.entity(text_entity).despawn();
-                        label_count += 1;
-                        despawn_operations += 1;
+                        if let Ok(mut entity_commands) = commands.get_entity(text_entity) {
+                            entity_commands.despawn();
+                            label_count += 1;
+                            despawn_operations += 1;
+                        }
                     }
                 }
 
                 // Despawn unicode text entities
                 for (text_entity, unicode_text) in sort_unicode_text_query.iter() {
                     if unicode_text.sort_entity == entity {
-                        commands.entity(text_entity).despawn();
-                        label_count += 1;
-                        despawn_operations += 1;
+                        if let Ok(mut entity_commands) = commands.get_entity(text_entity) {
+                            entity_commands.despawn();
+                            label_count += 1;
+                            despawn_operations += 1;
+                        }
                     }
                 }
 
                 // Despawn all metrics line entities associated with this sort
                 if let Some(metrics_entity_list) = metrics_entities.lines.get(&entity) {
-                    info!(
+                    debug!(
                         "🗑️ CLEANING UP METRICS: Found {} metrics entities for sort {:?}",
                         metrics_entity_list.len(),
                         entity
                     );
                     for &metrics_entity in metrics_entity_list.iter() {
-                        info!("🗑️ Despawning metrics entity {:?}", metrics_entity);
-                        commands.entity(metrics_entity).despawn();
-                        metrics_count += 1;
-                        despawn_operations += 1;
+                        debug!("🗑️ Despawning metrics entity {:?}", metrics_entity);
+                        if let Ok(mut entity_commands) = commands.get_entity(metrics_entity) {
+                            entity_commands.despawn();
+                            metrics_count += 1;
+                            despawn_operations += 1;
+                        }
                     }
                 } else {
-                    info!(
+                    debug!(
                         "⚠️ NO METRICS FOUND: Sort {:?} has no metrics entities to clean up",
                         entity
                     );
@@ -812,13 +824,15 @@ pub fn despawn_missing_buffer_sort_entities(
                 let mut handle_count = 0;
                 if let Some(handle_entity_list) = handle_entities.handles.get(&entity) {
                     for &handle_entity in handle_entity_list.iter() {
-                        commands.entity(handle_entity).despawn();
-                        handle_count += 1;
-                        despawn_operations += 1;
+                        if let Ok(mut entity_commands) = commands.get_entity(handle_entity) {
+                            entity_commands.despawn();
+                            handle_count += 1;
+                            despawn_operations += 1;
+                        }
                     }
                 }
 
-                info!("🗑️ Despawned {} glyph elements, {} point entities, {} metrics line entities, {} label entities, and {} handle entities for sort {:?} (total operations: {})", 
+                debug!("🗑️ Despawned {} glyph elements, {} point entities, {} metrics line entities, {} label entities, and {} handle entities for sort {:?} (total operations: {})", 
                       glyph_count, point_count, metrics_count, label_count, handle_count, entity, despawn_operations);
 
                 // Remove from glyph render tracking
@@ -831,8 +845,10 @@ pub fn despawn_missing_buffer_sort_entities(
                 handle_entities.handles.remove(&entity);
 
                 // Finally, despawn the sort entity itself
-                commands.entity(entity).despawn();
-                despawn_operations += 1;
+                if let Ok(mut entity_commands) = commands.get_entity(entity) {
+                    entity_commands.despawn();
+                    despawn_operations += 1;
+                }
                 to_remove.push(buffer_index);
             } else {
                 warn!(
@@ -850,15 +866,15 @@ pub fn despawn_missing_buffer_sort_entities(
     // Remove from tracking
     for index in to_remove {
         buffer_entities.entities.remove(&index);
-        info!("🗑️ Removed buffer index {} from entity tracking", index);
+        debug!("🗑️ Removed buffer index {} from entity tracking", index);
     }
 
     // Log final summary
     if despawn_operations > 0 {
-        info!("📊 despawn_missing_buffer_sort_entities: Completed {} total despawn operations this frame (despawned {} sorts)", despawn_operations, despawn_count);
+        debug!("📊 despawn_missing_buffer_sort_entities: Completed {} total despawn operations this frame (despawned {} sorts)", despawn_operations, despawn_count);
     }
 
     if despawn_count > 0 {
-        info!("🗑️ Despawned {} entities total", despawn_count);
+        debug!("🗑️ Despawned {} entities total", despawn_count);
     }
 }

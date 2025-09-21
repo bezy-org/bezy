@@ -437,7 +437,7 @@ impl Plugin for EntityPoolingPlugin {
 /// System to log pool statistics periodically
 fn log_pool_stats(pools: Res<EntityPools>) {
     let stats = pools.get_pool_stats();
-    info!("Entity Pool Stats: Outline(avail:{}/use:{}), Metrics(avail:{}/use:{}), Cursor(avail:{}/use:{}), Pools(outline:{}, metrics:{})", 
+    debug!("Entity Pool Stats: Outline(avail:{}/use:{}), Metrics(avail:{}/use:{}), Cursor(avail:{}/use:{}), Pools(outline:{}, metrics:{})", 
         stats.outline_available, stats.outline_in_use,
         stats.metrics_available, stats.metrics_in_use,
         stats.cursor_available, stats.cursor_in_use,

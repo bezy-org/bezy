@@ -359,7 +359,7 @@ pub fn compile_font_for_shaping(
     // HACK: For proof of concept, use the existing TTF file directly
     // TODO: This should compile from FontIR using fontc, but fontc has issues with Arabic composite glyphs
 
-    info!("🔤 HarfBuzz: Loading existing BezyGrotesk-Regular.ttf for shaping");
+    debug!("🔤 HarfBuzz: Loading existing BezyGrotesk-Regular.ttf for shaping");
 
     let font_bytes = if std::path::Path::new("assets").exists() {
         // Use file system if assets exist
@@ -367,11 +367,11 @@ pub fn compile_font_for_shaping(
             .map_err(|e| format!("Failed to load BezyGrotesk-Regular.ttf: {e}"))?
     } else {
         // Use embedded font data
-        info!("🔤 Using embedded font for text shaping");
+        debug!("🔤 Using embedded font for text shaping");
         crate::embedded_assets::BEZY_GROTESK_BYTES.to_vec()
     };
 
-    info!(
+    debug!(
         "🔤 HarfBuzz: Loaded {} bytes from TTF file",
         font_bytes.len()
     );
@@ -393,7 +393,7 @@ pub fn shape_text_with_harfbuzz(
 
     // Compile font with fontc for HarfBuzz shaping
     let font_bytes = compile_font_for_shaping(fontir_state, cache)?;
-    info!("Font compiled for HarfBuzz ({} bytes)", font_bytes.len());
+    debug!("Font compiled for HarfBuzz ({} bytes)", font_bytes.len());
 
     // Shape text with HarfBuzz
     let result = perform_harfbuzz_shaping(text, direction, &font_bytes, fontir_state)?;
@@ -445,14 +445,14 @@ fn perform_harfbuzz_shaping(
     let glyph_positions = glyph_buffer.glyph_positions();
 
     // Debug output to understand what HarfBuzz returns
-    info!(
+    debug!(
         "🔤 HarfBuzz: Shaped {} characters into {} glyphs",
         input_codepoints.len(),
         glyph_infos.len()
     );
 
     for (i, glyph_info) in glyph_infos.iter().enumerate() {
-        info!(
+        debug!(
             "🔤 HarfBuzz: Glyph[{}] - ID: {}, cluster: {}",
             i, glyph_info.glyph_id, glyph_info.cluster
         );
@@ -483,7 +483,7 @@ fn perform_harfbuzz_shaping(
         });
     }
 
-    info!(
+    debug!(
         "HarfBuzz shaped '{}' into {} glyphs",
         text,
         shaped_glyphs.len()
@@ -503,7 +503,7 @@ fn get_glyph_name_from_id(glyph_id: u32, _fontir_state: &FontIRAppState) -> Stri
     // based on what we see in the debug output
     // TODO: This needs proper font table parsing to get actual glyph names
 
-    info!("🔤 HarfBuzz: Mapping glyph ID {} to name", glyph_id);
+    debug!("🔤 HarfBuzz: Mapping glyph ID {} to name", glyph_id);
 
     // HACK: Manual mapping based on actual HarfBuzz test output for "اشهد"
     // From test_harfbuzz_arabic.rs output:
@@ -627,7 +627,7 @@ pub fn shape_arabic_buffer_system(
         return;
     }
 
-    info!(
+    debug!(
         "🔤 Arabic shaping: Found {} Arabic characters, reshaping buffer",
         arabic_chars.len()
     );
@@ -682,7 +682,7 @@ pub fn shape_arabic_buffer_system(
 
         // Shape the text
         if let Ok(shaped) = shape_arabic_text(&text, direction, &fontir_state) {
-            info!(
+            debug!(
                 "🔤 Arabic shaping: Shaped text '{}' into {} glyphs",
                 text,
                 shaped.shaped_glyphs.len()
@@ -699,7 +699,7 @@ pub fn shape_arabic_buffer_system(
                         let old_name = glyph_name.clone();
                         *glyph_name = shaped_glyph.glyph_name.clone();
                         *advance_width = shaped_glyph.advance_width;
-                        info!(
+                        debug!(
                             "🔤 Arabic shaping: Updated '{}' (U+{:04X}) from '{}' to '{}'",
                             shaped_glyph.codepoint,
                             shaped_glyph.codepoint as u32,
@@ -750,7 +750,7 @@ pub fn harfbuzz_shaping_system(
             let code = *ch as u32;
             if (0x0600..=0x06FF).contains(&code) {
                 has_arabic = true;
-                info!(
+                debug!(
                     "🔤 HarfBuzz: Found Arabic character at buffer[{}]: U+{:04X} '{}' glyph='{}'",
                     i, code, ch, glyph_name
                 );
@@ -763,7 +763,7 @@ pub fn harfbuzz_shaping_system(
         return;
     }
 
-    info!("🔤 HarfBuzz: Processing Arabic text with HarfBuzz shaping!");
+    debug!("🔤 HarfBuzz: Processing Arabic text with HarfBuzz shaping!");
 
     // Collect text runs for shaping
     let mut text_runs = Vec::new();
@@ -804,7 +804,7 @@ pub fn harfbuzz_shaping_system(
 
     // Shape each text run
     for (text, indices, direction) in text_runs {
-        info!(
+        debug!(
             "🔤 HarfBuzz: Attempting to shape text '{}' with direction {:?}",
             text, direction
         );
@@ -818,13 +818,13 @@ pub fn harfbuzz_shaping_system(
             })
             .collect::<String>();
 
-        info!(
+        debug!(
             "🔤 HarfBuzz: Full text='{}', Arabic only='{}'",
             text, arabic_only
         );
 
         if text == "اشهد" || arabic_only == "اشهد" {
-            info!(
+            debug!(
                 "🔤 HarfBuzz: HARDCODED HACK - Detected exact word 'اشهد', applying known shapes"
             );
 
@@ -864,7 +864,7 @@ pub fn harfbuzz_shaping_system(
                                 "dal-ar.fina" => 528.0,
                                 _ => 500.0,
                             };
-                            info!("🔤 HarfBuzz: HARDCODED - Updated Arabic buffer[{}] from '{}' to '{}'", 
+                            debug!("🔤 HarfBuzz: HARDCODED - Updated Arabic buffer[{}] from '{}' to '{}'", 
                                   arabic_index, old_name, hardcoded_shapes[arabic_index]);
                             arabic_index += 1;
                         }
@@ -872,7 +872,7 @@ pub fn harfbuzz_shaping_system(
                 }
             }
 
-            info!("🔤 HarfBuzz: HARDCODED - Successfully applied shapes for 'اشهد'");
+            debug!("🔤 HarfBuzz: HARDCODED - Successfully applied shapes for 'اشهد'");
             continue; // Skip the normal HarfBuzz processing
         }
 
@@ -884,7 +884,7 @@ pub fn harfbuzz_shaping_system(
             &fontir_state,
         ) {
             Ok(shaped) => {
-                info!(
+                debug!(
                     "🔤 HarfBuzz: Successfully shaped '{}' into {} glyphs",
                     text,
                     shaped.shaped_glyphs.len()
@@ -901,7 +901,7 @@ pub fn harfbuzz_shaping_system(
                             let old_name = glyph_name.clone();
                             *glyph_name = shaped_glyph.glyph_name.clone();
                             *advance_width = shaped_glyph.advance_width;
-                            info!(
+                            debug!(
                                 "🔤 HarfBuzz: Updated glyph U+{:04X} from '{}' to '{}'",
                                 shaped_glyph.codepoint as u32, old_name, shaped_glyph.glyph_name
                             );
@@ -909,7 +909,7 @@ pub fn harfbuzz_shaping_system(
                     }
                 }
 
-                info!(
+                debug!(
                     "🔤 HarfBuzz: Professionally shaped text: '{}' → {} glyphs",
                     text,
                     shaped.shaped_glyphs.len()

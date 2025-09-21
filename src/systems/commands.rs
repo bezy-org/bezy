@@ -114,7 +114,7 @@ fn handle_open_file(
         if let Some(mut state) = app_state.as_mut() {
             match state.load_font_from_path(event.path.clone()) {
                 Ok(_) => {
-                    info!("Successfully loaded font from {:?}", event.path);
+                    debug!("Successfully loaded font from {:?}", event.path);
                 }
                 Err(e) => {
                     error!("Failed to open file {:?}: {}", event.path, e);
@@ -134,7 +134,7 @@ fn handle_save_file(
         if let Some(mut state) = app_state.as_mut() {
             match state.save_font() {
                 Ok(_) => {
-                    info!("Font saved successfully");
+                    debug!("Font saved successfully");
                 }
                 Err(e) => {
                     error!("Saving failed: {}", e);
@@ -154,7 +154,7 @@ fn handle_save_file_as(
         if let Some(mut state) = app_state.as_mut() {
             match state.save_font_as(event.path.clone()) {
                 Ok(_) => {
-                    info!("Font saved to {:?}", event.path);
+                    debug!("Font saved to {:?}", event.path);
                 }
                 Err(e) => {
                     error!("Failed to save file to {:?}: {}", event.path, e);
@@ -406,7 +406,7 @@ pub fn handle_checkerboard_toggle(
         } else {
             "disabled"
         };
-        info!("Checkerboard grid {}", status);
+        debug!("Checkerboard grid {}", status);
         debug!(
             "Detected Command+G / Ctrl+G key combination, toggling checkerboard to: {}",
             status

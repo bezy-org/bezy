@@ -39,13 +39,13 @@ impl EditTool for PenTool {
     fn on_activate(&mut self, commands: &mut Commands) {
         commands.insert_resource(PenModeActive(true));
         commands.insert_resource(InputMode::Pen);
-        info!("Entered Pen tool");
+        debug!("Entered Pen tool");
     }
 
     fn on_deactivate(&mut self, commands: &mut Commands) {
         commands.insert_resource(PenModeActive(false));
         commands.insert_resource(InputMode::Normal);
-        info!("Exited Pen tool");
+        debug!("Exited Pen tool");
     }
 
     fn update(&self, _commands: &mut Commands) {
@@ -121,7 +121,7 @@ pub struct PenToolPlugin;
 
 impl Plugin for PenToolPlugin {
     fn build(&self, app: &mut App) {
-        info!("🖊️ Registering PenToolPlugin systems");
+        debug!("🖊️ Registering PenToolPlugin systems");
         app.init_resource::<PenToolState>()
             .init_resource::<PenModeActive>()
             .init_resource::<crate::ui::edit_mode_toolbar::pen::PenDrawingMode>() // Default is Regular
@@ -147,7 +147,7 @@ impl Plugin for PenToolPlugin {
 
 /// Startup system to confirm pen tool plugin loaded
 fn pen_tool_startup_log() {
-    info!("🖊️ PenToolPlugin successfully initialized with all systems");
+    debug!("🖊️ PenToolPlugin successfully initialized with all systems");
 }
 
 /// Debug system to monitor pen tool state
@@ -158,7 +158,7 @@ fn debug_pen_tool_state(pen_state: Res<PenToolState>, time: Res<Time>) {
     unsafe {
         if current_time - LAST_LOG > 2.0 && !pen_state.current_path.is_empty() {
             LAST_LOG = current_time;
-            info!(
+            debug!(
                 "🖊️ PEN STATE: {} points in path, drawing: {}",
                 pen_state.current_path.len(),
                 pen_state.is_drawing
@@ -205,7 +205,7 @@ pub fn handle_pen_mouse_events(
     if mouse_button_input.just_pressed(MouseButton::Left)
         || mouse_button_input.just_pressed(MouseButton::Right)
     {
-        info!("🖊️ PEN TOOL SYSTEM: Mouse button pressed - pen_is_active: {}, active_sort: {}, ui_hovering: {}", 
+        debug!("🖊️ PEN TOOL SYSTEM: Mouse button pressed - pen_is_active: {}, active_sort: {}, ui_hovering: {}", 
               pen_is_active,
               active_sort.is_some(),
               ui_hover_state.is_hovering_ui);
@@ -216,7 +216,7 @@ pub fn handle_pen_mouse_events(
         if pen_is_active && active_sort.is_none() {
             // Only show this message when pen tool is actually trying to be used
             if mouse_button_input.just_pressed(MouseButton::Left) {
-                info!(
+                debug!(
                     "🖊️ Pen tool: Cannot draw without an active sort. Please select a glyph first."
                 );
             }
@@ -227,7 +227,7 @@ pub fn handle_pen_mouse_events(
     let (_sort_entity, _sort, sort_transform) = active_sort.unwrap();
     let sort_position = sort_transform.translation.truncate();
 
-    info!("Pen tool: Mouse input system active and processing clicks");
+    debug!("Pen tool: Mouse input system active and processing clicks");
 
     if mouse_button_input.just_pressed(MouseButton::Left) {
         // Use design space coordinates but make them relative to the active sort
@@ -242,7 +242,7 @@ pub fn handle_pen_mouse_events(
             &settings,
         );
 
-        info!(
+        debug!(
             "Pen tool: Left click at design ({:.1}, {:.1}), sort pos ({:.1}, {:.1}) -> sort-relative ({:.1}, {:.1})",
             design_position.x, design_position.y, sort_position.x, sort_position.y, final_dpoint.x, final_dpoint.y
         );
@@ -253,7 +253,7 @@ pub fn handle_pen_mouse_events(
                 let distance = final_dpoint.to_raw().distance(first_point.to_raw());
                 if distance < CLOSE_PATH_THRESHOLD {
                     pen_state.should_close_path = true;
-                    info!("Pen tool: Closing path - clicked near start point");
+                    debug!("Pen tool: Closing path - clicked near start point");
                     finalize_pen_path(
                         &mut pen_state,
                         &mut app_state,
@@ -269,7 +269,7 @@ pub fn handle_pen_mouse_events(
         pen_state.current_path.push(final_dpoint);
         pen_state.is_drawing = true;
 
-        info!(
+        debug!(
             "Pen tool: Added sort-relative point at ({:.1}, {:.1}), total points: {}",
             final_dpoint.x,
             final_dpoint.y,
@@ -278,10 +278,10 @@ pub fn handle_pen_mouse_events(
     }
 
     if mouse_button_input.just_pressed(MouseButton::Right) {
-        info!("Pen tool: Right click detected");
+        debug!("Pen tool: Right click detected");
         // Finish open path
         if pen_state.current_path.len() > 1 {
-            info!(
+            debug!(
                 "Pen tool: Finishing open path with {} points",
                 pen_state.current_path.len()
             );
@@ -310,7 +310,7 @@ pub fn handle_pen_keyboard_events(
         pen_state.current_path.clear();
         pen_state.is_drawing = false;
         pen_state.should_close_path = false;
-        info!("Pen tool: Cancelled current path");
+        debug!("Pen tool: Cancelled current path");
     }
 }
 
@@ -359,7 +359,7 @@ pub fn render_pen_preview(
 
     // Debug: Log the current path state
     if !pen_state.current_path.is_empty() {
-        info!(
+        debug!(
             "Pen tool preview: Rendering {} points",
             pen_state.current_path.len()
         );
@@ -545,7 +545,7 @@ fn finalize_fontir_path(
                 working_copy.is_dirty = true;
                 app_state_changed.write(AppStateChanged);
 
-                info!("Pen tool (FontIR): Added contour with {} elements to glyph '{}'. Total contours: {}", 
+                debug!("Pen tool (FontIR): Added contour with {} elements to glyph '{}'. Total contours: {}", 
                       bez_path.elements().len(), current_glyph_name, working_copy.contours.len());
             } else {
                 warn!(
@@ -561,7 +561,7 @@ fn finalize_fontir_path(
     }
 
     let path_info = format!("BezPath with {} elements", bez_path.elements().len());
-    info!("Pen tool (FontIR): Created {} for current glyph", path_info);
+    debug!("Pen tool (FontIR): Created {} for current glyph", path_info);
 }
 
 /// Helper function to finalize path using traditional AppState operations
@@ -596,7 +596,7 @@ fn finalize_appstate_path(pen_state: &mut ResMut<PenToolState>) {
 
     // Add contour to current glyph - this needs to be done through a proper system
     // For now just log that we would add it
-    info!(
+    debug!(
         "Pen tool (AppState): Would add {} point contour to current glyph (contour has {} points)",
         pen_state.current_path.len(),
         contour.points.len()

@@ -119,7 +119,7 @@ impl EditTool for ConfigurableTool {
     }
 
     fn on_enter(&self) {
-        info!(
+        debug!(
             "✅ {} TOOL: Entered {} mode",
             self.config.name.to_uppercase(),
             self.config.name
@@ -127,7 +127,7 @@ impl EditTool for ConfigurableTool {
     }
 
     fn on_exit(&self) {
-        info!(
+        debug!(
             "❌ {} TOOL: Exited {} mode",
             self.config.name.to_uppercase(),
             self.config.name
@@ -137,13 +137,13 @@ impl EditTool for ConfigurableTool {
 
 /// Automatically register all enabled tools from the configuration
 pub fn register_tools_from_config(mut tool_registry: ResMut<ToolRegistry>) {
-    info!("🔧 Loading toolbar tools from configuration...");
+    debug!("🔧 Loading toolbar tools from configuration...");
 
     // Print the current configuration for debugging
     super::toolbar_config::print_toolbar_config();
 
     let enabled_tools = ToolConfig::get_enabled_tools();
-    info!(
+    debug!(
         "📋 Found {} enabled tools in configuration",
         enabled_tools.len()
     );
@@ -151,10 +151,10 @@ pub fn register_tools_from_config(mut tool_registry: ResMut<ToolRegistry>) {
     for config in enabled_tools {
         let tool = ConfigurableTool::new(config);
         tool_registry.register_tool(Box::new(tool));
-        info!("✅ Registered tool: {} ({})", config.name, config.id);
+        debug!("✅ Registered tool: {} ({})", config.name, config.id);
     }
 
-    info!("🎉 Toolbar configuration loaded successfully!");
+    debug!("🎉 Toolbar configuration loaded successfully!");
 }
 
 /// Plugin that loads tools from configuration

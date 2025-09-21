@@ -27,13 +27,13 @@ impl EditTool for HyperTool {
     fn on_activate(&mut self, commands: &mut Commands) {
         commands.insert_resource(HyperModeActive(true));
         commands.insert_resource(crate::core::io::input::InputMode::Hyper);
-        info!("Hyper tool activated");
+        debug!("Hyper tool activated");
     }
 
     fn on_deactivate(&mut self, commands: &mut Commands) {
         commands.insert_resource(HyperModeActive(false));
         commands.insert_resource(crate::core::io::input::InputMode::Normal);
-        info!("Hyper tool deactivated");
+        debug!("Hyper tool deactivated");
     }
 }
 

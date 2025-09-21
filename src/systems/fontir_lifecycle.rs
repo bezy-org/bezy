@@ -24,7 +24,7 @@ pub fn load_fontir_font(mut commands: Commands, cli_args: Res<CliArgs>) {
                     warn!("Could not load kerning groups: {}", e);
                 }
 
-                info!(
+                debug!(
                     "Successfully loaded font with FontIR from: {}",
                     path.display()
                 );
@@ -40,7 +40,7 @@ pub fn load_fontir_font(mut commands: Commands, cli_args: Res<CliArgs>) {
             }
         }
     } else {
-        info!("No font path specified, starting with empty default state.");
+        debug!("No font path specified, starting with empty default state.");
         // Don't insert any FontIRAppState resource - systems will handle this gracefully
         // The app will run in an empty state allowing users to start fresh
     }

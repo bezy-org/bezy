@@ -27,13 +27,13 @@ impl EditTool for SelectTool {
     fn on_activate(&mut self, commands: &mut Commands) {
         commands.insert_resource(SelectModeActive(true));
         commands.insert_resource(crate::core::io::input::InputMode::Select);
-        info!("Select tool activated");
+        debug!("Select tool activated");
     }
 
     fn on_deactivate(&mut self, commands: &mut Commands) {
         commands.insert_resource(SelectModeActive(false));
         commands.insert_resource(crate::core::io::input::InputMode::Normal);
-        info!("Select tool deactivated");
+        debug!("Select tool deactivated");
     }
 }
 

@@ -51,15 +51,15 @@ impl EditTool for SelectTool {
         commands.insert_resource(SelectModeActive(true));
         // Set the input mode to Select for the centralized input system
         commands.insert_resource(crate::core::io::input::InputMode::Select);
-        info!("[SELECT TOOL] Update called - setting select mode active and input mode to Select");
+        debug!("[SELECT TOOL] Update called - setting select mode active and input mode to Select");
     }
 
     fn on_enter(&self) {
-        info!("Entered Select tool");
+        debug!("Entered Select tool");
     }
 
     fn on_exit(&self) {
-        info!("Exited Select tool");
+        debug!("Exited Select tool");
     }
 }
 
@@ -114,7 +114,7 @@ pub fn ensure_select_mode_active(
     if current_tool.get_current().is_none() {
         commands.insert_resource(SelectModeActive(true));
         commands.insert_resource(crate::core::io::input::InputMode::Select);
-        info!("No tool selected, defaulting to select mode");
+        debug!("No tool selected, defaulting to select mode");
     } else {
         debug!(
             "[SELECT MODE] Current tool: {:?}",

@@ -5,13 +5,15 @@ This checklist covers all tasks needed to prepare Bezy for publication on crates
 ## Pre-Release Code Quality Pass
 
 ### Dead Code & Legacy Cleanup
-- [ ] Search and remove all TODO comments or convert to GitHub issues
-- [ ] Remove commented-out code blocks
+- [ ] Search and remove all TODO comments or convert to GitHub issues (29 found - needs review)
+- [ ] Remove commented-out code blocks (some found, needs review)
 - [ ] Delete unused imports and dependencies
 - [ ] Remove experimental/WIP features not ready for release
-- [ ] Clean up debug print statements (`println!`, `dbg!`, `eprintln!`)
+- [x] Clean up debug print statements (`println!`, `dbg!`, `eprintln!`) - Removed from production code
+- [x] Configure proper logging levels for debug vs release builds
 - [ ] Remove test/development assets not needed for release
 - [ ] Review and remove duplicate/redundant code
+- [ ] Address clippy warnings (51 warnings found - mostly style issues)
 
 ### Code Organization & Refactoring
 - [ ] Ensure module structure follows documented architecture (see CLAUDE.md)
@@ -29,6 +31,7 @@ This checklist covers all tasks needed to prepare Bezy for publication on crates
 - [ ] Fix compiler warnings (run `cargo build --release`)
 - [ ] Ensure proper error handling (no unwrap() in production paths)
 - [ ] Test save/load cycle integrity
+- [x] Fix entity despawn warnings in ECS cleanup systems
 
 ### Performance & Optimization
 - [ ] Profile and optimize hot paths
@@ -36,20 +39,21 @@ This checklist covers all tasks needed to prepare Bezy for publication on crates
 - [ ] Ensure efficient change detection patterns
 - [ ] Minimize unnecessary allocations
 - [ ] Optimize startup time
+- [x] Configure performance-optimized logging (different levels for debug/release)
 
 ## Cargo.toml Preparation
 
 ### Package Metadata
-- [ ] Set appropriate version number (following semver)
-- [ ] Add comprehensive package description
-- [ ] Set license field (MIT/Apache-2.0 dual license typical for Rust)
-- [ ] Add homepage URL
-- [ ] Add repository URL
-- [ ] Add documentation URL (docs.rs will auto-generate)
-- [ ] Add keywords (max 5, e.g., "font", "editor", "ufo", "typography", "bevy")
-- [ ] Add categories (e.g., "graphics", "text-editors")
-- [ ] Set readme = "README.md"
-- [ ] Add authors list with email addresses
+- [x] Set appropriate version number (following semver) - v0.1.0
+- [x] Add comprehensive package description
+- [x] Set license field - GPL-3.0
+- [x] Add homepage URL - https://bezy.org
+- [x] Add repository URL - https://github.com/bezy-dev/bezy
+- [x] Add documentation URL (docs.rs will auto-generate)
+- [x] Add keywords - "font", "editor", "typography", "ufo", "bevy"
+- [x] Add categories - "graphics", "text-editors", "development-tools"
+- [x] Set readme = "README.md"
+- [x] Add authors list with email addresses
 
 ### Dependencies Audit
 - [ ] Review all dependencies for necessity
@@ -57,7 +61,8 @@ This checklist covers all tasks needed to prepare Bezy for publication on crates
 - [ ] Check for security advisories (`cargo audit`)
 - [ ] Minimize feature flags to reduce compile time
 - [ ] Consider moving dev-only deps to dev-dependencies
-- [ ] Pin versions appropriately (^ for compatible updates)
+- [x] Pin versions appropriately (^ for compatible updates)
+- [ ] NOTE: Git dependencies (spline, harfrust) need to be published to crates.io first
 
 ### Binary Configuration
 - [ ] Set appropriate binary name in [[bin]] section

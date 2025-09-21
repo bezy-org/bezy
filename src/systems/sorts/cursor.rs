@@ -37,7 +37,7 @@ fn get_active_buffer_info(
     let buffer_entity = active_buffer_res.buffer_entity?;
     let (text_buffer, buffer_cursor) = buffer_query.get(buffer_entity).ok()?;
 
-    info!(
+    debug!(
         "🎯 CURSOR: Using buffer entity {:?}, cursor: {}, layout: {:?}",
         buffer_entity, buffer_cursor.position, text_buffer.layout_mode
     );
@@ -112,7 +112,7 @@ fn calculate_rtl_cursor_offset(
     cursor_position: usize,
     line_height: f32,
 ) -> Vec2 {
-    info!(
+    debug!(
         "🎯 RTL CURSOR: Found {} sorts in buffer, cursor at position {}",
         buffer_sorts.len(),
         cursor_position
@@ -138,7 +138,7 @@ fn calculate_rtl_cursor_offset(
                 if sort_index == cursor_position {
                     // Cursor exactly at line break - move to next line
                     vertical_offset -= line_height;
-                    info!("🎯 RTL CURSOR: Cursor at line break {}", sort_index);
+                    debug!("🎯 RTL CURSOR: Cursor at line break {}", sort_index);
                     break;
                 }
                 // Line breaks AFTER cursor don't affect position
@@ -148,7 +148,7 @@ fn calculate_rtl_cursor_offset(
                 // RTL KEY OPERATION: Move LEFT by subtracting width
                 horizontal_offset -= advance_width;
 
-                info!(
+                debug!(
                     "🎯 RTL: Sort[{}] '{}' at/after cursor → moved LEFT by {:.1} \
                      → offset now ({:.1}, {:.1})",
                     sort_index,
@@ -161,7 +161,7 @@ fn calculate_rtl_cursor_offset(
         }
     }
 
-    info!(
+    debug!(
         "🎯 RTL RESULT: Cursor at LEFT EDGE for insertion → ({:.1}, {:.1})",
         horizontal_offset, vertical_offset
     );
@@ -184,7 +184,7 @@ fn calculate_ltr_cursor_offset(
     cursor_position: usize,
     line_height: f32,
 ) -> Vec2 {
-    info!("🎯 LTR CURSOR: Using standard LTR cursor positioning logic");
+    debug!("🎯 LTR CURSOR: Using standard LTR cursor positioning logic");
 
     // LTR starts at LEFT EDGE (x=0) and moves RIGHT (positive x)
     let mut horizontal_offset = 0.0;
@@ -200,7 +200,7 @@ fn calculate_ltr_cursor_offset(
                     horizontal_offset = 0.0;
                     vertical_offset -= line_height;
 
-                    info!(
+                    debug!(
                         "🎯 LTR: Line break[{}] → moved to next line (y: {:.1})",
                         sort_index, vertical_offset
                     );
@@ -210,7 +210,7 @@ fn calculate_ltr_cursor_offset(
                     // LTR KEY OPERATION: Move RIGHT by adding width
                     horizontal_offset += advance_width;
 
-                    info!(
+                    debug!(
                         "🎯 LTR: Sort[{}] '{}' before cursor → moved RIGHT by {:.1} \
                          → offset now ({:.1}, {:.1})",
                         sort_index,
@@ -228,7 +228,7 @@ fn calculate_ltr_cursor_offset(
                 horizontal_offset = 0.0;
                 vertical_offset -= line_height;
 
-                info!(
+                debug!(
                     "🎯 LTR: Cursor AT line break[{}] → show at new line start",
                     sort_index
                 );
@@ -240,7 +240,7 @@ fn calculate_ltr_cursor_offset(
         // AFTER CURSOR: These characters don't affect cursor position (skip)
     }
 
-    info!(
+    debug!(
         "🎯 LTR RESULT: Cursor AFTER existing text → ({:.1}, {:.1})",
         horizontal_offset, vertical_offset
     );

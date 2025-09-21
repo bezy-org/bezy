@@ -272,6 +272,6 @@ pub fn map_codepoint_to_glyph_name(codepoint: u32, contextual_form: &str) -> Str
 
 /// System to initialize RTL shaping resources
 pub fn initialize_rtl_shaping(mut commands: Commands) {
-    info!("Initializing RTL text shaping resources");
+    debug!("Initializing RTL text shaping resources");
     commands.init_resource::<ShapedTextCache>();
 }

@@ -52,11 +52,11 @@ impl LegacyEditTool for SelectToolAdapter {
     }
 
     fn on_enter(&self) {
-        info!("Select tool activated");
+        debug!("Select tool activated");
     }
 
     fn on_exit(&self) {
-        info!("Select tool deactivated");
+        debug!("Select tool deactivated");
     }
 }
 
@@ -94,11 +94,11 @@ impl LegacyEditTool for PenToolAdapter {
     }
 
     fn on_enter(&self) {
-        info!("Pen tool activated");
+        debug!("Pen tool activated");
     }
 
     fn on_exit(&self) {
-        info!("Pen tool deactivated");
+        debug!("Pen tool deactivated");
     }
 }
 
@@ -136,11 +136,11 @@ impl LegacyEditTool for TextToolAdapter {
     }
 
     fn on_enter(&self) {
-        info!("Text tool activated with submenu");
+        debug!("Text tool activated with submenu");
     }
 
     fn on_exit(&self) {
-        info!("Text tool deactivated");
+        debug!("Text tool deactivated");
     }
 }
 
@@ -156,10 +156,10 @@ impl Plugin for CleanToolsPlugin {
         // This plugin is now redundant - all registration happens via toolbar_config.rs
 
         warn!("⚠️  CleanToolsPlugin is DEPRECATED - remove from your app.add_plugins()");
-        info!(
+        debug!(
             "✅ Use ConfigBasedToolbarPlugin instead (already included in EditModeToolbarPlugin)"
         );
-        info!("📝 To modify toolbar: Edit src/ui/toolbars/edit_mode_toolbar/toolbar_config.rs");
+        debug!("📝 To modify toolbar: Edit src/ui/toolbars/edit_mode_toolbar/toolbar_config.rs");
     }
 }
 
@@ -196,11 +196,11 @@ impl LegacyEditTool for ShapesToolAdapter {
     }
 
     fn on_enter(&self) {
-        info!("Shapes tool activated");
+        debug!("Shapes tool activated");
     }
 
     fn on_exit(&self) {
-        info!("Shapes tool deactivated");
+        debug!("Shapes tool deactivated");
     }
 }
 
@@ -238,11 +238,11 @@ impl LegacyEditTool for KnifeToolAdapter {
     }
 
     fn on_enter(&self) {
-        info!("Knife tool activated");
+        debug!("Knife tool activated");
     }
 
     fn on_exit(&self) {
-        info!("Knife tool deactivated");
+        debug!("Knife tool deactivated");
     }
 }
 
@@ -280,11 +280,11 @@ impl LegacyEditTool for HyperToolAdapter {
     }
 
     fn on_enter(&self) {
-        info!("Hyper tool activated");
+        debug!("Hyper tool activated");
     }
 
     fn on_exit(&self) {
-        info!("Hyper tool deactivated");
+        debug!("Hyper tool deactivated");
     }
 }
 
@@ -322,10 +322,10 @@ impl LegacyEditTool for MetaballsToolAdapter {
     }
 
     fn on_enter(&self) {
-        info!("Metaballs tool activated");
+        debug!("Metaballs tool activated");
     }
 
     fn on_exit(&self) {
-        info!("Metaballs tool deactivated");
+        debug!("Metaballs tool deactivated");
     }
 }

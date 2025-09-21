@@ -46,17 +46,17 @@ impl EditTool for KnifeTool {
     }
 
     fn update(&self, commands: &mut Commands) {
-        info!("🔪 KNIFE_TOOL: update() called - setting knife mode active and input mode to Knife");
+        debug!("🔪 KNIFE_TOOL: update() called - setting knife mode active and input mode to Knife");
         commands.insert_resource(KnifeModeActive(true));
         commands.insert_resource(crate::core::io::input::InputMode::Knife);
     }
 
     fn on_enter(&self) {
-        info!("Entered Knife tool");
+        debug!("Entered Knife tool");
     }
 
     fn on_exit(&self) {
-        info!("Exited Knife tool");
+        debug!("Exited Knife tool");
     }
 }
 
@@ -174,7 +174,7 @@ pub fn handle_knife_mouse_events(
         if knife_is_active && active_sort.is_none() {
             // Only show this message when knife tool is actually trying to be used
             if mouse_button_input.just_pressed(MouseButton::Left) {
-                info!("🔪 Knife tool: Cannot cut without an active sort. Please select a glyph first.");
+                debug!("🔪 Knife tool: Cannot cut without an active sort. Please select a glyph first.");
             }
         }
         return;
@@ -211,7 +211,7 @@ pub fn handle_knife_mouse_events(
                 current: sort_relative_position,
             };
             knife_state.intersections.clear();
-            info!(
+            debug!(
                 "🔪 KNIFE_DEBUG: Started cutting at sort-relative {:?}, world {:?}, sort pos {:?}",
                 sort_relative_position, world_position, sort_position
             );
@@ -235,7 +235,7 @@ pub fn handle_knife_mouse_events(
         if mouse_button_input.just_released(MouseButton::Left) {
             if let Some((_start, _end)) = knife_state.get_cutting_line() {
                 // The actual cutting is handled by handle_fontir_knife_cutting system
-                info!("🔪 KNIFE_DEBUG: Mouse released - cutting will be handled by FontIR system");
+                debug!("🔪 KNIFE_DEBUG: Mouse released - cutting will be handled by FontIR system");
             }
 
             // Reset state
@@ -264,7 +264,7 @@ pub fn handle_knife_keyboard_events(
     if keyboard.just_pressed(KeyCode::Escape) {
         knife_state.gesture = KnifeGestureState::Ready;
         knife_state.intersections.clear();
-        info!("Cancelled knife cut");
+        debug!("Cancelled knife cut");
     }
 }
 
@@ -281,12 +281,12 @@ pub fn manage_knife_mode_state(
     if is_knife_active && !current_mode {
         // Knife tool is active but mode is not set - activate it
         commands.insert_resource(KnifeModeActive(true));
-        info!("🔪 MANAGE_KNIFE_MODE: Activating knife mode");
+        debug!("🔪 MANAGE_KNIFE_MODE: Activating knife mode");
     } else if !is_knife_active && current_mode {
         // Knife tool is not active but mode is set - deactivate it
         *knife_state = KnifeToolState::new();
         commands.insert_resource(KnifeModeActive(false));
-        info!("🔪 MANAGE_KNIFE_MODE: Deactivating knife mode");
+        debug!("🔪 MANAGE_KNIFE_MODE: Deactivating knife mode");
     }
 }
 
@@ -533,16 +533,16 @@ fn calculate_real_intersections(
                 );
                 return intersections;
             } else {
-                info!(
+                debug!(
                     "🔪 CALCULATE_REAL_INTERSECTIONS: No paths found for glyph '{}'",
                     current_glyph
                 );
             }
         } else {
-            info!("🔪 CALCULATE_REAL_INTERSECTIONS: No current glyph selected");
+            debug!("🔪 CALCULATE_REAL_INTERSECTIONS: No current glyph selected");
         }
     } else {
-        info!("🔪 CALCULATE_REAL_INTERSECTIONS: No FontIR state available");
+        debug!("🔪 CALCULATE_REAL_INTERSECTIONS: No FontIR state available");
     }
 
     intersections
@@ -566,7 +566,7 @@ pub fn handle_fontir_knife_cutting(
                 // Reset the knife gesture state after successful cut
                 knife_state.gesture = KnifeGestureState::Ready;
                 knife_state.intersections.clear();
-                info!("🔪 KNIFE CUTTING: Gesture state reset after successful cut");
+                debug!("🔪 KNIFE CUTTING: Gesture state reset after successful cut");
             }
         }
     }
@@ -579,7 +579,7 @@ fn perform_fontir_cut(
     fontir_state: &mut crate::core::state::FontIRAppState,
     app_state_changed: &mut EventWriter<crate::editing::selection::events::AppStateChanged>,
 ) {
-    info!("Performing FontIR knife cut from {:?} to {:?}", start, end);
+    debug!("Performing FontIR knife cut from {:?} to {:?}", start, end);
 
     // Convert cutting line to kurbo Line
     let cutting_line = kurbo::Line::new(
@@ -596,18 +596,18 @@ fn perform_fontir_cut(
                     working_copy.contours = new_contours;
                     working_copy.is_dirty = true;
                     app_state_changed.write(crate::editing::selection::events::AppStateChanged);
-                    info!(
+                    debug!(
                         "FontIR knife cut completed - glyph now has {} contours",
                         working_copy.contours.len()
                     );
                 }
                 Err(reason) => {
-                    info!("FontIR knife cut failed: {}", reason);
+                    debug!("FontIR knife cut failed: {}", reason);
                 }
             }
         }
     } else {
-        info!("FontIR knife cut completed - no current glyph selected");
+        debug!("FontIR knife cut completed - no current glyph selected");
     }
 }
 
@@ -617,11 +617,11 @@ fn perform_multi_contour_cut(
     contours: &[kurbo::BezPath],
     cutting_line: &kurbo::Line,
 ) -> Result<Vec<kurbo::BezPath>, String> {
-    info!(
+    debug!(
         "🔪 MULTI_CONTOUR_CUT: Analyzing {} contours with Runebender-style unified cutting",
         contours.len()
     );
-    info!(
+    debug!(
         "🔪 CUTTING_LINE: from {:?} to {:?}",
         cutting_line.p0, cutting_line.p1
     );
@@ -631,7 +631,7 @@ fn perform_multi_contour_cut(
     let mut all_intersections = Vec::new();
 
     for (contour_idx, contour) in contours.iter().enumerate() {
-        info!(
+        debug!(
             "🔪 CONTOUR_{}: Processing contour with {} elements",
             contour_idx,
             contour.elements().len()
@@ -639,10 +639,10 @@ fn perform_multi_contour_cut(
 
         // Debug: Print contour bounds and key points
         let bounds = contour.bounding_box();
-        info!("🔪 CONTOUR_{}: Bounding box: {:?}", contour_idx, bounds);
+        debug!("🔪 CONTOUR_{}: Bounding box: {:?}", contour_idx, bounds);
 
         let hits = find_path_intersections_with_parameters(contour, cutting_line);
-        info!(
+        debug!(
             "🔪 CONTOUR_{}: Found {} intersections",
             contour_idx,
             hits.len()
@@ -650,7 +650,7 @@ fn perform_multi_contour_cut(
 
         // Debug: Print intersection details
         for (hit_idx, hit) in hits.iter().enumerate() {
-            info!(
+            debug!(
                 "🔪 CONTOUR_{}_HIT_{}: point={:?}, t={:.3}, segment_idx={}",
                 contour_idx, hit_idx, hit.point, hit.t, hit.segment_idx
             );
@@ -663,7 +663,7 @@ fn perform_multi_contour_cut(
                 (hit.point - cutting_line.p0).dot(cutting_dir)
             };
 
-            info!(
+            debug!(
                 "🔪 UNIFIED_INTERSECTION: contour={}, point={:?}, pos_on_line={:.3}",
                 contour_idx, hit.point, pos_on_cutting_line
             );
@@ -682,7 +682,7 @@ fn perform_multi_contour_cut(
             "Need at least 2 intersections total to cut glyph, found {}. This is likely the root cause of the failure.",
             all_intersections.len()
         );
-        info!("🔪 ERROR: {}", error_msg);
+        debug!("🔪 ERROR: {}", error_msg);
         return Err(error_msg);
     }
 
@@ -693,21 +693,21 @@ fn perform_multi_contour_cut(
             .unwrap_or(std::cmp::Ordering::Equal)
     });
 
-    info!(
+    debug!(
         "🔪 SORTED_INTERSECTIONS: {} total intersections sorted by position along cutting line",
         all_intersections.len()
     );
 
     // Debug: Print sorted intersection order
     for (i, intersection) in all_intersections.iter().enumerate() {
-        info!(
+        debug!(
             "🔪 SORTED_{}: contour={}, point={:?}, pos={:.3}",
             i, intersection.contour_idx, intersection.hit.point, intersection.pos_on_cutting_line
         );
     }
 
     // Step 4: Use Runebender's unified slicing approach
-    info!("🔪 PROCEEDING: to unified path slicing");
+    debug!("🔪 PROCEEDING: to unified path slicing");
     perform_unified_path_slicing(contours, &all_intersections, cutting_line)
 }
 
@@ -725,7 +725,7 @@ fn perform_unified_path_slicing(
     sorted_intersections: &[UnifiedIntersection],
     cutting_line: &kurbo::Line,
 ) -> Result<Vec<kurbo::BezPath>, String> {
-    info!(
+    debug!(
         "🔪 UNIFIED_SLICING: Starting with {} sorted intersections across {} contours",
         sorted_intersections.len(),
         contours.len()
@@ -745,14 +745,14 @@ fn perform_unified_path_slicing(
             .push(intersection);
     }
 
-    info!(
+    debug!(
         "🔪 INTERSECTION_GROUPING: {} contours have intersections",
         contour_intersection_map.len()
     );
 
     // Debug: Print intersection distribution
     for (contour_idx, intersections) in &contour_intersection_map {
-        info!(
+        debug!(
             "🔪 CONTOUR_{}_INTERSECTIONS: {} intersections found",
             contour_idx,
             intersections.len()
@@ -763,13 +763,13 @@ fn perform_unified_path_slicing(
     for (contour_idx, contour_intersections) in &contour_intersection_map {
         let contour_idx = *contour_idx;
         if processed_contours.contains(&contour_idx) {
-            info!("🔪 SKIP_CONTOUR_{}: Already processed", contour_idx);
+            debug!("🔪 SKIP_CONTOUR_{}: Already processed", contour_idx);
             continue;
         }
 
         let contour = &contours[contour_idx];
 
-        info!(
+        debug!(
             "🔪 PROCESS_CONTOUR_{}: {} intersections",
             contour_idx,
             contour_intersections.len()
@@ -777,7 +777,7 @@ fn perform_unified_path_slicing(
 
         if contour_intersections.len() >= 2 {
             // This contour can be cut normally
-            info!(
+            debug!(
                 "🔪 CONTOUR_{}: Can be cut normally (≥2 intersections)",
                 contour_idx
             );
@@ -787,7 +787,7 @@ fn perform_unified_path_slicing(
                 .map(|ui| ui.hit.clone())
                 .collect();
 
-            info!(
+            debug!(
                 "🔪 CONTOUR_{}: Calling slice_path_at_hits with {} hits",
                 contour_idx,
                 hits.len()
@@ -795,14 +795,14 @@ fn perform_unified_path_slicing(
             let sliced_paths = slice_path_at_hits(contour, &hits);
 
             if sliced_paths.len() > 1 {
-                info!(
+                debug!(
                     "🔪 CONTOUR_{}: Successfully sliced into {} pieces",
                     contour_idx,
                     sliced_paths.len()
                 );
                 result_contours.extend(sliced_paths);
             } else {
-                info!(
+                debug!(
                     "🔪 CONTOUR_{}: Slicing failed, keeping original contour",
                     contour_idx
                 );
@@ -810,19 +810,19 @@ fn perform_unified_path_slicing(
             }
         } else if contour_intersections.len() == 1 {
             // Single intersection - this is the key challenge for cross-contour cutting
-            info!(
+            debug!(
                 "🔪 CONTOUR_{}: Single intersection - implementing cross-contour connection logic",
                 contour_idx
             );
 
             // Don't process single intersections immediately - collect them for cross-contour bridging
-            info!(
+            debug!(
                 "🔪 CONTOUR_{}: Deferring single-intersection contour for cross-contour processing",
                 contour_idx
             );
         } else {
             // No intersections - keep original
-            info!(
+            debug!(
                 "🔪 CONTOUR_{}: No intersections, keeping original",
                 contour_idx
             );
@@ -844,14 +844,14 @@ fn perform_unified_path_slicing(
         })
         .collect();
 
-    info!(
+    debug!(
         "🔪 CROSS_CONTOUR_BRIDGING: Found {} contours with single intersections",
         single_intersection_contours.len()
     );
 
     if single_intersection_contours.len() >= 2 {
         // We can create cross-contour connections
-        info!(
+        debug!(
             "🔪 CROSS_CONTOUR_BRIDGING: Attempting to connect {} single-intersection contours",
             single_intersection_contours.len()
         );
@@ -870,7 +870,7 @@ fn perform_unified_path_slicing(
 
         match bridged_contours {
             Ok(bridges) => {
-                info!(
+                debug!(
                     "🔪 CROSS_CONTOUR_SUCCESS: Created {} bridged contours",
                     bridges.len()
                 );
@@ -882,7 +882,7 @@ fn perform_unified_path_slicing(
                 }
             }
             Err(error) => {
-                info!(
+                debug!(
                     "🔪 CROSS_CONTOUR_FAILED: {}, keeping original contours",
                     error
                 );
@@ -897,7 +897,7 @@ fn perform_unified_path_slicing(
     } else if single_intersection_contours.len() == 1 {
         // Only one contour with single intersection - split it at the intersection point
         let (contour_idx, intersection) = single_intersection_contours[0];
-        info!(
+        debug!(
             "🔪 SINGLE_SPLIT: Only one contour with single intersection, splitting at intersection point"
         );
 
@@ -910,17 +910,17 @@ fn perform_unified_path_slicing(
     // Add any unprocessed contours
     for (idx, contour) in contours.iter().enumerate() {
         if !processed_contours.contains(&idx) {
-            info!("🔪 UNPROCESSED_CONTOUR_{}: Adding to results", idx);
+            debug!("🔪 UNPROCESSED_CONTOUR_{}: Adding to results", idx);
             result_contours.push(contour.clone());
         }
     }
 
     if result_contours.is_empty() {
         let error_msg = "No valid contours produced after unified slicing".to_string();
-        info!("🔪 ERROR: {}", error_msg);
+        debug!("🔪 ERROR: {}", error_msg);
         Err(error_msg)
     } else {
-        info!(
+        debug!(
             "🔪 UNIFIED_SLICING_COMPLETE: {} input -> {} output contours",
             contours.len(),
             result_contours.len()
@@ -928,7 +928,7 @@ fn perform_unified_path_slicing(
 
         // Debug: Print what we're returning
         for (i, result_contour) in result_contours.iter().enumerate() {
-            info!(
+            debug!(
                 "🔪 RESULT_CONTOUR_{}: {} elements, bounding_box={:?}",
                 i,
                 result_contour.elements().len(),
@@ -947,7 +947,7 @@ fn create_cross_contour_bridges(
     sorted_single_intersections: &[(usize, &UnifiedIntersection)],
     cutting_line: &kurbo::Line,
 ) -> Result<Vec<kurbo::BezPath>, String> {
-    info!(
+    debug!(
         "🔗 BRIDGE_CREATION: Creating bridges between {} single-intersection contours",
         sorted_single_intersections.len()
     );
@@ -969,7 +969,7 @@ fn create_cross_contour_bridges(
         let (contour_idx_1, intersection_1) = pair[0];
         let (contour_idx_2, intersection_2) = pair[1];
 
-        info!(
+        debug!(
             "🔗 BRIDGE_PAIR: Connecting contour {} (intersection at {:?}) with contour {} (intersection at {:?})",
             contour_idx_1, intersection_1.hit.point,
             contour_idx_2, intersection_2.hit.point
@@ -987,14 +987,14 @@ fn create_cross_contour_bridges(
             cutting_line,
         ) {
             Ok(bridge) => {
-                info!(
+                debug!(
                     "🔗 BRIDGE_SUCCESS: Created bridge between contours {} and {}",
                     contour_idx_1, contour_idx_2
                 );
                 bridged_contours.push(bridge);
             }
             Err(error) => {
-                info!(
+                debug!(
                     "🔗 BRIDGE_FAILED: Failed to create bridge between contours {} and {}: {}",
                     contour_idx_1, contour_idx_2, error
                 );
@@ -1003,7 +1003,7 @@ fn create_cross_contour_bridges(
         }
     }
 
-    info!(
+    debug!(
         "🔗 BRIDGE_COMPLETE: Successfully created {} cross-contour bridges",
         bridged_contours.len()
     );
@@ -1020,7 +1020,7 @@ fn create_single_cross_contour_bridge(
     intersection_2: &Hit,
     _cutting_line: &kurbo::Line,
 ) -> Result<kurbo::BezPath, String> {
-    info!(
+    debug!(
         "🌉 SINGLE_BRIDGE: Creating bridge from {:?} to {:?}",
         intersection_1.point, intersection_2.point
     );
@@ -1054,7 +1054,7 @@ fn create_single_cross_contour_bridge(
     // Close the path to create a complete contour
     bridged_path.close_path();
 
-    info!(
+    debug!(
         "🌉 SINGLE_BRIDGE_SUCCESS: Created bridge with {} elements",
         bridged_path.elements().len()
     );
@@ -1394,11 +1394,11 @@ fn find_path_intersections_with_parameters(path: &BezPath, cutting_line: &kurbo:
     let mut current_point = Point::ZERO;
     let mut segment_idx = 0;
 
-    info!(
+    debug!(
         "🔍 INTERSECTION_SEARCH: Starting search through {} path elements",
         path.elements().len()
     );
-    info!(
+    debug!(
         "🔍 CUTTING_LINE: from {:?} to {:?}",
         cutting_line.p0, cutting_line.p1
     );
@@ -1407,11 +1407,11 @@ fn find_path_intersections_with_parameters(path: &BezPath, cutting_line: &kurbo:
         match element {
             PathEl::MoveTo(pt) => {
                 current_point = *pt;
-                info!("🔍 ELEMENT_{}: MoveTo({:?})", element_idx, pt);
+                debug!("🔍 ELEMENT_{}: MoveTo({:?})", element_idx, pt);
             }
             PathEl::LineTo(end) => {
                 let segment = kurbo::Line::new(current_point, *end);
-                info!(
+                debug!(
                     "🔍 ELEMENT_{}: LineTo from {:?} to {:?}",
                     element_idx, current_point, end
                 );
@@ -1419,7 +1419,7 @@ fn find_path_intersections_with_parameters(path: &BezPath, cutting_line: &kurbo:
                 if let Some(intersection) =
                     line_line_intersection_with_parameter(&segment, cutting_line)
                 {
-                    info!(
+                    debug!(
                         "🔍 LINE_INTERSECTION: Found at {:?}, t={:.3}",
                         intersection.0, intersection.1
                     );
@@ -1429,27 +1429,27 @@ fn find_path_intersections_with_parameters(path: &BezPath, cutting_line: &kurbo:
                         segment_idx,
                     });
                 } else {
-                    info!("🔍 LINE_NO_INTERSECTION: Line segment does not intersect cutting line");
+                    debug!("🔍 LINE_NO_INTERSECTION: Line segment does not intersect cutting line");
                 }
                 current_point = *end;
                 segment_idx += 1;
             }
             PathEl::CurveTo(c1, c2, end) => {
                 let curve = kurbo::CubicBez::new(current_point, *c1, *c2, *end);
-                info!(
+                debug!(
                     "🔍 ELEMENT_{}: CurveTo from {:?} via {:?},{:?} to {:?}",
                     element_idx, current_point, c1, c2, end
                 );
 
                 let curve_hits =
                     curve_line_intersections_with_parameters(&curve, cutting_line, segment_idx);
-                info!(
+                debug!(
                     "🔍 CURVE_INTERSECTIONS: Found {} intersections",
                     curve_hits.len()
                 );
 
                 for (i, hit) in curve_hits.iter().enumerate() {
-                    info!("🔍 CURVE_HIT_{}: point={:?}, t={:.3}", i, hit.point, hit.t);
+                    debug!("🔍 CURVE_HIT_{}: point={:?}, t={:.3}", i, hit.point, hit.t);
                 }
 
                 hits.extend(curve_hits);
@@ -1458,14 +1458,14 @@ fn find_path_intersections_with_parameters(path: &BezPath, cutting_line: &kurbo:
             }
             PathEl::QuadTo(c, end) => {
                 let curve = kurbo::QuadBez::new(current_point, *c, *end);
-                info!(
+                debug!(
                     "🔍 ELEMENT_{}: QuadTo from {:?} via {:?} to {:?}",
                     element_idx, current_point, c, end
                 );
 
                 let curve_hits =
                     quad_line_intersections_with_parameters(&curve, cutting_line, segment_idx);
-                info!(
+                debug!(
                     "🔍 QUAD_INTERSECTIONS: Found {} intersections",
                     curve_hits.len()
                 );
@@ -1477,7 +1477,7 @@ fn find_path_intersections_with_parameters(path: &BezPath, cutting_line: &kurbo:
             PathEl::ClosePath => {
                 if let Some(start_point) = get_path_start_point_inline(path) {
                     let segment = kurbo::Line::new(current_point, start_point);
-                    info!(
+                    debug!(
                         "🔍 ELEMENT_{}: ClosePath from {:?} to {:?}",
                         element_idx, current_point, start_point
                     );
@@ -1485,7 +1485,7 @@ fn find_path_intersections_with_parameters(path: &BezPath, cutting_line: &kurbo:
                     if let Some(intersection) =
                         line_line_intersection_with_parameter(&segment, cutting_line)
                     {
-                        info!(
+                        debug!(
                             "🔍 CLOSE_INTERSECTION: Found at {:?}, t={:.3}",
                             intersection.0, intersection.1
                         );
@@ -1495,7 +1495,7 @@ fn find_path_intersections_with_parameters(path: &BezPath, cutting_line: &kurbo:
                             segment_idx,
                         });
                     } else {
-                        info!("🔍 CLOSE_NO_INTERSECTION: ClosePath segment does not intersect cutting line");
+                        debug!("🔍 CLOSE_NO_INTERSECTION: ClosePath segment does not intersect cutting line");
                     }
                 }
                 segment_idx += 1;
@@ -1503,7 +1503,7 @@ fn find_path_intersections_with_parameters(path: &BezPath, cutting_line: &kurbo:
         }
     }
 
-    info!(
+    debug!(
         "🔍 RAW_HITS: Found {} raw intersections before deduplication",
         hits.len()
     );
@@ -1512,7 +1512,7 @@ fn find_path_intersections_with_parameters(path: &BezPath, cutting_line: &kurbo:
     let original_count = hits.len();
     hits.dedup_by(|a, b| a.point.distance(b.point) < 1.0);
     if hits.len() < original_count {
-        info!(
+        debug!(
             "🔍 DEDUPLICATION: Removed {} duplicates, {} remaining",
             original_count - hits.len(),
             hits.len()
@@ -1530,12 +1530,12 @@ fn find_path_intersections_with_parameters(path: &BezPath, cutting_line: &kurbo:
             .unwrap_or(std::cmp::Ordering::Equal)
     });
 
-    info!(
+    debug!(
         "🔍 FINAL_HITS: Returning {} sorted intersections",
         hits.len()
     );
     for (i, hit) in hits.iter().enumerate() {
-        info!(
+        debug!(
             "🔍 FINAL_HIT_{}: point={:?}, t={:.3}, segment_idx={}",
             i, hit.point, hit.t, hit.segment_idx
         );
@@ -1552,7 +1552,7 @@ fn slice_path_at_hits(path: &BezPath, hits: &[Hit]) -> Vec<BezPath> {
     }
 
     if hits.len() < 2 {
-        info!(
+        debug!(
             "Individual contour requires at least 2 intersection points to cut, found {}",
             hits.len()
         );
@@ -1567,7 +1567,7 @@ fn slice_path_at_hits(path: &BezPath, hits: &[Hit]) -> Vec<BezPath> {
             .then(a.t.partial_cmp(&b.t).unwrap_or(std::cmp::Ordering::Equal))
     });
 
-    info!(
+    debug!(
         "Cutting path at {} intersection points using recursive algorithm",
         sorted_hits.len()
     );
@@ -1624,7 +1624,7 @@ fn slice_path_recursively(path: &BezPath, hits: &[Hit]) -> Vec<BezPath> {
         }
     }
 
-    info!(
+    debug!(
         "Recursive slicing: {} intersections -> {} final paths",
         hits.len(),
         result_paths.len()
@@ -1785,7 +1785,7 @@ fn slice_path_with_two_hits(path: &BezPath, first_hit: &Hit, second_hit: &Hit) -
         result_paths.push(path2);
     }
 
-    info!(
+    debug!(
         "Successfully split closed contour into {} closed contours",
         result_paths.len()
     );
