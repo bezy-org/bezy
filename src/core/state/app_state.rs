@@ -47,7 +47,7 @@ impl AppState {
         self.workspace.font = FontData::from_norad_font(&font, Some(path));
         self.workspace.info = FontInfo::from_norad_font(&font);
 
-        info!(
+        debug!(
             "Successfully loaded UFO font with {} glyphs",
             self.workspace.font.glyphs.len()
         );
@@ -70,7 +70,7 @@ impl AppState {
         let norad_font = self.workspace.font.to_norad_font(&self.workspace.info);
         norad_font.save(path).with_file_context("save", path)?;
 
-        info!("Saved font to {:?}", path);
+        debug!("Saved font to {:?}", path);
         Ok(())
     }
 
@@ -86,7 +86,7 @@ impl AppState {
         // Update our stored path
         self.workspace.font.path = Some(path.clone());
 
-        info!("Saved font to new location: {:?}", path);
+        debug!("Saved font to new location: {:?}", path);
         Ok(())
     }
 

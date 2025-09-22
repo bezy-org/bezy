@@ -26,7 +26,7 @@ pub struct TextEditorPlugin;
 
 impl Plugin for TextEditorPlugin {
     fn build(&self, app: &mut App) {
-        info!("[TextEditorPlugin] Building plugin...");
+        debug!("[TextEditorPlugin] Building plugin...");
         app
             // Initialize resources
             .init_resource::<crate::core::state::text_editor::TextEditorState>()

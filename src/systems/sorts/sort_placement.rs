@@ -29,26 +29,22 @@ pub fn handle_sort_placement_input(
     // Only handle input when text tool is active
     let current_tool_name = current_tool.get_current();
     if current_tool_name != Some("text") {
-        // Always log when we have a click so user knows what's happening
-        if mouse_button_input.just_pressed(MouseButton::Left) && !ui_hover_state.is_hovering_ui {
-            warn!("🖱️ SORT PLACEMENT: ❌ Click ignored - current tool is {:?}, need 'text' tool to place sorts", current_tool_name);
-        }
         return;
     }
 
-    info!("🖱️ SORT PLACEMENT: ✅ Text tool is active, checking other conditions...");
+    debug!("🖱️ SORT PLACEMENT: ✅ Text tool is active, checking other conditions...");
 
     // Only handle text placement modes, not insert mode
     match *current_placement_mode {
         TextPlacementMode::LTRText | TextPlacementMode::RTLText => {
             // Continue with placement
-            info!("🖱️ SORT PLACEMENT: ✅ Text tool active with placement mode {:?} - READY TO PLACE SORTS!", *current_placement_mode);
+            debug!("🖱️ SORT PLACEMENT: ✅ Text tool active with placement mode {:?} - READY TO PLACE SORTS!", *current_placement_mode);
         }
         TextPlacementMode::Insert | TextPlacementMode::Freeform => {
             // These modes don't place sorts on click
             if mouse_button_input.just_pressed(MouseButton::Left) && !ui_hover_state.is_hovering_ui
             {
-                info!(
+                debug!(
                     "🖱️ SORT PLACEMENT: Click ignored - in {:?} mode (not placement mode)",
                     *current_placement_mode
                 );
@@ -60,7 +56,7 @@ pub fn handle_sort_placement_input(
     // Don't process clicks when hovering over UI
     if ui_hover_state.is_hovering_ui {
         if mouse_button_input.just_pressed(MouseButton::Left) {
-            info!("🖱️ SORT PLACEMENT: ⚠️  Click ignored - hovering over UI");
+            debug!("🖱️ SORT PLACEMENT: ⚠️  Click ignored - hovering over UI");
         }
         return;
     }
@@ -70,9 +66,9 @@ pub fn handle_sort_placement_input(
         return;
     }
 
-    info!("🖱️ SORT PLACEMENT: ✅ Left mouse click detected, UI not hovering");
+    debug!("🖱️ SORT PLACEMENT: ✅ Left mouse click detected, UI not hovering");
 
-    info!("🖱️ SORT PLACEMENT: Left mouse click detected - processing placement");
+    debug!("🖱️ SORT PLACEMENT: Left mouse click detected - processing placement");
 
     // Get camera, transform, and projection
     let Ok((camera, camera_transform, projection)) = camera_query.single() else {
@@ -106,7 +102,7 @@ pub fn handle_sort_placement_input(
     // Always create a new sort when clicking in placement mode
     // This allows placing multiple sorts of the same glyph or different glyphs
     let existing_sorts_count = text_editor_state.get_text_sorts().len();
-    info!(
+    debug!(
         "🖱️ SORT PLACEMENT: Creating new sort at position ({:.1}, {:.1}), existing sorts: {}",
         snapped_position.x, snapped_position.y, existing_sorts_count
     );
@@ -118,7 +114,7 @@ pub fn handle_sort_placement_input(
     for i in 0..text_editor_state.buffer.len() {
         if let Some(sort) = text_editor_state.buffer.get_mut(i) {
             if sort.is_active {
-                info!(
+                debug!(
                     "🔻 SORT PLACEMENT: Deactivating existing sort - glyph '{}'",
                     sort.kind.glyph_name()
                 );
@@ -128,7 +124,7 @@ pub fn handle_sort_placement_input(
     }
 
     // Create a new independent sort with buffer entity
-    info!("🖱️ SORT PLACEMENT: About to call create_independent_sort_with_fontir");
+    debug!("🖱️ SORT PLACEMENT: About to call create_independent_sort_with_fontir");
     let new_buffer_entity = create_independent_sort_with_fontir(
         &mut commands,
         &mut text_editor_state,
@@ -144,7 +140,7 @@ pub fn handle_sort_placement_input(
         },
     );
 
-    info!(
+    debug!(
         "🖱️ SORT PLACEMENT: Set active buffer entity to {:?}",
         new_buffer_entity
     );
@@ -158,24 +154,24 @@ pub fn handle_sort_placement_input(
     match previous_mode {
         TextPlacementMode::LTRText | TextPlacementMode::RTLText => {
             *current_placement_mode = TextPlacementMode::Insert;
-            info!(
+            debug!(
                 "🖱️ SORT PLACEMENT: Auto-switched to Insert mode after placing {:?} text buffer sort",
                 previous_mode
             );
         }
         TextPlacementMode::Freeform => {
             // Stay in Freeform mode for multi-placement workflow
-            info!("🖱️ SORT PLACEMENT: Staying in Freeform mode for multi-placement");
+            debug!("🖱️ SORT PLACEMENT: Staying in Freeform mode for multi-placement");
         }
         TextPlacementMode::Insert => {
             // Already in Insert mode (shouldn't happen in placement, but handle gracefully)
-            info!("🖱️ SORT PLACEMENT: Already in Insert mode");
+            debug!("🖱️ SORT PLACEMENT: Already in Insert mode");
         }
     }
 
-    info!("🖱️ SORT PLACEMENT: create_independent_sort_with_fontir completed");
+    debug!("🖱️ SORT PLACEMENT: create_independent_sort_with_fontir completed");
 
-    info!(
+    debug!(
         "🖱️ SORT PLACEMENT: Created new sort, total sorts now: {}",
         text_editor_state.get_text_sorts().len()
     );
@@ -194,7 +190,7 @@ fn create_independent_sort_with_fontir(
     use crate::core::state::text_editor::{SortData, SortKind, SortLayoutMode};
     use crate::systems::text_buffer_manager::{add_sort_to_buffer, create_text_buffer};
 
-    info!("🖱️ INSIDE create_independent_sort_with_fontir: Starting function");
+    debug!("🖱️ INSIDE create_independent_sort_with_fontir: Starting function");
 
     // Choose appropriate default glyph based on layout mode
     let (placeholder_glyph, placeholder_codepoint) =
@@ -229,7 +225,7 @@ fn create_independent_sort_with_fontir(
         initial_cursor_position,
     );
 
-    info!(
+    debug!(
         "🖱️ Creating new {} buffer (Entity: {:?}, ID: {:?}) at position ({:.1}, {:.1})",
         match layout_mode {
             SortLayoutMode::RTLText => "RTL",
@@ -260,12 +256,12 @@ fn create_independent_sort_with_fontir(
     // Insert the initial sort into the text editor buffer at index 0
     text_editor_state.buffer.insert(0, initial_sort);
 
-    info!(
+    debug!(
         "📍 SORT PLACEMENT: Created buffer entity {:?} with layout_mode: {:?}, added initial '{}' character at index 0", 
         buffer_entity, layout_mode, placeholder_glyph
     );
 
-    info!(
+    debug!(
         "🖱️ Created new buffer entity {:?} with cursor at position {} and initial character '{}' at world position ({:.1}, {:.1})",
         buffer_entity, initial_cursor_position, placeholder_glyph, world_position.x, world_position.y
     );

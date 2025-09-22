@@ -47,7 +47,7 @@ impl ThemeRegistry {
 
         if user_themes_dir.exists() {
             // User has custom themes directory, load from there
-            info!("Loading themes from user directory: {:?}", user_themes_dir);
+            debug!("Loading themes from user directory: {:?}", user_themes_dir);
 
             if let Ok(entries) = std::fs::read_dir(&user_themes_dir) {
                 for entry in entries.flatten() {
@@ -57,7 +57,7 @@ impl ThemeRegistry {
                         if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
                             match json_theme::JsonTheme::load_from_file(&path) {
                                 Ok(theme) => {
-                                    info!("Loaded user theme: {}", theme.name);
+                                    debug!("Loaded user theme: {}", theme.name);
                                     self.themes.insert(stem.to_string(), Box::new(theme));
                                 }
                                 Err(e) => {
@@ -70,12 +70,12 @@ impl ThemeRegistry {
             }
         } else {
             // No user directory, load embedded themes
-            info!("No user themes directory found, loading embedded themes");
+            debug!("No user themes directory found, loading embedded themes");
 
             for (name, content) in embedded_themes::get_embedded_themes() {
                 match embedded_themes::load_theme_from_string(content) {
                     Ok(theme) => {
-                        info!("Loaded embedded theme: {}", theme.name);
+                        debug!("Loaded embedded theme: {}", theme.name);
                         self.themes.insert(name, Box::new(theme));
                     }
                     Err(e) => {

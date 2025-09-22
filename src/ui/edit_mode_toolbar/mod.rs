@@ -297,7 +297,7 @@ impl ToolRegistry {
     /// Register a new tool with the registry
     pub fn register_tool(&mut self, tool: Box<dyn EditTool>) {
         let id = tool.id();
-        info!("Registering tool: {} ({})", tool.name(), id);
+        debug!("Registering tool: {} ({})", tool.name(), id);
         self.tools.insert(id, tool);
         self.ordering_dirty = true;
     }
@@ -385,7 +385,7 @@ impl CurrentTool {
     pub fn switch_to(&mut self, new_tool: ToolId) {
         self.previous = self.current;
         self.current = Some(new_tool);
-        info!("Switched to tool: {}", new_tool);
+        debug!("Switched to tool: {}", new_tool);
     }
 
     /// Get the currently active tool
@@ -502,7 +502,7 @@ pub use pan::{PanMode, PanToolPlugin, PresentationMode};
 pub use pen::{PenMode, PenModePlugin};
 pub use shapes::ShapesToolPlugin;
 
-pub use select::{SelectMode, SelectModeActive, SelectToolPlugin};
+pub use select::{SelectMode, SelectModeActive};
 // pub use text::TextMode;  // Will be available after porting
 // pub use measure::MeasureMode;  // Will be available after porting
 
@@ -536,9 +536,9 @@ fn initialize_default_tool(
     mut current_tool: ResMut<CurrentTool>,
     tool_registry: Res<ToolRegistry>,
 ) {
-    info!("Attempting to initialize default tool...");
-    info!("Available tools: {:?}", tool_registry.get_all_tool_ids());
-    info!(
+    debug!("Attempting to initialize default tool...");
+    debug!("Available tools: {:?}", tool_registry.get_all_tool_ids());
+    debug!(
         "Current tool before initialization: {:?}",
         current_tool.get_current()
     );
@@ -546,18 +546,18 @@ fn initialize_default_tool(
     // Set Select as the default tool
     if tool_registry.get_tool("select").is_some() {
         current_tool.switch_to("select");
-        info!("Initialized with default tool: select");
+        debug!("Initialized with default tool: select");
     } else {
         warn!("Select tool not found in registry! Will use first available tool.");
         // Fallback to first available tool if select is not available
         let all_tools = tool_registry.get_all_tool_ids();
         if let Some(&first_tool) = all_tools.first() {
             current_tool.switch_to(first_tool);
-            info!("Initialized with fallback tool: {}", first_tool);
+            debug!("Initialized with fallback tool: {}", first_tool);
         }
     }
 
-    info!(
+    debug!(
         "Current tool after initialization: {:?}",
         current_tool.get_current()
     );
@@ -582,7 +582,7 @@ pub struct EditModeToolbarPlugin;
 
 impl Plugin for EditModeToolbarPlugin {
     fn build(&self, app: &mut App) {
-        info!("🚀 Building EditModeToolbarPlugin with unified config-based system!");
+        debug!("🚀 Building EditModeToolbarPlugin with unified config-based system!");
         app
             // Initialize the new tool system
             .init_resource::<ToolRegistry>()

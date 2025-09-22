@@ -22,12 +22,12 @@ impl EditTool for PanTool {
     fn on_activate(&mut self, commands: &mut Commands) {
         // Use Temporary mode for pan tool
         commands.insert_resource(crate::core::io::input::InputMode::Temporary);
-        info!("Pan tool activated");
+        debug!("Pan tool activated");
     }
 
     fn on_deactivate(&mut self, commands: &mut Commands) {
         commands.insert_resource(crate::core::io::input::InputMode::Normal);
-        info!("Pan tool deactivated");
+        debug!("Pan tool deactivated");
     }
 }
 

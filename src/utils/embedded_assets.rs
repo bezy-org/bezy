@@ -7,8 +7,8 @@ use bevy::prelude::*;
 use std::path::Path;
 
 // Embed the font files at compile time
-pub const BEZY_GROTESK_BYTES: &[u8] = include_bytes!("../assets/fonts/BezyGrotesk-Regular.ttf");
-pub const HASUBI_MONO_BYTES: &[u8] = include_bytes!("../assets/fonts/HasubiMono-Regular.ttf");
+pub const BEZY_GROTESK_BYTES: &[u8] = include_bytes!("../../assets/fonts/BezyGrotesk-Regular.ttf");
+pub const HASUBI_MONO_BYTES: &[u8] = include_bytes!("../../assets/fonts/HasubiMono-Regular.ttf");
 
 // Store font handles as resources so they can be accessed globally
 #[derive(Resource, Default)]
@@ -32,14 +32,14 @@ fn setup_embedded_fonts(
     mut embedded_fonts: ResMut<EmbeddedFonts>,
 ) {
     // Always load embedded fonts - they'll be used as fallback
-    info!("Loading embedded fonts as fallback");
+    debug!("Loading embedded fonts as fallback");
 
     // Load BezyGrotesk font
     match Font::try_from_bytes(BEZY_GROTESK_BYTES.to_vec()) {
         Ok(font) => {
             let handle = fonts.add(font);
             embedded_fonts.bezy_grotesk = Some(handle.clone());
-            info!("✅ Embedded BezyGrotesk-Regular.ttf ready");
+            debug!("✅ Embedded BezyGrotesk-Regular.ttf ready");
         }
         Err(e) => {
             error!("Failed to load embedded BezyGrotesk-Regular.ttf: {:?}", e);
@@ -51,7 +51,7 @@ fn setup_embedded_fonts(
         Ok(font) => {
             let handle = fonts.add(font);
             embedded_fonts.hasubi_mono = Some(handle.clone());
-            info!("✅ Embedded HasubiMono-Regular.ttf ready");
+            debug!("✅ Embedded HasubiMono-Regular.ttf ready");
         }
         Err(e) => {
             error!("Failed to load embedded HasubiMono-Regular.ttf: {:?}", e);
@@ -99,7 +99,7 @@ impl AssetServerFontExt for AssetServer {
 #[macro_export]
 macro_rules! load_font {
     ($asset_server:expr, $embedded_fonts:expr, $path:expr) => {{
-        use $crate::embedded_assets::AssetServerFontExt;
+        use $crate::utils::embedded_assets::AssetServerFontExt;
         $asset_server.load_font_with_fallback($path, $embedded_fonts)
     }};
 }

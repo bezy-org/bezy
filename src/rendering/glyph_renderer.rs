@@ -160,12 +160,12 @@ pub fn render_glyphs(
     let smooth_points = &rendering_data.smooth_points;
 
     if presentation_active {
-        info!("🎭 Unified rendering in presentation mode - only filled outlines will be shown");
+        debug!("🎭 Unified rendering in presentation mode - only filled outlines will be shown");
     }
 
     // Force update if presentation mode changed
     if presentation_changed {
-        info!("🎭 Presentation mode changed - forcing unified rendering update");
+        debug!("🎭 Presentation mode changed - forcing unified rendering update");
         update_tracker.needs_update = true;
     }
 
@@ -175,7 +175,7 @@ pub fn render_glyphs(
     }
 
     let point_count = point_query.iter().count();
-    info!(
+    debug!(
         "🎨 UNIFIED RENDERING EXECUTING: active_sorts={}, inactive_sorts={}, points={}",
         active_count, inactive_count, point_count
     );
@@ -184,14 +184,14 @@ pub fn render_glyphs(
     // (Commented out - debug query removed to reduce parameter count)
     // if point_count == 0 && !existing_sort_points.is_empty() {
     //     let all_sort_point_entities = existing_sort_points.iter().count();
-    //     info!("🔍 DEBUG: {} entities with SortPointEntity exist, but 0 match full point query - component mismatch!", all_sort_point_entities);
+    //     debug!("🔍 DEBUG: {} entities with SortPointEntity exist, but 0 match full point query - component mismatch!", all_sort_point_entities);
     //
     //     // Let's see what the first few SortPointEntity entities actually have
     //     for (i, entity) in existing_sort_points.iter().enumerate() {
     //         if i >= 3 {
     //             break;
     //         } // Only check first 3 for debugging
-    //         info!("🔍 DEBUG: Entity {:?} has SortPointEntity", entity);
+    //         debug!("🔍 DEBUG: Entity {:?} has SortPointEntity", entity);
     //     }
     // }
 
@@ -249,14 +249,17 @@ pub fn render_glyphs(
     for (element_entity, glyph_element) in existing_elements.iter() {
         // Only despawn elements that belong to sorts that need clearing
         if sorts_to_clear.contains(&glyph_element.sort_entity) {
-            commands.entity(element_entity).despawn();
-            cleared_count += 1;
+            // Check if entity still exists before despawning
+            if let Ok(mut entity_commands) = commands.get_entity(element_entity) {
+                entity_commands.despawn();
+                cleared_count += 1;
+            }
         } else {
             skipped_count += 1;
         }
     }
 
-    info!("🧹 SELECTIVE CLEANUP: Cleared {}/{} elements, skipped {} (sorts_to_clear: {}, total_sorts: {})", 
+    debug!("🧹 SELECTIVE CLEANUP: Cleared {}/{} elements, skipped {} (sorts_to_clear: {}, total_sorts: {})", 
           cleared_count, total_count, skipped_count, sorts_to_clear.len(), all_current_sorts.len());
 
     // Only clear tracking for sorts that changed, not all sorts
@@ -291,7 +294,7 @@ pub fn render_glyphs(
             } else {
                 "has components"
             };
-            info!(
+            debug!(
                 "🎭 Rendering active sort '{}' as filled outline ({})",
                 sort.glyph_name, render_reason
             );
@@ -336,15 +339,15 @@ pub fn render_glyphs(
                 ));
             } else if checked_points <= 3 {
                 // Log first few mismatches for debugging
-                info!("🔍 SORT_ENTITY MISMATCH: Point {:?} belongs to sort {:?}, not current sort {:?}", 
+                debug!("🔍 SORT_ENTITY MISMATCH: Point {:?} belongs to sort {:?}, not current sort {:?}", 
                       point_entity, sort_point_entity.sort_entity, sort_entity);
             }
         }
 
-        info!("🔍 UNIFIED POINT COLLECTION: Sort '{}' found {}/{} matching points, sort_points.len()={}", sort.glyph_name, matching_points, checked_points, sort_points.len());
+        debug!("🔍 UNIFIED POINT COLLECTION: Sort '{}' found {}/{} matching points, sort_points.len()={}", sort.glyph_name, matching_points, checked_points, sort_points.len());
 
         if !sort_points.is_empty() {
-            info!(
+            debug!(
                 "🎨 RENDERING COMPONENTS: {} points for sort '{}'",
                 sort_points.len(),
                 sort.glyph_name
@@ -392,7 +395,7 @@ pub fn render_glyphs(
                 &smooth_points,
             );
         } else {
-            info!(
+            debug!(
                 "🚫 NO POINTS: Rendering static outline for sort '{}' (no points found)",
                 sort.glyph_name
             );
@@ -464,7 +467,7 @@ fn render_filled_outline(
 ) {
     if let Some(fontir_state) = fontir_state {
         if let Some(paths) = fontir_state.get_glyph_paths_with_components(glyph_name) {
-            info!(
+            debug!(
                 "🎨 Rendering filled outline for '{}' with {} paths (includes components)",
                 glyph_name,
                 paths.len()
@@ -487,7 +490,7 @@ fn render_filled_outline(
             // Convert all kurbo paths (contours) to a single Lyon path
             for (path_idx, kurbo_path) in paths.iter().enumerate() {
                 let elements_count = kurbo_path.elements().len();
-                info!(
+                debug!(
                     "🎨 Processing path {}/{}: {} elements",
                     path_idx + 1,
                     paths.len(),
@@ -537,7 +540,7 @@ fn render_filled_outline(
             );
 
             if tessellation_result.is_ok() && !geometry.vertices.is_empty() {
-                info!(
+                debug!(
                     "🎨 Tessellation successful: {} vertices, {} indices for '{}'",
                     geometry.vertices.len(),
                     geometry.indices.len(),
@@ -1473,7 +1476,7 @@ fn detect_sort_changes(
             .count();
         if point_count > 0 && !update_tracker.needs_update {
             points_ready_for_rendering = true;
-            info!(
+            debug!(
                 "🔄 POINTS READY: Sort {:?} has {} points but visual update not triggered",
                 sort_entity, point_count
             );
@@ -1490,9 +1493,9 @@ fn detect_sort_changes(
     if needs_update {
         update_tracker.needs_update = true;
         if points_ready_for_rendering {
-            info!("🔄 POINTS READY DETECTED: Setting update flag for active sorts with existing points");
+            debug!("🔄 POINTS READY DETECTED: Setting update flag for active sorts with existing points");
         } else {
-            info!("🔄 SORT CHANGES DETECTED: Setting update flag - active_changed: {}, inactive_changed: {}, removed_active: {}, removed_inactive: {}", 
+            debug!("🔄 SORT CHANGES DETECTED: Setting update flag - active_changed: {}, inactive_changed: {}, removed_active: {}, removed_inactive: {}", 
                   active_changed, inactive_changed, removed_active_count, removed_inactive_count);
         }
     }

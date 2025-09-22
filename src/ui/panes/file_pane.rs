@@ -5,7 +5,7 @@
 //! UFO masters in a designspace.
 
 use crate::core::state::fontir_app_state::FontIRAppState;
-use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
+use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::systems::sorts::sort_entities::BufferSortEntities;
 use crate::ui::theme::*;
 use crate::ui::themes::{CurrentTheme, UiBorderRadius};
@@ -413,7 +413,7 @@ fn update_file_info(
 
                 // Debug logging
                 if file_info.is_changed() {
-                    info!(
+                    debug!(
                         "Window mode: {:?}, Width: {}, Show full path: {}",
                         window.mode,
                         window.width(),
@@ -567,7 +567,9 @@ fn update_master_buttons(
     if let Ok(children) = children_query.get(container_entity) {
         for child in children.iter() {
             if existing_buttons.contains(child) {
-                commands.entity(child).despawn();
+                if let Ok(mut entity_commands) = commands.get_entity(child) {
+                    entity_commands.despawn();
+                }
             }
         }
     }
@@ -785,7 +787,7 @@ fn handle_master_buttons(
                 }
 
                 if let Some(current_master) = file_info.masters.get(button.master_index) {
-                    info!(
+                    debug!(
                         "Switching to UFO master: {} ({})",
                         current_master.style_name, current_master.filename
                     );
@@ -810,7 +812,7 @@ fn handle_switch_master_events(
     sort_query: Query<Entity, With<crate::editing::sort::Sort>>,
 ) {
     for event in switch_events.read() {
-        info!(
+        debug!(
             "🔄 Processing master switch event: switching to master {} at path: {}",
             event.master_index,
             event.master_path.display()
@@ -819,7 +821,7 @@ fn handle_switch_master_events(
         // Step 1: Try to load the new FontIR state from the master UFO file
         match FontIRAppState::from_path(event.master_path.clone()) {
             Ok(new_fontir_state) => {
-                info!(
+                debug!(
                     "✅ Successfully loaded new FontIR state from: {}",
                     event.master_path.display()
                 );
@@ -827,11 +829,11 @@ fn handle_switch_master_events(
                 // Step 2: Replace the existing FontIR state
                 if let Some(ref mut current_fontir) = fontir_state {
                     **current_fontir = new_fontir_state;
-                    info!("✅ Replaced FontIR state with new master");
+                    debug!("✅ Replaced FontIR state with new master");
                 } else {
                     // Insert new FontIR state if none exists
                     commands.insert_resource(new_fontir_state);
-                    info!("✅ Inserted new FontIR state");
+                    debug!("✅ Inserted new FontIR state");
                 }
 
                 // Step 3: Clear all existing buffer sort entities to force refresh
@@ -839,8 +841,10 @@ fn handle_switch_master_events(
                 // with the new glyph data and advance widths from the new master
                 for (&_buffer_index, &entity) in buffer_entities.entities.iter() {
                     if sort_query.get(entity).is_ok() {
-                        commands.entity(entity).despawn();
-                        info!(
+                        if let Ok(mut entity_commands) = commands.get_entity(entity) {
+                            entity_commands.despawn();
+                        }
+                        debug!(
                             "🗑️ Despawned sort entity {:?} to force refresh with new master",
                             entity
                         );
@@ -850,7 +854,7 @@ fn handle_switch_master_events(
                 // The buffer entities will be cleared by despawn_missing_buffer_sort_entities system
                 // and then recreated by spawn_missing_sort_entities system with the new FontIR data
 
-                info!(
+                debug!(
                     "🔄 Master switch complete - sorts will be recreated with new advance widths"
                 );
             }

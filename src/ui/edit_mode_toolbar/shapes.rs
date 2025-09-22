@@ -8,7 +8,7 @@
 use crate::core::settings::BezySettings;
 use crate::core::state::{AppState, GlyphNavigation};
 use crate::editing::selection::events::AppStateChanged;
-use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
+use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
 use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
 use crate::ui::theme::*;
@@ -60,11 +60,11 @@ impl EditTool for ShapesTool {
     }
 
     fn on_enter(&self) {
-        info!("✅ SHAPES TOOL: Entered Shapes tool");
+        debug!("✅ SHAPES TOOL: Entered Shapes tool");
     }
 
     fn on_exit(&self) {
-        info!("❌ SHAPES TOOL: Exited Shapes tool");
+        debug!("❌ SHAPES TOOL: Exited Shapes tool");
     }
 }
 
@@ -224,7 +224,7 @@ pub fn handle_shape_mouse_events(
         if shapes_is_active && active_sort.is_none() {
             // Only show this message when shapes tool is actually trying to be used
             if mouse_button_input.just_pressed(MouseButton::Left) {
-                info!("🔳 Shapes tool: Cannot draw without an active sort. Please select a glyph first.");
+                debug!("🔳 Shapes tool: Cannot draw without an active sort. Please select a glyph first.");
             }
         }
         debug!("SHAPES INPUT: Shapes not active or no active sort, exiting");
@@ -265,7 +265,7 @@ pub fn handle_shape_mouse_events(
 
         // Handle mouse button press
         if mouse_button_input.just_pressed(MouseButton::Left) {
-            info!(
+            debug!(
                 "SHAPES TOOL: Starting to draw {:?} at sort-relative ({:.1}, {:.1}), world ({:.1}, {:.1}), sort pos ({:.1}, {:.1})",
                 current_shape_type.0, snapped_position.x, snapped_position.y, world_position.x, world_position.y, sort_position.x, sort_position.y
             );
@@ -341,7 +341,9 @@ pub fn render_active_shape_drawing_with_dimensions(
 ) {
     // Clean up existing preview elements
     for entity in existing_preview_query.iter() {
-        commands.entity(entity).despawn();
+        if let Ok(mut entity_commands) = commands.get_entity(entity) {
+            entity_commands.despawn();
+        }
     }
 
     // Check if shapes mode is active via multiple methods (same as input handling)
@@ -384,7 +386,7 @@ pub fn render_active_shape_drawing_with_dimensions(
             max: rect.max + sort_position,
         };
 
-        info!("SHAPES PREVIEW: Drawing preview! Sort-relative rect: ({:.1}, {:.1}) to ({:.1}, {:.1}), world rect: ({:.1}, {:.1}) to ({:.1}, {:.1}), shape_type: {:?}", 
+        debug!("SHAPES PREVIEW: Drawing preview! Sort-relative rect: ({:.1}, {:.1}) to ({:.1}, {:.1}), world rect: ({:.1}, {:.1}) to ({:.1}, {:.1}), shape_type: {:?}", 
               rect.min.x, rect.min.y, rect.max.x, rect.max.y,
               world_rect.min.x, world_rect.min.y, world_rect.max.x, world_rect.max.y,
               active_drawing.shape_type);
@@ -394,7 +396,7 @@ pub fn render_active_shape_drawing_with_dimensions(
 
         match active_drawing.shape_type {
             ShapeType::Rectangle | ShapeType::RoundedRectangle => {
-                info!("SHAPES PREVIEW: Drawing rectangle preview");
+                debug!("SHAPES PREVIEW: Drawing rectangle preview");
                 draw_mesh_dashed_rectangle(
                     &mut commands,
                     &mut meshes,
@@ -405,7 +407,7 @@ pub fn render_active_shape_drawing_with_dimensions(
                 );
             }
             ShapeType::Oval => {
-                info!("SHAPES PREVIEW: Drawing oval preview");
+                debug!("SHAPES PREVIEW: Drawing oval preview");
                 draw_mesh_dashed_ellipse(
                     &mut commands,
                     &mut meshes,
@@ -418,7 +420,7 @@ pub fn render_active_shape_drawing_with_dimensions(
         }
 
         // Draw dimensions (width x height) similar to Glyphs app
-        info!("SHAPES PREVIEW: Drawing dimension lines");
+        debug!("SHAPES PREVIEW: Drawing dimension lines");
         spawn_shape_dimension_lines(
             &mut commands,
             &mut meshes,
@@ -488,7 +490,7 @@ fn create_shape(
                 .contours
                 .push(crate::core::state::ContourData { points });
 
-            info!(
+            debug!(
                 "Created {} shape in glyph '{}'",
                 match shape_type {
                     ShapeType::Rectangle => "rectangle",
@@ -529,7 +531,7 @@ fn create_shape_fontir(
         working_copy.is_dirty = true;
         app_state_changed.write(AppStateChanged);
 
-        info!(
+        debug!(
             "Created {} shape with FontIR in glyph '{}'. Total contours: {}",
             match shape_type {
                 ShapeType::Rectangle => "rectangle",
@@ -1092,8 +1094,8 @@ pub fn spawn_shapes_submenu(
     embedded_fonts: Res<EmbeddedFonts>,
     theme: Res<CurrentTheme>,
 ) {
-    info!("🔳 Spawning shapes submenu with Rectangle, Oval, and Rounded Rectangle");
-    info!("🔳 Default shape type is: {:?}", ShapeType::default());
+    debug!("🔳 Spawning shapes submenu with Rectangle, Oval, and Rounded Rectangle");
+    debug!("🔳 Default shape type is: {:?}", ShapeType::default());
 
     let shapes = [
         ShapeType::Rectangle,
@@ -1124,7 +1126,7 @@ pub fn spawn_shapes_submenu(
             }
         });
 
-    info!("🔳 Shapes submenu spawned successfully");
+    debug!("🔳 Shapes submenu spawned successfully");
 }
 
 /// Auto-show shapes submenu when shapes tool is active (like pen tool)
@@ -1145,7 +1147,7 @@ pub fn toggle_shapes_submenu_visibility(
 
             if node.display != new_display {
                 node.display = new_display;
-                info!(
+                debug!(
                     "🔳 Shapes submenu visibility changed: tool_active={}, display={:?}",
                     is_shapes_tool_active, new_display
                 );
@@ -1182,7 +1184,7 @@ pub fn handle_shapes_submenu_selection(
                 .as_secs_f32();
             if current_time - LAST_LOG > 2.0 {
                 LAST_LOG = current_time;
-                info!(
+                debug!(
                     "🔳 Shapes submenu selection system: found {} buttons",
                     button_count
                 );
@@ -1195,7 +1197,7 @@ pub fn handle_shapes_submenu_selection(
 
         // Debug: Log interactions for debugging
         if *interaction != Interaction::None {
-            info!(
+            debug!(
                 "🔳 Button interaction: {:?} for shape {:?} (current: {:?})",
                 interaction, shape_button.shape_type, current_shape_type.0
             );
@@ -1203,7 +1205,7 @@ pub fn handle_shapes_submenu_selection(
 
         if *interaction == Interaction::Pressed && !is_current_shape {
             current_shape_type.0 = shape_button.shape_type;
-            info!("🔳 Switched to shape type: {:?}", shape_button.shape_type);
+            debug!("🔳 Switched to shape type: {:?}", shape_button.shape_type);
         }
 
         // Use the unified button color system for consistent appearance with main toolbar

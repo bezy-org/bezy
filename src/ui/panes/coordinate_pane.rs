@@ -7,7 +7,7 @@
 #![allow(unused_variables)]
 
 use crate::editing::selection::components::Selected;
-use crate::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
+use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::geometry::quadrant::Quadrant;
 use crate::ui::theme::*;
 use crate::ui::themes::{CurrentTheme, UiBorderRadius};

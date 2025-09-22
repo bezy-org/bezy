@@ -93,7 +93,7 @@ fn handle_spacebar_press(
     current_tool.switch_to("pan");
     pan_tool.on_enter();
 
-    info!("Temporarily switched to Pan tool (spacebar held)");
+    debug!("Temporarily switched to Pan tool (spacebar held)");
 }
 
 /// Handle spacebar release - switch back to previous tool
@@ -140,7 +140,7 @@ fn switch_to_previous_tool(
             current_tool.switch_to(previous_tool_id);
             previous_tool.on_enter();
 
-            info!(
+            debug!(
                 "Switched back to {} tool (spacebar released)",
                 previous_tool.name()
             );
@@ -152,6 +152,6 @@ fn switch_to_previous_tool(
     if let Some(select_tool) = tool_registry.get_tool("select") {
         current_tool.switch_to("select");
         select_tool.on_enter();
-        info!("Switched back to Select tool (no previous tool)");
+        debug!("Switched back to Select tool (no previous tool)");
     }
 }

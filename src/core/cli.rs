@@ -20,7 +20,7 @@ use std::path::PathBuf;
 ///   bezy --theme light                  # Use light theme
 ///   bezy --theme strawberry             # Use strawberry theme
 ///   bezy --no-default-buffer            # Start without default LTR buffer (for testing)
-#[derive(Parser, Debug, Resource)]
+#[derive(Parser, Debug, Resource, Clone)]
 #[clap(
     name = "bezy",
     version,
@@ -77,6 +77,18 @@ pub struct CliArgs {
         long_help = "Initialize the ~/.config/bezy directory with a settings.json file and copies of all default themes. This allows you to customize themes and set preferences like default theme without needing command line arguments."
     )]
     pub new_config: bool,
+
+    /// Disable Terminal User Interface (TUI) mode
+    ///
+    /// By default, Bezy launches with a TUI (Terminal User Interface) alongside
+    /// the main editor window. The TUI provides tabs for codepoint browsing,
+    /// font information, and logs. Use this flag to run without the TUI.
+    #[clap(
+        long = "no-tui",
+        help = "Disable Terminal User Interface mode",
+        long_help = "Disable the Terminal User Interface (TUI) that normally runs alongside the main editor. By default, Bezy shows a TUI in the terminal with tabs for codepoint browsing, font information, and real-time log viewing. Use this flag to run the GUI only."
+    )]
+    pub no_tui: bool,
 }
 
 impl CliArgs {
@@ -177,7 +189,7 @@ impl CliArgs {
         // First check CLI args
         if let Some(theme_name) = &self.theme {
             if let Some(variant) = ThemeVariant::parse(theme_name) {
-                info!("Using theme from CLI: {}", theme_name);
+                debug!("Using theme from CLI: {}", theme_name);
                 return variant;
             }
         }
@@ -186,14 +198,14 @@ impl CliArgs {
         if let Some(config) = ConfigFile::load() {
             if let Some(theme_name) = config.default_theme {
                 if let Some(variant) = ThemeVariant::parse(&theme_name) {
-                    info!("Using theme from config file: {}", theme_name);
+                    debug!("Using theme from config file: {}", theme_name);
                     return variant;
                 }
             }
         }
 
         // Finally use built-in default
-        info!("Using default theme: dark");
+        debug!("Using default theme: dark");
         ThemeVariant::default()
     }
 }

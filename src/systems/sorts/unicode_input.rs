@@ -74,17 +74,17 @@ pub fn handle_unicode_text_input(
 
     // Handle keyboard input events
     let event_count = key_evr.len();
-    info!("Unicode input: Processing {} keyboard events", event_count);
+    debug!("Unicode input: Processing {} keyboard events", event_count);
 
     for ev in key_evr.read() {
-        info!(
+        debug!(
             "Unicode input: Keyboard event - key: {:?}, state: {:?}",
             ev.logical_key, ev.state
         );
 
         // Only process pressed keys
         let is_pressed = matches!(ev.state, ButtonState::Pressed);
-        info!(
+        debug!(
             "Unicode input: Key state - is_pressed: {}, raw state: {:?}",
             is_pressed, ev.state
         );
@@ -97,13 +97,13 @@ pub fn handle_unicode_text_input(
         match &ev.logical_key {
             // Handle Unicode character input
             Key::Character(character_string) => {
-                info!(
+                debug!(
                     "Unicode input: Character key pressed: '{}'",
                     character_string
                 );
                 // Process each character in the string (usually just one)
                 for character in character_string.chars() {
-                    info!(
+                    debug!(
                         "Unicode input: Processing character '{}' (U+{:04X})",
                         character, character as u32
                     );
@@ -247,13 +247,13 @@ fn handle_unicode_character(
     };
 
     if let Some(glyph_name) = glyph_name {
-        info!(
+        debug!(
             "✅ Unicode input: Found glyph '{}' for character '{}' (U+{:04X})",
             glyph_name, character, character as u32
         );
 
         // CRITICAL DEBUG: Show exactly what we're inserting
-        info!(
+        debug!(
             "🔍 DEBUG: About to insert glyph '{}' for character '{}'",
             glyph_name, character
         );
@@ -264,11 +264,11 @@ fn handle_unicode_character(
         // Insert the character using new buffer entity system
         match *current_placement_mode {
             TextPlacementMode::Insert => {
-                info!(
+                debug!(
                     "🔍 DEBUG: About to insert character '{}' as glyph '{}'",
                     character, glyph_name
                 );
-                info!(
+                debug!(
                     "🔍 DEBUG: Buffer state BEFORE insert: {} sorts",
                     text_editor_state.buffer.len()
                 );
@@ -285,11 +285,11 @@ fn handle_unicode_character(
                     respawn_queue,
                 );
 
-                info!(
+                debug!(
                     "🔍 DEBUG: Buffer state AFTER insert: {} sorts",
                     text_editor_state.buffer.len()
                 );
-                info!(
+                debug!(
                     "Unicode input: Inserted '{}' (U+{:04X}) as glyph '{}' in Insert mode",
                     character, character as u32, glyph_name
                 );
@@ -301,11 +301,11 @@ fn handle_unicode_character(
                     "RTL Text"
                 };
 
-                info!(
+                debug!(
                     "🔍 DEBUG: About to insert character '{}' as glyph '{}' in {} mode",
                     character, glyph_name, mode_name
                 );
-                info!(
+                debug!(
                     "🔍 DEBUG: Buffer state BEFORE insert: {} sorts",
                     text_editor_state.buffer.len()
                 );
@@ -322,11 +322,11 @@ fn handle_unicode_character(
                     respawn_queue,
                 );
 
-                info!(
+                debug!(
                     "🔍 DEBUG: Buffer state AFTER insert: {} sorts",
                     text_editor_state.buffer.len()
                 );
-                info!(
+                debug!(
                     "Unicode input: Inserted '{}' (U+{:04X}) as glyph '{}' in {} mode",
                     character, character as u32, glyph_name, mode_name
                 );
@@ -338,7 +338,7 @@ fn handle_unicode_character(
                         ..
                     } = &entry.kind
                     {
-                        info!(
+                        debug!(
                             "🔍 BUFFER[{}]: glyph='{}', is_active={}, layout_mode={:?}",
                             i, g, entry.is_active, entry.layout_mode
                         );
@@ -357,7 +357,7 @@ fn handle_unicode_character(
                     buffer_query,
                     respawn_queue,
                 );
-                info!(
+                debug!(
                     "Unicode input: Inserted '{}' (U+{:04X}) as glyph '{}' in Freeform mode",
                     character, character as u32, glyph_name
                 );
@@ -416,7 +416,7 @@ fn handle_space_character(
             buffer_query,
             respawn_queue,
         );
-        info!("Unicode input: Inserted space character");
+        debug!("Unicode input: Inserted space character");
     } else {
         // Fallback: insert a space-width advance without glyph
         let space_width = 250.0; // Default space width
@@ -430,7 +430,7 @@ fn handle_space_character(
             buffer_query,
             respawn_queue,
         );
-        info!("Unicode input: Inserted space character (fallback)");
+        debug!("Unicode input: Inserted space character (fallback)");
     }
 }
 
@@ -460,11 +460,11 @@ fn handle_newline_character(
                 TextPlacementMode::RTLText => "RTL Text",
                 _ => "Unknown",
             };
-            info!("Unicode input: Inserted line break in {} mode", mode_name);
+            debug!("Unicode input: Inserted line break in {} mode", mode_name);
         }
         TextPlacementMode::Freeform => {
             // In Freeform mode, newlines might not be meaningful
-            info!("Unicode input: Newline ignored in Freeform mode");
+            debug!("Unicode input: Newline ignored in Freeform mode");
         }
     }
 }
@@ -502,7 +502,7 @@ fn insert_line_break_at_buffer_cursor(
     let layout_mode = text_buffer.layout_mode.clone();
     let insert_buffer_index = cursor_position;
 
-    info!("📝 LINEBREAK: Inserting line break at buffer index {} (cursor at {}) in buffer {:?} (layout: {:?})", 
+    debug!("📝 LINEBREAK: Inserting line break at buffer index {} (cursor at {}) in buffer {:?} (layout: {:?})", 
           insert_buffer_index, cursor_position, buffer_id.0, layout_mode);
 
     // Create line break entry
@@ -525,7 +525,7 @@ fn insert_line_break_at_buffer_cursor(
     // because their buffer indices shifted by +1
     for i in insert_buffer_index..text_editor_state.buffer.len() {
         respawn_queue.indices.push(i);
-        info!(
+        debug!(
             "🔄 RESPAWN QUEUE: Added buffer index {} to respawn queue due to line break insertion",
             i
         );
@@ -537,7 +537,7 @@ fn insert_line_break_at_buffer_cursor(
     // Mark text editor state as changed for rendering updates
     text_editor_state.set_changed();
 
-    info!("✅ LINEBREAK: Successfully inserted line break at buffer index {}, cursor moved to position {}", 
+    debug!("✅ LINEBREAK: Successfully inserted line break at buffer index {}, cursor moved to position {}", 
           insert_buffer_index, buffer_cursor.position);
 
     true
@@ -570,7 +570,7 @@ fn handle_backspace(
                 TextPlacementMode::Freeform => "Freeform",
                 _ => "Unknown",
             };
-            info!("Unicode input: Backspace in {} mode", mode_name);
+            debug!("Unicode input: Backspace in {} mode", mode_name);
         }
         TextPlacementMode::RTLText => {
             // For RTL text: backspace deletes character to the RIGHT of cursor
@@ -581,7 +581,7 @@ fn handle_backspace(
                 respawn_queue,
                 false,
             );
-            info!("Unicode input: Backspace in RTL Text mode");
+            debug!("Unicode input: Backspace in RTL Text mode");
         }
     }
 }
@@ -613,7 +613,7 @@ fn handle_delete(
                 TextPlacementMode::Freeform => "Freeform",
                 _ => "Unknown",
             };
-            info!("Unicode input: Delete in {} mode", mode_name);
+            debug!("Unicode input: Delete in {} mode", mode_name);
         }
         TextPlacementMode::RTLText => {
             // For RTL text: delete key deletes character to the LEFT of cursor
@@ -624,7 +624,7 @@ fn handle_delete(
                 respawn_queue,
                 true,
             );
-            info!("Unicode input: Delete in RTL Text mode");
+            debug!("Unicode input: Delete in RTL Text mode");
         }
     }
 }
@@ -698,7 +698,7 @@ fn delete_character_at_buffer_cursor(
         "unknown".to_string()
     };
 
-    info!(
+    debug!(
         "🗑️ DELETE: Deleting character '{}' at buffer index {} (cursor at {}, delete_to_left: {})",
         deleted_glyph_name, delete_buffer_index, cursor_position, delete_to_left
     );
@@ -718,7 +718,7 @@ fn delete_character_at_buffer_cursor(
     // because their buffer indices shifted by -1
     for i in delete_buffer_index..text_editor_state.buffer.len() {
         respawn_queue.indices.push(i);
-        info!(
+        debug!(
             "🔄 RESPAWN QUEUE: Added buffer index {} to respawn queue due to deletion",
             i
         );
@@ -728,20 +728,20 @@ fn delete_character_at_buffer_cursor(
     if delete_to_left {
         // Backspace: cursor moves left by 1
         buffer_cursor.position = cursor_position - 1;
-        info!(
+        debug!(
             "⬅️ DELETE: Cursor moved left to position {}",
             buffer_cursor.position
         );
     } else {
         // Delete key: cursor stays in same position (but content shifted left)
         // No cursor position change needed
-        info!("➡️ DELETE: Cursor remains at position {}", cursor_position);
+        debug!("➡️ DELETE: Cursor remains at position {}", cursor_position);
     }
 
     // Mark text editor state as changed for rendering updates
     text_editor_state.set_changed();
 
-    info!(
+    debug!(
         "✅ DELETE: Successfully deleted character '{}' from buffer index {}",
         deleted_glyph_name, delete_buffer_index
     );
@@ -781,7 +781,7 @@ fn get_contextual_arabic_glyph_name(
         return Some(base_name);
     }
 
-    info!(
+    debug!(
         "🔤 Direct shaping: Analyzing Arabic character '{}' ({})",
         character, base_name
     );
@@ -839,7 +839,7 @@ fn get_contextual_arabic_glyph_name(
         }
     };
 
-    info!(
+    debug!(
         "🔤 Direct shaping: '{}' at position {:?} → '{}'",
         base_name, position, contextual_name
     );
@@ -861,7 +861,7 @@ fn insert_character_at_buffer_cursor(
     )>,
     respawn_queue: &mut ResMut<crate::systems::sorts::sort_entities::BufferSortRespawnQueue>,
 ) -> bool {
-    info!(
+    debug!(
         "🔍 INSERT DEBUG: character='{}', glyph_name='{}', advance_width={:.1}",
         character, glyph_name, advance_width
     );
@@ -889,16 +889,16 @@ fn insert_character_at_buffer_cursor(
     let buffer_id = text_buffer.id;
     let layout_mode = text_buffer.layout_mode.clone();
 
-    info!(
+    debug!(
         "🔍 INSERT: Character '{}' at buffer cursor position {} in buffer {:?} (layout: {:?})",
         character, cursor_position, buffer_id.0, layout_mode
     );
 
     // DEBUG: Show buffer state before insertion
-    info!("🔍 INSERT DEBUG: Buffer state before insertion:");
+    debug!("🔍 INSERT DEBUG: Buffer state before insertion:");
     for (i, sort) in text_editor_state.buffer.iter().enumerate() {
         if sort.buffer_id == Some(buffer_id) {
-            info!(
+            debug!(
                 "  [{}] glyph='{}', buffer_id={:?}",
                 i,
                 sort.kind.glyph_name(),
@@ -932,7 +932,7 @@ fn insert_character_at_buffer_cursor(
         buffer_id: Some(buffer_id), // Inherit buffer ID from buffer entity
     };
 
-    info!(
+    debug!(
         "🔍 INSERT DEBUG: Created sort with glyph_name='{}' for character='{}'",
         new_sort.kind.glyph_name(),
         character
@@ -960,7 +960,7 @@ fn insert_character_at_buffer_cursor(
         buffer_sort_indices[cursor_position]
     };
 
-    info!(
+    debug!(
         "🔍 INSERT: Inserting character '{}' at buffer index {} (buffer has {} existing sorts, cursor at {})",
         character, insert_buffer_index, buffer_sort_indices.len(), cursor_position
     );
@@ -975,7 +975,7 @@ fn insert_character_at_buffer_cursor(
     // because their buffer indices shifted by +1
     for i in insert_buffer_index..text_editor_state.buffer.len() {
         respawn_queue.indices.push(i);
-        info!(
+        debug!(
             "🔄 RESPAWN QUEUE: Added buffer index {} to respawn queue due to insertion",
             i
         );
@@ -983,7 +983,7 @@ fn insert_character_at_buffer_cursor(
 
     // DEBUG: Verify what actually got inserted
     if let Some(inserted_sort) = text_editor_state.buffer.get(insert_buffer_index) {
-        info!("🔍 INSERT DEBUG: Verified inserted sort at index {}: glyph_name='{}', character codepoint={:?}", 
+        debug!("🔍 INSERT DEBUG: Verified inserted sort at index {}: glyph_name='{}', character codepoint={:?}", 
               insert_buffer_index, inserted_sort.kind.glyph_name(),
               if let crate::core::state::text_editor::buffer::SortKind::Glyph { codepoint, .. } = &inserted_sort.kind {
                   codepoint.map(|c| format!("'{c}'"))
@@ -993,7 +993,7 @@ fn insert_character_at_buffer_cursor(
     // Update the cursor position in the buffer entity (advance by 1)
     buffer_cursor.position = cursor_position + 1;
 
-    info!(
+    debug!(
         "✅ INSERT: Successfully inserted '{}' as glyph '{}', cursor advanced to position {}",
         character, glyph_name, buffer_cursor.position
     );
@@ -1102,7 +1102,7 @@ fn handle_arrow_left(
     // The visual effect (moving left on screen) is achieved through the cursor rendering logic
     if buffer_cursor.position > 0 {
         buffer_cursor.position -= 1;
-        info!("⬅️ Left arrow moved to position {}", buffer_cursor.position);
+        debug!("⬅️ Left arrow moved to position {}", buffer_cursor.position);
     } else {
         debug!("Cursor already at position 0, cannot move left");
     }
@@ -1155,7 +1155,7 @@ fn handle_arrow_right(
 
     if buffer_cursor.position < buffer_sort_count {
         buffer_cursor.position += 1;
-        info!(
+        debug!(
             "➡️ Right arrow moved to position {}",
             buffer_cursor.position
         );
@@ -1204,7 +1204,7 @@ fn handle_arrow_up(
         fontir_app_state,
     ) {
         buffer_cursor.position = new_position;
-        info!(
+        debug!(
             "⬆️ Moved cursor up from position {} to position {}",
             current_position, new_position
         );
@@ -1253,7 +1253,7 @@ fn handle_arrow_down(
         fontir_app_state,
     ) {
         buffer_cursor.position = new_position;
-        info!(
+        debug!(
             "⬇️ Moved cursor down from position {} to position {}",
             current_position, new_position
         );

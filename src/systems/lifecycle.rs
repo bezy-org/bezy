@@ -21,7 +21,7 @@ pub fn load_ufo_font(
     if let Some(path) = &cli_args.font_source {
         match app_state.load_font_from_path(path.clone()) {
             Ok(_) => {
-                info!("Successfully loaded UFO font from: {}", path.display());
+                debug!("Successfully loaded UFO font from: {}", path.display());
             }
             Err(e) => {
                 error!("Failed to load UFO font: {}", e);

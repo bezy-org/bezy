@@ -255,7 +255,7 @@ pub fn sync_nudged_points_on_completion(
 ) {
     // Only sync when transitioning from nudging to not nudging
     if *last_nudge_state && !nudge_state.is_nudging {
-        info!("[NUDGE] Nudging completed, syncing points to font data");
+        debug!("[NUDGE] Nudging completed, syncing points to font data");
 
         let mut all_sync_movements = Vec::new();
 
@@ -304,7 +304,7 @@ pub fn sync_nudged_points_on_completion(
         let total_synced = result.points_moved + result.connected_offcurves_moved;
 
         if total_synced > 0 {
-            info!(
+            debug!(
                 "[NUDGE] Successfully synced {} points ({} selected, {} connected off-curves) to font data",
                 total_synced, result.points_moved, result.connected_offcurves_moved
             );

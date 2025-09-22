@@ -14,7 +14,7 @@ use crate::core::settings::BezySettings;
 use crate::core::state::{
     AppState, FontIRAppState, GlyphNavigation, SortLayoutMode, TextEditorState, TextModeConfig,
 };
-use crate::embedded_assets::EmbeddedFonts;
+use crate::utils::embedded_assets::EmbeddedFonts;
 use bevy::input::ButtonState;
 use bevy::log::info;
 use bevy::prelude::*;
@@ -129,14 +129,14 @@ impl EditTool for TextTool {
     }
 
     fn on_enter(&self) {
-        info!("Entered Text tool - Enhanced features:");
-        info!("• Click to place sorts, type letters to add glyphs");
-        info!("• 1-9 keys to switch glyphs, F1 for help");
-        info!("• Arrow keys for navigation, Ctrl+S to show text mode");
+        debug!("Entered Text tool - Enhanced features:");
+        debug!("• Click to place sorts, type letters to add glyphs");
+        debug!("• 1-9 keys to switch glyphs, F1 for help");
+        debug!("• Arrow keys for navigation, Ctrl+S to show text mode");
     }
 
     fn on_exit(&self) {
-        info!("Exited Text tool");
+        debug!("Exited Text tool");
     }
 }
 
@@ -239,7 +239,7 @@ pub fn spawn_text_submenu(
             }
         });
 
-    info!("Spawned text submenu with {} modes", modes.len());
+    debug!("Spawned text submenu with {} modes", modes.len());
 }
 
 pub fn handle_text_mode_selection(
@@ -265,7 +265,7 @@ pub fn handle_text_mode_selection(
         if *interaction == Interaction::Pressed && !is_current_mode {
             *current_mode = mode_button.mode;
             text_mode_config.default_placement_mode = mode_button.mode.to_sort_layout_mode();
-            info!("Switched to text placement mode: {:?}", mode_button.mode);
+            debug!("Switched to text placement mode: {:?}", mode_button.mode);
         }
 
         // Use the unified button color system for consistent appearance with main toolbar
@@ -438,7 +438,7 @@ pub fn handle_text_mode_mouse_clicks(
             handle_tolerance,
             font_metrics_ref,
         ) {
-            info!(
+            debug!(
                 "Clicked on sort handle at index {}, letting selection system handle activation",
                 clicked_sort_index
             );
@@ -465,7 +465,7 @@ pub fn handle_text_mode_mouse_clicks(
                 || *current_placement_mode == TextPlacementMode::RTLText)
         {
             *current_placement_mode = TextPlacementMode::Insert;
-            info!("Auto-switched to Insert mode after placing text sort");
+            debug!("Auto-switched to Insert mode after placing text sort");
         }
     }
 }
@@ -500,7 +500,7 @@ pub fn render_sort_preview(
     mut preview_metrics_state: ResMut<crate::rendering::metrics::PreviewMetricsState>,
     theme: Res<CurrentTheme>,
 ) {
-    info!(
+    debug!(
         "[PREVIEW] Entered render_sort_preview - text_mode_active: {}, placement_mode: {:?}",
         text_mode_active.0, *current_placement_mode
     );
@@ -511,7 +511,7 @@ pub fn render_sort_preview(
     }
     if *current_placement_mode == TextPlacementMode::Insert {
         preview_metrics_state.active = false;
-        info!("[PREVIEW] DISABLING preview: placement mode is Insert");
+        debug!("[PREVIEW] DISABLING preview: placement mode is Insert");
         return;
     }
 
@@ -638,7 +638,7 @@ pub fn handle_text_tool_shortcuts(
         && !should_disable
     {
         current_tool.switch_to("text");
-        info!("Activated text tool via keyboard shortcut");
+        debug!("Activated text tool via keyboard shortcut");
         keyboard_input.clear_just_pressed(KeyCode::KeyT);
     }
     if current_tool.get_current() == Some("text")
@@ -653,44 +653,44 @@ pub fn handle_text_tool_shortcuts(
                 .map(|entry| entry.kind.glyph_name().to_string())
                 .collect::<Vec<String>>()
                 .join(" ");
-            info!("Current text buffer: {}", buffer_text);
-            info!("Buffer length: {} sorts", text_editor_state.buffer.len());
-            info!("Cursor position: {}", text_editor_state.cursor_position);
-            info!("Current mode: {:?}", *current_placement_mode);
+            debug!("Current text buffer: {}", buffer_text);
+            debug!("Buffer length: {} sorts", text_editor_state.buffer.len());
+            debug!("Cursor position: {}", text_editor_state.cursor_position);
+            debug!("Current mode: {:?}", *current_placement_mode);
         }
     }
     if current_tool.get_current() == Some("text") && keyboard_input.just_pressed(KeyCode::F1) {
-        info!("=== TEXT TOOL HELP ===");
-        info!("T - Activate text tool");
-        info!("TEXT MODE:");
-        info!("  • Click to place glyphs");
-        info!("  • Type letters to create sorts");
-        info!("  • Arrow keys for navigation");
-        info!("INSERT MODE:");
-        info!("  • Arrow keys to move cursor");
-        info!("  • Type to insert text at cursor");
-        info!("  • Backspace/Delete to edit text");
-        info!("  • No sort placement preview");
-        info!("FREEFORM MODE:");
-        info!("  • Click to place glyphs freely");
-        info!("  • Type letters to create sorts");
-        info!("1-9 - Switch to glyph by number");
-        info!("Home/End - Go to start/end (Insert mode)");
-        info!("Ctrl+S - Show current text buffer");
-        info!("Escape - Exit text tool");
-        info!("F1 - Show this help");
-        info!("====================");
+        debug!("=== TEXT TOOL HELP ===");
+        debug!("T - Activate text tool");
+        debug!("TEXT MODE:");
+        debug!("  • Click to place glyphs");
+        debug!("  • Type letters to create sorts");
+        debug!("  • Arrow keys for navigation");
+        debug!("INSERT MODE:");
+        debug!("  • Arrow keys to move cursor");
+        debug!("  • Type to insert text at cursor");
+        debug!("  • Backspace/Delete to edit text");
+        debug!("  • No sort placement preview");
+        debug!("FREEFORM MODE:");
+        debug!("  • Click to place glyphs freely");
+        debug!("  • Type letters to create sorts");
+        debug!("1-9 - Switch to glyph by number");
+        debug!("Home/End - Go to start/end (Insert mode)");
+        debug!("Ctrl+S - Show current text buffer");
+        debug!("Escape - Exit text tool");
+        debug!("F1 - Show this help");
+        debug!("====================");
     }
     if current_tool.get_current() == Some("text") && keyboard_input.just_pressed(KeyCode::Escape) {
         if let Some(previous_tool) = current_tool.get_previous() {
             current_tool.switch_to(previous_tool);
-            info!(
+            debug!(
                 "Exited text tool via Escape key, returned to: {}",
                 previous_tool
             );
         } else {
             current_tool.switch_to("select");
-            info!("Exited text tool via Escape key, returned to select tool");
+            debug!("Exited text tool via Escape key, returned to select tool");
         }
     }
 }
@@ -832,9 +832,9 @@ pub fn handle_text_mode_keyboard(
     if *current_placement_mode == TextPlacementMode::Insert {
         debug!("Checking Insert mode keyboard input...");
         if keyboard_input.just_pressed(KeyCode::ArrowLeft) {
-            info!("Arrow left pressed in Insert mode");
+            debug!("Arrow left pressed in Insert mode");
             text_editor_state.move_cursor_left();
-            info!("Insert mode: moved cursor left");
+            debug!("Insert mode: moved cursor left");
             debug!(
                 "Insert mode: moved cursor left to position {}",
                 text_editor_state.cursor_position
@@ -915,7 +915,7 @@ pub fn handle_text_mode_keyboard(
             };
             if let Some(glyph_name) = glyph_names.get(i) {
                 glyph_navigation.current_glyph = Some(glyph_name.clone());
-                info!(
+                debug!(
                     "Switched to glyph '{}' via number key {}",
                     glyph_name,
                     i + 1

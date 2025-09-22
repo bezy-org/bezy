@@ -121,7 +121,7 @@ impl GlyphMeshCache {
 
     /// Invalidate all cached meshes (call when font data changes)
     pub fn invalidate_all(&mut self) {
-        info!("Invalidating all mesh caches due to font change (filled: {}, outline: {}, metrics: {})", 
+        debug!("Invalidating all mesh caches due to font change (filled: {}, outline: {}, metrics: {})", 
             self.filled_meshes.len(), self.outline_meshes.len(), self.metrics_meshes.len());
 
         self.filled_meshes.clear();
@@ -198,7 +198,7 @@ impl Plugin for MeshCachingPlugin {
 /// System to log cache statistics periodically for performance monitoring
 fn log_cache_stats(cache: Res<GlyphMeshCache>) {
     let stats = cache.get_stats();
-    info!(
+    debug!(
         "Mesh Cache Stats: Filled(hit:{}/miss:{}, rate:{:.1}%), Outline(hit:{}/miss:{}, rate:{:.1}%), Metrics(hit:{}/miss:{}, rate:{:.1}%), Total cached: {}",
         stats.filled_hits, stats.filled_misses, cache.filled_hit_rate() * 100.0,
         stats.outline_hits, stats.outline_misses, cache.outline_hit_rate() * 100.0,

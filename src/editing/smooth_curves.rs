@@ -624,7 +624,7 @@ pub fn universal_smooth_constraints(
         return;
     }
 
-    info!(
+    debug!(
         "[SMOOTH UNIVERSAL] System running - {} changed points total",
         changed_data.len()
     );
@@ -649,7 +649,7 @@ pub fn universal_smooth_constraints(
     // For each changed point that's an off-curve handle
     for (moved_entity, moved_pos, moved_ref, moved_point_type) in &changed_data {
         if !moved_point_type.is_on_curve {
-            info!(
+            debug!(
                 "[SMOOTH UNIVERSAL] Handle moved: glyph='{}', contour={}, point={}",
                 moved_ref.glyph_name, moved_ref.contour_index, moved_ref.point_index
             );
@@ -675,7 +675,7 @@ pub fn universal_smooth_constraints(
                         .map_or(false, |(_, _, ref_comp)| ref_comp == moved_ref);
 
                     if moved_is_left || moved_is_right {
-                        info!(
+                        debug!(
                             "[SMOOTH UNIVERSAL] Found constraint! smooth_point={}, moved_handle={}",
                             smooth_ref.point_index, moved_ref.point_index
                         );
@@ -704,7 +704,7 @@ pub fn universal_smooth_constraints(
                                 // Position the opposite handle at its original distance but in the opposite direction
                                 let new_other_pos = smooth_pos + (opposite_unit * other_distance);
 
-                                info!(
+                                debug!(
                                     "[SMOOTH UNIVERSAL] Constraint calculation: moved_dist={:.1}, other_dist={:.1}, preserving other distance",
                                     moved_length, other_distance
                                 );
@@ -730,7 +730,7 @@ pub fn universal_smooth_constraints(
                 other_transform.translation = new_other_pos.extend(0.0);
                 // DON'T mark constraint-adjusted points as processed - they should be able to trigger constraints again
 
-                info!(
+                debug!(
                     "[SMOOTH UNIVERSAL] Applied constraint: moved point {} to ({:.1}, {:.1})",
                     other_ref.point_index, new_other_pos.x, new_other_pos.y
                 );

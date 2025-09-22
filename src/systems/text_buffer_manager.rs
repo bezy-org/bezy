@@ -66,7 +66,7 @@ pub fn create_text_buffer(
         ))
         .id();
 
-    info!(
+    debug!(
         "📝 BUFFER CREATED: Entity {:?}, BufferId {:?}, layout: {:?}, position: ({:.1}, {:.1}), cursor: {}",
         buffer_entity, id.0, layout_mode, root_position.x, root_position.y, initial_cursor_position
     );
@@ -85,7 +85,7 @@ pub fn add_sort_to_buffer(
         .entity(sort_entity)
         .insert(BufferMember::new(buffer_entity, buffer_index));
 
-    info!(
+    debug!(
         "🔗 BUFFER MEMBERSHIP: Sort {:?} added to buffer {:?} at index {}",
         sort_entity, buffer_entity, buffer_index
     );
@@ -125,7 +125,7 @@ pub fn create_missing_buffer_entities(
                     buffer_id,
                     (sort_entry.layout_mode.clone(), sort_entry.root_position),
                 );
-                info!("🔍 MISSING BUFFER: Found sort at buffer[{}] with buffer_id {:?} but no corresponding buffer entity", 
+                debug!("🔍 MISSING BUFFER: Found sort at buffer[{}] with buffer_id {:?} but no corresponding buffer entity", 
                       index, buffer_id.0);
             }
         }
@@ -141,7 +141,7 @@ pub fn create_missing_buffer_entities(
             1, // Start cursor after the first character (matching startup behavior)
         );
 
-        info!(
+        debug!(
             "🆕 AUTO-CREATED: Buffer entity {:?} for buffer_id {:?} at position ({:.1}, {:.1})",
             buffer_entity, buffer_id.0, root_position.x, root_position.y
         );
@@ -176,7 +176,7 @@ pub fn sync_buffer_membership(
     // This is a placeholder - in practice we need entity tracking
     let sort_entities: Vec<_> = sort_query.iter().collect();
 
-    info!(
+    debug!(
         "🔄 BUFFER SYNC: Found {} buffer sorts, {} buffer entities, {} unmapped sort entities",
         buffer_sorts.len(),
         buffer_entities.len(),
@@ -197,7 +197,7 @@ pub fn update_active_buffer(
         active_buffer.buffer_entity = Some(buffer_member.buffer_entity);
 
         if old_active != active_buffer.buffer_entity {
-            info!(
+            debug!(
                 "🎯 ACTIVE BUFFER CHANGED: {:?} -> {:?}",
                 old_active, active_buffer.buffer_entity
             );
@@ -209,7 +209,7 @@ pub fn update_active_buffer(
     if active_buffer.buffer_entity.is_none() {
         if let Ok(buffer_member) = all_active_sort_query.single() {
             active_buffer.buffer_entity = Some(buffer_member.buffer_entity);
-            info!(
+            debug!(
                 "🎯 AUTO-SET ACTIVE BUFFER: Set to {:?} based on existing active sort",
                 active_buffer.buffer_entity
             );
@@ -222,7 +222,7 @@ pub fn update_active_buffer(
             let first_buffer = buffer_query.iter().next();
             if let Some(buffer_entity) = first_buffer {
                 active_buffer.buffer_entity = Some(buffer_entity);
-                info!(
+                debug!(
                     "🎯 STARTUP FALLBACK: Set active buffer to first available buffer entity {:?}",
                     buffer_entity
                 );
@@ -252,7 +252,7 @@ pub fn set_buffer_cursor_position(
         .entity(buffer_entity)
         .insert(BufferCursor::new(new_position));
 
-    info!(
+    debug!(
         "🔍 CURSOR UPDATE: Buffer {:?} cursor set to position {}",
         buffer_entity, new_position
     );

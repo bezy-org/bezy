@@ -37,23 +37,14 @@ impl InputConsumer for SelectionInputConsumer {
     fn should_handle_input(&self, event: &InputEvent, input_state: &InputState) -> bool {
         let is_mouse_event = matches!(
             event,
-            InputEvent::MouseClick { .. } | InputEvent::MouseDrag { .. }
+            InputEvent::MouseClick { .. } | InputEvent::MouseDrag { .. } | InputEvent::MouseRelease { .. }
         );
         let is_select_mode = helpers::is_input_mode(input_state, InputMode::Select);
-
-        if is_mouse_event {
-            println!("[SELECTION INPUT CONSUMER] Mouse event detected. is_select_mode={}, current_mode={:?}",
-                   is_select_mode, input_state.mode);
-        }
 
         is_mouse_event && is_select_mode
     }
 
     fn handle_input(&mut self, event: &InputEvent, _input_state: &InputState) {
-        println!(
-            "[SELECTION INPUT CONSUMER] Storing event for ECS processing: {:?}",
-            event
-        );
         // Store the event for processing by the ECS system
         self.pending_events.push(event.clone());
     }
@@ -79,11 +70,6 @@ impl InputConsumer for PenInputConsumer {
                 | InputEvent::MouseRelease { .. }
         ) && helpers::is_input_mode(input_state, InputMode::Pen);
 
-        // Debug: Only log when pen tool should handle input
-        if should_handle && matches!(event, InputEvent::MouseClick { .. }) {
-            println!("🖊️ PEN_DEBUG: Mouse click will be handled by pen tool");
-        }
-
         should_handle
     }
 
@@ -94,11 +80,6 @@ impl InputConsumer for PenInputConsumer {
                 position,
                 modifiers: _,
             } => {
-                println!(
-                    "🖊️ PEN_DEBUG: Processing mouse click at ({:.1}, {:.1})",
-                    position.x, position.y
-                );
-
                 if *button == bevy::input::mouse::MouseButton::Left {
                     let click_position = DPoint::new(position.x, position.y);
 
@@ -106,13 +87,11 @@ impl InputConsumer for PenInputConsumer {
                     if self.current_path.len() > 2 {
                         if let Some(first_point) = self.current_path.first() {
                             let distance = click_position.to_raw().distance(first_point.to_raw());
-                            println!("🖊️ PEN_DEBUG: Distance to first point: {distance:.1} (threshold: 16.0)");
                             if distance < 16.0 {
                                 // CLOSE_PATH_THRESHOLD
                                 self.should_close_path = true;
                                 // Don't add this click as a new point since we're closing
-                                println!("🖊️ PEN_DEBUG: CLOSING PATH - should_close_path={}, is_drawing={}", self.should_close_path, self.is_drawing);
-                                info!("🖊️ [PEN] Closing path - clicked near start point");
+                                debug!("🖊️ [PEN] Closing path - clicked near start point");
                                 // Mark for finalization - actual finalization happens in process_input_events
                                 return;
                             }
@@ -122,23 +101,11 @@ impl InputConsumer for PenInputConsumer {
                     // Add point to current path
                     self.current_path.push(click_position);
                     self.is_drawing = true;
-
-                    println!(
-                        "🖊️ PEN_DEBUG: Added point at ({:.1}, {:.1}), total points: {}",
-                        click_position.x,
-                        click_position.y,
-                        self.current_path.len()
-                    );
                 } else if *button == bevy::input::mouse::MouseButton::Right {
-                    info!("🖊️ [PEN] Right click - finishing open path");
+                    debug!("🖊️ [PEN] Right click - finishing open path");
                     if self.current_path.len() > 1 {
                         // Mark for finalization - actual finalization happens in process_input_events
                         self.is_drawing = false; // Will trigger finalization
-                        println!(
-                            "🖊️ PEN_DEBUG: RIGHT CLICK FINALIZATION - is_drawing={}, path_len={}",
-                            self.is_drawing,
-                            self.current_path.len()
-                        );
                     }
                 }
             }
@@ -169,7 +136,7 @@ impl PenInputConsumer {
             return;
         }
 
-        info!(
+        debug!(
             "🖊️ [PEN] Finalizing path with {} points (closed: {})",
             self.current_path.len(),
             self.should_close_path
@@ -182,7 +149,7 @@ impl PenInputConsumer {
             let relative_pos = world_pos - active_sort_position;
             let relative_point = DPoint::new(relative_pos.x, relative_pos.y);
             relative_path.push(relative_point);
-            info!(
+            debug!(
                 "🔍 PEN COORD CONVERSION: world=({:.1}, {:.1}) -> relative=({:.1}, {:.1})",
                 world_pos.x, world_pos.y, relative_pos.x, relative_pos.y
             );
@@ -192,7 +159,7 @@ impl PenInputConsumer {
         let mut bez_path = kurbo::BezPath::new();
 
         if let Some(&first_point) = relative_path.first() {
-            info!(
+            debug!(
                 "🔍 PEN COORD DEBUG: Creating BezPath - first_relative_point=({:.1}, {:.1})",
                 first_point.x, first_point.y
             );
@@ -202,7 +169,7 @@ impl PenInputConsumer {
             ));
 
             for (i, &point) in relative_path.iter().skip(1).enumerate() {
-                info!(
+                debug!(
                     "🔍 PEN COORD DEBUG: Adding line_to relative_point[{}]=({:.1}, {:.1})",
                     i + 1,
                     point.x,
@@ -248,7 +215,7 @@ impl PenInputConsumer {
                     working_copy.is_dirty = true;
                     app_state_changed.write(crate::editing::selection::events::AppStateChanged);
 
-                    info!(
+                    debug!(
                         "🖊️ [PEN] Added contour with {} elements to glyph '{}'. Total contours: {}",
                         bez_path.elements().len(),
                         current_glyph_name,
@@ -267,7 +234,7 @@ impl PenInputConsumer {
             warn!("🖊️ [PEN] FontIR app state not available");
         }
 
-        info!("🖊️ [PEN] Path finalized successfully - added to FontIR data");
+        debug!("🖊️ [PEN] Path finalized successfully - added to FontIR data");
 
         // Reset state
         self.current_path.clear();
@@ -320,7 +287,7 @@ impl InputConsumer for KnifeInputConsumer {
             InputEvent::MouseClick {
                 button, position, ..
             } => {
-                info!(
+                debug!(
                     "🔪 KNIFE INPUT CONSUMER: Mouse click: {:?} at {:?} - EVENT CONSUMED",
                     button, position
                 );
@@ -331,7 +298,7 @@ impl InputConsumer for KnifeInputConsumer {
                         current: world_position,
                     };
                     self.intersections.clear();
-                    info!(
+                    debug!(
                         "🔪 KNIFE INPUT CONSUMER: Started cutting at {:?}",
                         world_position
                     );
@@ -365,7 +332,7 @@ impl InputConsumer for KnifeInputConsumer {
                 );
                 if button == &bevy::input::mouse::MouseButton::Left {
                     if let KnifeGestureState::Cutting { start, current } = self.gesture {
-                        info!("🔪 KNIFE INPUT CONSUMER: Knife cut gesture completed from {:?} to {:?}", start, current);
+                        debug!("🔪 KNIFE INPUT CONSUMER: Knife cut gesture completed from {:?} to {:?}", start, current);
                         // Note: State reset is handled by the knife tool's cutting system
                         // to avoid race conditions between input handling and cutting logic
                     }
@@ -427,7 +394,7 @@ impl InputConsumer for ShapeInputConsumer {
 
         // Debug: Log when we should handle input
         if is_shape_event {
-            info!(
+            debug!(
                 "🔧 SHAPE INPUT CONSUMER: Mouse event - input_mode: {:?}, should_handle: {}",
                 input_state.mode,
                 is_shape_event && is_shape_mode
@@ -438,21 +405,21 @@ impl InputConsumer for ShapeInputConsumer {
     }
 
     fn handle_input(&mut self, event: &InputEvent, _input_state: &InputState) {
-        info!("🔧 SHAPE INPUT CONSUMER: Handling input event: {:?}", event);
+        debug!("🔧 SHAPE INPUT CONSUMER: Handling input event: {:?}", event);
         if let InputEvent::MouseClick {
             button,
             position,
             modifiers: _,
         } = event
         {
-            info!(
+            debug!(
                 "🔧 SHAPE INPUT CONSUMER: Mouse click: {:?} at {:?} - EVENT CONSUMED",
                 button, position
             );
             // Shape tool logic would go here
         }
         if let InputEvent::MouseDrag { .. } = event {
-            info!("🔧 SHAPE INPUT CONSUMER: Mouse drag - EVENT CONSUMED");
+            debug!("🔧 SHAPE INPUT CONSUMER: Mouse drag - EVENT CONSUMED");
         }
     }
 }
@@ -588,13 +555,13 @@ impl InputConsumer for MeasureInputConsumer {
     }
 
     fn handle_input(&mut self, event: &InputEvent, _input_state: &InputState) {
-        info!("📏 MEASURE INPUT CONSUMER: Handling event: {:?}", event);
+        debug!("📏 MEASURE INPUT CONSUMER: Handling event: {:?}", event);
 
         match event {
             InputEvent::MouseClick {
                 button, position, ..
             } => {
-                info!(
+                debug!(
                     "📏 MEASURE INPUT CONSUMER: Mouse click: {:?} at {:?} - EVENT CONSUMED",
                     button, position
                 );
@@ -605,7 +572,7 @@ impl InputConsumer for MeasureInputConsumer {
                         current: world_position,
                     };
                     self.intersections.clear();
-                    info!(
+                    debug!(
                         "📏 MEASURE INPUT CONSUMER: Started measuring at {:?}",
                         world_position
                     );
@@ -642,7 +609,7 @@ impl InputConsumer for MeasureInputConsumer {
                 );
                 if button == &bevy::input::mouse::MouseButton::Left {
                     if let MeasureGestureState::Measuring { start, current } = self.gesture {
-                        info!("📏 MEASURE INPUT CONSUMER: Measure gesture completed from {:?} to {:?}", start, current);
+                        debug!("📏 MEASURE INPUT CONSUMER: Measure gesture completed from {:?} to {:?}", start, current);
                     }
 
                     // Reset state immediately after measurement
@@ -711,9 +678,6 @@ pub fn process_input_events(
     >,
 ) {
     let events: Vec<_> = input_events.read().collect();
-    if !events.is_empty() {
-        println!("🖊️ PEN_DEBUG: Processing {} input events", events.len());
-    }
 
     // Get active sort position for coordinate conversion - disabled since pen tool doesn't use InputConsumer anymore
     // let _active_sort_position = active_sort_query.iter().next()
@@ -721,13 +685,6 @@ pub fn process_input_events(
     //     .unwrap_or(Vec2::ZERO);
 
     for event in events {
-        if matches!(event, InputEvent::MouseClick { .. }) {
-            println!(
-                "🖊️ PEN_DEBUG: Mouse click event detected, current input mode: {:?}",
-                input_state.mode
-            );
-        }
-
         // Route events to consumers based on priority
         // High priority: Text input
         if text_consumer.should_handle_input(event, &input_state) {
@@ -738,7 +695,7 @@ pub fn process_input_events(
         // Mode-specific consumers
 
         if knife_consumer.should_handle_input(event, &input_state) {
-            info!(
+            debug!(
                 "🔪 INPUT_CONSUMER: Routing event to knife consumer: {:?}",
                 event
             );
@@ -785,6 +742,9 @@ pub fn process_selection_events(
     mut selection_consumer: ResMut<SelectionInputConsumer>,
     time: Res<Time>,
     mut double_click_state: ResMut<crate::editing::selection::input::mouse::DoubleClickState>,
+    mut drag_state: ResMut<DragSelectionState>,
+    mut drag_point_state: ResMut<DragPointState>,
+    mut edit_events: EventWriter<crate::editing::selection::nudge::EditEvent>,
     selectable_query: Query<
         (
             Entity,
@@ -794,18 +754,11 @@ pub fn process_selection_events(
         ),
         With<Selectable>,
     >,
+    selected_query: Query<(Entity, &Transform), With<Selected>>,
+    selection_rect_query: Query<Entity, With<SelectionRect>>,
     active_sort_state: Res<crate::editing::sort::ActiveSortState>,
     sort_point_entities: Query<&crate::editing::sort::manager::SortPointEntity>,
-    mut enhanced_points_query: Query<
-        &mut crate::editing::selection::enhanced_point_component::EnhancedPointType,
-    >,
-    point_refs_query: Query<&crate::editing::selection::components::GlyphPointReference>,
     mut selection_state: ResMut<SelectionState>,
-    _selected_query: Query<Entity, With<Selected>>,
-    mut visual_update_tracker: ResMut<crate::rendering::glyph_renderer::SortVisualUpdateTracker>,
-    mut enhanced_attributes: ResMut<
-        crate::editing::selection::entity_management::EnhancedPointAttributes,
-    >,
 ) {
     if selection_consumer.pending_events.is_empty() {
         return;
@@ -815,182 +768,102 @@ pub fn process_selection_events(
     let events = std::mem::take(&mut selection_consumer.pending_events);
 
     for event in events {
-        if let InputEvent::MouseClick {
-            button,
-            position,
-            modifiers,
-        } = event
-        {
-            if button == bevy::input::mouse::MouseButton::Left {
-                println!(
-                    "[SELECTION PROCESSOR] Processing mouse click at {:?}",
-                    position
-                );
+        debug!("[process_selection_events] Processing event: {:?}", event);
 
-                // Use the existing selection logic from the original mouse.rs
-                let active_sort_entity = active_sort_state
-                    .active_sort_entity
-                    .unwrap_or(Entity::PLACEHOLDER);
+        // Get active sort entity for all event types
+        let active_sort_entity = active_sort_state
+            .active_sort_entity
+            .unwrap_or(Entity::PLACEHOLDER);
 
-                // Check for point selection and double-click
-                if let Some(clicked_entity) =
-                    crate::editing::selection::input::mouse::find_clicked_point(
+        match event {
+            InputEvent::MouseClick {
+                button,
+                position,
+                modifiers,
+            } => {
+                if button == bevy::input::mouse::MouseButton::Left {
+                    debug!("[process_selection_events] Left mouse click at {:?}", position);
+                    // Use the existing selection click handling from mouse.rs
+                    crate::editing::selection::input::mouse::handle_selection_click(
+                        &mut commands,
                         &position,
+                        &modifiers,
+                        &mut drag_state,
+                        &mut drag_point_state,
+                        &mut edit_events,
                         &selectable_query,
+                        &selected_query,
+                        &mut selection_state,
                         active_sort_entity,
                         &sort_point_entities,
-                    )
-                {
-                    // Handle double-click detection for smooth point toggle
-                    let now = time.elapsed_secs();
-                    let is_double_click =
-                        if let Some(last_click) = double_click_state.last_click_time {
-                            (now - last_click)
-                            < crate::editing::selection::input::mouse::DOUBLE_CLICK_THRESHOLD_SECS
-                            && double_click_state.last_clicked_entity == Some(clicked_entity)
-                        } else {
-                            false
-                        };
-
-                    if is_double_click {
-                        println!("[SELECTION PROCESSOR] Double-click detected - toggling smooth point for entity {:?}", clicked_entity);
-
-                        // Get point reference information for enhanced attributes
-                        let point_ref = if let Ok(point_ref) = point_refs_query.get(clicked_entity)
-                        {
-                            point_ref
-                        } else {
-                            println!("[SELECTION PROCESSOR] Could not get point reference for entity {:?}", clicked_entity);
-                            continue;
-                        };
-
-                        // Create key for enhanced attributes lookup
-                        let attr_key = (
-                            point_ref.glyph_name.clone(),
-                            point_ref.contour_index,
-                            point_ref.point_index,
-                        );
-
-                        // Handle smooth point toggle
-                        match enhanced_points_query.get_mut(clicked_entity) {
-                            Ok(mut enhanced_point) => {
-                                let current_smooth =
-                                    enhanced_point.ufo_point.smooth.unwrap_or(false);
-                                let new_smooth = !current_smooth;
-                                enhanced_point.ufo_point.smooth = Some(new_smooth);
-
-                                // Also update enhanced attributes for UFO save persistence
-                                let ufo_point = enhanced_attributes
-                                    .attributes
-                                    .entry(attr_key.clone())
-                                    .or_insert_with(|| {
-                                        crate::core::state::ufo_point::UfoPoint::line_to(0.0, 0.0)
-                                    });
-                                ufo_point.smooth = Some(new_smooth);
-
-                                println!("[SELECTION PROCESSOR] Toggled smooth point: entity {:?} is now smooth={}",
-                                      clicked_entity, new_smooth);
-
-                                // IMPORTANT: Trigger visual update so the point shape changes immediately
-                                visual_update_tracker.needs_update = true;
-                                println!("[SELECTION PROCESSOR] Triggered visual update for smooth point change");
-
-                                // Also ensure the rendering data is marked for update
-                                println!("[SELECTION PROCESSOR] Enhanced point component updated with smooth={}", new_smooth);
-
-                                // IMPORTANT: If point became smooth, make handles collinear
-                                if new_smooth {
-                                    println!("[SELECTION PROCESSOR] Point became smooth - applying collinear handle constraints");
-                                    // TODO(human): Implement collinear handle constraint logic here
-                                    // This should find adjacent off-curve points and make them collinear with this point
-                                    //
-                                    // Steps needed:
-                                    // 1. Get the glyph name and contour index from the clicked point
-                                    // 2. Find all points in the same contour, sorted by point_index
-                                    // 3. Locate the current point in the sequence
-                                    // 4. Find adjacent off-curve control points (before and after)
-                                    // 5. Calculate the line through the smooth point and one handle
-                                    // 6. Reposition the other handle to be collinear
-                                    // 7. Update both Transform components (for immediate visual) and FontIR data (for persistence)
-                                    //
-                                    // Consider using GlyphPointReference to navigate the contour structure
-                                    // and both Transform queries for immediate updates and FontIR updates for data persistence
-                                }
-                            }
-                            Err(_) => {
-                                // Entity doesn't have EnhancedPointType component, add it with default values
-                                println!("[SELECTION PROCESSOR] Adding EnhancedPointType component to entity {:?}", clicked_entity);
-
-                                // Create a default UfoPoint (we'll use Line type as a safe default for on-curve points)
-                                let mut ufo_point =
-                                    crate::core::state::ufo_point::UfoPoint::line_to(0.0, 0.0);
-                                ufo_point.smooth = Some(true); // Set to smooth since we're toggling
-
-                                let enhanced_point = crate::editing::selection::enhanced_point_component::EnhancedPointType::new(ufo_point.clone());
-
-                                commands.entity(clicked_entity).insert(enhanced_point);
-
-                                // Also update enhanced attributes for UFO save persistence
-                                enhanced_attributes.attributes.insert(attr_key, ufo_point);
-
-                                println!("[SELECTION PROCESSOR] Added EnhancedPointType and set smooth=true for entity {:?}", clicked_entity);
-
-                                // IMPORTANT: Trigger visual update so the point shape changes immediately
-                                visual_update_tracker.needs_update = true;
-                                println!("[SELECTION PROCESSOR] Triggered visual update for smooth point change");
-                            }
-                        }
-
-                        // Reset double-click state
-                        double_click_state.last_click_time = None;
-                        double_click_state.last_clicked_entity = None;
-                    } else {
-                        // Update double-click state for next potential double-click
-                        double_click_state.last_click_time = Some(now);
-                        double_click_state.last_clicked_entity = Some(clicked_entity);
-
-                        // Handle single-click selection
-                        if modifiers.ctrl || modifiers.super_key {
-                            // Multi-select: toggle selection
-                            if selection_state.selected.contains(&clicked_entity) {
-                                commands.entity(clicked_entity).remove::<Selected>();
-                                selection_state.selected.remove(&clicked_entity);
-                                println!("[SELECTION PROCESSOR] Ctrl+click: removed entity {:?} from selection", clicked_entity);
-                            } else {
-                                commands.entity(clicked_entity).insert(Selected);
-                                selection_state.selected.insert(clicked_entity);
-                                println!("[SELECTION PROCESSOR] Ctrl+click: added entity {:?} to selection", clicked_entity);
-                            }
-                        } else {
-                            // Single select: clear others and select this one
-                            for entity in selection_state.selected.clone() {
-                                commands.entity(entity).remove::<Selected>();
-                            }
-                            selection_state.selected.clear();
-
-                            commands.entity(clicked_entity).insert(Selected);
-                            selection_state.selected.insert(clicked_entity);
-                            println!("[SELECTION PROCESSOR] Single click: selected entity {:?} exclusively", clicked_entity);
-                        }
-                    }
-                } else {
-                    println!("[SELECTION PROCESSOR] No point clicked - clearing selection");
-                    // Clear selection if clicking empty space
-                    for entity in selection_state.selected.clone() {
-                        commands.entity(entity).remove::<Selected>();
-                    }
-                    selection_state.selected.clear();
+                        &mut double_click_state,
+                        &time,
+                    );
                 }
+            }
+            InputEvent::MouseDrag {
+                button,
+                start_position,
+                current_position,
+                delta,
+                modifiers,
+            } => {
+                if button == bevy::input::mouse::MouseButton::Left {
+                    debug!(
+                        "[process_selection_events] Left mouse drag from {:?} to {:?}",
+                        start_position, current_position
+                    );
+                    // Use the existing selection drag handling from mouse.rs
+                    crate::editing::selection::input::mouse::handle_selection_drag(
+                        &mut commands,
+                        &start_position,
+                        &current_position,
+                        &delta,
+                        &modifiers,
+                        &mut drag_state,
+                        &mut drag_point_state,
+                        &mut edit_events,
+                        &selectable_query,
+                        &mut selection_state,
+                        active_sort_entity,
+                        &sort_point_entities,
+                        &selection_rect_query,
+                    );
+                }
+            }
+            InputEvent::MouseRelease {
+                button,
+                position,
+                modifiers,
+            } => {
+                if button == bevy::input::mouse::MouseButton::Left {
+                    debug!("[process_selection_events] Left mouse release at {:?}", position);
+                    // Use the existing selection release handling from mouse.rs
+                    crate::editing::selection::input::mouse::handle_selection_release(
+                        &mut commands,
+                        &position,
+                        &modifiers,
+                        &mut drag_state,
+                        &mut drag_point_state,
+                        &mut edit_events,
+                        &mut selection_state,
+                        &selection_rect_query,
+                    );
+                }
+            }
+            _ => {
+                debug!("[process_selection_events] Unhandled event: {:?}", event);
             }
         }
     }
 }
 
+
 pub struct InputConsumerPlugin;
 
 impl Plugin for InputConsumerPlugin {
     fn build(&self, app: &mut App) {
-        info!("[INPUT CONSUMER] Registering InputConsumerPlugin");
+        debug!("[INPUT CONSUMER] Registering InputConsumerPlugin");
 
         // Register all input consumers as resources
         app.init_resource::<SelectionInputConsumer>()
@@ -1003,9 +876,9 @@ impl Plugin for InputConsumerPlugin {
             .init_resource::<MeasureInputConsumer>()
             .add_systems(
                 Update,
-                (process_input_events, process_selection_events).chain(),
+                (process_input_events, process_selection_events),
             );
 
-        info!("[INPUT CONSUMER] InputConsumerPlugin registration complete");
+        debug!("[INPUT CONSUMER] InputConsumerPlugin registration complete");
     }
 }

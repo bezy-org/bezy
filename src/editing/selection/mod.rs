@@ -84,8 +84,7 @@ impl Plugin for SelectionPlugin {
             .init_resource::<DoubleClickState>()
             .init_resource::<input::SelectionInputEvents>()
             .init_resource::<entity_management::EnhancedPointAttributes>()
-            // TEMP FIX: Manually initialize SelectModeActive since it's not being created
-            .insert_resource(crate::ui::edit_mode_toolbar::select::SelectModeActive(true))
+            // SelectModeActive is now properly managed by SelectToolPlugin
             // Configure system sets for proper ordering
             .configure_sets(
                 Update,
@@ -164,7 +163,7 @@ pub fn sync_selected_components(
         // Only add the component if the entity is valid
         if entities.contains(entity) && !selected_entities.contains(entity) {
             commands.entity(entity).insert(Selected);
-            info!(
+            debug!(
                 "Adding Selected component to entity {:?} from selection state",
                 entity
             );
@@ -175,7 +174,7 @@ pub fn sync_selected_components(
     for entity in &selected_entities {
         if !selection_state.selected.contains(&entity) {
             commands.entity(entity).remove::<Selected>();
-            info!(
+            debug!(
                 "Removing Selected component from entity {:?} not in selection state",
                 entity
             );

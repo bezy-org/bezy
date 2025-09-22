@@ -35,23 +35,23 @@ pub fn update_glyph_data_from_selection(
     knife_mode: Option<Res<crate::ui::edit_mode_toolbar::knife::KnifeModeActive>>,
     mut commands: Commands,
 ) {
-    info!("[SMOOTH] update_glyph_data_from_selection CALLED");
+    debug!("[SMOOTH] update_glyph_data_from_selection CALLED");
 
     // Skip processing if knife mode is active
     if let Some(knife_mode) = knife_mode {
         if knife_mode.0 {
-            info!("[SMOOTH] Skipping - knife mode active");
+            debug!("[SMOOTH] Skipping - knife mode active");
             return;
         }
     }
 
     // Early return if no points were moved
     if query.is_empty() {
-        info!("[SMOOTH] No points with Changed<Transform>");
+        debug!("[SMOOTH] No points with Changed<Transform>");
         return;
     }
 
-    info!("[SMOOTH] Processing {} moved points", query.iter().count());
+    debug!("[SMOOTH] Processing {} moved points", query.iter().count());
 
     let app_state = app_state.bypass_change_detection();
     let mut any_updates = false;
@@ -85,7 +85,7 @@ pub fn update_glyph_data_from_selection(
             relative_y,
         );
 
-        info!(
+        debug!(
             "[update_glyph_data_from_selection] glyph='{}' contour={} point={} rel=({:.1}, {:.1}) updated={}",
             point_ref.glyph_name,
             point_ref.contour_index,
@@ -139,7 +139,7 @@ pub fn update_glyph_data_from_selection(
     for (moved_transform, moved_ref, _) in query.iter() {
         let moved_pos = moved_transform.translation.truncate();
 
-        info!(
+        debug!(
             "[SMOOTH] Checking moved point: glyph='{}', contour={}, point={}",
             moved_ref.glyph_name, moved_ref.contour_index, moved_ref.point_index
         );
@@ -149,14 +149,14 @@ pub fn update_glyph_data_from_selection(
             .iter()
             .find(|(_, _, ref_comp, _)| ref_comp == moved_ref)
         {
-            info!(
+            debug!(
                 "[SMOOTH] Point type: is_on_curve={}",
                 moved_point_type.is_on_curve
             );
 
             if !moved_point_type.is_on_curve {
                 // This is an off-curve handle that was moved
-                info!(
+                debug!(
                     "[SMOOTH] OFF-CURVE handle moved: glyph='{}', contour={}, point={}",
                     moved_ref.glyph_name, moved_ref.contour_index, moved_ref.point_index
                 );
@@ -174,7 +174,7 @@ pub fn update_glyph_data_from_selection(
                         let (left_handle, right_handle) =
                             find_direct_neighbor_handles(smooth_ref, &point_data);
 
-                        info!(
+                        debug!(
                             "[SMOOTH] Checking smooth point {} - left_handle: {:?}, right_handle: {:?}",
                             smooth_ref.point_index,
                             left_handle.as_ref().map(|(_, _, r)| r.point_index),
@@ -190,7 +190,7 @@ pub fn update_glyph_data_from_selection(
                             .map_or(false, |(_, _, ref_comp)| ref_comp == moved_ref);
 
                         if moved_is_left || moved_is_right {
-                            info!(
+                            debug!(
                                 "[SMOOTH] MATCH! Found smooth point {} adjacent to moved handle {}",
                                 smooth_ref.point_index, moved_ref.point_index
                             );
@@ -213,7 +213,7 @@ pub fn update_glyph_data_from_selection(
                                     new_position: new_other_pos,
                                 });
 
-                                info!(
+                                debug!(
                                     "[SMOOTH] QUEUED adjustment: will move point {} to ({:.1}, {:.1}) to stay collinear",
                                     other_ref.point_index,
                                     new_other_pos.x,
@@ -261,12 +261,12 @@ pub fn update_glyph_data_from_selection(
 
     // Log the results
     if any_updates {
-        info!(
+        debug!(
             "[update_glyph_data_from_selection] Successfully updated {} outline points",
             query.iter().count()
         );
     } else {
-        info!("[update_glyph_data_from_selection] No outline updates needed");
+        debug!("[update_glyph_data_from_selection] No outline updates needed");
     }
 }
 

@@ -100,17 +100,17 @@ impl EditTool for TextTool {
         commands.insert_resource(TextModeActive(true));
         commands.insert_resource(crate::core::io::input::InputMode::Text);
 
-        info!("Text tool activated - Enhanced features:");
-        info!("• Click to place sorts, type letters to add glyphs");
-        info!("• 1-9 keys to switch glyphs, F1 for help");
-        info!("• Arrow keys for navigation, Ctrl+S to show text mode");
+        debug!("Text tool activated - Enhanced features:");
+        debug!("• Click to place sorts, type letters to add glyphs");
+        debug!("• 1-9 keys to switch glyphs, F1 for help");
+        debug!("• Arrow keys for navigation, Ctrl+S to show text mode");
     }
 
     fn on_deactivate(&mut self, commands: &mut Commands) {
         commands.insert_resource(TextModeActive(false));
         commands.insert_resource(crate::core::io::input::InputMode::Normal);
 
-        info!("Text tool deactivated");
+        debug!("Text tool deactivated");
     }
 
     fn update(&self, _commands: &mut Commands) {

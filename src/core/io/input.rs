@@ -34,7 +34,7 @@ pub struct InputPlugin;
 
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
-        info!("[INPUT] Registering InputPlugin");
+        debug!("[INPUT] Registering InputPlugin");
 
         app.init_resource::<InputState>()
             .init_resource::<InputPriority>()
@@ -49,7 +49,7 @@ impl Plugin for InputPlugin {
                 ),
             );
 
-        info!("[INPUT] InputPlugin registration complete");
+        debug!("[INPUT] InputPlugin registration complete");
     }
 }
 
@@ -282,10 +282,6 @@ fn update_input_state(
     // Update input mode from resource (CRITICAL: This was missing!)
     if let Some(input_mode) = input_mode_resource {
         if _input_state.mode != *input_mode {
-            println!(
-                "🖊️ PEN_DEBUG: Input mode changed from {:?} to {:?}",
-                _input_state.mode, *input_mode
-            );
             _input_state.mode = *input_mode;
         }
     }
@@ -417,11 +413,11 @@ fn generate_mouse_drag_events(
     if let Some(position) = input_state.mouse.design_position {
         // Check for just pressed buttons (MouseClick events)
         for button in mouse_button_input.get_just_pressed() {
-            info!(
+            debug!(
                 "Mouse button just pressed: {:?} at position {:?}",
                 button, position
             );
-            info!(
+            debug!(
                 "Mouse position details: screen={:?}, design={:?}",
                 input_state.mouse.screen_position, input_state.mouse.design_position
             );

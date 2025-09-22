@@ -57,12 +57,12 @@ impl EditTool for PanTool {
 
     fn on_enter(&self) {
         // Note: PanCam enabling is handled by the toggle_pancam_on_mode_change system
-        info!("Entered Pan tool - camera panning should be enabled, presentation mode active");
+        debug!("Entered Pan tool - camera panning should be enabled, presentation mode active");
     }
 
     fn on_exit(&self) {
         // Note: PanCam disabling is handled by the toggle_pancam_on_mode_change system
-        info!("Exited Pan tool - camera panning should be disabled, presentation mode disabled");
+        debug!("Exited Pan tool - camera panning should be disabled, presentation mode disabled");
     }
 }
 
@@ -77,12 +77,12 @@ impl EditModeSystem for PanMode {
 
     fn on_enter(&self) {
         // Enable panning on all PanCam components
-        info!("Entering pan mode - enabling camera panning");
+        debug!("Entering pan mode - enabling camera panning");
     }
 
     fn on_exit(&self) {
         // Disable panning on all PanCam components
-        info!("Exiting pan mode - disabling camera panning");
+        debug!("Exiting pan mode - disabling camera panning");
     }
 }
 
@@ -100,9 +100,9 @@ pub fn toggle_pancam_on_mode_change(
             if pancam.enabled != should_enable {
                 pancam.enabled = should_enable;
                 if should_enable {
-                    info!("PanCam enabled");
+                    debug!("PanCam enabled");
                 } else {
-                    info!("PanCam disabled");
+                    debug!("PanCam disabled");
                 }
             }
         }
@@ -120,7 +120,7 @@ pub fn manage_presentation_mode(
         let is_pan_active = current_tool.get_current() == Some("pan");
         let current_mode = presentation_mode.as_ref().is_some_and(|pm| pm.active);
 
-        info!(
+        debug!(
             "🎭 TOOL CHANGED: current_tool={:?}, is_pan_active={}, current_presentation_mode={}",
             current_tool.get_current(),
             is_pan_active,
@@ -128,10 +128,10 @@ pub fn manage_presentation_mode(
         );
 
         if is_pan_active {
-            info!("🎭 ACTIVATING PRESENTATION MODE - hiding grid, metrics, and editing helpers");
+            debug!("🎭 ACTIVATING PRESENTATION MODE - hiding grid, metrics, and editing helpers");
             commands.insert_resource(PresentationMode { active: true });
         } else {
-            info!("🎭 DEACTIVATING PRESENTATION MODE - showing normal editing interface");
+            debug!("🎭 DEACTIVATING PRESENTATION MODE - showing normal editing interface");
             commands.insert_resource(PresentationMode { active: false });
         }
     }
@@ -166,7 +166,7 @@ pub fn manage_pane_visibility(
         DEBUG_COUNTER += 1;
         if DEBUG_COUNTER % 60 == 0 {
             // Log every second at 60fps
-            info!(
+            debug!(
                 "🎭 PANE DEBUG: spacebar={}, pan_tool={}, current_tool={:?}, should_hide={}",
                 spacebar_pressed,
                 pan_tool_selected,
@@ -175,10 +175,10 @@ pub fn manage_pane_visibility(
             );
 
             let pane_count = pane_query.iter().count();
-            info!("🎭 PANE DEBUG: Found {} total panes", pane_count);
+            debug!("🎭 PANE DEBUG: Found {} total panes", pane_count);
             for (_entity, node, name) in pane_query.iter() {
                 let pane_name = name.map(|n| n.as_str()).unwrap_or("Unknown");
-                info!("🎭 PANE DEBUG: '{}' display: {:?}", pane_name, node.display);
+                debug!("🎭 PANE DEBUG: '{}' display: {:?}", pane_name, node.display);
             }
         }
     }
@@ -194,7 +194,7 @@ pub fn manage_pane_visibility(
         let pane_name = name.map(|n| n.as_str()).unwrap_or("Unknown");
 
         if node.display != target_display {
-            info!(
+            debug!(
                 "🎭 MAIN PANE UPDATE: '{}' from {:?} to {:?}",
                 pane_name, node.display, target_display
             );

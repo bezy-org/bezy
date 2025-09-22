@@ -15,6 +15,7 @@ use crate::rendering::{
 use crate::systems::{
     center_camera_on_startup_layout, create_startup_layout, exit_on_esc, load_fontir_font,
     BezySystems, CommandsPlugin, InputConsumerPlugin, TextShapingPlugin, UiInteractionPlugin,
+    plugins::configure_default_plugins,
 };
 use crate::ui::edit_mode_toolbar::EditModeToolbarPlugin;
 use crate::ui::file_menu::FileMenuPlugin;
@@ -28,6 +29,8 @@ use anyhow::Result;
 use bevy::app::{PluginGroup, PluginGroupBuilder};
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
+use tokio::sync::mpsc;
+use crate::tui::communication::{AppMessage, TuiMessage};
 
 /// Plugin group for core application functionality
 #[derive(Default)]
@@ -84,6 +87,7 @@ impl PluginGroup for EditorPluginGroup {
             // ✅ NEW SYSTEM: All tools are now automatically registered via EditModeToolbarPlugin
             // No need for manual tool plugin registration - everything is handled by toolbar_config.rs
             .add(crate::tools::PenToolPlugin) // Re-enabled - pen tool needs its business logic plugin
+            .add(crate::tools::SelectToolPlugin) // Select tool business logic plugin
     }
 }
 
@@ -152,7 +156,7 @@ fn configure_window_plugins(app: &mut App) {
 
     #[cfg(not(target_arch = "wasm32"))]
     {
-        app.add_plugins(DefaultPlugins.set(WindowPlugin {
+        app.add_plugins(configure_default_plugins().set(WindowPlugin {
             primary_window: Some(window_config),
             ..default()
         }));
@@ -186,10 +190,10 @@ fn configure_window_plugins(app: &mut App) {
 
 /// Add all plugin groups to the application
 fn add_plugin_groups(app: &mut App) {
-    info!("Adding plugin groups...");
+    debug!("Adding plugin groups...");
 
     // Add embedded assets plugin to provide fonts when installed via cargo install
-    app.add_plugins(crate::embedded_assets::EmbeddedAssetsPlugin);
+    app.add_plugins(crate::utils::embedded_assets::EmbeddedAssetsPlugin);
 
     app.add_plugins((RenderingPluginGroup, EditorPluginGroup, CorePluginGroup));
 
@@ -197,11 +201,242 @@ fn add_plugin_groups(app: &mut App) {
     #[cfg(debug_assertions)]
     app.add_plugins(RuntimeThemePlugin);
 
-    info!("All plugin groups added successfully");
+    debug!("All plugin groups added successfully");
 }
 
 /// Add startup and exit systems
 fn add_startup_and_exit_systems(app: &mut App) {
     app.add_systems(Startup, (load_fontir_font, create_startup_layout).chain())
         .add_systems(Update, (exit_on_esc, center_camera_on_startup_layout));
+}
+
+/// Creates a fully configured Bevy GUI application with TUI support
+pub fn create_app_with_tui(
+    cli_args: CliArgs,
+    tui_rx: mpsc::UnboundedReceiver<TuiMessage>,
+    app_tx: mpsc::UnboundedSender<AppMessage>,
+) -> Result<App> {
+    #[cfg(not(target_arch = "wasm32"))]
+    cli_args
+        .validate()
+        .map_err(|e| anyhow::anyhow!("CLI validation failed: {}", e))?;
+
+    let mut app = App::new();
+
+    // Add TUI communication resource
+    app.insert_resource(crate::core::tui_communication::TuiCommunication::new(tui_rx, app_tx));
+
+    configure_resources(&mut app, cli_args);
+    configure_window_plugins(&mut app);
+    add_plugin_groups(&mut app);
+    add_startup_and_exit_systems(&mut app);
+
+    // Force more aggressive update settings for TUI mode
+    app.insert_resource(WinitSettings {
+        focused_mode: bevy::winit::UpdateMode::Continuous,
+        unfocused_mode: bevy::winit::UpdateMode::Continuous,
+    });
+
+    // Add TUI communication systems
+    app.add_systems(Update, (handle_tui_messages, send_initial_font_data_to_tui));
+
+    Ok(app)
+}
+
+/// System to handle messages from TUI
+fn handle_tui_messages(
+    mut tui_comm: ResMut<crate::core::tui_communication::TuiCommunication>,
+    mut glyph_nav: ResMut<GlyphNavigation>,
+    mut fontir_state: Option<ResMut<crate::core::state::FontIRAppState>>,
+    mut text_editor_state: Option<ResMut<crate::core::state::TextEditorState>>,
+    mut respawn_queue: ResMut<crate::systems::sorts::sort_entities::BufferSortRespawnQueue>,
+    current_tool: Option<Res<crate::ui::edit_mode_toolbar::CurrentTool>>,
+    text_placement_mode: Option<Res<crate::ui::edit_mode_toolbar::text::TextPlacementMode>>,
+) {
+    while let Some(message) = tui_comm.try_recv() {
+        match message {
+            TuiMessage::SelectGlyph(unicode_codepoint) => {
+                // Delegate to TUI module handler
+                match crate::tui::message_handler::handle_glyph_selection(
+                    unicode_codepoint,
+                    &mut glyph_nav,
+                    &mut fontir_state,
+                    &mut text_editor_state,
+                    &mut respawn_queue,
+                    &current_tool,
+                    &text_placement_mode,
+                ) {
+                    Ok(glyph_name) => {
+                        // Send confirmation back to TUI
+                        tui_comm.send_current_glyph(glyph_name);
+
+                        // Force immediate redraw by triggering all change detection
+                        use bevy::prelude::DetectChangesMut;
+                        if let Some(ref mut text_state) = text_editor_state {
+                            text_state.set_changed();
+                            // Force viewport micro-change to trigger rendering pipeline
+                            let current_viewport = text_state.viewport_offset;
+                            text_state.viewport_offset = current_viewport + bevy::math::Vec2::new(0.0001, 0.0001);
+                            text_state.viewport_offset = current_viewport;
+                        }
+                        glyph_nav.set_changed();
+                        respawn_queue.set_changed();
+                    }
+                    Err(error_message) => {
+                        // Send error message to TUI log
+                        tui_comm.send_log(error_message);
+                    }
+                }
+            }
+            TuiMessage::RequestGlyphList => {
+                info!("TUI requested glyph list");
+                if let Some(ref fontir_state) = fontir_state {
+                    send_glyph_list_to_tui(&mut tui_comm, fontir_state);
+                } else {
+                    tui_comm.send_log("No font loaded - please use --edit to load a font".to_string());
+                }
+            }
+            TuiMessage::RequestFontInfo => {
+                info!("TUI requested font info");
+                if let Some(ref fontir_state) = fontir_state {
+                    send_font_info_to_tui(&mut tui_comm, fontir_state);
+                } else {
+                    tui_comm.send_log("No font loaded - please use --edit to load a font".to_string());
+                }
+            }
+            TuiMessage::ChangeZoom(zoom) => {
+                info!("TUI requested zoom change: {}", zoom);
+            }
+            TuiMessage::ForceRedraw => {
+                // Force all systems to mark themselves as changed to trigger updates
+                if let Some(ref mut text_state) = text_editor_state {
+                    use bevy::prelude::DetectChangesMut;
+                    text_state.set_changed();
+
+                    // Force viewport change to trigger rendering
+                    let current_viewport = text_state.viewport_offset;
+                    text_state.viewport_offset = current_viewport + bevy::math::Vec2::new(0.001, 0.0);
+                    text_state.viewport_offset = current_viewport;
+                }
+
+                {
+                    use bevy::prelude::DetectChangesMut;
+                    glyph_nav.set_changed();
+                }
+
+                info!("Force redraw requested by TUI");
+            }
+            TuiMessage::Quit => {
+                info!("TUI requested quit");
+                // The TUI handles its own quit, this is just informational
+            }
+        }
+    }
+}
+
+/// Send glyph list from FontIR to TUI
+fn send_glyph_list_to_tui(
+    tui_comm: &mut ResMut<crate::core::tui_communication::TuiCommunication>,
+    fontir_state: &crate::core::state::FontIRAppState,
+) {
+    let mut glyphs = Vec::new();
+
+    // Extract glyph data from FontIR
+    for (glyph_name, glyph) in &fontir_state.glyph_cache {
+        // Get the first available instance for this glyph
+        if let Some((_location, glyph_instance)) = glyph.sources().iter().next() {
+            // Try to find Unicode codepoints for this glyph from context
+            let unicode_value = if let Some(_context) = &fontir_state.context {
+                // Look up codepoints in the context - need to find the right field
+                // For now, try to parse from glyph name if it looks like a Unicode name
+                if glyph_name.starts_with("uni") && glyph_name.len() == 7 {
+                    u32::from_str_radix(&glyph_name[3..], 16).ok()
+                } else if glyph_name.len() == 1 {
+                    // Single character glyph name
+                    glyph_name.chars().next().map(|c| c as u32)
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+
+            let glyph_info = crate::tui::communication::GlyphInfo {
+                codepoint: glyph_name.clone(),
+                name: Some(glyph_name.clone()),
+                unicode: unicode_value,
+                width: Some(glyph_instance.width as f32),
+            };
+
+            glyphs.push(glyph_info);
+        }
+    }
+
+    // Sort glyphs by Unicode value, then by name
+    glyphs.sort_by(|a, b| {
+        match (a.unicode, b.unicode) {
+            (Some(a_unicode), Some(b_unicode)) => a_unicode.cmp(&b_unicode),
+            (Some(_), None) => std::cmp::Ordering::Less,
+            (None, Some(_)) => std::cmp::Ordering::Greater,
+            (None, None) => a.codepoint.cmp(&b.codepoint),
+        }
+    });
+
+    info!("Sending {} glyphs to TUI", glyphs.len());
+    tui_comm.send_glyph_list(glyphs);
+    tui_comm.send_log(format!("Loaded {} glyphs from font", fontir_state.glyph_cache.len()));
+}
+
+/// Send font info from FontIR to TUI
+fn send_font_info_to_tui(
+    tui_comm: &mut ResMut<crate::core::tui_communication::TuiCommunication>,
+    fontir_state: &crate::core::state::FontIRAppState,
+) {
+    let mut font_info = crate::tui::communication::FontInfo {
+        family_name: None,
+        style_name: None,
+        version: None,
+        ascender: None,
+        descender: None,
+        cap_height: None,
+        x_height: None,
+        units_per_em: None,
+    };
+
+    // Extract basic font info from FontIR context
+    if let Some(context) = &fontir_state.context {
+        // Get static metadata
+        let static_metadata = context.static_metadata.get();
+        font_info.units_per_em = Some(static_metadata.units_per_em as f32);
+
+        // Set basic font information - we'll improve this later
+        font_info.family_name = Some("Font Family".to_string());
+        font_info.style_name = Some("Regular".to_string());
+        font_info.version = Some("1.0".to_string());
+
+        // Use reasonable default values for metrics
+        font_info.ascender = Some(800.0);
+        font_info.descender = Some(-200.0);
+        font_info.cap_height = Some(700.0);
+        font_info.x_height = Some(500.0);
+    }
+
+    info!("Sending font info to TUI");
+    tui_comm.send_font_info(font_info);
+}
+
+/// System to send initial font data to TUI when font loads
+fn send_initial_font_data_to_tui(
+    mut tui_comm: Option<ResMut<crate::core::tui_communication::TuiCommunication>>,
+    fontir_state: Option<ResMut<crate::core::state::FontIRAppState>>,
+    mut sent_initial_data: Local<bool>,
+) {
+    // Only send data once when both TUI communication and font are available
+    if !*sent_initial_data {
+        if let (Some(mut tui_comm), Some(fontir_state)) = (tui_comm.as_mut(), fontir_state.as_ref()) {
+            send_glyph_list_to_tui(&mut tui_comm, fontir_state);
+            send_font_info_to_tui(&mut tui_comm, fontir_state);
+            *sent_initial_data = true;
+        }
+    }
 }

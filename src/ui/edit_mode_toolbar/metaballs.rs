@@ -116,11 +116,11 @@ impl EditTool for MetaballsTool {
     }
 
     fn on_enter(&self) {
-        info!("METABALLS TOOL: Entered metaballs mode");
+        debug!("METABALLS TOOL: Entered metaballs mode");
     }
 
     fn on_exit(&self) {
-        info!("METABALLS TOOL: Exited metaballs mode");
+        debug!("METABALLS TOOL: Exited metaballs mode");
     }
 }
 
@@ -489,7 +489,7 @@ fn convert_metaballs_to_curves(
                     .push(crate::core::state::ContourData { points: curve });
             }
 
-            info!(
+            debug!(
                 "Converted {} metaball gizmos to {} curves in glyph '{}'",
                 metaball_gizmos.gizmos.len(),
                 curves_count,

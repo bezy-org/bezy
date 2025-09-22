@@ -32,7 +32,7 @@ pub fn spawn_active_sort_points(
 
             if !existing_points {
                 let position = transform.translation.truncate();
-                info!("[spawn_active_sort_points] Spawning points for active sort: '{}' at position {:?}", 
+                debug!("[spawn_active_sort_points] Spawning points for active sort: '{}' at position {:?}", 
                       sort.glyph_name, position);
 
                 // Try FontIR first, then fallback to AppState
@@ -83,13 +83,15 @@ pub fn despawn_inactive_sort_points(
             // Remove from selection state if selected
             if selection_state.selected.contains(&entity) {
                 selection_state.selected.remove(&entity);
-                info!(
+                debug!(
                     "[despawn_inactive_sort_points] Removed despawned entity {:?} from selection",
                     entity
                 );
             }
 
-            commands.entity(entity).despawn();
+            if let Ok(mut entity_commands) = commands.get_entity(entity) {
+                entity_commands.despawn();
+            }
             debug!(
                 "[despawn_inactive_sort_points] Despawned point entity {:?} for inactive sort {:?}",
                 entity, sort_point.sort_entity
@@ -129,7 +131,7 @@ fn spawn_fontir_points(
 
                 // Debug: Print first few point positions
                 if point_count <= 5 {
-                    info!("[spawn_fontir_points] Point {}: local=({:.1}, {:.1}), world=({:.1}, {:.1})", 
+                    debug!("[spawn_fontir_points] Point {}: local=({:.1}, {:.1}), world=({:.1}, {:.1})", 
                           point_count, editable_point.position.x, editable_point.position.y, point_world_pos.x, point_world_pos.y);
                 }
 
@@ -165,7 +167,7 @@ fn spawn_fontir_points(
                     .id();
             }
         }
-        info!(
+        debug!(
             "[spawn_fontir_points] Successfully spawned {} FontIR point entities",
             point_count
         );
@@ -198,7 +200,7 @@ fn spawn_appstate_points(
 
                     // Debug: Print first few point positions
                     if point_count <= 5 {
-                        info!("[spawn_appstate_points] Point {}: local=({:.1}, {:.1}), world=({:.1}, {:.1})", 
+                        debug!("[spawn_appstate_points] Point {}: local=({:.1}, {:.1}), world=({:.1}, {:.1})", 
                               point_count, point.x, point.y, point_world_pos.x, point_world_pos.y);
                     }
 
@@ -233,7 +235,7 @@ fn spawn_appstate_points(
                         .id();
                 }
             }
-            info!(
+            debug!(
                 "[spawn_appstate_points] Successfully spawned {} point entities",
                 point_count
             );
