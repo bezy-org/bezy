@@ -231,8 +231,8 @@ pub fn create_app_with_tui(
     add_plugin_groups(&mut app);
     add_startup_and_exit_systems(&mut app);
 
-    // Add TUI communication system
-    app.add_systems(Update, handle_tui_messages);
+    // Add TUI communication systems
+    app.add_systems(Update, (handle_tui_messages, send_initial_font_data_to_tui));
 
     Ok(app)
 }
@@ -241,6 +241,7 @@ pub fn create_app_with_tui(
 fn handle_tui_messages(
     mut tui_comm: ResMut<crate::core::tui_communication::TuiCommunication>,
     mut glyph_nav: ResMut<GlyphNavigation>,
+    fontir_state: Option<Res<crate::core::state::FontIRAppState>>,
 ) {
     while let Some(message) = tui_comm.try_recv() {
         match message {
@@ -251,12 +252,20 @@ fn handle_tui_messages(
                 tui_comm.send_current_glyph(glyph_name);
             }
             TuiMessage::RequestGlyphList => {
-                // TODO: Send actual glyph list from font
                 info!("TUI requested glyph list");
+                if let Some(fontir_state) = &fontir_state {
+                    send_glyph_list_to_tui(&mut tui_comm, fontir_state);
+                } else {
+                    tui_comm.send_log("No font loaded - please use --edit to load a font".to_string());
+                }
             }
             TuiMessage::RequestFontInfo => {
-                // TODO: Send actual font info
                 info!("TUI requested font info");
+                if let Some(fontir_state) = &fontir_state {
+                    send_font_info_to_tui(&mut tui_comm, fontir_state);
+                } else {
+                    tui_comm.send_log("No font loaded - please use --edit to load a font".to_string());
+                }
             }
             TuiMessage::ChangeZoom(zoom) => {
                 info!("TUI requested zoom change: {}", zoom);
@@ -265,6 +274,113 @@ fn handle_tui_messages(
                 info!("TUI requested quit");
                 // The TUI handles its own quit, this is just informational
             }
+        }
+    }
+}
+
+/// Send glyph list from FontIR to TUI
+fn send_glyph_list_to_tui(
+    tui_comm: &mut ResMut<crate::core::tui_communication::TuiCommunication>,
+    fontir_state: &Res<crate::core::state::FontIRAppState>,
+) {
+    let mut glyphs = Vec::new();
+
+    // Extract glyph data from FontIR
+    for (glyph_name, glyph) in &fontir_state.glyph_cache {
+        // Get the first available instance for this glyph
+        if let Some((_location, glyph_instance)) = glyph.sources().iter().next() {
+            // Try to find Unicode codepoints for this glyph from context
+            let unicode_value = if let Some(_context) = &fontir_state.context {
+                // Look up codepoints in the context - need to find the right field
+                // For now, try to parse from glyph name if it looks like a Unicode name
+                if glyph_name.starts_with("uni") && glyph_name.len() == 7 {
+                    u32::from_str_radix(&glyph_name[3..], 16).ok()
+                } else if glyph_name.len() == 1 {
+                    // Single character glyph name
+                    glyph_name.chars().next().map(|c| c as u32)
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+
+            let glyph_info = crate::tui::communication::GlyphInfo {
+                codepoint: glyph_name.clone(),
+                name: Some(glyph_name.clone()),
+                unicode: unicode_value,
+                width: Some(glyph_instance.width as f32),
+            };
+
+            glyphs.push(glyph_info);
+        }
+    }
+
+    // Sort glyphs by Unicode value, then by name
+    glyphs.sort_by(|a, b| {
+        match (a.unicode, b.unicode) {
+            (Some(a_unicode), Some(b_unicode)) => a_unicode.cmp(&b_unicode),
+            (Some(_), None) => std::cmp::Ordering::Less,
+            (None, Some(_)) => std::cmp::Ordering::Greater,
+            (None, None) => a.codepoint.cmp(&b.codepoint),
+        }
+    });
+
+    info!("Sending {} glyphs to TUI", glyphs.len());
+    tui_comm.send_glyph_list(glyphs);
+    tui_comm.send_log(format!("Loaded {} glyphs from font", fontir_state.glyph_cache.len()));
+}
+
+/// Send font info from FontIR to TUI
+fn send_font_info_to_tui(
+    tui_comm: &mut ResMut<crate::core::tui_communication::TuiCommunication>,
+    fontir_state: &Res<crate::core::state::FontIRAppState>,
+) {
+    let mut font_info = crate::tui::communication::FontInfo {
+        family_name: None,
+        style_name: None,
+        version: None,
+        ascender: None,
+        descender: None,
+        cap_height: None,
+        x_height: None,
+        units_per_em: None,
+    };
+
+    // Extract basic font info from FontIR context
+    if let Some(context) = &fontir_state.context {
+        // Get static metadata
+        let static_metadata = context.static_metadata.get();
+        font_info.units_per_em = Some(static_metadata.units_per_em as f32);
+
+        // Set basic font information - we'll improve this later
+        font_info.family_name = Some("Font Family".to_string());
+        font_info.style_name = Some("Regular".to_string());
+        font_info.version = Some("1.0".to_string());
+
+        // Use reasonable default values for metrics
+        font_info.ascender = Some(800.0);
+        font_info.descender = Some(-200.0);
+        font_info.cap_height = Some(700.0);
+        font_info.x_height = Some(500.0);
+    }
+
+    info!("Sending font info to TUI");
+    tui_comm.send_font_info(font_info);
+}
+
+/// System to send initial font data to TUI when font loads
+fn send_initial_font_data_to_tui(
+    mut tui_comm: Option<ResMut<crate::core::tui_communication::TuiCommunication>>,
+    fontir_state: Option<Res<crate::core::state::FontIRAppState>>,
+    mut sent_initial_data: Local<bool>,
+) {
+    // Only send data once when both TUI communication and font are available
+    if !*sent_initial_data {
+        if let (Some(mut tui_comm), Some(fontir_state)) = (tui_comm.as_mut(), fontir_state.as_ref()) {
+            send_glyph_list_to_tui(&mut tui_comm, fontir_state);
+            send_font_info_to_tui(&mut tui_comm, fontir_state);
+            *sent_initial_data = true;
         }
     }
 }

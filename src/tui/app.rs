@@ -55,9 +55,6 @@ impl App {
         let _ = self.app_tx.send(TuiMessage::RequestFontInfo);
         let _ = self.app_tx.send(TuiMessage::RequestGlyphList);
 
-        // Add some sample data for testing
-        self.add_sample_data();
-
         loop {
             terminal.draw(|f| ui::draw(f, self))?;
 
@@ -182,66 +179,4 @@ impl App {
         &mut self.tabs[self.current_tab]
     }
 
-    fn add_sample_data(&mut self) {
-        // Add sample font info
-        self.font_info = Some(FontInfo {
-            family_name: Some("Sample Font".to_string()),
-            style_name: Some("Regular".to_string()),
-            version: Some("1.0".to_string()),
-            ascender: Some(800.0),
-            descender: Some(-200.0),
-            cap_height: Some(700.0),
-            x_height: Some(500.0),
-            units_per_em: Some(1000.0),
-        });
-
-        // Add sample glyphs
-        self.glyphs = vec![
-            GlyphInfo {
-                codepoint: "A".to_string(),
-                name: Some("A".to_string()),
-                unicode: Some(65),
-                width: Some(600.0),
-            },
-            GlyphInfo {
-                codepoint: "B".to_string(),
-                name: Some("B".to_string()),
-                unicode: Some(66),
-                width: Some(650.0),
-            },
-            GlyphInfo {
-                codepoint: "C".to_string(),
-                name: Some("C".to_string()),
-                unicode: Some(67),
-                width: Some(700.0),
-            },
-            GlyphInfo {
-                codepoint: "space".to_string(),
-                name: Some("space".to_string()),
-                unicode: Some(32),
-                width: Some(250.0),
-            },
-            GlyphInfo {
-                codepoint: "a".to_string(),
-                name: Some("a".to_string()),
-                unicode: Some(97),
-                width: Some(500.0),
-            },
-            GlyphInfo {
-                codepoint: "b".to_string(),
-                name: Some("b".to_string()),
-                unicode: Some(98),
-                width: Some(550.0),
-            },
-        ];
-
-        // Add sample log entries
-        self.logs = vec![
-            "TUI started successfully".to_string(),
-            "Sample font data loaded".to_string(),
-            "6 glyphs available for browsing".to_string(),
-            "Use Tab to switch between tabs".to_string(),
-            "Press Ctrl+Q to quit".to_string(),
-        ];
-    }
 }
