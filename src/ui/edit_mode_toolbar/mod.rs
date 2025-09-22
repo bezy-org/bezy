@@ -502,7 +502,7 @@ pub use pan::{PanMode, PanToolPlugin, PresentationMode};
 pub use pen::{PenMode, PenModePlugin};
 pub use shapes::ShapesToolPlugin;
 
-pub use select::{SelectMode, SelectModeActive, SelectToolPlugin};
+pub use select::{SelectMode, SelectModeActive};
 // pub use text::TextMode;  // Will be available after porting
 // pub use measure::MeasureMode;  // Will be available after porting
 

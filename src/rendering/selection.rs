@@ -23,9 +23,10 @@ use bevy::prelude::*;
 
 /// Renders the selection marquee rectangle during drag selection
 pub fn render_selection_marquee(
+    _commands: Commands,
     mut gizmos: Gizmos,
     drag_state: Res<DragSelectionState>,
-    marquee_query: Query<&SelectionRect>,
+    marquee_query: Query<(Entity, &SelectionRect)>,
     theme: Res<CurrentTheme>,
     current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
 ) {
@@ -34,12 +35,21 @@ pub fn render_selection_marquee(
         return;
     }
 
+    // Only render marquee when dragging
     if !drag_state.is_dragging {
+        // Debug: Check if there are any lingering SelectionRect entities
+        let rect_count = marquee_query.iter().count();
+        if rect_count > 0 {
+            debug!("[render_selection_marquee] WARNING: Found {} SelectionRect entities but is_dragging=false", rect_count);
+            for (entity, rect) in marquee_query.iter() {
+                debug!("[render_selection_marquee] Lingering SelectionRect entity {:?} with rect: start={:?}, end={:?}", entity, rect.start, rect.end);
+            }
+        }
         return;
     }
 
     // Try to find the selection rect from the query first
-    if let Some(rect) = marquee_query.iter().next() {
+    if let Some((_, rect)) = marquee_query.iter().next() {
         debug!(
             "[render_selection_marquee] Drawing marquee: start={:?}, end={:?}",
             rect.start, rect.end

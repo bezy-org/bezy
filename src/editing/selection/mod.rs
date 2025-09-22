@@ -84,8 +84,7 @@ impl Plugin for SelectionPlugin {
             .init_resource::<DoubleClickState>()
             .init_resource::<input::SelectionInputEvents>()
             .init_resource::<entity_management::EnhancedPointAttributes>()
-            // TEMP FIX: Manually initialize SelectModeActive since it's not being created
-            .insert_resource(crate::ui::edit_mode_toolbar::select::SelectModeActive(true))
+            // SelectModeActive is now properly managed by SelectToolPlugin
             // Configure system sets for proper ordering
             .configure_sets(
                 Update,

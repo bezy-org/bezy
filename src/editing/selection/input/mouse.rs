@@ -1057,8 +1057,12 @@ pub fn handle_selection_release(
         if let Some(rect_entity) = rect_entity {
             if let Ok(mut entity_commands) = commands.get_entity(rect_entity) {
                 entity_commands.despawn();
+                debug!("SelectionRect entity {:?} successfully despawned on release", rect_entity);
+            } else {
+                debug!("ERROR: Failed to get SelectionRect entity {:?} for despawning - entity may not exist", rect_entity);
             }
-            debug!("SelectionRect entity despawned on release");
+        } else {
+            debug!("No SelectionRect entity to despawn on release");
         }
     }
 }

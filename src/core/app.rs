@@ -85,6 +85,7 @@ impl PluginGroup for EditorPluginGroup {
             // ✅ NEW SYSTEM: All tools are now automatically registered via EditModeToolbarPlugin
             // No need for manual tool plugin registration - everything is handled by toolbar_config.rs
             .add(crate::tools::PenToolPlugin) // Re-enabled - pen tool needs its business logic plugin
+            .add(crate::tools::SelectToolPlugin) // Select tool business logic plugin
     }
 }
 
