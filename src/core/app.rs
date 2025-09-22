@@ -232,7 +232,7 @@ pub fn create_app_with_tui(
     add_startup_and_exit_systems(&mut app);
 
     // Add TUI communication systems
-    app.add_systems(Update, (handle_tui_messages, send_initial_font_data_to_tui));
+    app.add_systems(Update, (handle_tui_messages, send_initial_font_data_to_tui, test_keyboard_sort_switching));
 
     Ok(app)
 }
@@ -241,19 +241,83 @@ pub fn create_app_with_tui(
 fn handle_tui_messages(
     mut tui_comm: ResMut<crate::core::tui_communication::TuiCommunication>,
     mut glyph_nav: ResMut<GlyphNavigation>,
-    fontir_state: Option<Res<crate::core::state::FontIRAppState>>,
+    mut fontir_state: Option<ResMut<crate::core::state::FontIRAppState>>,
+    mut text_editor_state: Option<ResMut<crate::core::state::TextEditorState>>,
 ) {
     while let Some(message) = tui_comm.try_recv() {
         match message {
-            TuiMessage::SelectGlyph(glyph_name) => {
-                info!("TUI requested glyph selection: {}", glyph_name);
+            TuiMessage::SelectGlyph(unicode_codepoint) => {
+                println!("🎯 TUI GLYPH SELECTION: Received request for Unicode U+{:04X}", unicode_codepoint);
+                info!("TUI requested glyph selection: U+{:04X}", unicode_codepoint);
+
+                // Convert Unicode to char for processing
+                let target_char = char::from_u32(unicode_codepoint);
+                let glyph_name = format!("U+{:04X}", unicode_codepoint);
+
+                // Update both glyph tracking systems
                 glyph_nav.set_current_glyph(glyph_name.clone());
+
+                // Also update FontIR state if available
+                if let Some(ref mut fontir_state) = fontir_state {
+                    fontir_state.set_current_glyph(Some(glyph_name.clone()));
+                    info!("Updated FontIR current glyph to: {}", glyph_name);
+                }
+
+                // Find and activate the sort with the matching glyph name in the text editor state
+                if let Some(ref mut text_state) = text_editor_state {
+                    println!("📋 BUFFER DEBUG: Text editor buffer has {} sorts", text_state.buffer.len());
+
+                    // Log all available sorts for debugging
+                    for i in 0..text_state.buffer.len() {
+                        if let Some(sort) = text_state.buffer.get(i) {
+                            let codepoint_display = if let Some(cp) = sort.kind.codepoint() {
+                                format!("U+{:04X} ('{}')", cp as u32, cp)
+                            } else {
+                                "no codepoint".to_string()
+                            };
+                            println!("  Sort[{}]: {} | glyph='{}'", i, codepoint_display, sort.kind.glyph_name());
+                        }
+                    }
+
+                    // Find the index of the sort with the matching Unicode codepoint
+                    let mut target_index = None;
+                    if let Some(target_char) = target_char {
+                        for i in 0..text_state.buffer.len() {
+                            if let Some(sort) = text_state.buffer.get(i) {
+                                if let Some(sort_codepoint) = sort.kind.codepoint() {
+                                    if sort_codepoint == target_char {
+                                        target_index = Some(i);
+                                        println!("🎯 MATCH FOUND: Sort[{}] matches requested Unicode U+{:04X} ('{}')", i, unicode_codepoint, target_char);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if let Some(index) = target_index {
+                        // Use the TextEditorState's activate_sort method which handles deactivation properly
+                        if text_state.activate_sort(index) {
+                            println!("✅ SUCCESS: Activated sort at index {} for Unicode U+{:04X}", index, unicode_codepoint);
+                            info!("Successfully activated sort at index {} for Unicode U+{:04X}", index, unicode_codepoint);
+                        } else {
+                            println!("❌ FAILED: Could not activate sort at index {} for Unicode U+{:04X}", index, unicode_codepoint);
+                            warn!("Failed to activate sort at index {} for Unicode U+{:04X}", index, unicode_codepoint);
+                        }
+                    } else {
+                        println!("⚠️ NOT FOUND: No existing sort found for Unicode U+{:04X} in text buffer", unicode_codepoint);
+                        info!("No existing sort found for Unicode U+{:04X} in text buffer", unicode_codepoint);
+                    }
+                } else {
+                    info!("No TextEditorState available for glyph activation");
+                }
+
                 // Send confirmation back to TUI
                 tui_comm.send_current_glyph(glyph_name);
             }
             TuiMessage::RequestGlyphList => {
                 info!("TUI requested glyph list");
-                if let Some(fontir_state) = &fontir_state {
+                if let Some(ref fontir_state) = fontir_state {
                     send_glyph_list_to_tui(&mut tui_comm, fontir_state);
                 } else {
                     tui_comm.send_log("No font loaded - please use --edit to load a font".to_string());
@@ -261,7 +325,7 @@ fn handle_tui_messages(
             }
             TuiMessage::RequestFontInfo => {
                 info!("TUI requested font info");
-                if let Some(fontir_state) = &fontir_state {
+                if let Some(ref fontir_state) = fontir_state {
                     send_font_info_to_tui(&mut tui_comm, fontir_state);
                 } else {
                     tui_comm.send_log("No font loaded - please use --edit to load a font".to_string());
@@ -281,7 +345,7 @@ fn handle_tui_messages(
 /// Send glyph list from FontIR to TUI
 fn send_glyph_list_to_tui(
     tui_comm: &mut ResMut<crate::core::tui_communication::TuiCommunication>,
-    fontir_state: &Res<crate::core::state::FontIRAppState>,
+    fontir_state: &crate::core::state::FontIRAppState,
 ) {
     let mut glyphs = Vec::new();
 
@@ -334,7 +398,7 @@ fn send_glyph_list_to_tui(
 /// Send font info from FontIR to TUI
 fn send_font_info_to_tui(
     tui_comm: &mut ResMut<crate::core::tui_communication::TuiCommunication>,
-    fontir_state: &Res<crate::core::state::FontIRAppState>,
+    fontir_state: &crate::core::state::FontIRAppState,
 ) {
     let mut font_info = crate::tui::communication::FontInfo {
         family_name: None,
@@ -372,7 +436,7 @@ fn send_font_info_to_tui(
 /// System to send initial font data to TUI when font loads
 fn send_initial_font_data_to_tui(
     mut tui_comm: Option<ResMut<crate::core::tui_communication::TuiCommunication>>,
-    fontir_state: Option<Res<crate::core::state::FontIRAppState>>,
+    fontir_state: Option<ResMut<crate::core::state::FontIRAppState>>,
     mut sent_initial_data: Local<bool>,
 ) {
     // Only send data once when both TUI communication and font are available
@@ -384,3 +448,109 @@ fn send_initial_font_data_to_tui(
         }
     }
 }
+
+/// Test system to simulate TUI glyph selection via keyboard
+fn test_keyboard_sort_switching(
+    mut text_editor_state: Option<ResMut<crate::core::state::TextEditorState>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut glyph_nav: ResMut<GlyphNavigation>,
+    mut fontir_state: Option<ResMut<crate::core::state::FontIRAppState>>,
+) {
+    // Press '1' key to switch to Unicode U+0041 ('A') (matches test.ufo)
+    if keyboard_input.just_pressed(KeyCode::Digit1) {
+        let unicode_codepoint = 0x0041u32; // 'A'
+        println!("🎯 KEYBOARD TEST: Simulating TUI selection of Unicode U+{:04X}", unicode_codepoint);
+
+        // Convert Unicode to char for processing (same as TUI code)
+        let target_char = char::from_u32(unicode_codepoint);
+        let glyph_name = format!("U+{:04X}", unicode_codepoint);
+
+        // Update both glyph tracking systems (same as TUI code)
+        glyph_nav.set_current_glyph(glyph_name.clone());
+
+        if let Some(ref mut fontir_state) = fontir_state {
+            fontir_state.set_current_glyph(Some(glyph_name.clone()));
+            println!("✅ Updated FontIR current glyph to: {}", glyph_name);
+        }
+
+        // Find and activate the sort with the matching Unicode codepoint
+        if let Some(ref mut text_state) = text_editor_state {
+            // First, list all available sorts
+            println!("📋 Available sorts:");
+            for i in 0..text_state.buffer.len() {
+                if let Some(sort) = text_state.buffer.get(i) {
+                    let codepoint_display = if let Some(cp) = sort.kind.codepoint() {
+                        format!("U+{:04X} ('{}')", cp as u32, cp)
+                    } else {
+                        "no codepoint".to_string()
+                    };
+                    println!("  Sort[{}]: {} | glyph='{}', active={}",
+                             i, codepoint_display, sort.kind.glyph_name(), sort.is_active);
+                }
+            }
+
+            // Find the index of the sort with the matching Unicode codepoint
+            let mut target_index = None;
+            if let Some(target_char) = target_char {
+                for i in 0..text_state.buffer.len() {
+                    if let Some(sort) = text_state.buffer.get(i) {
+                        if let Some(sort_codepoint) = sort.kind.codepoint() {
+                            if sort_codepoint == target_char {
+                                target_index = Some(i);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if let Some(index) = target_index {
+                // Use the TextEditorState's activate_sort method
+                if text_state.activate_sort(index) {
+                    println!("✅ SUCCESS: Activated sort at index {} for Unicode U+{:04X}", index, unicode_codepoint);
+                } else {
+                    println!("❌ FAILED: Could not activate sort at index {} for Unicode U+{:04X}", index, unicode_codepoint);
+                }
+            } else {
+                println!("⚠️ NOT FOUND: No existing sort found for Unicode U+{:04X} in text buffer", unicode_codepoint);
+            }
+        } else {
+            println!("❌ No TextEditorState available for glyph activation");
+        }
+    }
+
+    // Press '2' key to switch to Unicode U+0041 ('A') again (only glyph in test.ufo)
+    if keyboard_input.just_pressed(KeyCode::Digit2) {
+        let unicode_codepoint = 0x0041u32; // 'A'
+        println!("🎯 KEYBOARD TEST: Simulating TUI selection of Unicode U+{:04X}", unicode_codepoint);
+
+        if let Some(ref mut text_state) = text_editor_state {
+            let target_char = char::from_u32(unicode_codepoint);
+            let mut target_index = None;
+
+            if let Some(target_char) = target_char {
+                for i in 0..text_state.buffer.len() {
+                    if let Some(sort) = text_state.buffer.get(i) {
+                        if let Some(sort_codepoint) = sort.kind.codepoint() {
+                            if sort_codepoint == target_char {
+                                target_index = Some(i);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if let Some(index) = target_index {
+                if text_state.activate_sort(index) {
+                    println!("✅ SUCCESS: Activated sort at index {} for Unicode U+{:04X}", index, unicode_codepoint);
+                } else {
+                    println!("❌ FAILED: Could not activate sort at index {} for Unicode U+{:04X}", index, unicode_codepoint);
+                }
+            } else {
+                println!("⚠️ NOT FOUND: No existing sort found for Unicode U+{:04X}", unicode_codepoint);
+            }
+        }
+    }
+}
+

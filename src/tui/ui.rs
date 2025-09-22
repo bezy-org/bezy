@@ -106,9 +106,9 @@ fn draw_codepoints_tab_with_data(
             };
 
             let style = if i == state.selected_index {
-                Style::default().fg(Color::Black).bg(Color::Yellow)
+                Style::default().fg(Color::Black).bg(Color::Yellow).add_modifier(Modifier::BOLD)
             } else {
-                Style::default()
+                Style::default().fg(Color::White)
             };
 
             ListItem::new(content).style(style)
@@ -116,8 +116,7 @@ fn draw_codepoints_tab_with_data(
         .collect();
 
     let list = List::new(items)
-        .block(Block::default().borders(Borders::ALL).title("Codepoints"))
-        .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
+        .block(Block::default().borders(Borders::ALL).title("Codepoints"));
 
     // Create list state for proper scrolling
     let mut list_state = ratatui::widgets::ListState::default();

@@ -1448,6 +1448,7 @@ dependencies = [
  "fontir",
  "harfrust",
  "kurbo 0.12.0",
+ "libc",
  "log",
  "lyon",
  "norad",

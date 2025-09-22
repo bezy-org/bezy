@@ -90,9 +90,11 @@ pub async fn handle_key_event(
                 state.page_up(10);
             }
             KeyCode::Enter => {
-                // Send message to select current glyph
+                // Send message to select current glyph using Unicode codepoint
                 if let Some(glyph) = app.glyphs.get(state.selected_index) {
-                    let _ = app_tx.send(TuiMessage::SelectGlyph(glyph.codepoint.clone()));
+                    if let Some(unicode) = glyph.unicode {
+                        let _ = app_tx.send(TuiMessage::SelectGlyph(unicode));
+                    }
                 }
             }
             KeyCode::Char('/') => {
@@ -144,9 +146,11 @@ pub async fn handle_key_event_simple(
                 state.page_up(10);
             }
             KeyCode::Enter => {
-                // Send message to select current glyph
+                // Send message to select current glyph using Unicode codepoint
                 if let Some(glyph) = glyphs.get(state.selected_index) {
-                    let _ = app_tx.send(TuiMessage::SelectGlyph(glyph.codepoint.clone()));
+                    if let Some(unicode) = glyph.unicode {
+                        let _ = app_tx.send(TuiMessage::SelectGlyph(unicode));
+                    }
                 }
             }
             KeyCode::Char('/') => {

@@ -22,7 +22,7 @@ pub struct FontInfo {
 
 #[derive(Debug, Clone)]
 pub enum TuiMessage {
-    SelectGlyph(String),
+    SelectGlyph(u32), // Unicode codepoint instead of glyph name
     RequestGlyphList,
     RequestFontInfo,
     ChangeZoom(f32),
