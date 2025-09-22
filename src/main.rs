@@ -11,12 +11,12 @@ use tokio::sync::mpsc;
 
 /// Create and run the application with the given CLI arguments.
 fn run_app(cli_args: core::cli::CliArgs) -> Result<()> {
-    if cli_args.tui {
-        run_app_with_tui(cli_args)
-    } else {
+    if cli_args.no_tui {
         let mut app = core::app::create_app(cli_args)?;
         app.run();
         Ok(())
+    } else {
+        run_app_with_tui(cli_args)
     }
 }
 

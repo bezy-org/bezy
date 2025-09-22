@@ -23,7 +23,7 @@ pub struct App {
 impl App {
     pub fn new(app_tx: mpsc::UnboundedSender<TuiMessage>) -> Self {
         let tabs = vec![
-            Tab::new(TabType::Glyphs),
+            Tab::new(TabType::Codepoints),
             Tab::new(TabType::FontInfo),
             Tab::new(TabType::Logs),
             Tab::new(TabType::Help),
@@ -120,7 +120,7 @@ impl App {
 
                 if let Some(tab) = self.tabs.get_mut(current_tab_idx) {
                     match &mut tab.state {
-                        TabState::Glyphs(state) => {
+                        TabState::Codepoints(state) => {
                             glyphs::handle_key_event_simple(state, key, &app_tx, glyphs_len, &self.glyphs).await?;
                         }
                         TabState::Logs(state) => {

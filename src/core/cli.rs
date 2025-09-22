@@ -78,17 +78,17 @@ pub struct CliArgs {
     )]
     pub new_config: bool,
 
-    /// Enable Terminal User Interface (TUI) mode
+    /// Disable Terminal User Interface (TUI) mode
     ///
-    /// Launches a terminal-based interface alongside the main editor.
-    /// The TUI provides tabs for glyph browsing, font information, and logs.
-    /// Logs are redirected to ~/.config/bezy/logs/ when TUI mode is active.
+    /// By default, Bezy launches with a TUI (Terminal User Interface) alongside
+    /// the main editor window. The TUI provides tabs for codepoint browsing,
+    /// font information, and logs. Use this flag to run without the TUI.
     #[clap(
-        long = "tui",
-        help = "Enable Terminal User Interface mode",
-        long_help = "Launch a terminal-based interface alongside the main editor. Provides tabs for glyph browsing, font information, and real-time log viewing. Logs are automatically redirected to ~/.config/bezy/logs/ directory."
+        long = "no-tui",
+        help = "Disable Terminal User Interface mode",
+        long_help = "Disable the Terminal User Interface (TUI) that normally runs alongside the main editor. By default, Bezy shows a TUI in the terminal with tabs for codepoint browsing, font information, and real-time log viewing. Use this flag to run the GUI only."
     )]
-    pub tui: bool,
+    pub no_tui: bool,
 }
 
 impl CliArgs {

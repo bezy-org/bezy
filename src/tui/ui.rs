@@ -36,7 +36,7 @@ fn draw_tabs(f: &mut Frame, app: &App, area: Rect) {
         .collect();
 
     let tabs = Tabs::new(titles)
-        .block(Block::default().borders(Borders::ALL).title("Bezy TUI"))
+        .block(Block::default().borders(Borders::ALL).title("Bezy"))
         .style(Style::default().fg(Color::White))
         .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
         .select(app.current_tab)
@@ -47,8 +47,8 @@ fn draw_tabs(f: &mut Frame, app: &App, area: Rect) {
 
 fn draw_tab_content(f: &mut Frame, app: &App, area: Rect) {
     match &app.tabs[app.current_tab].state {
-        TabState::Glyphs(state) => {
-            draw_glyphs_tab(f, app, state, area);
+        TabState::Codepoints(state) => {
+            draw_codepoints_tab(f, app, state, area);
         }
         TabState::FontInfo => {
             draw_font_info_tab(f, app, area);
@@ -62,7 +62,7 @@ fn draw_tab_content(f: &mut Frame, app: &App, area: Rect) {
     }
 }
 
-fn draw_glyphs_tab(
+fn draw_codepoints_tab(
     f: &mut Frame,
     app: &App,
     state: &crate::tui::tabs::glyphs::GlyphsState,
@@ -73,7 +73,7 @@ fn draw_glyphs_tab(
         .constraints([Constraint::Min(0), Constraint::Length(3)].as_ref())
         .split(area);
 
-    // Glyph list
+    // Codepoint list
     let items: Vec<ListItem> = app
         .glyphs
         .iter()
@@ -97,7 +97,7 @@ fn draw_glyphs_tab(
         .collect();
 
     let list = List::new(items)
-        .block(Block::default().borders(Borders::ALL).title("Glyphs"))
+        .block(Block::default().borders(Borders::ALL).title("Codepoints"))
         .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
 
     f.render_widget(list, chunks[0]);
@@ -221,13 +221,13 @@ fn draw_help_tab(f: &mut Frame, area: Rect) {
         Line::from("  1-4            - Jump to tab by number"),
         Line::from(""),
         Line::from(vec![
-            Span::styled("Glyphs Tab:", Style::default().add_modifier(Modifier::BOLD)),
+            Span::styled("Codepoints Tab:", Style::default().add_modifier(Modifier::BOLD)),
         ]),
         Line::from(""),
-        Line::from("  ↑/↓ or j/k     - Navigate glyph list"),
+        Line::from("  ↑/↓ or j/k     - Navigate codepoint list"),
         Line::from("  Page Up/Down   - Navigate by page"),
-        Line::from("  Enter          - Select glyph in editor"),
-        Line::from("  /              - Search glyphs"),
+        Line::from("  Enter          - Select codepoint in editor"),
+        Line::from("  /              - Search codepoints"),
         Line::from("  Esc            - Exit search"),
         Line::from(""),
         Line::from(vec![
