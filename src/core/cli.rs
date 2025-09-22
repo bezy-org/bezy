@@ -20,7 +20,7 @@ use std::path::PathBuf;
 ///   bezy --theme light                  # Use light theme
 ///   bezy --theme strawberry             # Use strawberry theme
 ///   bezy --no-default-buffer            # Start without default LTR buffer (for testing)
-#[derive(Parser, Debug, Resource)]
+#[derive(Parser, Debug, Resource, Clone)]
 #[clap(
     name = "bezy",
     version,
@@ -77,6 +77,18 @@ pub struct CliArgs {
         long_help = "Initialize the ~/.config/bezy directory with a settings.json file and copies of all default themes. This allows you to customize themes and set preferences like default theme without needing command line arguments."
     )]
     pub new_config: bool,
+
+    /// Enable Terminal User Interface (TUI) mode
+    ///
+    /// Launches a terminal-based interface alongside the main editor.
+    /// The TUI provides tabs for glyph browsing, font information, and logs.
+    /// Logs are redirected to ~/.config/bezy/logs/ when TUI mode is active.
+    #[clap(
+        long = "tui",
+        help = "Enable Terminal User Interface mode",
+        long_help = "Launch a terminal-based interface alongside the main editor. Provides tabs for glyph browsing, font information, and real-time log viewing. Logs are automatically redirected to ~/.config/bezy/logs/ directory."
+    )]
+    pub tui: bool,
 }
 
 impl CliArgs {

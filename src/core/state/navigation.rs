@@ -52,6 +52,11 @@ impl GlyphNavigation {
             .as_ref()
             .and_then(|codepoint| find_glyph_by_unicode_codepoint(app_state, codepoint))
     }
+
+    /// Set the current glyph by name
+    pub fn set_current_glyph(&mut self, glyph_name: String) {
+        self.current_glyph = Some(glyph_name);
+    }
 }
 
 /// Find a glyph by Unicode codepoint in the app state

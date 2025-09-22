@@ -29,6 +29,8 @@ use anyhow::Result;
 use bevy::app::{PluginGroup, PluginGroupBuilder};
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
+use tokio::sync::mpsc;
+use crate::tui::communication::{AppMessage, TuiMessage};
 
 /// Plugin group for core application functionality
 #[derive(Default)]
@@ -206,4 +208,63 @@ fn add_plugin_groups(app: &mut App) {
 fn add_startup_and_exit_systems(app: &mut App) {
     app.add_systems(Startup, (load_fontir_font, create_startup_layout).chain())
         .add_systems(Update, (exit_on_esc, center_camera_on_startup_layout));
+}
+
+/// Creates a fully configured Bevy GUI application with TUI support
+pub fn create_app_with_tui(
+    cli_args: CliArgs,
+    tui_rx: mpsc::UnboundedReceiver<TuiMessage>,
+    app_tx: mpsc::UnboundedSender<AppMessage>,
+) -> Result<App> {
+    #[cfg(not(target_arch = "wasm32"))]
+    cli_args
+        .validate()
+        .map_err(|e| anyhow::anyhow!("CLI validation failed: {}", e))?;
+
+    let mut app = App::new();
+
+    // Add TUI communication resource
+    app.insert_resource(crate::core::tui_communication::TuiCommunication::new(tui_rx, app_tx));
+
+    configure_resources(&mut app, cli_args);
+    configure_window_plugins(&mut app);
+    add_plugin_groups(&mut app);
+    add_startup_and_exit_systems(&mut app);
+
+    // Add TUI communication system
+    app.add_systems(Update, handle_tui_messages);
+
+    Ok(app)
+}
+
+/// System to handle messages from TUI
+fn handle_tui_messages(
+    mut tui_comm: ResMut<crate::core::tui_communication::TuiCommunication>,
+    mut glyph_nav: ResMut<GlyphNavigation>,
+) {
+    while let Some(message) = tui_comm.try_recv() {
+        match message {
+            TuiMessage::SelectGlyph(glyph_name) => {
+                info!("TUI requested glyph selection: {}", glyph_name);
+                glyph_nav.set_current_glyph(glyph_name.clone());
+                // Send confirmation back to TUI
+                tui_comm.send_current_glyph(glyph_name);
+            }
+            TuiMessage::RequestGlyphList => {
+                // TODO: Send actual glyph list from font
+                info!("TUI requested glyph list");
+            }
+            TuiMessage::RequestFontInfo => {
+                // TODO: Send actual font info
+                info!("TUI requested font info");
+            }
+            TuiMessage::ChangeZoom(zoom) => {
+                info!("TUI requested zoom change: {}", zoom);
+            }
+            TuiMessage::Quit => {
+                info!("TUI requested quit");
+                // The TUI handles its own quit, this is just informational
+            }
+        }
+    }
 }

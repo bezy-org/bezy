@@ -5,11 +5,50 @@
 
 use anyhow::Result;
 use bezy::core;
+use std::sync::Arc;
+use std::thread;
+use tokio::sync::mpsc;
 
 /// Create and run the application with the given CLI arguments.
 fn run_app(cli_args: core::cli::CliArgs) -> Result<()> {
-    let mut app = core::app::create_app(cli_args)?;
+    if cli_args.tui {
+        run_app_with_tui(cli_args)
+    } else {
+        let mut app = core::app::create_app(cli_args)?;
+        app.run();
+        Ok(())
+    }
+}
+
+/// Run the application with TUI enabled (both GUI and TUI simultaneously)
+fn run_app_with_tui(cli_args: core::cli::CliArgs) -> Result<()> {
+    // Create communication channels
+    let (tui_tx, tui_rx) = mpsc::unbounded_channel();
+    let (app_tx, app_rx) = mpsc::unbounded_channel();
+
+    let cli_args_arc = Arc::new(cli_args);
+
+    // Clone for the TUI thread
+    let cli_args_tui = cli_args_arc.clone();
+
+    // Spawn TUI in a separate thread
+    let tui_handle = thread::spawn(move || {
+        // Create a new tokio runtime for the TUI thread
+        let rt = tokio::runtime::Runtime::new().expect("Failed to create tokio runtime");
+        rt.block_on(async {
+            if let Err(e) = bezy::tui::run_tui(cli_args_tui, tui_tx, app_rx).await {
+                eprintln!("TUI error: {}", e);
+            }
+        });
+    });
+
+    // Create and run the Bevy app in the main thread
+    let mut app = core::app::create_app_with_tui((*cli_args_arc).clone(), tui_rx, app_tx)?;
     app.run();
+
+    // Wait for TUI thread to finish (happens when app exits)
+    let _ = tui_handle.join();
+
     Ok(())
 }
 

@@ -6,6 +6,7 @@ pub mod geometry;
 pub mod rendering;
 pub mod systems;
 pub mod tools;
+pub mod tui;
 pub mod ui;
 pub mod utils;
 
