@@ -10,7 +10,7 @@ use ratatui::{
     Frame,
 };
 
-pub fn draw(f: &mut Frame, app: &App) {
+pub fn draw(f: &mut Frame, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .margin(1)
@@ -45,16 +45,21 @@ fn draw_tabs(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(tabs, area);
 }
 
-fn draw_tab_content(f: &mut Frame, app: &App, area: Rect) {
-    match &app.tabs[app.current_tab].state {
+fn draw_tab_content(f: &mut Frame, app: &mut App, area: Rect) {
+    let current_tab_idx = app.current_tab;
+    let glyphs = app.glyphs.clone(); // Clone the data to avoid borrowing issues
+    let font_info = app.font_info.clone();
+    let logs = app.logs.clone();
+
+    match &mut app.tabs[current_tab_idx].state {
         TabState::Codepoints(state) => {
-            draw_codepoints_tab(f, app, state, area);
+            draw_codepoints_tab_with_data(f, &glyphs, state, area);
         }
         TabState::FontInfo => {
-            draw_font_info_tab(f, app, area);
+            draw_font_info_tab_with_data(f, &font_info, area);
         }
         TabState::Logs(state) => {
-            draw_logs_tab(f, app, state, area);
+            draw_logs_tab_with_data(f, &logs, state, area);
         }
         TabState::Help => {
             draw_help_tab(f, area);
@@ -62,10 +67,10 @@ fn draw_tab_content(f: &mut Frame, app: &App, area: Rect) {
     }
 }
 
-fn draw_codepoints_tab(
+fn draw_codepoints_tab_with_data(
     f: &mut Frame,
-    app: &App,
-    state: &crate::tui::tabs::glyphs::GlyphsState,
+    glyphs: &[crate::tui::communication::GlyphInfo],
+    state: &mut crate::tui::tabs::glyphs::GlyphsState,
     area: Rect,
 ) {
     let chunks = Layout::default()
@@ -73,18 +78,32 @@ fn draw_codepoints_tab(
         .constraints([Constraint::Min(0), Constraint::Length(3)].as_ref())
         .split(area);
 
-    // Codepoint list
-    let items: Vec<ListItem> = app
-        .glyphs
+    // Calculate scroll position to keep selected item visible
+    let visible_lines = chunks[0].height.saturating_sub(2) as usize; // Account for borders
+
+    // Update scroll offset if selection is outside visible area
+    if state.selected_index < state.scroll_offset {
+        state.scroll_offset = state.selected_index;
+    } else if state.selected_index >= state.scroll_offset + visible_lines {
+        state.scroll_offset = state.selected_index.saturating_sub(visible_lines - 1);
+    }
+
+    // Create list items with proper scrolling
+    let items: Vec<ListItem> = glyphs
         .iter()
         .enumerate()
         .map(|(i, glyph)| {
-            let content = format!(
-                "U+{:04X} {} {}",
-                glyph.unicode.unwrap_or(0),
-                glyph.codepoint,
-                glyph.name.as_deref().unwrap_or("(unnamed)")
-            );
+            let content = if let Some(name) = &glyph.name {
+                if name == &glyph.codepoint {
+                    // Don't show duplicate name
+                    format!("U+{:04X} {}", glyph.unicode.unwrap_or(0), glyph.codepoint)
+                } else {
+                    // Show both codepoint and different name
+                    format!("U+{:04X} {} ({})", glyph.unicode.unwrap_or(0), glyph.codepoint, name)
+                }
+            } else {
+                format!("U+{:04X} {}", glyph.unicode.unwrap_or(0), glyph.codepoint)
+            };
 
             let style = if i == state.selected_index {
                 Style::default().fg(Color::Black).bg(Color::Yellow)
@@ -100,7 +119,11 @@ fn draw_codepoints_tab(
         .block(Block::default().borders(Borders::ALL).title("Codepoints"))
         .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
 
-    f.render_widget(list, chunks[0]);
+    // Create list state for proper scrolling
+    let mut list_state = ratatui::widgets::ListState::default();
+    list_state.select(Some(state.selected_index));
+
+    f.render_stateful_widget(list, chunks[0], &mut list_state);
 
     // Status/search bar
     let status_text = if state.is_searching {
@@ -118,8 +141,8 @@ fn draw_codepoints_tab(
     f.render_widget(status, chunks[1]);
 }
 
-fn draw_font_info_tab(f: &mut Frame, app: &App, area: Rect) {
-    let content = if let Some(font_info) = &app.font_info {
+fn draw_font_info_tab_with_data(f: &mut Frame, font_info: &Option<crate::tui::communication::FontInfo>, area: Rect) {
+    let content = if let Some(font_info) = font_info {
         let mut text = Vec::new();
 
         if let Some(family) = &font_info.family_name {
@@ -176,14 +199,14 @@ fn draw_font_info_tab(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(paragraph, area);
 }
 
-fn draw_logs_tab(
+fn draw_logs_tab_with_data(
     f: &mut Frame,
-    app: &App,
+    logs: &[String],
     state: &crate::tui::tabs::logs::LogsState,
     area: Rect,
 ) {
     let visible_lines = area.height.saturating_sub(2) as usize; // Account for borders
-    let total_lines = app.logs.len();
+    let total_lines = logs.len();
 
     let start_index = if state.auto_scroll && total_lines > visible_lines {
         total_lines - visible_lines
@@ -193,7 +216,7 @@ fn draw_logs_tab(
 
     let end_index = (start_index + visible_lines).min(total_lines);
 
-    let log_lines: Vec<ListItem> = app.logs[start_index..end_index]
+    let log_lines: Vec<ListItem> = logs[start_index..end_index]
         .iter()
         .map(|line| ListItem::new(line.as_str()))
         .collect();
