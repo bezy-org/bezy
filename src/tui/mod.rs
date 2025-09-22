@@ -1,6 +1,7 @@
 pub mod app;
 pub mod communication;
 pub mod events;
+pub mod message_handler;
 pub mod tabs;
 pub mod ui;
 
