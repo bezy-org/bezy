@@ -231,6 +231,12 @@ pub fn create_app_with_tui(
     add_plugin_groups(&mut app);
     add_startup_and_exit_systems(&mut app);
 
+    // Force more aggressive update settings for TUI mode
+    app.insert_resource(WinitSettings {
+        focused_mode: bevy::winit::UpdateMode::Continuous,
+        unfocused_mode: bevy::winit::UpdateMode::Continuous,
+    });
+
     // Add TUI communication systems
     app.add_systems(Update, (handle_tui_messages, send_initial_font_data_to_tui));
 
@@ -263,6 +269,18 @@ fn handle_tui_messages(
                     Ok(glyph_name) => {
                         // Send confirmation back to TUI
                         tui_comm.send_current_glyph(glyph_name);
+
+                        // Force immediate redraw by triggering all change detection
+                        use bevy::prelude::DetectChangesMut;
+                        if let Some(ref mut text_state) = text_editor_state {
+                            text_state.set_changed();
+                            // Force viewport micro-change to trigger rendering pipeline
+                            let current_viewport = text_state.viewport_offset;
+                            text_state.viewport_offset = current_viewport + bevy::math::Vec2::new(0.0001, 0.0001);
+                            text_state.viewport_offset = current_viewport;
+                        }
+                        glyph_nav.set_changed();
+                        respawn_queue.set_changed();
                     }
                     Err(error_message) => {
                         // Send error message to TUI log
@@ -288,6 +306,25 @@ fn handle_tui_messages(
             }
             TuiMessage::ChangeZoom(zoom) => {
                 info!("TUI requested zoom change: {}", zoom);
+            }
+            TuiMessage::ForceRedraw => {
+                // Force all systems to mark themselves as changed to trigger updates
+                if let Some(ref mut text_state) = text_editor_state {
+                    use bevy::prelude::DetectChangesMut;
+                    text_state.set_changed();
+
+                    // Force viewport change to trigger rendering
+                    let current_viewport = text_state.viewport_offset;
+                    text_state.viewport_offset = current_viewport + bevy::math::Vec2::new(0.001, 0.0);
+                    text_state.viewport_offset = current_viewport;
+                }
+
+                {
+                    use bevy::prelude::DetectChangesMut;
+                    glyph_nav.set_changed();
+                }
+
+                info!("Force redraw requested by TUI");
             }
             TuiMessage::Quit => {
                 info!("TUI requested quit");

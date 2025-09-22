@@ -26,6 +26,7 @@ pub enum TuiMessage {
     RequestGlyphList,
     RequestFontInfo,
     ChangeZoom(f32),
+    ForceRedraw, // Force immediate GUI redraw
     Quit,
 }
 

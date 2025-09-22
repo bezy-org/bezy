@@ -77,6 +77,11 @@ pub fn handle_glyph_selection(
                 use bevy::prelude::DetectChangesMut;
                 text_state.set_changed();
 
+                // Force more aggressive updates by modifying viewport to trigger rerender
+                let current_viewport = text_state.viewport_offset;
+                text_state.viewport_offset = current_viewport + bevy::math::Vec2::new(0.001, 0.0);
+                text_state.viewport_offset = current_viewport; // Reset it but triggers change detection
+
                 info!("Inserted new sort for glyph '{}' (U+{:04X}) at cursor position", glyph_name, unicode_codepoint);
                 Ok(glyph_name)
             } else {
@@ -147,6 +152,11 @@ fn change_active_sort_glyph(
                 // Mark the text editor state as changed to trigger visual updates
                 use bevy::prelude::DetectChangesMut;
                 text_state.set_changed();
+
+                // Force more aggressive updates by modifying viewport to trigger rerender
+                let current_viewport = text_state.viewport_offset;
+                text_state.viewport_offset = current_viewport + bevy::math::Vec2::new(0.001, 0.0);
+                text_state.viewport_offset = current_viewport; // Reset it but triggers change detection
 
                 Ok(())
             } else {
