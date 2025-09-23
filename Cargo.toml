@@ -24,7 +24,6 @@ fontdrasil = "0.2.2"
 fontc = "0.3.0"
 smol_str = "0.2"
 anyhow = "1.0.86"
-spline = { git = "https://github.com/eliheuer/spline.git", rev = "229f7e7", version = "0.3.0" }
 clap = { version = "4.5.4", features = ["derive"] }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracing = "0.1.40"
