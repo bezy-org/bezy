@@ -141,6 +141,9 @@ impl App {
                                 _ => {}
                             }
                         }
+                        TabState::QA(state) => {
+                            crate::tui::tabs::qa::handle_key_event(state, key, &app_tx).await?;
+                        }
                         _ => {}
                     }
                 }

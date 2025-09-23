@@ -69,7 +69,11 @@ impl Tab {
             TabType::Edit => TabState::Edit(edit::EditState::new()),
             TabType::Unicode => TabState::Unicode(unicode::GlyphsState::new()),
             TabType::FontInfo => TabState::FontInfo(font_info::FontInfoState::new()),
-            TabType::QA => TabState::QA(qa::QAState::new()),
+            TabType::QA => {
+                let mut qa_state = qa::QAState::new();
+                qa_state.load_demo_data(); // Load demo data for prototype
+                TabState::QA(qa_state)
+            },
             TabType::Glyph => TabState::Glyph(glyph::GlyphState::new()),
             TabType::Path => TabState::Path(path::PathState::new()),
             TabType::AI => TabState::AI(ai::AIState::new()),
