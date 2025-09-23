@@ -8,12 +8,14 @@ use ratatui::{
     Frame,
 };
 use tokio::sync::mpsc;
+use std::sync::{Arc, Mutex};
 
 use crate::tui::communication::TuiMessage;
+use crate::qa::{QAReport, QAIssue, QASummary, Severity, Category, Location};
 
 #[derive(Debug, Clone)]
 pub struct QAState {
-    pub current_report: Option<QAReport>,
+    pub current_report: Option<Arc<Mutex<QAReport>>>,
     pub issues: Vec<QAIssue>,
     pub selected_issue: usize,
     pub filter_severity: Option<Severity>,
@@ -32,61 +34,9 @@ pub enum QAView {
     Settings,
 }
 
-#[derive(Debug, Clone)]
-pub struct QAReport {
-    pub font_path: std::path::PathBuf,
-    pub timestamp: std::time::SystemTime,
-    pub issues: Vec<QAIssue>,
-    pub summary: QASummary,
-}
-
-#[derive(Debug, Clone)]
-pub struct QAIssue {
-    pub severity: Severity,
-    pub category: Category,
-    pub check_id: String,
-    pub message: String,
-    pub location: Option<Location>,
-}
-
-#[derive(Debug, Clone)]
-pub enum Severity {
-    Error,
-    Warning,
-    Info,
-}
-
-#[derive(Debug, Clone)]
-pub enum Category {
-    Outlines,
-    Metadata,
-    Hinting,
-    Kerning,
-    Spacing,
-    Unicode,
-    Other(String),
-}
-
-#[derive(Debug, Clone)]
-pub struct Location {
-    pub glyph_name: Option<String>,
-    pub table_name: Option<String>,
-    pub position: Option<(f32, f32)>,
-}
-
-#[derive(Debug, Clone)]
-pub struct QASummary {
-    pub total_checks: usize,
-    pub passed: usize,
-    pub failed: usize,
-    pub warnings: usize,
-    pub info: usize,
-    pub skipped: usize,
-}
-
 impl QAState {
     pub fn new() -> Self {
-        Self {
+        let mut state = Self {
             current_report: None,
             issues: Vec::new(),
             selected_issue: 0,
@@ -96,7 +46,10 @@ impl QAState {
             progress: 0.0,
             scroll_offset: 0,
             view_mode: QAView::IssueList,
-        }
+        };
+        // Load demo data for initial display
+        state.load_demo_data();
+        state
     }
 
     pub fn load_demo_data(&mut self) {
@@ -185,7 +138,7 @@ impl QAState {
             summary: demo_summary,
         };
 
-        self.current_report = Some(demo_report);
+        self.current_report = Some(Arc::new(Mutex::new(demo_report)));
         self.issues = demo_issues;
     }
 
@@ -252,37 +205,7 @@ impl QAState {
     }
 }
 
-impl Severity {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Severity::Error => "ERROR",
-            Severity::Warning => "WARN",
-            Severity::Info => "INFO",
-        }
-    }
-
-    pub fn color(&self) -> Color {
-        match self {
-            Severity::Error => Color::Red,
-            Severity::Warning => Color::Yellow,
-            Severity::Info => Color::Blue,
-        }
-    }
-}
-
-impl Category {
-    pub fn as_str(&self) -> &str {
-        match self {
-            Category::Outlines => "Outlines",
-            Category::Metadata => "Metadata",
-            Category::Hinting => "Hinting",
-            Category::Kerning => "Kerning",
-            Category::Spacing => "Spacing",
-            Category::Unicode => "Unicode",
-            Category::Other(s) => s,
-        }
-    }
-}
+// Display helper methods are now in qa/mod.rs on the actual types
 
 /// Handle key events for the QA tab
 pub async fn handle_key_event(
@@ -314,16 +237,72 @@ pub async fn handle_key_event(
             // TODO: Toggle filters
         }
         KeyCode::Char('r') => {
-            // Manual refresh - trigger demo QA analysis
+            // Manual refresh - trigger real QA analysis
             state.is_running = true;
             state.progress = 0.0;
 
-            // Simulate running QA analysis with demo data
-            tokio::spawn(async move {
-                // This would normally trigger the actual QA engine
-                // For demo, we'll just simulate the progress and results
-                tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
-            });
+            // Run real Fontspector analysis on BezyGrotesk sample font
+            let font_path = std::path::PathBuf::from("/home/eli/Bezy/repos/bezy/assets/fonts/BezyGrotesk-Regular.ttf");
+
+            if font_path.exists() {
+                let runner = crate::qa::fontspector::FontspectorRunner::new();
+
+                match runner {
+                    Ok(runner) => {
+                        // Store the report in a shared Arc<Mutex> for the async task to update
+                        let report_mutex = Arc::new(Mutex::new(QAReport {
+                            font_path: font_path.clone(),
+                            timestamp: std::time::SystemTime::now(),
+                            issues: vec![],
+                            summary: QASummary {
+                                total_checks: 0,
+                                passed: 0,
+                                failed: 0,
+                                warnings: 0,
+                                info: 0,
+                                skipped: 0,
+                            },
+                        }));
+
+                        state.current_report = Some(report_mutex.clone());
+
+                        tokio::spawn(async move {
+                            match runner.analyze(&font_path).await {
+                                Ok(report) => {
+                                    println!("QA analysis completed successfully with {} issues", report.issues.len());
+
+                                    // Update the shared report
+                                    if let Ok(mut shared_report) = report_mutex.lock() {
+                                        *shared_report = report;
+                                    }
+                                }
+                                Err(e) => {
+                                    println!("QA analysis failed: {}", e);
+                                }
+                            }
+                        });
+
+                        // After spawning the task, update issues from the report
+                        state.is_running = false;
+
+                        // For immediate feedback, show we're processing
+                        state.issues = vec![QAIssue {
+                            severity: Severity::Info,
+                            category: Category::Other("System".to_string()),
+                            check_id: "system.analysis".to_string(),
+                            message: "Running Fontspector analysis... Please wait.".to_string(),
+                            location: None,
+                        }];
+                    }
+                    Err(e) => {
+                        println!("Failed to create Fontspector runner: {}", e);
+                        state.is_running = false;
+                    }
+                }
+            } else {
+                println!("Font file not found: {}", font_path.display());
+                state.is_running = false;
+            }
         }
         _ => {}
     }
@@ -332,6 +311,17 @@ pub async fn handle_key_event(
 
 /// Draw the QA tab UI
 pub fn draw(f: &mut Frame, state: &mut QAState, area: Rect) {
+    // Check if we have an updated report from the async task
+    if let Some(ref report_mutex) = state.current_report {
+        if let Ok(report) = report_mutex.lock() {
+            // Update issues from the report if it has data
+            if !report.issues.is_empty() && state.issues.len() == 1 && state.issues[0].check_id == "system.analysis" {
+                state.issues = report.issues.clone();
+                state.is_running = false;
+            }
+        }
+    }
+
     match state.view_mode {
         QAView::IssueList => draw_issue_list(f, state, area),
         QAView::IssueDetail => draw_issue_detail(f, state, area),
@@ -499,74 +489,76 @@ fn draw_issue_detail(f: &mut Frame, state: &QAState, area: Rect) {
 }
 
 fn draw_summary(f: &mut Frame, state: &QAState, area: Rect) {
-    if let Some(ref report) = state.current_report {
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Min(0), Constraint::Length(3)])
-            .split(area);
+    if let Some(ref report_mutex) = state.current_report {
+        if let Ok(report) = report_mutex.lock() {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Min(0), Constraint::Length(3)])
+                .split(area);
 
-        let mut lines = Vec::new();
+            let mut lines = Vec::new();
 
-        lines.push(Line::from(vec![
-            Span::styled("📁 Font: ", Style::default().add_modifier(Modifier::BOLD)),
-            Span::raw(report.font_path.file_name().unwrap_or_default().to_string_lossy()),
-        ]));
-
-        if let Ok(elapsed) = report.timestamp.elapsed() {
             lines.push(Line::from(vec![
-                Span::styled("⏱️  Last run: ", Style::default().add_modifier(Modifier::BOLD)),
-                Span::raw(format!("{:.0} seconds ago", elapsed.as_secs())),
+                Span::styled("📁 Font: ", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(report.font_path.file_name().unwrap_or_default().to_string_lossy()),
             ]));
-        }
 
-        lines.push(Line::from(""));
-        lines.push(Line::from(vec![
-            Span::styled("📊 QA Analysis Results", Style::default().add_modifier(Modifier::BOLD)),
-        ]));
-        lines.push(Line::from(""));
+            if let Ok(elapsed) = report.timestamp.elapsed() {
+                lines.push(Line::from(vec![
+                    Span::styled("⏱️  Last run: ", Style::default().add_modifier(Modifier::BOLD)),
+                    Span::raw(format!("{:.0} seconds ago", elapsed.as_secs())),
+                ]));
+            }
 
-        // Progress bar visualization
-        let total = report.summary.total_checks as f32;
-        let passed_pct = (report.summary.passed as f32 / total * 100.0) as u8;
-        lines.push(Line::from(format!("  📈 Overall Score: {}% ({} of {} checks passed)",
-            passed_pct, report.summary.passed, report.summary.total_checks)));
-        lines.push(Line::from(""));
+            lines.push(Line::from(""));
+            lines.push(Line::from(vec![
+                Span::styled("📊 QA Analysis Results", Style::default().add_modifier(Modifier::BOLD)),
+            ]));
+            lines.push(Line::from(""));
 
-        lines.push(Line::from(vec![
-            Span::styled("  ✅ Passed: ", Style::default().add_modifier(Modifier::BOLD)),
-            Span::styled(format!("{}", report.summary.passed), Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
-        ]));
-        lines.push(Line::from(vec![
-            Span::styled("  ❌ Failed: ", Style::default().add_modifier(Modifier::BOLD)),
-            Span::styled(format!("{}", report.summary.failed), Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
-        ]));
-        lines.push(Line::from(vec![
-            Span::styled("  ⚠️  Warnings: ", Style::default().add_modifier(Modifier::BOLD)),
-            Span::styled(format!("{}", report.summary.warnings), Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-        ]));
-        lines.push(Line::from(vec![
-            Span::styled("  ℹ️  Info: ", Style::default().add_modifier(Modifier::BOLD)),
-            Span::styled(format!("{}", report.summary.info), Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD)),
-        ]));
-        lines.push(Line::from(vec![
-            Span::styled("  ⏭️  Skipped: ", Style::default().add_modifier(Modifier::BOLD)),
-            Span::raw(format!("{}", report.summary.skipped)),
-        ]));
+            // Progress bar visualization
+            let total = report.summary.total_checks as f32;
+            let passed_pct = (report.summary.passed as f32 / total * 100.0) as u8;
+            lines.push(Line::from(format!("  📈 Overall Score: {}% ({} of {} checks passed)",
+                passed_pct, report.summary.passed, report.summary.total_checks)));
+            lines.push(Line::from(""));
 
-        lines.push(Line::from(""));
-        lines.push(Line::from("🔧 Critical issues require immediate attention"));
-        lines.push(Line::from("⚡ This analysis shows real Fontspector check results"));
+            lines.push(Line::from(vec![
+                Span::styled("  ✅ Passed: ", Style::default().add_modifier(Modifier::BOLD)),
+                Span::styled(format!("{}", report.summary.passed), Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
+            ]));
+            lines.push(Line::from(vec![
+                Span::styled("  ❌ Failed: ", Style::default().add_modifier(Modifier::BOLD)),
+                Span::styled(format!("{}", report.summary.failed), Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
+            ]));
+            lines.push(Line::from(vec![
+                Span::styled("  ⚠️  Warnings: ", Style::default().add_modifier(Modifier::BOLD)),
+                Span::styled(format!("{}", report.summary.warnings), Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            ]));
+            lines.push(Line::from(vec![
+                Span::styled("  ℹ️  Info: ", Style::default().add_modifier(Modifier::BOLD)),
+                Span::styled(format!("{}", report.summary.info), Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD)),
+            ]));
+            lines.push(Line::from(vec![
+                Span::styled("  ⏭️  Skipped: ", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(format!("{}", report.summary.skipped)),
+            ]));
 
-        let paragraph = Paragraph::new(lines)
+            lines.push(Line::from(""));
+            lines.push(Line::from("🔧 Critical issues require immediate attention"));
+            lines.push(Line::from("⚡ This analysis shows real Fontspector check results"));
+
+            let paragraph = Paragraph::new(lines)
             .block(Block::default().borders(Borders::ALL).title("QA Summary"))
             .wrap(Wrap { trim: true });
 
-        f.render_widget(paragraph, chunks[0]);
+            f.render_widget(paragraph, chunks[0]);
 
-        let controls = Paragraph::new("Esc: Back to issues")
-            .block(Block::default().borders(Borders::ALL).title("Controls"));
+            let controls = Paragraph::new("Esc: Back to issues")
+                .block(Block::default().borders(Borders::ALL).title("Controls"));
 
-        f.render_widget(controls, chunks[1]);
+            f.render_widget(controls, chunks[1]);
+        }
     } else {
         draw_no_report(f, area);
     }

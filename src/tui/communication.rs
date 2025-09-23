@@ -66,6 +66,8 @@ pub enum TuiMessage {
     RequestFontInfo,
     ChangeZoom(f32),
     ForceRedraw, // Force immediate GUI redraw
+    QAReportReady(crate::qa::QAReport),
+    QAAnalysisFailed(String),
     Quit,
 }
 

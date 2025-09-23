@@ -332,6 +332,14 @@ fn handle_tui_messages(
                 info!("TUI requested quit");
                 // The TUI handles its own quit, this is just informational
             }
+            TuiMessage::QAReportReady(report) => {
+                info!("QA report ready with {} issues", report.issues.len());
+                // The TUI handles the report directly through the shared state
+            }
+            TuiMessage::QAAnalysisFailed(error) => {
+                warn!("QA analysis failed: {}", error);
+                tui_comm.send_log(format!("QA analysis failed: {}", error));
+            }
         }
     }
 }

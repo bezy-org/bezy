@@ -65,6 +65,24 @@ pub enum Severity {
     Info,
 }
 
+impl Severity {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Severity::Error => "ERROR",
+            Severity::Warning => "WARN",
+            Severity::Info => "INFO",
+        }
+    }
+
+    pub fn color(&self) -> ratatui::style::Color {
+        match self {
+            Severity::Error => ratatui::style::Color::Red,
+            Severity::Warning => ratatui::style::Color::Yellow,
+            Severity::Info => ratatui::style::Color::Blue,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Category {
     Outlines,
@@ -74,6 +92,20 @@ pub enum Category {
     Spacing,
     Unicode,
     Other(String),
+}
+
+impl Category {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Category::Outlines => "Outlines",
+            Category::Metadata => "Metadata",
+            Category::Hinting => "Hinting",
+            Category::Kerning => "Kerning",
+            Category::Spacing => "Spacing",
+            Category::Unicode => "Unicode",
+            Category::Other(s) => s,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

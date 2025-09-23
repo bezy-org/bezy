@@ -1,7 +1,10 @@
 use crate::qa::{QAReport, QAIssue, QASummary, Severity, Category};
-use anyhow::Result;
+use anyhow::{Result, Context};
 use std::path::Path;
 use std::time::SystemTime;
+use tokio::process::Command;
+use serde_json::Value;
+use tempfile::NamedTempFile;
 
 pub struct FontspectorRunner {
     profile: FontspectorProfile,
@@ -25,127 +28,51 @@ impl FontspectorRunner {
     }
 
     pub async fn analyze(&self, font_path: &Path) -> Result<QAReport> {
-        // PLACEHOLDER IMPLEMENTATION - Realistic QA Demo Data
-        // TODO: Replace with actual Fontspector integration when protobuf compiler is available
+        // Create temporary file for JSON output
+        let temp_file = NamedTempFile::new()
+            .context("Failed to create temporary file for Fontspector output")?;
+        let json_path = temp_file.path();
 
-        let mut issues = Vec::new();
-        let font_name = font_path.file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap_or("Unknown");
+        // Determine profile string for Fontspector CLI
+        let profile_str = match self.profile {
+            FontspectorProfile::Universal => "universal",
+            FontspectorProfile::OpenType => "opentype",
+        };
 
-        // Simulate analysis delay for realistic experience
-        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+        // Run Fontspector with JSON output
+        let output = Command::new("fontspector")
+            .arg("--json")
+            .arg(json_path)
+            .arg("--profile")
+            .arg(profile_str)
+            .arg(font_path)
+            .output()
+            .await
+            .context("Failed to execute fontspector command")?;
 
-        // ERROR: Critical issues that must be fixed
-        issues.push(QAIssue {
-            severity: Severity::Error,
-            category: Category::Outlines,
-            check_id: "com.google.fonts/check/outline_direction".to_string(),
-            message: format!("Glyph 'a' has incorrect outline direction. Expected counter-clockwise for outer contours, clockwise for inner contours."),
-            location: Some(crate::qa::Location {
-                glyph_name: Some("a".to_string()),
-                table_name: None,
-                position: Some((120.0, 350.0)),
-            }),
-        });
-
-        issues.push(QAIssue {
-            severity: Severity::Error,
-            category: Category::Metadata,
-            check_id: "com.google.fonts/check/name/license".to_string(),
-            message: "Font lacks a license description in the 'name' table.".to_string(),
-            location: Some(crate::qa::Location {
-                glyph_name: None,
-                table_name: Some("name".to_string()),
-                position: None,
-            }),
-        });
-
-        // WARNINGS: Important issues that should be addressed
-        issues.push(QAIssue {
-            severity: Severity::Warning,
-            category: Category::Metadata,
-            check_id: "com.google.fonts/check/family_naming_recommendations".to_string(),
-            message: format!("Family name '{}' contains uppercase letters. Consider using only lowercase for better compatibility.", font_name),
-            location: None,
-        });
-
-        issues.push(QAIssue {
-            severity: Severity::Warning,
-            category: Category::Spacing,
-            check_id: "com.google.fonts/check/whitespace_glyphs".to_string(),
-            message: "Whitespace glyph 'space' has non-zero ink. This may cause rendering issues.".to_string(),
-            location: Some(crate::qa::Location {
-                glyph_name: Some("space".to_string()),
-                table_name: None,
-                position: None,
-            }),
-        });
-
-        issues.push(QAIssue {
-            severity: Severity::Warning,
-            category: Category::Kerning,
-            check_id: "com.google.fonts/check/kerning_for_non_ligated_sequences".to_string(),
-            message: "The font lacks proper kerning for 47 non-ligated sequences like 'VA', 'To', 'We'.".to_string(),
-            location: None,
-        });
-
-        // INFO: Helpful suggestions and best practices
-        issues.push(QAIssue {
-            severity: Severity::Info,
-            category: Category::Unicode,
-            check_id: "com.google.fonts/check/unicode_range_bits".to_string(),
-            message: "Unicode range bits in OS/2 table look good. Covers Latin-1 Supplement and Latin Extended-A.".to_string(),
-            location: Some(crate::qa::Location {
-                glyph_name: None,
-                table_name: Some("OS/2".to_string()),
-                position: None,
-            }),
-        });
-
-        issues.push(QAIssue {
-            severity: Severity::Info,
-            category: Category::Hinting,
-            check_id: "com.google.fonts/check/hinting_impact".to_string(),
-            message: "Font contains TrueType instructions. Consider removing for web fonts to reduce file size.".to_string(),
-            location: None,
-        });
-
-        // Profile-specific checks
-        if matches!(self.profile, FontspectorProfile::Universal) {
-            issues.push(QAIssue {
-                severity: Severity::Warning,
-                category: Category::Outlines,
-                check_id: "com.adobe.fonts/check/outline_complexity".to_string(),
-                message: "Glyph 'g' has 127 contour points. Consider simplifying for better performance.".to_string(),
-                location: Some(crate::qa::Location {
-                    glyph_name: Some("g".to_string()),
-                    table_name: None,
-                    position: Some((45.0, 200.0)),
-                }),
-            });
-
-            issues.push(QAIssue {
-                severity: Severity::Info,
-                category: Category::Metadata,
-                check_id: "com.fontwerk/check/vendor_id".to_string(),
-                message: "Vendor ID 'UNKN' in OS/2 table should be registered with Microsoft.".to_string(),
-                location: Some(crate::qa::Location {
-                    glyph_name: None,
-                    table_name: Some("OS/2".to_string()),
-                    position: None,
-                }),
-            });
+        // Fontspector returns non-zero exit status when there are FAIL-level issues
+        // This is normal behavior, so we only error if there's an actual execution problem
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            // Only treat as error if stderr contains actual error messages or if status is not 1
+            if !stderr.trim().is_empty() || output.status.code() != Some(1) {
+                return Err(anyhow::anyhow!("Fontspector failed with status {}: {}", output.status, stderr));
+            }
+            // Status 1 with empty stderr is normal when there are FAIL-level issues
         }
 
-        let summary = QASummary {
-            total_checks: 45,
-            passed: 35,
-            failed: 2,
-            warnings: 4,
-            info: 3,
-            skipped: 1,
-        };
+        // Read and parse JSON output
+        let json_content = tokio::fs::read_to_string(json_path).await
+            .context("Failed to read Fontspector JSON output")?;
+
+        let json: Value = serde_json::from_str(&json_content)
+            .context("Failed to parse Fontspector JSON output")?;
+
+        // Parse summary
+        let summary = self.parse_summary(&json)?;
+
+        // Parse issues
+        let issues = self.parse_issues(&json)?;
 
         Ok(QAReport {
             font_path: font_path.to_path_buf(),
@@ -153,6 +80,127 @@ impl FontspectorRunner {
             issues,
             summary,
         })
+    }
+
+    fn parse_summary(&self, json: &Value) -> Result<QASummary> {
+        let summary_obj = json["summary"].as_object()
+            .context("Missing or invalid summary in Fontspector output")?;
+
+        let skip = summary_obj.get("SKIP").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+        let pass = summary_obj.get("PASS").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+        let info = summary_obj.get("INFO").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+        let warn = summary_obj.get("WARN").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+        let fail = summary_obj.get("FAIL").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+        let error = summary_obj.get("ERROR").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+
+        Ok(QASummary {
+            total_checks: (skip + pass + info + warn + fail + error) as usize,
+            passed: pass as usize,
+            failed: (fail + error) as usize,
+            warnings: warn as usize,
+            info: info as usize,
+            skipped: skip as usize,
+        })
+    }
+
+    fn parse_issues(&self, json: &Value) -> Result<Vec<QAIssue>> {
+        let mut issues = Vec::new();
+
+        if let Some(results) = json["results"].as_object() {
+            for (_, file_results) in results {
+                if let Some(file_obj) = file_results.as_object() {
+                    for (_, section_checks) in file_obj {
+                        if let Some(checks_array) = section_checks.as_array() {
+                            for check in checks_array {
+                                self.parse_check_issues(check, &mut issues)?;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(issues)
+    }
+
+    fn parse_check_issues(&self, check: &Value, issues: &mut Vec<QAIssue>) -> Result<()> {
+        let check_id = check["check_id"].as_str().unwrap_or("unknown").to_string();
+
+        if let Some(subresults) = check["subresults"].as_array() {
+            for subresult in subresults {
+                let severity_str = subresult["severity"].as_str().unwrap_or("UNKNOWN");
+
+                // Only include issues that are not PASS or SKIP
+                if matches!(severity_str, "FAIL" | "ERROR" | "WARN" | "INFO") {
+                    let severity = match severity_str {
+                        "FAIL" | "ERROR" => Severity::Error,
+                        "WARN" => Severity::Warning,
+                        "INFO" => Severity::Info,
+                        _ => Severity::Info,
+                    };
+
+                    let message = subresult["message"].as_str()
+                        .unwrap_or("No message provided")
+                        .to_string();
+
+                    let category = Self::categorize_check(&check_id);
+
+                    // Extract location information if available
+                    let location = self.extract_location(&message, &check_id);
+
+                    issues.push(QAIssue {
+                        severity,
+                        category,
+                        check_id: check_id.clone(),
+                        message,
+                        location,
+                    });
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn extract_location(&self, message: &str, check_id: &str) -> Option<crate::qa::Location> {
+        // Try to extract glyph names from common message patterns
+        let glyph_name = if message.contains("glyph") {
+            // Look for patterns like "glyph 'name'" or "glyph ('name')"
+            if let Some(start) = message.find("'") {
+                if let Some(end) = message[start + 1..].find("'") {
+                    Some(message[start + 1..start + 1 + end].to_string())
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        // Extract table name from check ID or message
+        let table_name = if check_id.contains("os2") || message.contains("OS/2") {
+            Some("OS/2".to_string())
+        } else if check_id.contains("hhea") || message.contains("hhea") {
+            Some("hhea".to_string())
+        } else if check_id.contains("name") || message.contains("name table") {
+            Some("name".to_string())
+        } else if check_id.contains("gdef") || message.contains("GDEF") {
+            Some("GDEF".to_string())
+        } else {
+            None
+        };
+
+        if glyph_name.is_some() || table_name.is_some() {
+            Some(crate::qa::Location {
+                glyph_name,
+                table_name,
+                position: None, // Fontspector doesn't provide coordinate positions
+            })
+        } else {
+            None
+        }
     }
 
     fn categorize_check(check_id: &str) -> Category {
