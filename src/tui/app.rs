@@ -1,7 +1,7 @@
 use crate::tui::{
     communication::{AppMessage, TuiMessage, FontInfo, GlyphInfo},
     events::{handle_events, InputEvent},
-    tabs::{glyphs, logs, Tab, TabState, TabType},
+    tabs::{unicode, Tab, TabState, TabType},
     ui,
 };
 use anyhow::Result;
@@ -23,15 +23,20 @@ pub struct App {
 impl App {
     pub fn new(app_tx: mpsc::UnboundedSender<TuiMessage>) -> Self {
         let tabs = vec![
-            Tab::new(TabType::Codepoints),
-            Tab::new(TabType::FontInfo),
-            Tab::new(TabType::Logs),
-            Tab::new(TabType::Help),
+            Tab::new(TabType::File),      // 1
+            Tab::new(TabType::Edit),      // 2
+            Tab::new(TabType::Unicode),   // 3 (renamed from Codepoints)
+            Tab::new(TabType::FontInfo),  // 4
+            Tab::new(TabType::QA),        // 5
+            Tab::new(TabType::Glyph),     // 6
+            Tab::new(TabType::Path),      // 7
+            Tab::new(TabType::AI),        // 8
+            Tab::new(TabType::Help),      // 9
         ];
 
         Self {
             tabs,
-            current_tab: 0,
+            current_tab: 0, // Start on File tab
             app_tx,
             font_info: None,
             glyphs: Vec::new(),
@@ -78,6 +83,11 @@ impl App {
                 Some(app_message) = app_rx.recv() => {
                     self.handle_app_message(app_message).await?;
                 }
+
+                // Add timeout to continuously redraw for Game of Life
+                _ = tokio::time::sleep(tokio::time::Duration::from_millis(100)) => {
+                    // This ensures the UI redraws regularly for animations like Game of Life
+                }
             }
 
             if self.should_quit {
@@ -113,15 +123,23 @@ impl App {
                 let current_tab_idx = self.current_tab;
                 let app_tx = self.app_tx.clone();
                 let glyphs_len = self.glyphs.len();
-                let logs_len = self.logs.len();
 
                 if let Some(tab) = self.tabs.get_mut(current_tab_idx) {
                     match &mut tab.state {
-                        TabState::Codepoints(state) => {
-                            glyphs::handle_key_event_simple(state, key, &app_tx, glyphs_len, &self.glyphs).await?;
+                        TabState::Unicode(state) => {
+                            unicode::handle_key_event_simple(state, key, &app_tx, glyphs_len, &self.glyphs).await?;
                         }
-                        TabState::Logs(state) => {
-                            logs::handle_key_event_simple(state, key, &app_tx, logs_len).await?;
+                        TabState::AI(state) => {
+                            // Handle Game of Life controls
+                            match key.code {
+                                crossterm::event::KeyCode::Char(' ') => {
+                                    state.game.toggle_pause();
+                                }
+                                crossterm::event::KeyCode::Char('r') | crossterm::event::KeyCode::Char('R') => {
+                                    state.game.reset();
+                                }
+                                _ => {}
+                            }
                         }
                         _ => {}
                     }
@@ -134,7 +152,13 @@ impl App {
     async fn handle_app_message(&mut self, message: AppMessage) -> Result<()> {
         match message {
             AppMessage::FontInfo(info) => {
-                self.font_info = Some(info);
+                self.font_info = Some(info.clone());
+                // Update the FontInfo tab state
+                for tab in &mut self.tabs {
+                    if let TabState::FontInfo(ref mut state) = tab.state {
+                        state.update(info.clone());
+                    }
+                }
             }
             AppMessage::GlyphList(glyphs) => {
                 self.glyphs = glyphs;

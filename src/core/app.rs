@@ -6,6 +6,7 @@ use crate::core::io::input::InputPlugin;
 use crate::core::io::pointer::PointerPlugin;
 use crate::core::settings::{BezySettings, DEFAULT_WINDOW_SIZE, WINDOW_TITLE};
 use crate::core::state::GlyphNavigation;
+use crate::core::AppState;
 use crate::editing::{FontEditorSystemSetsPlugin, SelectionPlugin, TextEditorPlugin};
 use crate::rendering::{
     cameras::CameraPlugin, checkerboard::CheckerboardPlugin,
@@ -252,6 +253,7 @@ fn handle_tui_messages(
     mut respawn_queue: ResMut<crate::systems::sorts::sort_entities::BufferSortRespawnQueue>,
     current_tool: Option<Res<crate::ui::edit_mode_toolbar::CurrentTool>>,
     text_placement_mode: Option<Res<crate::ui::edit_mode_toolbar::text::TextPlacementMode>>,
+    app_state: Option<Res<AppState>>,
 ) {
     while let Some(message) = tui_comm.try_recv() {
         match message {
@@ -291,7 +293,7 @@ fn handle_tui_messages(
             TuiMessage::RequestGlyphList => {
                 info!("TUI requested glyph list");
                 if let Some(ref fontir_state) = fontir_state {
-                    send_glyph_list_to_tui(&mut tui_comm, fontir_state);
+                    send_glyph_list_to_tui(&mut tui_comm, fontir_state, app_state.as_deref());
                 } else {
                     tui_comm.send_log("No font loaded - please use --edit to load a font".to_string());
                 }
@@ -338,49 +340,10 @@ fn handle_tui_messages(
 fn send_glyph_list_to_tui(
     tui_comm: &mut ResMut<crate::core::tui_communication::TuiCommunication>,
     fontir_state: &crate::core::state::FontIRAppState,
+    app_state: Option<&AppState>,
 ) {
-    let mut glyphs = Vec::new();
-
-    // Extract glyph data from FontIR
-    for (glyph_name, glyph) in &fontir_state.glyph_cache {
-        // Get the first available instance for this glyph
-        if let Some((_location, glyph_instance)) = glyph.sources().iter().next() {
-            // Try to find Unicode codepoints for this glyph from context
-            let unicode_value = if let Some(_context) = &fontir_state.context {
-                // Look up codepoints in the context - need to find the right field
-                // For now, try to parse from glyph name if it looks like a Unicode name
-                if glyph_name.starts_with("uni") && glyph_name.len() == 7 {
-                    u32::from_str_radix(&glyph_name[3..], 16).ok()
-                } else if glyph_name.len() == 1 {
-                    // Single character glyph name
-                    glyph_name.chars().next().map(|c| c as u32)
-                } else {
-                    None
-                }
-            } else {
-                None
-            };
-
-            let glyph_info = crate::tui::communication::GlyphInfo {
-                codepoint: glyph_name.clone(),
-                name: Some(glyph_name.clone()),
-                unicode: unicode_value,
-                width: Some(glyph_instance.width as f32),
-            };
-
-            glyphs.push(glyph_info);
-        }
-    }
-
-    // Sort glyphs by Unicode value, then by name
-    glyphs.sort_by(|a, b| {
-        match (a.unicode, b.unicode) {
-            (Some(a_unicode), Some(b_unicode)) => a_unicode.cmp(&b_unicode),
-            (Some(_), None) => std::cmp::Ordering::Less,
-            (None, Some(_)) => std::cmp::Ordering::Greater,
-            (None, None) => a.codepoint.cmp(&b.codepoint),
-        }
-    });
+    // Delegate to TUI module for glyph list generation
+    let glyphs = crate::tui::communication::generate_glyph_list(fontir_state, app_state);
 
     info!("Sending {} glyphs to TUI", glyphs.len());
     tui_comm.send_glyph_list(glyphs);
@@ -429,12 +392,13 @@ fn send_font_info_to_tui(
 fn send_initial_font_data_to_tui(
     mut tui_comm: Option<ResMut<crate::core::tui_communication::TuiCommunication>>,
     fontir_state: Option<ResMut<crate::core::state::FontIRAppState>>,
+    app_state: Option<Res<AppState>>,
     mut sent_initial_data: Local<bool>,
 ) {
     // Only send data once when both TUI communication and font are available
     if !*sent_initial_data {
         if let (Some(mut tui_comm), Some(fontir_state)) = (tui_comm.as_mut(), fontir_state.as_ref()) {
-            send_glyph_list_to_tui(&mut tui_comm, fontir_state);
+            send_glyph_list_to_tui(&mut tui_comm, fontir_state, app_state.as_deref());
             send_font_info_to_tui(&mut tui_comm, fontir_state);
             *sent_initial_data = true;
         }

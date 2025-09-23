@@ -1447,6 +1447,7 @@ dependencies = [
  "lyon",
  "norad",
  "plist",
+ "rand",
  "ratatui",
  "serde",
  "serde_json",

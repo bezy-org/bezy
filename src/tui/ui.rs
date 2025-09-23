@@ -30,7 +30,7 @@ fn draw_tabs(f: &mut Frame, app: &App, area: Rect) {
         .iter()
         .enumerate()
         .map(|(i, tab)| {
-            let title = format!("{}. {}", i + 1, tab.tab_type.title());
+            let title = format!("{}.{}", i + 1, tab.tab_type.title());
             Line::from(title)
         })
         .collect();
@@ -48,29 +48,42 @@ fn draw_tabs(f: &mut Frame, app: &App, area: Rect) {
 fn draw_tab_content(f: &mut Frame, app: &mut App, area: Rect) {
     let current_tab_idx = app.current_tab;
     let glyphs = app.glyphs.clone(); // Clone the data to avoid borrowing issues
-    let font_info = app.font_info.clone();
-    let logs = app.logs.clone();
 
     match &mut app.tabs[current_tab_idx].state {
-        TabState::Codepoints(state) => {
-            draw_codepoints_tab_with_data(f, &glyphs, state, area);
+        TabState::File(state) => {
+            crate::tui::tabs::file::draw(f, state, area);
         }
-        TabState::FontInfo => {
-            draw_font_info_tab_with_data(f, &font_info, area);
+        TabState::Edit(state) => {
+            crate::tui::tabs::edit::draw(f, state, area);
         }
-        TabState::Logs(state) => {
-            draw_logs_tab_with_data(f, &logs, state, area);
+        TabState::Unicode(state) => {
+            crate::tui::tabs::unicode::draw(f, &glyphs, state, area);
         }
-        TabState::Help => {
-            draw_help_tab(f, area);
+        TabState::FontInfo(state) => {
+            crate::tui::tabs::font_info::draw(f, state, area);
+        }
+        TabState::QA(state) => {
+            crate::tui::tabs::qa::draw(f, state, area);
+        }
+        TabState::Glyph(state) => {
+            crate::tui::tabs::glyph::draw(f, state, area);
+        }
+        TabState::Path(state) => {
+            crate::tui::tabs::path::draw(f, state, area);
+        }
+        TabState::AI(state) => {
+            crate::tui::tabs::ai::draw(f, state, area);
+        }
+        TabState::Help(state) => {
+            crate::tui::tabs::help::draw(f, state, area);
         }
     }
 }
 
-fn draw_codepoints_tab_with_data(
+fn draw_unicode_tab_with_data(
     f: &mut Frame,
     glyphs: &[crate::tui::communication::GlyphInfo],
-    state: &mut crate::tui::tabs::glyphs::GlyphsState,
+    state: &mut crate::tui::tabs::unicode::GlyphsState,
     area: Rect,
 ) {
     let chunks = Layout::default()
@@ -116,7 +129,7 @@ fn draw_codepoints_tab_with_data(
         .collect();
 
     let list = List::new(items)
-        .block(Block::default().borders(Borders::ALL).title("Codepoints"));
+        .block(Block::default().borders(Borders::ALL).title("Unicode"));
 
     // Create list state for proper scrolling
     let mut list_state = ratatui::widgets::ListState::default();
@@ -231,6 +244,119 @@ fn draw_logs_tab_with_data(
     f.render_widget(logs, area);
 }
 
+fn draw_file_tab(f: &mut Frame, area: Rect) {
+    let file_menu = vec![
+        Line::from(vec![
+            Span::styled("File Operations:", Style::default().add_modifier(Modifier::BOLD)),
+        ]),
+        Line::from(""),
+        Line::from("  Ctrl+S         - Save current font"),
+        Line::from("  Ctrl+Shift+S   - Save As..."),
+        Line::from("  Ctrl+O         - Open font file"),
+        Line::from("  Ctrl+E         - Export as TTF"),
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("Recent Files:", Style::default().add_modifier(Modifier::BOLD)),
+        ]),
+        Line::from(""),
+        Line::from("  (No recent files)"),
+    ];
+
+    let paragraph = Paragraph::new(file_menu)
+        .block(Block::default().borders(Borders::ALL).title("File"))
+        .wrap(Wrap { trim: true });
+
+    f.render_widget(paragraph, area);
+}
+
+fn draw_edit_tab(f: &mut Frame, area: Rect) {
+    let edit_menu = vec![
+        Line::from(vec![
+            Span::styled("Edit Operations:", Style::default().add_modifier(Modifier::BOLD)),
+        ]),
+        Line::from(""),
+        Line::from("  Ctrl+Z         - Undo"),
+        Line::from("  Ctrl+Shift+Z   - Redo"),
+        Line::from("  Ctrl+X         - Cut"),
+        Line::from("  Ctrl+C         - Copy"),
+        Line::from("  Ctrl+V         - Paste"),
+        Line::from("  Delete         - Delete selected"),
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("Selection:", Style::default().add_modifier(Modifier::BOLD)),
+        ]),
+        Line::from(""),
+        Line::from("  Ctrl+A         - Select all"),
+        Line::from("  Ctrl+D         - Deselect all"),
+    ];
+
+    let paragraph = Paragraph::new(edit_menu)
+        .block(Block::default().borders(Borders::ALL).title("Edit"))
+        .wrap(Wrap { trim: true });
+
+    f.render_widget(paragraph, area);
+}
+
+fn draw_empty_tab(f: &mut Frame, area: Rect, title: &str) {
+    let content = vec![
+        Line::from(""),
+        Line::from("  (This tab is not yet implemented)"),
+        Line::from(""),
+    ];
+
+    let paragraph = Paragraph::new(content)
+        .block(Block::default().borders(Borders::ALL).title(title))
+        .wrap(Wrap { trim: true });
+
+    f.render_widget(paragraph, area);
+}
+
+fn draw_ai_tab(f: &mut Frame, state: &mut crate::tui::tabs::game_of_life::GameOfLifeState, area: Rect) {
+    // Update the game state
+    state.update();
+
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(0), Constraint::Length(3)].as_ref())
+        .split(area);
+
+    // Calculate cell size based on available space
+    let game_area = chunks[0];
+    let available_width = game_area.width.saturating_sub(2) as usize; // Account for borders
+    let available_height = game_area.height.saturating_sub(2) as usize;
+
+    // Adjust game size to fit terminal if needed
+    state.set_size(available_width.min(state.width), available_height.min(state.height));
+
+    // Create the grid display
+    let mut grid_lines = Vec::new();
+    for row in &state.grid {
+        let mut line = String::new();
+        for &cell in row {
+            line.push(if cell { '█' } else { ' ' });
+        }
+        grid_lines.push(Line::from(line));
+    }
+
+    let game_widget = Paragraph::new(grid_lines)
+        .block(Block::default()
+            .borders(Borders::ALL)
+            .title(format!("Conway's Game of Life - Generation: {} {}",
+                state.generation,
+                if state.paused { "(PAUSED)" } else { "" }
+            )));
+
+    f.render_widget(game_widget, chunks[0]);
+
+    // Controls info
+    let controls = Paragraph::new(vec![
+        Line::from("Space: Pause/Resume | R: Reset | Game auto-updates 8 times per second"),
+    ])
+    .block(Block::default().borders(Borders::ALL).title("Controls"));
+
+    f.render_widget(controls, chunks[1]);
+}
+
 fn draw_help_tab(f: &mut Frame, area: Rect) {
     let help_text = vec![
         Line::from(vec![
@@ -240,10 +366,10 @@ fn draw_help_tab(f: &mut Frame, area: Rect) {
         Line::from("  Ctrl+Q         - Quit application"),
         Line::from("  Tab            - Next tab"),
         Line::from("  Shift+Tab      - Previous tab"),
-        Line::from("  1-4            - Jump to tab by number"),
+        Line::from("  1-9            - Jump to tab by number"),
         Line::from(""),
         Line::from(vec![
-            Span::styled("Codepoints Tab:", Style::default().add_modifier(Modifier::BOLD)),
+            Span::styled("Unicode Tab:", Style::default().add_modifier(Modifier::BOLD)),
         ]),
         Line::from(""),
         Line::from("  ↑/↓ or j/k     - Navigate codepoint list"),
@@ -253,18 +379,18 @@ fn draw_help_tab(f: &mut Frame, area: Rect) {
         Line::from("  Esc            - Exit search"),
         Line::from(""),
         Line::from(vec![
-            Span::styled("Logs Tab:", Style::default().add_modifier(Modifier::BOLD)),
+            Span::styled("AI Tab:", Style::default().add_modifier(Modifier::BOLD)),
         ]),
         Line::from(""),
-        Line::from("  ↑/↓ or j/k     - Scroll logs"),
-        Line::from("  Home           - Jump to top"),
-        Line::from("  End            - Jump to bottom (auto-scroll)"),
+        Line::from("  Space          - Pause/Resume Game of Life"),
+        Line::from("  R              - Reset with new random state"),
         Line::from(""),
         Line::from(vec![
-            Span::styled("Font Info Tab:", Style::default().add_modifier(Modifier::BOLD)),
+            Span::styled("Navigation:", Style::default().add_modifier(Modifier::BOLD)),
         ]),
         Line::from(""),
-        Line::from("  (Read-only display)"),
+        Line::from("  Use number keys 1-9 to quickly jump between tabs"),
+        Line::from("  Tab/Shift+Tab to cycle through tabs"),
     ];
 
     let paragraph = Paragraph::new(help_text)

@@ -1376,6 +1376,68 @@ impl FontIRAppState {
         );
         None
     }
+
+    /// Get Unicode codepoints for a glyph name by looking up mappings in the font
+    pub fn get_unicode_for_glyph_name(&self, glyph_name: &str) -> Vec<u32> {
+        debug!(
+            "🔍 FONTIR UNICODE: Looking up Unicode for glyph '{}'",
+            glyph_name
+        );
+
+        let mut codepoints = Vec::new();
+        let source_path = &self.source_path;
+
+        // Try to read the UFO and find Unicode values for this glyph
+        if source_path.extension() == Some(std::ffi::OsStr::new("ufo")) {
+            if let Ok(font) = norad::Font::load(source_path) {
+                // Look for the specific glyph
+                if let Some(glyph) = font.default_layer().get_glyph(glyph_name) {
+                    // Get all Unicode codepoints for this glyph
+                    for codepoint in glyph.codepoints.iter() {
+                        codepoints.push(codepoint as u32);
+                    }
+                    debug!(
+                        "✅ FONTIR UNICODE: Found {} codepoints for glyph '{}': {:?}",
+                        codepoints.len(), glyph_name,
+                        codepoints.iter().map(|c| format!("U+{:04X}", c)).collect::<Vec<_>>()
+                    );
+                } else {
+                    debug!("⚠️ FONTIR UNICODE: Glyph '{}' not found in UFO", glyph_name);
+                }
+            }
+        } else if source_path.extension() == Some(std::ffi::OsStr::new("designspace")) {
+            // For .designspace files, load the first available UFO source
+            if let Some(designspace_dir) = source_path.parent() {
+                // Load the designspace to get the sources
+                if let Ok(designspace) = DesignSpaceDocument::load(&source_path) {
+                    if let Some(first_source) = designspace.sources.first() {
+                        let first_ufo_path = designspace_dir.join(&first_source.filename);
+                        if let Ok(font) = norad::Font::load(&first_ufo_path) {
+                            if let Some(glyph) = font.default_layer().get_glyph(glyph_name) {
+                                for codepoint in glyph.codepoints.iter() {
+                                    codepoints.push(codepoint as u32);
+                                }
+                                debug!(
+                                    "✅ FONTIR UNICODE: Found {} codepoints for glyph '{}' in designspace source: {:?}",
+                                    codepoints.len(), glyph_name,
+                                    codepoints.iter().map(|c| format!("U+{:04X}", c)).collect::<Vec<_>>()
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if codepoints.is_empty() {
+            debug!(
+                "❌ FONTIR UNICODE: No Unicode codepoints found for glyph '{}'",
+                glyph_name
+            );
+        }
+
+        codepoints
+    }
 }
 
 /// Helper to convert PathEl to a point position
