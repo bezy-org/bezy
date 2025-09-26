@@ -269,15 +269,22 @@ pub async fn handle_key_event(
                         tokio::spawn(async move {
                             match runner.analyze(&font_path).await {
                                 Ok(report) => {
-                                    println!("QA analysis completed successfully with {} issues", report.issues.len());
-
-                                    // Update the shared report
+                                    // Silently update the shared report - no console output
                                     if let Ok(mut shared_report) = report_mutex.lock() {
                                         *shared_report = report;
                                     }
                                 }
                                 Err(e) => {
-                                    println!("QA analysis failed: {}", e);
+                                    // Store error in the report for UI display
+                                    if let Ok(mut shared_report) = report_mutex.lock() {
+                                        shared_report.issues = vec![QAIssue {
+                                            severity: Severity::Error,
+                                            category: Category::Other("System".to_string()),
+                                            check_id: "system.error".to_string(),
+                                            message: format!("QA analysis failed: {}", e),
+                                            location: None,
+                                        }];
+                                    }
                                 }
                             }
                         });
@@ -295,12 +302,26 @@ pub async fn handle_key_event(
                         }];
                     }
                     Err(e) => {
-                        println!("Failed to create Fontspector runner: {}", e);
+                        // Display error in UI instead of console
+                        state.issues = vec![QAIssue {
+                            severity: Severity::Error,
+                            category: Category::Other("System".to_string()),
+                            check_id: "system.error".to_string(),
+                            message: format!("Failed to create Fontspector runner: {}", e),
+                            location: None,
+                        }];
                         state.is_running = false;
                     }
                 }
             } else {
-                println!("Font file not found: {}", font_path.display());
+                // Display error in UI instead of console
+                state.issues = vec![QAIssue {
+                    severity: Severity::Error,
+                    category: Category::Other("System".to_string()),
+                    check_id: "system.error".to_string(),
+                    message: format!("Font file not found: {}", font_path.display()),
+                    location: None,
+                }];
                 state.is_running = false;
             }
         }

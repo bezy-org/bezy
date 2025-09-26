@@ -131,8 +131,6 @@ impl TextEditorState {
                                 active_root_index = Some(i);
                                 root_position = candidate.root_position;
                                 warn!("🔍 ROOT MATCH: Found buffer root at buffer[{}] for buffer_id={:?}", i, sort_buffer_id);
-                                println!("🔍 ROOT DEBUG: Using buffer[{}] as root at position ({:.1}, {:.1})", 
-                                         i, root_position.x, root_position.y);
                                 break;
                             }
                         }
@@ -193,21 +191,20 @@ impl TextEditorState {
                     // RTL: Position characters to flow LEFT from the root
                     // CRITICAL: In RTL, each character's RIGHT edge should be at the positioning point
                     // So we need to offset by the character's own width first
-                    println!("🔍 RTL CALC: Calculating offset for buffer[{buffer_position}] from root at buffer[{root_index}]");
+                    // Calculate offset for RTL text
 
                     // RTL edge-to-edge positioning: Each character's RIGHT edge touches previous character's LEFT edge
                     // Step 1: Position current character so its RIGHT edge is at the correct position
                     if let Some(current_sort) = self.buffer.get(buffer_position) {
                         if let SortKind::Glyph {
                             advance_width: current_advance,
-                            glyph_name: current_glyph,
+                            glyph_name: _current_glyph,
                             ..
                         } = &current_sort.kind
                         {
                             if buffer_position == root_index {
                                 // First character in buffer: RIGHT edge at root position
                                 x_offset = -current_advance;
-                                println!("🔍 RTL CALC: First character '{current_glyph}' advance={current_advance:.1}, RIGHT edge at root, offset={x_offset:.1}");
                             } else {
                                 // Subsequent characters: RIGHT edge at previous character's LEFT edge
                                 // Calculate where the previous character's left edge is
@@ -227,7 +224,6 @@ impl TextEditorState {
                                 }
                                 // Position current character so its RIGHT edge is at previous LEFT edge
                                 x_offset = previous_left_edge - current_advance;
-                                println!("🔍 RTL CALC: Character '{current_glyph}' advance={current_advance:.1}, RIGHT edge at previous LEFT edge {previous_left_edge:.1}, offset={x_offset:.1}");
                             }
                         }
                     }
@@ -260,7 +256,6 @@ impl TextEditorState {
                                         // Line break: reset x to start of line, move y down by line height
                                         x_offset = 0.0;
                                         y_offset -= line_height;
-                                        println!("🔍 LTR LINEBREAK: Reset x_offset=0, y_offset={y_offset:.1} (line_height={line_height:.1})");
                                     }
                                 }
                             }
@@ -270,14 +265,6 @@ impl TextEditorState {
 
                 // Return final position
                 let final_pos = Vec2::new(root_position.x + x_offset, root_position.y + y_offset);
-                println!(
-                    "🎯 FINAL POSITION: buffer[{}] '{}' at ({:.1}, {:.1}) (x_offset={:.1})",
-                    buffer_position,
-                    sort.kind.glyph_name(),
-                    final_pos.x,
-                    final_pos.y,
-                    x_offset
-                );
                 Some(final_pos)
             } else {
                 None

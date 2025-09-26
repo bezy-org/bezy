@@ -29,8 +29,8 @@ impl FontCompiler {
         };
 
         // Create directory if it doesn't exist
-        if let Err(e) = std::fs::create_dir_all(&config_dir) {
-            eprintln!("Warning: Could not create QA temp directory: {}", e);
+        if let Err(_e) = std::fs::create_dir_all(&config_dir) {
+            // Silently fallback to /tmp if config dir creation fails
             return PathBuf::from("/tmp").join("bezy-qa");
         }
 
@@ -118,8 +118,8 @@ impl FontCompiler {
 
         // Remove oldest files
         for (path, _) in entries.iter().skip(max_files) {
-            if let Err(e) = fs::remove_file(path).await {
-                eprintln!("Warning: Could not remove cached file {}: {}", path.display(), e);
+            if let Err(_e) = fs::remove_file(path).await {
+                // Silently ignore cache cleanup errors
             }
         }
 

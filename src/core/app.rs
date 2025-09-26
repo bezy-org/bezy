@@ -189,6 +189,30 @@ fn configure_window_plugins(app: &mut App) {
     }
 }
 
+/// Configure window and default plugins for TUI mode
+fn configure_window_plugins_for_tui(app: &mut App) {
+    let window_config = Window {
+        title: WINDOW_TITLE.to_string(),
+        resolution: DEFAULT_WINDOW_SIZE.into(),
+        ..default()
+    };
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        use crate::systems::plugins::configure_default_plugins_for_tui;
+        app.add_plugins(configure_default_plugins_for_tui().set(WindowPlugin {
+            primary_window: Some(window_config),
+            ..default()
+        }));
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    {
+        // TUI mode is not supported on WASM
+        panic!("TUI mode is not supported on WASM platform");
+    }
+}
+
 /// Add all plugin groups to the application
 fn add_plugin_groups(app: &mut App) {
     debug!("Adding plugin groups...");
@@ -228,7 +252,7 @@ pub fn create_app_with_tui(
     app.insert_resource(crate::core::tui_communication::TuiCommunication::new(tui_rx, app_tx));
 
     configure_resources(&mut app, cli_args);
-    configure_window_plugins(&mut app);
+    configure_window_plugins_for_tui(&mut app);  // Use TUI-specific configuration
     add_plugin_groups(&mut app);
     add_startup_and_exit_systems(&mut app);
 

@@ -145,8 +145,8 @@ impl ReportStorage {
 
         // Remove oldest reports
         for (path, _) in reports.iter().skip(max_reports) {
-            if let Err(e) = fs::remove_file(path).await {
-                eprintln!("Warning: Could not remove old report {}: {}", path.display(), e);
+            if let Err(_e) = fs::remove_file(path).await {
+                // Silently ignore cleanup errors
             }
         }
 
