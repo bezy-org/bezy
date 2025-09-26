@@ -325,8 +325,8 @@ fn draw_ai_tab(f: &mut Frame, state: &mut crate::tui::tabs::game_of_life::GameOf
     let available_width = game_area.width.saturating_sub(2) as usize; // Account for borders
     let available_height = game_area.height.saturating_sub(2) as usize;
 
-    // Adjust game size to fit terminal if needed
-    state.set_size(available_width.min(state.width), available_height.min(state.height));
+    // Always resize game to fill all available space
+    state.set_size(available_width, available_height);
 
     // Create the grid display
     let mut grid_lines = Vec::new();

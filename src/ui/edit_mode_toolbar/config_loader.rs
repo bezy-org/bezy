@@ -65,9 +65,6 @@ impl EditTool for ConfigurableTool {
                 // Also set PenModeActive for compatibility with pen tool systems
                 commands.insert_resource(crate::tools::pen::PenModeActive(true));
                 // SelectTool will handle its own deactivation
-                println!(
-                    "🖊️ PEN_DEBUG: Pen tool activated - InputMode::Pen and PenModeActive(true) set"
-                );
             }
             ToolBehavior::Text => {
                 // Set input mode for text tool

@@ -101,7 +101,35 @@ impl GameOfLifeState {
 
     pub fn set_size(&mut self, width: usize, height: usize) {
         if width != self.width || height != self.height {
-            *self = Self::new(width, height);
+            // Create a new grid with the new dimensions
+            let mut new_grid = vec![vec![false; width]; height];
+
+            // Copy over existing cells that fit in the new grid
+            let copy_height = self.height.min(height);
+            let copy_width = self.width.min(width);
+
+            for y in 0..copy_height {
+                for x in 0..copy_width {
+                    new_grid[y][x] = self.grid[y][x];
+                }
+            }
+
+            // If the new grid is larger, randomly populate the new cells
+            if width > self.width || height > self.height {
+                let mut rng = rand::thread_rng();
+                for y in 0..height {
+                    for x in 0..width {
+                        // Only populate cells outside the copied area
+                        if x >= self.width || y >= self.height {
+                            new_grid[y][x] = rng.gen_bool(0.3);
+                        }
+                    }
+                }
+            }
+
+            self.grid = new_grid;
+            self.width = width;
+            self.height = height;
         }
     }
 }

@@ -12,8 +12,16 @@ use std::fs::OpenOptions;
 use std::os::unix::io::AsRawFd;
 
 /// Set up log redirection to ~/.config/bezy/logs/
+/// Used when running without TUI to capture logs to file
 fn setup_log_redirection() -> Result<()> {
     use bezy::core::config_file::ConfigFile;
+
+    // Check if config directory exists - if not, we'll fail gracefully
+    let config_dir = ConfigFile::config_dir();
+    if !config_dir.exists() {
+        // Config directory doesn't exist, so don't try to create logs
+        return Err(anyhow::anyhow!("Config directory doesn't exist"));
+    }
 
     // Initialize logs directory
     ConfigFile::initialize_logs_directory()?;
@@ -21,10 +29,11 @@ fn setup_log_redirection() -> Result<()> {
     // Get the log file path
     let log_file_path = ConfigFile::current_log_file();
 
-    // Create/open the log file
+    // Create/open the log file - use truncate instead of append for single log file
     let log_file = OpenOptions::new()
         .create(true)
-        .append(true)
+        .write(true)
+        .truncate(true)
         .open(&log_file_path)?;
 
     // Redirect stdout and stderr to the log file
@@ -43,7 +52,7 @@ fn setup_log_redirection() -> Result<()> {
 /// Create and run the application with the given CLI arguments.
 fn run_app(cli_args: core::cli::CliArgs) -> Result<()> {
     if cli_args.no_tui {
-        // Only set up log redirection when TUI is disabled
+        // Set up log redirection when TUI is disabled
         if let Err(e) = setup_log_redirection() {
             eprintln!("Failed to setup log redirection: {}", e);
         }
@@ -51,7 +60,7 @@ fn run_app(cli_args: core::cli::CliArgs) -> Result<()> {
         app.run();
         Ok(())
     } else {
-        // When TUI is enabled, skip log redirection to allow TUI terminal control
+        // When TUI is enabled, also redirect logs to prevent terminal corruption
         run_app_with_tui(cli_args)
     }
 }
@@ -78,6 +87,7 @@ fn run_app_with_tui(cli_args: core::cli::CliArgs) -> Result<()> {
     });
 
     // Run Bevy app in the main thread (needed for proper window initialization on Linux)
+    // The TUI-specific configuration will disable console logging to prevent terminal corruption
     match core::app::create_app_with_tui((*cli_args_arc).clone(), tui_rx, app_tx) {
         Ok(mut app) => {
             app.run();

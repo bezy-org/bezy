@@ -57,11 +57,8 @@ pub fn draw(f: &mut Frame, state: &mut AIState, area: Rect) {
     let available_width = game_area.width.saturating_sub(2) as usize;
     let available_height = game_area.height.saturating_sub(2) as usize;
 
-    // Adjust game size to fit terminal if needed
-    state.game.set_size(
-        available_width.min(state.game.width),
-        available_height.min(state.game.height),
-    );
+    // Always resize game to fill all available space
+    state.game.set_size(available_width, available_height);
 
     // Create the grid display
     let mut grid_lines = Vec::new();
