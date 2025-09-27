@@ -220,8 +220,8 @@ pub fn handle_shape_mouse_events(
     );
 
     // Early exit if shapes tool is not active, no active sort, or other conditions
-    if !shapes_is_active || active_sort.is_none() {
-        if shapes_is_active && active_sort.is_none() {
+    let Some((_sort_entity, _sort, sort_transform)) = active_sort else {
+        if shapes_is_active {
             // Only show this message when shapes tool is actually trying to be used
             if mouse_button_input.just_pressed(MouseButton::Left) {
                 debug!("🔳 Shapes tool: Cannot draw without an active sort. Please select a glyph first.");
@@ -229,9 +229,12 @@ pub fn handle_shape_mouse_events(
         }
         debug!("SHAPES INPUT: Shapes not active or no active sort, exiting");
         return;
-    }
+    };
 
-    let (_sort_entity, _sort, sort_transform) = active_sort.unwrap();
+    if !shapes_is_active {
+        debug!("SHAPES INPUT: Shapes not active, exiting");
+        return;
+    }
     let sort_position = sort_transform.translation.truncate();
 
     let Ok(window) = windows.single() else {
@@ -366,12 +369,15 @@ pub fn render_active_shape_drawing_with_dimensions(
            shapes_is_active);
 
     // Only render if shapes tool is active and there's an active sort
-    if !shapes_is_active || active_sort.is_none() {
+    let Some((_sort_entity, _sort, sort_transform)) = active_sort else {
         debug!("SHAPES PREVIEW: Shapes mode not active or no active sort, exiting");
         return;
-    }
+    };
 
-    let (_sort_entity, _sort, sort_transform) = active_sort.unwrap();
+    if !shapes_is_active {
+        debug!("SHAPES PREVIEW: Shapes mode not active, exiting");
+        return;
+    }
     let sort_position = sort_transform.translation.truncate();
 
     if !active_drawing.is_drawing {

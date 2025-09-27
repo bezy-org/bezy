@@ -78,7 +78,10 @@ fn run_app_with_tui(cli_args: core::cli::CliArgs) -> Result<()> {
 
     // Spawn TUI in a separate thread - it can handle terminal I/O from background
     let tui_handle = thread::spawn(move || {
-        let rt = tokio::runtime::Runtime::new().expect("Failed to create tokio runtime");
+        let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| {
+            eprintln!("Fatal error: Failed to create tokio runtime for TUI: {}", e);
+            std::process::exit(1);
+        });
         rt.block_on(async {
             if let Err(e) = bezy::tui::run_tui(cli_args_tui, tui_tx, app_rx).await {
                 eprintln!("TUI error: {}", e);

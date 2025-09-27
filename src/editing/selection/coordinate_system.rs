@@ -48,26 +48,27 @@ impl SelectionCoordinateSystem {
             return "No entities to check".to_string();
         }
 
+        // Use total_cmp to handle NaN values properly (treats NaN as greater than all values)
         let min_x = entities
             .iter()
             .map(|(_, pos)| pos.x)
-            .min_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap();
+            .min_by(|a, b| a.total_cmp(b))
+            .unwrap_or(0.0);
         let max_x = entities
             .iter()
             .map(|(_, pos)| pos.x)
-            .max_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap();
+            .max_by(|a, b| a.total_cmp(b))
+            .unwrap_or(0.0);
         let min_y = entities
             .iter()
             .map(|(_, pos)| pos.y)
-            .min_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap();
+            .min_by(|a, b| a.total_cmp(b))
+            .unwrap_or(0.0);
         let max_y = entities
             .iter()
             .map(|(_, pos)| pos.y)
-            .max_by(|a, b| a.partial_cmp(b).unwrap())
-            .unwrap();
+            .max_by(|a, b| a.total_cmp(b))
+            .unwrap_or(0.0);
 
         let rect_entity_start = Self::design_to_entity_coordinates(rect_start);
         let rect_entity_end = Self::design_to_entity_coordinates(rect_end);

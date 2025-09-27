@@ -208,7 +208,7 @@ pub fn update_checkerboard(
     // Debug logging for checkerboard (only log once per grid size change)
 
     if state.last_grid_size.is_none()
-        || state.last_grid_size.unwrap() != current_grid_size
+        || state.last_grid_size.map_or(true, |size| size != current_grid_size)
         || significant_scale_change
     {
         debug!(
@@ -440,7 +440,7 @@ fn calculate_visible_area(
     #[allow(static_mut_refs)]
     static mut LAST_LOGGED_GRID_SIZE: Option<f32> = None;
     unsafe {
-        if LAST_LOGGED_GRID_SIZE.is_none() || LAST_LOGGED_GRID_SIZE.unwrap() != current_grid_size {
+        if LAST_LOGGED_GRID_SIZE.is_none() || LAST_LOGGED_GRID_SIZE.map_or(true, |size| size != current_grid_size) {
             debug!(
                 "✅ Screen coverage: window=({:.0}x{:.0}), camera_scale={:.3}, \
                    min_screen=({:.0}, {:.0}), final=({:.0}, {:.0}), \

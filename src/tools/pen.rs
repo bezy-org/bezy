@@ -217,8 +217,8 @@ pub fn handle_pen_mouse_events(
     }
 
     // Early exit if pen tool is not active, no active sort, or UI is being hovered
-    if !pen_is_active || active_sort.is_none() || ui_hover_state.is_hovering_ui {
-        if pen_is_active && active_sort.is_none() {
+    let Some((_sort_entity, _sort, sort_transform)) = active_sort else {
+        if pen_is_active {
             // Only show this message when pen tool is actually trying to be used
             if mouse_button_input.just_pressed(MouseButton::Left) {
                 debug!(
@@ -227,9 +227,11 @@ pub fn handle_pen_mouse_events(
             }
         }
         return;
-    }
+    };
 
-    let (_sort_entity, _sort, sort_transform) = active_sort.unwrap();
+    if !pen_is_active || ui_hover_state.is_hovering_ui {
+        return;
+    }
     let sort_position = sort_transform.translation.truncate();
 
     debug!("Pen tool: Mouse input system active and processing clicks");
@@ -357,11 +359,13 @@ pub fn render_pen_preview(
         None
     };
 
-    if !pen_is_active || active_sort.is_none() {
+    let Some((_sort_entity, _sort, sort_transform)) = active_sort else {
+        return;
+    };
+
+    if !pen_is_active {
         return;
     }
-
-    let (_sort_entity, _sort, sort_transform) = active_sort.unwrap();
     let sort_position = sort_transform.translation.truncate();
 
     // Debug: Log the current path state

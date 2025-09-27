@@ -221,18 +221,18 @@ pub fn handle_point_drag(
                                 let opposite_position = smooth_point_vec2 + opposite_vector;
 
                                 // Apply the constraint to the opposite handle
-                                if moved_is_left && right_handle.is_some() {
-                                    // Left handle moved, adjust right handle
-                                    smooth_adjustments.push((
-                                        right_handle.as_ref().unwrap().0,
-                                        opposite_position,
-                                    ));
-                                    debug!("Smooth constraint: left handle moved, adjusting right handle to ({:.1}, {:.1})", opposite_position.x, opposite_position.y);
-                                } else if moved_is_right && left_handle.is_some() {
-                                    // Right handle moved, adjust left handle
-                                    smooth_adjustments
-                                        .push((left_handle.as_ref().unwrap().0, opposite_position));
-                                    debug!("Smooth constraint: right handle moved, adjusting left handle to ({:.1}, {:.1})", opposite_position.x, opposite_position.y);
+                                if moved_is_left {
+                                    if let Some((right_entity, _, _)) = right_handle {
+                                        // Left handle moved, adjust right handle
+                                        smooth_adjustments.push((right_entity, opposite_position));
+                                        debug!("Smooth constraint: left handle moved, adjusting right handle to ({:.1}, {:.1})", opposite_position.x, opposite_position.y);
+                                    }
+                                } else if moved_is_right {
+                                    if let Some((left_entity, _, _)) = left_handle {
+                                        // Right handle moved, adjust left handle
+                                        smooth_adjustments.push((left_entity, opposite_position));
+                                        debug!("Smooth constraint: right handle moved, adjusting left handle to ({:.1}, {:.1})", opposite_position.x, opposite_position.y);
+                                    }
                                 }
                             }
                         }

@@ -48,7 +48,8 @@ mod workspace_tests {
         }
 
         // First load the UFO file
-        let _ufo = ufo::load_ufo_from_path(&test_path).expect("Failed to load UFO file");
+        let _ufo = ufo::load_ufo_from_path(&test_path)
+            .unwrap_or_else(|e| panic!("Failed to load UFO file at {}: {}", test_path, e));
 
         // Create a new app state and load the font
         let mut app_state = AppState::default();
@@ -57,7 +58,7 @@ mod workspace_tests {
         // Load the font into app state
         app_state
             .load_font_from_path(path)
-            .expect("Failed to load font into app state");
+            .unwrap_or_else(|e| panic!("Failed to load font into app state: {}", e));
 
         // Verify the workspace state has been populated
         assert!(

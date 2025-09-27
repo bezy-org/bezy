@@ -169,17 +169,19 @@ pub fn handle_knife_mouse_events(
     };
 
     // Early exit if knife tool is not active, no active sort, or other conditions
-    if !knife_is_active || active_sort.is_none() {
-        if knife_is_active && active_sort.is_none() {
+    let Some((_sort_entity, _sort, sort_transform)) = active_sort else {
+        if knife_is_active {
             // Only show this message when knife tool is actually trying to be used
             if mouse_button_input.just_pressed(MouseButton::Left) {
                 debug!("🔪 Knife tool: Cannot cut without an active sort. Please select a glyph first.");
             }
         }
         return;
-    }
+    };
 
-    let (_sort_entity, _sort, sort_transform) = active_sort.unwrap();
+    if !knife_is_active {
+        return;
+    }
     let sort_position = sort_transform.translation.truncate();
 
     let Ok(window) = windows.single() else {
