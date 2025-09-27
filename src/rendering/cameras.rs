@@ -7,8 +7,6 @@ use bevy::prelude::*;
 use bevy::render::camera::OrthographicProjection;
 use bevy_pancam::{PanCam, PanCamPlugin};
 
-// Constants
-// const INITIAL_ZOOM_SCALE: f32 = 1.0; // Start at 32-unit grid level (unused while testing 25% zoom)
 
 // Component to mark the main design camera
 #[derive(Component)]

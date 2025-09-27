@@ -180,20 +180,6 @@ pub fn render_glyphs(
         active_count, inactive_count, point_count
     );
 
-    // Debug: Check what components all entities with SortPointEntity have
-    // (Commented out - debug query removed to reduce parameter count)
-    // if point_count == 0 && !existing_sort_points.is_empty() {
-    //     let all_sort_point_entities = existing_sort_points.iter().count();
-    //     debug!("🔍 DEBUG: {} entities with SortPointEntity exist, but 0 match full point query - component mismatch!", all_sort_point_entities);
-    //
-    //     // Let's see what the first few SortPointEntity entities actually have
-    //     for (i, entity) in existing_sort_points.iter().enumerate() {
-    //         if i >= 3 {
-    //             break;
-    //         } // Only check first 3 for debugging
-    //         debug!("🔍 DEBUG: Entity {:?} has SortPointEntity", entity);
-    //     }
-    // }
 
     if active_count == 0 && inactive_count == 0 {
         update_tracker.needs_update = false;

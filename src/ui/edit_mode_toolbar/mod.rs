@@ -503,17 +503,6 @@ pub use pen::{PenMode, PenModePlugin};
 pub use shapes::ShapesToolPlugin;
 
 pub use select::{SelectMode, SelectModeActive};
-// pub use text::TextMode;  // Will be available after porting
-// pub use measure::MeasureMode;  // Will be available after porting
-
-// Shapes exports will be added as we port the shapes module
-// pub use shapes::{
-//     handle_primitive_mouse_events, render_active_primitive_drawing,
-//     ActivePrimitiveDrawing, CurrentCornerRadius, UiInteractionState,
-//     handle_primitive_selection, spawn_shapes_submenu,
-//     toggle_shapes_submenu_visibility, CurrentPrimitiveType,
-//     PrimitiveType, ShapesToolPlugin,
-// };
 
 // Legacy trait (will be removed after migration)
 pub trait EditModeSystem: Send + Sync + 'static {

@@ -177,12 +177,6 @@ pub fn process_selection_input_events(
             event
         );
 
-        // Skip if UI is consuming input
-        // Note: input_state check removed as it's handled in event collection
-        // if crate::core::io::input::helpers::is_ui_consuming(&input_state) {
-        //     debug!("Selection: Skipping event - UI is consuming input");
-        //     continue;
-        // }
 
         // Only handle events that are relevant to selection
         match event {

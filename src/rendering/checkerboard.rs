@@ -34,15 +34,6 @@ const GRID_SIZE_CHANGE_THRESHOLD: f32 = 1.25;
 const VISIBLE_AREA_COVERAGE_MULTIPLIER: f32 = 1.2;
 const MAX_SQUARES_PER_FRAME: usize = 2000;
 
-// /// The alpha of the darker checkerboard squares.
-// const CHECKERBOARD_DARK_ALPHA: f32 = 0.04;
-//
-// /// The target number of grid squares to cover the larger of the screen dimensions
-// /// This is used to calculate the ideal grid size at a given zoom level
-// const TARGET_GRID_SQUARES_COVERAGE: f32 = 8.0;
-//
-// /// The scale factor for the secondary grid lines (e.g., 10x smaller/larger)
-// const SECONDARY_GRID_SCALE_FACTOR: f32 = 10.0;
 
 // Resources -------------------
 

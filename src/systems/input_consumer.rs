@@ -679,10 +679,6 @@ pub fn process_input_events(
 ) {
     let events: Vec<_> = input_events.read().collect();
 
-    // Get active sort position for coordinate conversion - disabled since pen tool doesn't use InputConsumer anymore
-    // let _active_sort_position = active_sort_query.iter().next()
-    //     .map(|(_, _, transform)| transform.translation.truncate())
-    //     .unwrap_or(Vec2::ZERO);
 
     for event in events {
         // Route events to consumers based on priority
