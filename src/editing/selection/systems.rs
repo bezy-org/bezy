@@ -114,17 +114,6 @@ pub fn handle_selection_shortcuts(
     }
 }
 
-/// System to update which entities are being hovered over by the mouse
-#[allow(dead_code)]
-pub fn update_hover_state(
-    mut _commands: Commands,
-    _windows: Query<&Window, With<PrimaryWindow>>,
-    _camera_query: Query<(&Camera, &GlobalTransform), With<DesignCamera>>,
-    _selectable_query: Query<(Entity, &GlobalTransform), With<Selectable>>,
-    _hovered_query: Query<Entity, With<Hovered>>,
-) {
-    // Hover functionality is disabled per user request
-}
 
 /// System to update the actual glyph data when a point is moved
 #[allow(clippy::type_complexity)]

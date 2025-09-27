@@ -11,7 +11,7 @@
 
 use crate::core::state::{AppState, FontIRAppState, TextEditorState};
 use crate::editing::selection::components::{
-    GlyphPointReference, Hovered, PointType, Selected, SelectionRect,
+    GlyphPointReference, PointType, Selected, SelectionRect,
 };
 use crate::editing::selection::nudge::NudgeState;
 use crate::editing::selection::{DragPointState, DragSelectionState};

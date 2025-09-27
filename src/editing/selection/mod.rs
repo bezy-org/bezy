@@ -22,7 +22,7 @@ pub use events::{AppStateChanged, ClickWorldPosition, SELECTION_MARGIN};
 pub use input::mouse::DoubleClickState;
 pub use input::*;
 pub use nudge::*;
-pub use utils::{clear_selection_on_app_change, update_hover_state};
+pub use utils::clear_selection_on_app_change;
 
 use std::collections::HashMap;
 
@@ -73,7 +73,6 @@ impl Plugin for SelectionPlugin {
             // Register components
             .register_type::<Selectable>()
             .register_type::<Selected>()
-            .register_type::<Hovered>()
             .register_type::<SelectionRect>()
             .register_type::<PointType>()
             .register_type::<GlyphPointReference>()

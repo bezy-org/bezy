@@ -236,7 +236,6 @@ pub trait EditTool: Send + Sync + 'static {
     fn icon(&self) -> &'static str;
 
     /// Optional keyboard shortcut (e.g., Some('v') for Select tool)
-    #[allow(dead_code)]
     fn shortcut_key(&self) -> Option<char> {
         None
     }
@@ -248,7 +247,6 @@ pub trait EditTool: Send + Sync + 'static {
     }
 
     /// Description for tooltips/help
-    #[allow(dead_code)]
     fn description(&self) -> &'static str {
         ""
     }
@@ -259,14 +257,14 @@ pub trait EditTool: Send + Sync + 'static {
     /// Called when switching to this tool
     fn on_enter(&self) {}
 
-    /// Called when switching away from this tool  
+    /// Called when switching away from this tool
     fn on_exit(&self) {}
 
     /// Whether this tool supports temporary activation via spacebar (e.g., pan tool)
-    #[allow(dead_code)]
     fn supports_temporary_mode(&self) -> bool {
         false
     }
+
 }
 
 /// Registry for all available edit tools.
@@ -336,41 +334,6 @@ impl ToolRegistry {
         self.ordering_dirty = false;
     }
 
-    /// Apply custom ordering preferences
-    #[allow(dead_code)]
-    pub fn apply_custom_ordering(&mut self, custom_order: &ToolOrdering) {
-        if custom_order.custom_order.is_empty() {
-            // No custom order specified, use default
-            self.rebuild_ordering();
-            return;
-        }
-
-        let mut ordered_tools = Vec::new();
-
-        // First, add tools in the custom order
-        for &tool_id in &custom_order.custom_order {
-            if self.tools.contains_key(tool_id) {
-                ordered_tools.push(tool_id);
-            }
-        }
-
-        // Then add any remaining tools in their default order
-        let mut remaining_tools: Vec<(ToolId, i32)> = self
-            .tools
-            .iter()
-            .filter(|(id, _)| !ordered_tools.contains(id))
-            .map(|(id, tool)| (*id, tool.default_order()))
-            .collect();
-
-        remaining_tools.sort_by_key(|(_, order)| *order);
-
-        for (id, _) in remaining_tools {
-            ordered_tools.push(id);
-        }
-
-        self.ordered_tool_ids = ordered_tools;
-        self.ordering_dirty = false;
-    }
 }
 
 /// Current active tool state
@@ -450,43 +413,6 @@ impl CurrentTool {
 ///     }
 /// }
 /// ```
-#[derive(Resource, Default)]
-pub struct ToolOrdering {
-    #[allow(dead_code)]
-    pub custom_order: Vec<ToolId>,
-}
-
-impl ToolOrdering {
-    /// Set a custom order for tools (tools not listed will use default ordering
-    /// after these)
-    #[allow(dead_code)]
-    pub fn set_order(&mut self, order: Vec<ToolId>) {
-        self.custom_order = order;
-    }
-
-    /// Preset order optimized for design-focused work
-    #[allow(dead_code)]
-    pub fn set_design_focused_order(&mut self) {
-        self.custom_order = vec![
-            "select",  // Primary selection tool
-            "pen",     // Drawing/editing paths
-            "shapes",  // Creating geometric shapes
-            "text",    // Text handling
-            "measure", // Measurement and guides
-            "hyper",   // Advanced editing
-            "pan",     // Navigation
-            "knife",   // Path cutting (less common in design)
-        ];
-    }
-
-    /// Preset order optimized for annotation and markup work
-    #[allow(dead_code)]
-    pub fn set_annotation_focused_order(&mut self) {
-        self.custom_order = vec![
-            "select", "text", "pen", "shapes", "measure", "eraser", "knife", "hyper", "pan",
-        ];
-    }
-}
 
 // New tool exports (using current available exports)
 pub use hyper::HyperToolPlugin;
@@ -576,7 +502,6 @@ impl Plugin for EditModeToolbarPlugin {
             // Initialize the new tool system
             .init_resource::<ToolRegistry>()
             .init_resource::<CurrentTool>()
-            .init_resource::<ToolOrdering>()
             // Legacy resources (will be removed after migration)
             // .init_resource::<CurrentPrimitiveType>()  // Will be added when shapes is ported
             // .init_resource::<ActivePrimitiveDrawing>()  // Will be added when shapes is ported

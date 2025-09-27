@@ -19,23 +19,6 @@ use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use std::collections::HashMap;
 
-/// Helper to calculate the desired position of the crosshair.
-/// Places it at the lower-left of the sort's metrics box, offset inward by 64 units.
-#[allow(dead_code)]
-fn get_crosshair_position(_sort: &Sort, transform: &Transform, app_state: &AppState) -> Vec2 {
-    let metrics = &app_state.workspace.info.metrics;
-
-    // Get the descender (bottom of the metrics box)
-    let descender = metrics.descender.unwrap_or(-200.0) as f32;
-
-    // Left edge is at x=0 for the sort's origin
-    let left_edge = 0.0;
-
-    // Position at lower-left corner, offset inward by 64 units
-    let offset = Vec2::new(left_edge + 64.0, descender + 64.0);
-
-    transform.translation.truncate() + offset
-}
 
 /// Component to mark point entities that belong to a sort
 #[derive(Component, Debug, Copy, Clone)]
@@ -48,7 +31,6 @@ pub struct SortPointEntity {
 #[derive(Component, Debug)]
 pub struct SortCrosshair {
     /// The sort entity this crosshair controls
-    #[allow(dead_code)]
     pub sort_entity: Entity,
 }
 
@@ -56,7 +38,6 @@ pub struct SortCrosshair {
 #[derive(Component, Debug)]
 pub struct NewlySpawnedCrosshair {
     /// Number of frames to wait before allowing movement
-    #[allow(dead_code)]
     pub frames_remaining: u32,
 }
 
@@ -403,30 +384,6 @@ pub fn spawn_sort_point_entities(
     }
 }
 
-/// Update glyph data for all sorts
-#[allow(dead_code)]
-pub fn update_sort_glyph_data() {}
-/// Manage crosshair visibility and positioning  
-#[allow(dead_code)]
-pub fn manage_sort_crosshairs() {}
-/// Update sort position when crosshair moves
-#[allow(dead_code)]
-pub fn update_sort_from_crosshair_move() {}
-/// Render crosshairs for active sorts
-#[allow(dead_code)]
-pub fn render_sort_crosshairs() {}
-/// Handle newly spawned crosshairs
-#[allow(dead_code)]
-pub fn manage_newly_spawned_crosshairs() {}
-/// Sync crosshair position when sort moves
-#[allow(dead_code)]
-pub fn sync_crosshair_to_sort_move() {}
-/// Sync point positions when sort moves
-#[allow(dead_code)]
-pub fn sync_points_to_sort_move() {}
-/// Debug function for sort point entities
-#[allow(dead_code)]
-pub fn debug_sort_point_entities() {}
 
 /// System to spawn initial sort for the current glyph when needed
 pub fn spawn_current_glyph_sort(
