@@ -812,37 +812,22 @@ fn calculate_final_position_dpoint(
     pen_state: &PenToolState,
     settings: &crate::core::settings::BezySettings,
 ) -> DPoint {
-    // Convert to Vec2 for grid snap
-    let raw_pos = cursor_pos.to_raw();
-
-    // Apply snap to grid first
-    let snapped_pos = settings.apply_grid_snap(raw_pos);
-
-    // Apply axis locking if shift is held and we have points
     let shift_pressed =
         keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
 
-    let final_vec2 = if shift_pressed && !pen_state.current_path.is_empty() {
-        if let Some(last_point) = pen_state.current_path.last() {
-            axis_lock_position(snapped_pos, last_point.to_raw())
-        } else {
-            snapped_pos
-        }
+    let axis_lock = if shift_pressed && !pen_state.current_path.is_empty() {
+        pen_state.current_path.last().map(|p| p.to_raw())
     } else {
-        snapped_pos
+        None
     };
 
-    // Convert back to DPoint
-    DPoint::from_raw(final_vec2)
+    let final_pos = crate::geometry::utilities::calculate_final_position_with_constraints(
+        cursor_pos.to_raw(),
+        settings.grid.enabled,
+        settings.grid.unit_size,
+        axis_lock,
+    );
+
+    DPoint::from_raw(final_pos)
 }
 
-/// Lock a position to horizontal or vertical axis relative to another point
-/// (used when shift is held to constrain movement)
-fn axis_lock_position(pos: Vec2, relative_to: Vec2) -> Vec2 {
-    let dxy = pos - relative_to;
-    if dxy.x.abs() > dxy.y.abs() {
-        Vec2::new(pos.x, relative_to.y)
-    } else {
-        Vec2::new(relative_to.x, pos.y)
-    }
-}

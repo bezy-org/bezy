@@ -11,6 +11,7 @@ use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::geometry::quadrant::Quadrant;
 use crate::ui::theme::*;
 use crate::ui::themes::{CurrentTheme, UiBorderRadius};
+use crate::ui::edit_mode_toolbar::ui::{create_label_text, create_value_text};
 use bevy::ecs::system::ParamSet;
 use bevy::prelude::*;
 use bevy::reflect::Reflect;
@@ -153,36 +154,26 @@ pub fn spawn_coordinate_pane(
                 })
                 .with_children(|row| {
                     // X label
-                    row.spawn((
+                    create_label_text(
+                        row,
+                        "X:",
                         Node {
                             margin: UiRect::right(Val::Px(LABEL_VALUE_SPACING)),
                             ..default()
                         },
-                        Text::new("X:"),
-                        TextFont {
-                            font: asset_server.load_font_with_fallback(
-                                theme.theme().mono_font_path(),
-                                &embedded_fonts,
-                            ),
-                            font_size: WIDGET_TEXT_FONT_SIZE,
-                            ..default()
-                        },
-                        TextColor(theme.get_ui_text_primary()),
-                    ));
+                        &asset_server,
+                        &embedded_fonts,
+                        &theme,
+                    );
                     // X value
-                    row.spawn((
-                        Text::new("0"),
-                        TextFont {
-                            font: asset_server.load_font_with_fallback(
-                                theme.theme().mono_font_path(),
-                                &embedded_fonts,
-                            ),
-                            font_size: WIDGET_TEXT_FONT_SIZE,
-                            ..default()
-                        },
-                        TextColor(theme.get_ui_text_secondary()),
+                    create_value_text(
+                        row,
+                        "0",
                         XValue,
-                    ));
+                        &asset_server,
+                        &embedded_fonts,
+                        &theme,
+                    );
                 });
 
             // Y coordinate row

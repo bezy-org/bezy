@@ -18,6 +18,7 @@ use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::ActiveSortState;
 use crate::utils::embedded_assets::EmbeddedFonts;
 use crate::geometry::world_space::DPoint;
+use crate::geometry::utilities::axis_lock_position;
 use crate::systems::ui_interaction::UiHoverState;
 use crate::ui::edit_mode_toolbar::select::SelectModeActive;
 use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
@@ -461,19 +462,21 @@ fn calculate_final_position(
     pen_state: &PenToolState,
     settings: &BezySettings,
 ) -> Vec2 {
-    // Apply snap to grid first
-    let snapped_pos = settings.apply_grid_snap(cursor_pos);
-
-    // Apply axis locking if shift is held and we have points
     let shift_pressed =
         keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
 
-    if shift_pressed && !pen_state.points.is_empty() {
-        let last_point = pen_state.points.last().unwrap();
-        axis_lock_position(snapped_pos, *last_point)
+    let axis_lock = if shift_pressed && !pen_state.points.is_empty() {
+        pen_state.points.last().copied()
     } else {
-        snapped_pos
-    }
+        None
+    };
+
+    crate::geometry::utilities::calculate_final_position_with_constraints(
+        cursor_pos,
+        settings.grid.enabled,
+        settings.grid.unit_size,
+        axis_lock,
+    )
 }
 
 /// Start a new path with the first point
@@ -785,16 +788,6 @@ fn draw_close_indicator_if_needed(
 // UTILITY FUNCTIONS
 // ================================================================
 
-/// Lock a position to horizontal or vertical axis relative to another point
-/// (used when shift is held to constrain movement)
-fn axis_lock_position(pos: Vec2, relative_to: Vec2) -> Vec2 {
-    let dxy = pos - relative_to;
-    if dxy.x.abs() > dxy.y.abs() {
-        Vec2::new(pos.x, relative_to.y)
-    } else {
-        Vec2::new(relative_to.x, pos.y)
-    }
-}
 
 /// Create a UFO contour from a list of points
 fn create_contour_from_points(points: &[Vec2], active_sort_offset: Vec2) -> Option<Contour> {

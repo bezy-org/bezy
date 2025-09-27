@@ -135,7 +135,7 @@ pub mod pen;
 pub mod select;
 mod shapes;
 pub mod text;
-mod ui;
+pub mod ui;
 
 // Add the spacebar toggle module
 mod spacebar_toggle;

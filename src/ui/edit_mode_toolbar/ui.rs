@@ -677,3 +677,130 @@ pub fn update_current_edit_mode(
         }
     }
 }
+
+// ============================================================================
+// SHARED UI UTILITIES - CONSOLIDATION FOR DUPLICATE PATTERNS
+// ============================================================================
+
+/// Creates standardized label text with consistent font and styling
+/// This consolidates the duplicate text creation pattern found across 20+ locations
+pub fn create_label_text<T: Bundle>(
+    parent: &mut ChildSpawnerCommands,
+    text: &str,
+    additional_components: T,
+    asset_server: &AssetServer,
+    embedded_fonts: &EmbeddedFonts,
+    theme: &CurrentTheme,
+) {
+    parent.spawn((
+        Text::new(text),
+        TextFont {
+            font: asset_server.load_font_with_fallback(
+                theme.theme().mono_font_path(),
+                embedded_fonts,
+            ),
+            font_size: crate::ui::theme_system::layout_constants::WIDGET_TEXT_FONT_SIZE,
+            ..default()
+        },
+        TextColor(theme.get_ui_text_primary()),
+        additional_components,
+    ));
+}
+
+/// Creates standardized value text with consistent font and styling
+/// This consolidates the duplicate text creation pattern for secondary text
+pub fn create_value_text<T: Bundle>(
+    parent: &mut ChildSpawnerCommands,
+    text: &str,
+    additional_components: T,
+    asset_server: &AssetServer,
+    embedded_fonts: &EmbeddedFonts,
+    theme: &CurrentTheme,
+) {
+    parent.spawn((
+        Text::new(text),
+        TextFont {
+            font: asset_server.load_font_with_fallback(
+                theme.theme().mono_font_path(),
+                embedded_fonts,
+            ),
+            font_size: crate::ui::theme_system::layout_constants::WIDGET_TEXT_FONT_SIZE,
+            ..default()
+        },
+        TextColor(theme.get_ui_text_secondary()),
+        additional_components,
+    ));
+}
+
+/// Creates standardized label-value row layout
+/// This consolidates the duplicate row creation pattern found across 15+ locations
+pub fn create_label_value_row<L: Bundle, V: Bundle>(
+    parent: &mut ChildSpawnerCommands,
+    label_text: &str,
+    value_text: &str,
+    label_components: L,
+    value_components: V,
+    asset_server: &AssetServer,
+    embedded_fonts: &EmbeddedFonts,
+    theme: &CurrentTheme,
+) {
+    parent
+        .spawn(Node {
+            flex_direction: FlexDirection::Row,
+            align_items: AlignItems::Center,
+            margin: UiRect::bottom(Val::Px(
+                crate::ui::theme_system::layout_constants::WIDGET_ROW_LEADING,
+            )),
+            ..default()
+        })
+        .with_children(|row| {
+            create_label_text(
+                row,
+                label_text,
+                label_components,
+                asset_server,
+                embedded_fonts,
+                theme,
+            );
+            create_value_text(
+                row,
+                value_text,
+                value_components,
+                asset_server,
+                embedded_fonts,
+                theme,
+            );
+        });
+}
+
+/// Creates a standard pane button using the consistent button system
+/// This consolidates button creation patterns outside of the main toolbar
+pub fn create_pane_button<T: Bundle>(
+    parent: &mut ChildSpawnerCommands,
+    text: &str,
+    button_size: f32,
+    additional_components: T,
+    asset_server: &AssetServer,
+    embedded_fonts: &EmbeddedFonts,
+    theme: &CurrentTheme,
+) {
+    parent
+        .spawn((
+            Button,
+            Node {
+                width: Val::Px(button_size),
+                height: Val::Px(button_size),
+                border: UiRect::all(Val::Px(2.0)),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            BackgroundColor(theme.theme().button_regular()),
+            BorderColor(theme.theme().button_regular_outline()),
+            BorderRadius::all(Val::Px(theme.theme().ui_border_radius())),
+            additional_components,
+        ))
+        .with_children(|button| {
+            create_button_icon_text(button, text, asset_server, embedded_fonts, theme);
+        });
+}
