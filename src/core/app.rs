@@ -10,6 +10,7 @@ use crate::core::AppState;
 use crate::editing::{FontEditorSystemSetsPlugin, SelectionPlugin, TextEditorPlugin};
 use crate::rendering::{
     cameras::CameraPlugin, checkerboard::CheckerboardPlugin,
+    sort_renderer::SortLabelRenderingPlugin,
     zoom_aware_scaling::CameraResponsivePlugin, EntityPoolingPlugin, GlyphRenderingPlugin,
     MeshCachingPlugin, MetricsRenderingPlugin, PostEditingRenderingPlugin, SortHandleRenderingPlugin,
 };
@@ -70,6 +71,7 @@ impl PluginGroup for RenderingPluginGroup {
             .add(MeshCachingPlugin)
             .add(MetricsRenderingPlugin)
             .add(SortHandleRenderingPlugin)
+            .add(SortLabelRenderingPlugin) // Sort label rendering (text labels)
             .add(GlyphRenderingPlugin)
     }
 }

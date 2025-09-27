@@ -11,8 +11,6 @@ use crate::editing::selection::components::{
 };
 use crate::editing::selection::nudge::PointCoordinates;
 use crate::editing::sort::{ActiveSort, ActiveSortState, InactiveSort, Sort, SortEvent};
-#[allow(unused_imports)]
-use crate::rendering::cameras::DesignCamera;
 
 use bevy::prelude::*;
 #[allow(unused_imports)]

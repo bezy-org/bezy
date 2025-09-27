@@ -3,6 +3,7 @@
 #![allow(clippy::useless_vec)]
 
 use super::components::*;
+use super::events::ClickWorldPosition;
 use super::coordinate_system::SelectionCoordinateSystem;
 use super::DragPointState;
 use super::DragSelectionState;
@@ -17,7 +18,6 @@ use crate::editing::selection::nudge::{EditEvent, NudgeState};
 use crate::geometry::point::{EditPoint, EntityId, EntityKind};
 #[allow(unused_imports)]
 use crate::geometry::world_space::DPoint;
-use crate::rendering::cameras::DesignCamera;
 use bevy::ecs::system::ParamSet;
 use bevy::input::mouse::MouseButton;
 use bevy::input::ButtonInput;
@@ -30,10 +30,6 @@ use bevy::window::PrimaryWindow;
 #[derive(Event, Debug, Clone)]
 pub struct AppStateChanged;
 
-/// A resource to hold the world position of a handled click.
-/// This prevents multiple systems from reacting to the same click event.
-#[derive(Resource)]
-pub struct ClickWorldPosition;
 
 // Constants for selection
 #[allow(dead_code)]

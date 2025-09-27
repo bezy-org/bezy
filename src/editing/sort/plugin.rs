@@ -13,10 +13,6 @@ use crate::editing::selection::nudge::PointCoordinates;
 use crate::editing::sort::components::{
     ActiveSort, ActiveSortState, InactiveSort, Sort, SortEvent,
 };
-use crate::rendering::cameras::DesignCamera;
-use crate::rendering::sort_renderer::{
-    manage_sort_labels, update_sort_label_colors, update_sort_label_positions,
-};
 use bevy::prelude::*;
 
 /// System sets for Sort management to ensure proper ordering
@@ -56,16 +52,6 @@ impl Plugin for SortPlugin {
                 Update,
                 (respawn_sort_points_on_glyph_change,).in_set(SortSystemSet::PointSpawning),
             )
-            // Label management systems (text labels for sorts)
-            .add_systems(
-                Update,
-                (
-                    manage_sort_labels,
-                    update_sort_label_positions,
-                    update_sort_label_colors,
-                )
-                    .chain()
-                    .in_set(SortSystemSet::Rendering),
-            );
+            ;
     }
 }

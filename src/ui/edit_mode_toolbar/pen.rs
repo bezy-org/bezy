@@ -94,9 +94,8 @@ const CURSOR_INDICATOR_SIZE: f32 = 4.0;
 // RESOURCES AND STATE
 // ================================================================
 
-/// Resource to track if pen mode is currently active
-#[derive(Resource, Default, PartialEq, Eq)]
-pub struct PenModeActive(pub bool);
+// Use PenModeActive from tools::pen and re-export it
+pub use crate::tools::pen::PenModeActive;
 
 /// Input consumer for pen tool
 #[derive(Resource)]

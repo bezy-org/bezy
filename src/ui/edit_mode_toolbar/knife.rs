@@ -14,9 +14,8 @@ use kurbo::{BezPath, ParamCurve, ParamCurveNearest, PathEl, Point, Shape};
 
 // Simple path operations are defined at the end of this file
 
-/// Resource to track if knife mode is active
-#[derive(Resource, Default, PartialEq, Eq)]
-pub struct KnifeModeActive(pub bool);
+// Use KnifeModeActive from tools::knife and re-export it
+pub use crate::tools::knife::KnifeModeActive;
 
 pub struct KnifeTool;
 

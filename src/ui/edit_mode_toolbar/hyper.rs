@@ -41,9 +41,8 @@ impl EditTool for HyperTool {
     }
 }
 
-/// Resource to track if hyper mode is active
-#[derive(Resource, Default, PartialEq, Eq)]
-pub struct HyperModeActive(pub bool);
+// Use HyperModeActive from tools::hyper and re-export it
+pub use crate::tools::hyper::HyperModeActive;
 
 /// The state of the hyper tool
 #[derive(Resource, Default)]
