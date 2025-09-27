@@ -51,6 +51,7 @@ pub(crate) struct CursorEntityPool {
 /// Component to mark entities as pooled (to distinguish from regular entities)
 #[derive(Component)]
 pub(crate) struct PooledEntity {
+    #[allow(dead_code)]
     pub entity_type: PooledEntityType,
 }
 
@@ -64,6 +65,7 @@ pub enum PooledEntityType {
 
 impl EntityPools {
     /// Get or create an outline entity pool for a specific sort
+    #[allow(dead_code)]
     pub fn get_outline_pool(&mut self, sort_entity: Entity) -> &mut OutlineEntityPool {
         self.outline_pools.entry(sort_entity).or_default()
     }
@@ -106,6 +108,7 @@ impl EntityPools {
     }
 
     /// Get an outline entity from the pool for a specific sort
+    #[allow(dead_code)]
     pub fn get_outline_entity(&mut self, commands: &mut Commands, sort_entity: Entity) -> Entity {
         let pool = self.get_outline_pool(sort_entity);
 
@@ -203,6 +206,7 @@ impl EntityPools {
     }
 
     /// Return outline entities for a specific sort to the available pool
+    #[allow(dead_code)]
     pub fn return_outline_entities(&mut self, commands: &mut Commands, sort_entity: Entity) {
         if let Some(pool) = self.outline_pools.get_mut(&sort_entity) {
             // Only log if returning significant number of entities to avoid debug noise
@@ -224,6 +228,7 @@ impl EntityPools {
     }
 
     /// Return metrics entities for a specific sort to the available pool
+    #[allow(dead_code)]
     pub fn return_metrics_entities(&mut self, commands: &mut Commands, sort_entity: Entity) {
         if let Some(pool) = self.metrics_pools.get_mut(&sort_entity) {
             // Only log if returning significant number of entities to avoid debug noise
@@ -246,6 +251,7 @@ impl EntityPools {
 
     /// Return all entities to pools (useful for cleanup)
     /// NOTE: This is expensive - prefer selective returns when possible
+    #[allow(dead_code)]
     pub fn return_all_entities(&mut self, commands: &mut Commands) {
         debug!("Returning all entities to pools");
 
@@ -266,6 +272,7 @@ impl EntityPools {
     }
 
     /// Return entities for specific sorts that have changed (more efficient)
+    #[allow(dead_code)]
     pub fn return_entities_for_changed_sorts(
         &mut self,
         commands: &mut Commands,

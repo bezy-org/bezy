@@ -80,6 +80,7 @@ fn draw_tab_content(f: &mut Frame, app: &mut App, area: Rect) {
     }
 }
 
+#[allow(dead_code)]
 fn draw_unicode_tab_with_data(
     f: &mut Frame,
     glyphs: &[crate::tui::communication::GlyphInfo],
@@ -153,6 +154,7 @@ fn draw_unicode_tab_with_data(
     f.render_widget(status, chunks[1]);
 }
 
+#[allow(dead_code)]
 fn draw_font_info_tab_with_data(f: &mut Frame, font_info: &Option<crate::tui::communication::FontInfo>, area: Rect) {
     let content = if let Some(font_info) = font_info {
         let mut text = Vec::new();
@@ -211,6 +213,7 @@ fn draw_font_info_tab_with_data(f: &mut Frame, font_info: &Option<crate::tui::co
     f.render_widget(paragraph, area);
 }
 
+#[allow(dead_code)]
 fn draw_logs_tab_with_data(
     f: &mut Frame,
     logs: &[String],
@@ -244,6 +247,7 @@ fn draw_logs_tab_with_data(
     f.render_widget(logs, area);
 }
 
+#[allow(dead_code)]
 fn draw_file_tab(f: &mut Frame, area: Rect) {
     let file_menu = vec![
         Line::from(vec![
@@ -269,6 +273,7 @@ fn draw_file_tab(f: &mut Frame, area: Rect) {
     f.render_widget(paragraph, area);
 }
 
+#[allow(dead_code)]
 fn draw_edit_tab(f: &mut Frame, area: Rect) {
     let edit_menu = vec![
         Line::from(vec![
@@ -297,6 +302,7 @@ fn draw_edit_tab(f: &mut Frame, area: Rect) {
     f.render_widget(paragraph, area);
 }
 
+#[allow(dead_code)]
 fn draw_empty_tab(f: &mut Frame, area: Rect, title: &str) {
     let content = vec![
         Line::from(""),
@@ -311,6 +317,7 @@ fn draw_empty_tab(f: &mut Frame, area: Rect, title: &str) {
     f.render_widget(paragraph, area);
 }
 
+#[allow(dead_code)]
 fn draw_ai_tab(f: &mut Frame, state: &mut crate::tui::tabs::game_of_life::GameOfLifeState, area: Rect) {
     // Update the game state
     state.update();
@@ -357,6 +364,7 @@ fn draw_ai_tab(f: &mut Frame, state: &mut crate::tui::tabs::game_of_life::GameOf
     f.render_widget(controls, chunks[1]);
 }
 
+#[allow(dead_code)]
 fn draw_help_tab(f: &mut Frame, area: Rect) {
     let help_text = vec![
         Line::from(vec![

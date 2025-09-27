@@ -6,6 +6,7 @@ use tokio::process::Command;
 use tokio::fs;
 
 pub struct FontCompiler {
+    #[allow(dead_code)]
     temp_dir: PathBuf,
     cache_dir: PathBuf,
 }

@@ -47,14 +47,4 @@ pub(crate) fn debug_validate_point_entity_uniqueness(
     }
 }
 
-/// Debug utility to print selection state information
-pub(crate) fn debug_selection_state(
-    selection_state: Res<crate::editing::selection::components::SelectionState>,
-) {
-    if !selection_state.selected.is_empty() {
-        debug!(
-            "Current selection: {} entities",
-            selection_state.selected.len()
-        );
-    }
-}
+// Removed unused debug_selection_state function

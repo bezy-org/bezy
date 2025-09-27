@@ -277,8 +277,8 @@ pub fn calculate_cursor_position(
 // CURSOR RENDERING SYSTEM
 // ============================================================================
 
-/// System to manage text editor cursor rendering
-pub fn render_text_editor_cursor(
+/// System to manage text editor cursor rendering (internal)
+pub(crate) fn render_text_editor_cursor(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,

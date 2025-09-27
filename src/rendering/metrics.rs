@@ -216,8 +216,8 @@ fn get_or_update_metrics_line(
     entity
 }
 
-/// System to render mesh-based metrics lines for all active sorts
-pub fn render_mesh_metrics_lines(
+/// System to render mesh-based metrics lines for all active sorts (internal)
+pub(crate) fn render_mesh_metrics_lines(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,

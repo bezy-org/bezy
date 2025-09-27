@@ -17,7 +17,7 @@ pub struct PointSortParent(pub Entity);
 
 /// Spawn active sort points optimized
 #[allow(clippy::too_many_arguments)]
-pub fn spawn_active_sort_points_optimized(
+pub(crate) fn spawn_active_sort_points_optimized(
     mut commands: Commands,
     active_sort_query: Query<(Entity, &Sort, &Transform), With<ActiveSort>>,
     existing_points: Query<&PointSortParent>,
@@ -444,7 +444,7 @@ pub fn despawn_inactive_sort_points_optimized(
 
 /// Detect when active sorts change glyph and force point regeneration
 #[allow(clippy::type_complexity)]
-pub fn detect_sort_glyph_changes(
+pub(crate) fn detect_sort_glyph_changes(
     mut commands: Commands,
     changed_sorts: Query<(Entity, &Sort), (With<ActiveSort>, Changed<Sort>)>,
     existing_point_query: Query<(Entity, &SortPointEntity)>,

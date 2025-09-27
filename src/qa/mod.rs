@@ -10,6 +10,7 @@ use std::time::SystemTime;
 pub struct QAEngine {
     fontspector: fontspector::FontspectorRunner,
     compiler: compiler::FontCompiler,
+    #[allow(dead_code)]
     trigger: trigger::QASaveTrigger,
     storage: storage::ReportStorage,
 }
