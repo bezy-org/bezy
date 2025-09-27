@@ -39,7 +39,6 @@
 //!
 //! This clean separation makes tools easy to understand, test, and maintain.
 
-pub mod adapters;
 pub mod ai;
 pub mod hyper;
 pub mod knife;
@@ -52,7 +51,6 @@ pub mod shapes;
 pub mod text;
 
 // Re-export all tools
-pub use adapters::*;
 pub use ai::*;
 pub use hyper::*;
 pub use knife::*;

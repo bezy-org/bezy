@@ -440,11 +440,6 @@ pub trait EditModeSystem: Send + Sync + 'static {
     fn on_exit(&self) {}
 }
 
-// Legacy compatibility - will be removed after migration
-pub struct ShapesMode;
-impl EditModeSystem for ShapesMode {
-    fn update(&self, _commands: &mut Commands) {}
-}
 
 /// System to initialize the default tool (Select) on startup
 fn initialize_default_tool(
