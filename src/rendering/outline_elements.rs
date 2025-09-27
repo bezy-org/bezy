@@ -21,7 +21,7 @@ impl Plugin for OutlineElementsPlugin {
             Update,
             (update_handle_lines, cleanup_orphaned_handles)
                 .chain()
-                .after(crate::editing::selection::nudge::handle_nudge_input),
+                .in_set(crate::rendering::PostEditingRenderingSet),
         );
     }
 }

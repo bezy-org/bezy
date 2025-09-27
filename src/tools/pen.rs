@@ -125,7 +125,7 @@ impl Plugin for PenToolPlugin {
         app.init_resource::<PenToolState>()
             .init_resource::<PenModeActive>()
             .init_resource::<crate::ui::edit_mode_toolbar::pen::PenDrawingMode>() // Default is Regular
-            .add_systems(Startup, pen_tool_startup_log)
+            .add_systems(Startup, (pen_tool_startup_log, register_pen_tool))
             .add_systems(
                 PostStartup,
                 crate::ui::edit_mode_toolbar::pen::spawn_pen_submenu,
@@ -148,6 +148,11 @@ impl Plugin for PenToolPlugin {
 /// Startup system to confirm pen tool plugin loaded
 fn pen_tool_startup_log() {
     debug!("🖊️ PenToolPlugin successfully initialized with all systems");
+}
+
+/// Register the pen tool with the tool registry
+fn register_pen_tool(mut tool_registry: ResMut<crate::ui::edit_mode_toolbar::ToolRegistry>) {
+    tool_registry.register_tool(Box::new(crate::ui::edit_mode_toolbar::pen::PenTool));
 }
 
 /// Debug system to monitor pen tool state

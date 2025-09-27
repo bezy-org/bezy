@@ -87,39 +87,8 @@ const CURSOR_INDICATOR_SIZE: f32 = 4.0;
 // PLUGIN SETUP
 // ================================================================
 
-/// Bevy plugin that sets up the pen tool
-///
-/// This plugin initializes the pen tool's state resources and registers
-/// all the systems needed for pen functionality:
-/// - Mouse input handling for placing points
-/// - Keyboard shortcuts (Escape to cancel)
-/// - Visual preview rendering of the current path
-/// - Cleanup when switching away from pen mode
-pub struct PenModePlugin;
-
-impl Plugin for PenModePlugin {
-    fn build(&self, app: &mut App) {
-        app.init_resource::<PenToolState>()
-            .init_resource::<PenModeActive>()
-            .init_resource::<PenDrawingMode>() // Default is Regular
-            .add_systems(Startup, register_pen_tool)
-            // Business logic is handled by /src/tools/pen.rs PenToolPlugin
-            // This UI module only handles toolbar integration
-            .add_systems(
-                Update,
-                (
-                    reset_pen_mode_when_inactive,
-                    toggle_pen_submenu_visibility,
-                    handle_pen_submenu_selection,
-                ),
-            )
-            .add_systems(PostStartup, spawn_pen_submenu);
-    }
-}
-
-fn register_pen_tool(mut tool_registry: ResMut<ToolRegistry>) {
-    tool_registry.register_tool(Box::new(PenTool));
-}
+// Plugin integration is now handled by /src/tools/pen.rs PenToolPlugin
+// This module only provides UI functions and tool implementation
 
 // ================================================================
 // RESOURCES AND STATE

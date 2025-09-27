@@ -19,7 +19,7 @@ use std::collections::{HashMap, HashSet};
 
 /// Resource to collect rendering data and reduce system parameter count
 #[derive(Resource, Default)]
-pub struct GlyphRenderingData {
+pub(crate) struct GlyphRenderingData {
     pub smooth_points: HashMap<Entity, bool>,
     pub needs_update: bool,
 }
@@ -58,7 +58,7 @@ pub struct GlyphRenderEntities {
 
 /// Resource to track when sorts need visual updates (prevents unnecessary rebuilding)
 #[derive(Resource, Default)]
-pub struct SortVisualUpdateTracker {
+pub(crate) struct SortVisualUpdateTracker {
     pub needs_update: bool,
 }
 
@@ -69,7 +69,7 @@ const POINT_Z: f32 = 10.0; // Unselected points
 const SELECTED_POINT_Z: f32 = 15.0; // Selected points - always above unselected
 
 /// System to collect rendering data with fewer parameters
-pub fn collect_rendering_data(
+pub(crate) fn collect_rendering_data(
     enhanced_points_query: Query<(Entity, &EnhancedPointType)>,
     enhanced_attributes: Res<crate::editing::selection::entity_management::EnhancedPointAttributes>,
     point_refs_query: Query<
@@ -113,7 +113,7 @@ pub fn collect_rendering_data(
 /// Main glyph rendering system - renders both active (with points/handles) and inactive (filled outlines) sorts
 /// This single system eliminates coordination complexity between separate rendering systems
 #[allow(clippy::type_complexity)]
-pub fn render_glyphs(
+pub(crate) fn render_glyphs(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
@@ -1499,9 +1499,9 @@ fn spawn_contour_start_arrow(
     theme: &CurrentTheme,
 ) -> Entity {
     // Create arrow shape - tall and narrow
-    let arrow_height = 16.0 * camera_scale.scale_factor; // Height (how far the arrow extends)
-    let arrow_width = 16.0 * camera_scale.scale_factor; // Width (base of the triangle)
-    let gap = 8.0 * camera_scale.scale_factor; // Gap between point and arrow
+    let arrow_height = 16.0 * camera_scale.scale_factor(); // Height (how far the arrow extends)
+    let arrow_width = 16.0 * camera_scale.scale_factor(); // Width (base of the triangle)
+    let gap = 8.0 * camera_scale.scale_factor(); // Gap between point and arrow
 
     // Arrow points in the direction of the contour
     let perpendicular = Vec2::new(-direction.y, direction.x) * arrow_width * 0.5;
@@ -1563,9 +1563,7 @@ impl Plugin for GlyphRenderingPlugin {
             .init_resource::<GlyphRenderingData>()
             .add_systems(
                 Update,
-                detect_sort_changes
-                    .after(crate::systems::sorts::spawn_active_sort_points_optimized)
-                    .after(crate::editing::selection::nudge::handle_nudge_input),
+                detect_sort_changes.in_set(crate::rendering::PostEditingRenderingSet),
             )
             .add_systems(Update, collect_rendering_data)
             .add_systems(Update, render_glyphs.after(collect_rendering_data));

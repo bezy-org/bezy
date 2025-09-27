@@ -11,7 +11,7 @@ use crate::editing::{FontEditorSystemSetsPlugin, SelectionPlugin, TextEditorPlug
 use crate::rendering::{
     cameras::CameraPlugin, checkerboard::CheckerboardPlugin,
     zoom_aware_scaling::CameraResponsivePlugin, EntityPoolingPlugin, GlyphRenderingPlugin,
-    MeshCachingPlugin, MetricsRenderingPlugin, SortHandleRenderingPlugin,
+    MeshCachingPlugin, MetricsRenderingPlugin, PostEditingRenderingPlugin, SortHandleRenderingPlugin,
 };
 use crate::systems::{
     center_camera_on_startup_layout, create_startup_layout, exit_on_esc, load_fontir_font,
@@ -33,9 +33,9 @@ use bevy::winit::WinitSettings;
 use tokio::sync::mpsc;
 use crate::tui::communication::{AppMessage, TuiMessage};
 
-/// Plugin group for core application functionality
+/// Plugin group for core application functionality (internal)
 #[derive(Default)]
-pub struct CorePluginGroup;
+struct CorePluginGroup;
 
 impl PluginGroup for CorePluginGroup {
     fn build(self) -> PluginGroupBuilder {
@@ -55,13 +55,14 @@ impl PluginGroup for CorePluginGroup {
     }
 }
 
-/// Plugin group for rendering functionality
+/// Plugin group for rendering functionality (internal)
 #[derive(Default)]
-pub struct RenderingPluginGroup;
+struct RenderingPluginGroup;
 
 impl PluginGroup for RenderingPluginGroup {
     fn build(self) -> PluginGroupBuilder {
         PluginGroupBuilder::start::<Self>()
+            .add(PostEditingRenderingPlugin) // Must be first to configure SystemSets
             .add(CameraPlugin)
             .add(CameraResponsivePlugin)
             .add(CheckerboardPlugin)
@@ -73,9 +74,9 @@ impl PluginGroup for RenderingPluginGroup {
     }
 }
 
-/// Plugin group for editor UI
+/// Plugin group for editor UI (internal)
 #[derive(Default)]
-pub struct EditorPluginGroup;
+struct EditorPluginGroup;
 
 impl PluginGroup for EditorPluginGroup {
     fn build(self) -> PluginGroupBuilder {
@@ -92,7 +93,29 @@ impl PluginGroup for EditorPluginGroup {
     }
 }
 
-/// Creates a fully configured Bevy GUI application ready to run
+/// Creates a fully configured Bevy font editor application.
+///
+/// This is the main entry point for the Bezy font editor. It creates a complete
+/// Bevy application with all necessary plugins, systems, and resources configured.
+///
+/// # Arguments
+///
+/// * `cli_args` - Command line arguments and configuration
+///
+/// # Returns
+///
+/// * `Result<App>` - A configured Bevy App ready to run, or an error if setup fails
+///
+/// # Example
+///
+/// ```no_run
+/// use bezy::core::app::create_app;
+/// use bezy::core::settings::CliArgs;
+///
+/// let cli_args = CliArgs::default();
+/// let app = create_app(cli_args)?;
+/// app.run();
+/// ```
 pub fn create_app(cli_args: CliArgs) -> Result<App> {
     #[cfg(not(target_arch = "wasm32"))]
     cli_args
@@ -235,7 +258,22 @@ fn add_startup_and_exit_systems(app: &mut App) {
         .add_systems(Update, (exit_on_esc, center_camera_on_startup_layout));
 }
 
-/// Creates a fully configured Bevy GUI application with TUI support
+/// Creates a fully configured Bevy font editor application with TUI support.
+///
+/// This variant of the main entry point enables the Terminal User Interface (TUI)
+/// for remote monitoring and control of the font editor. The TUI provides real-time
+/// information about the font editing session and allows external applications to
+/// interact with the editor.
+///
+/// # Arguments
+///
+/// * `cli_args` - Command line arguments and configuration
+/// * `tui_rx` - Receiver for messages from the TUI
+/// * `app_tx` - Sender for messages to the TUI
+///
+/// # Returns
+///
+/// * `Result<App>` - A configured Bevy App with TUI support, or an error if setup fails
 pub fn create_app_with_tui(
     cli_args: CliArgs,
     tui_rx: mpsc::UnboundedReceiver<TuiMessage>,

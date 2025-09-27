@@ -18,6 +18,7 @@ pub mod mesh_utils;
 pub mod metrics;
 pub mod outline_elements;
 pub mod points;
+pub mod post_editing_systems;
 pub mod selection;
 pub mod sort_renderer;
 pub mod sort_visuals;
@@ -32,6 +33,7 @@ pub use mesh_cache::MeshCachingPlugin;
 pub use metrics::MetricsRenderingPlugin;
 pub use outline_elements::OutlineElementsPlugin;
 pub use points::PointRenderingPlugin;
+pub use post_editing_systems::{PostEditingRenderingPlugin, PostEditingRenderingSet};
 pub use selection::{
     render_all_point_entities, render_selected_entities, render_selection_marquee,
 };

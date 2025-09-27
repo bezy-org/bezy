@@ -2,6 +2,7 @@
 
 use crate::core::state::AppState;
 use crate::editing::selection::systems::*;
+use crate::editing::FontEditorSets;
 use bevy::prelude::*;
 
 pub mod components;
@@ -85,11 +86,7 @@ impl Plugin for SelectionPlugin {
             .init_resource::<entity_management::EnhancedPointAttributes>()
             // SelectModeActive is now properly managed by SelectToolPlugin
             // Configure system sets for proper ordering
-            .configure_sets(
-                Update,
-                (SelectionSystemSet::Input, SelectionSystemSet::Processing).chain(),
-            )
-            .configure_sets(PostUpdate, (SelectionSystemSet::Render,))
+            // Selection systems now use FontEditorSets for better integration
             // NOTE: Input handling moved to SelectionInputConsumer in input_consumer.rs
             // to prevent event consumption conflicts
             .add_systems(Update, input::handle_point_drag)
@@ -107,8 +104,7 @@ impl Plugin for SelectionPlugin {
                     clear_selection_on_app_change,
                     entity_management::cleanup_click_resource,
                 )
-                    .in_set(SelectionSystemSet::Processing)
-                    .after(SelectionSystemSet::Input),
+                    .in_set(FontEditorSets::Rendering),
             )
             // Rendering systems - moved to PostUpdate to run after transform propagation
             .add_systems(
@@ -117,7 +113,7 @@ impl Plugin for SelectionPlugin {
                     crate::rendering::selection::render_selection_marquee,
                     utils::debug_print_selection_rects, // TEMP: debug system
                 )
-                    .in_set(SelectionSystemSet::Render),
+                    .in_set(FontEditorSets::Rendering),
             )
             // Add the nudge plugin
             .add_plugins(NudgePlugin);
@@ -126,21 +122,12 @@ impl Plugin for SelectionPlugin {
         #[cfg(debug_assertions)]
         app.add_systems(
             PostUpdate,
-            utils::debug_validate_point_entity_uniqueness.after(SelectionSystemSet::Render),
+            utils::debug_validate_point_entity_uniqueness.in_set(FontEditorSets::Cleanup),
         );
     }
 }
 
-/// System sets for Selection
-#[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
-pub enum SelectionSystemSet {
-    #[allow(dead_code)]
-    Input,
-    #[allow(dead_code)]
-    Processing,
-    #[allow(dead_code)]
-    Render,
-}
+// SelectionSystemSet removed - now using FontEditorSets for better integration
 
 /// System to ensure Selected components are synchronized with SelectionState
 pub fn sync_selected_components(

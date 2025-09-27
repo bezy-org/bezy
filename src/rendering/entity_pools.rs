@@ -10,9 +10,9 @@ use bevy::sprite::{ColorMaterial, MeshMaterial2d};
 use bevy::time::common_conditions::on_timer;
 use std::collections::HashMap;
 
-/// Resource to manage entity pools for different types of rendering elements
+/// Resource to manage entity pools for different types of rendering elements (internal)
 #[derive(Resource, Default)]
-pub struct EntityPools {
+pub(crate) struct EntityPools {
     /// Pool for outline entities (one pool per sort entity)
     pub outline_pools: HashMap<Entity, OutlineEntityPool>,
     /// Pool for metrics entities (one pool per sort entity)  
@@ -21,9 +21,9 @@ pub struct EntityPools {
     pub cursor_pool: CursorEntityPool,
 }
 
-/// Pool for outline entities associated with a specific sort
+/// Pool for outline entities associated with a specific sort (internal)
 #[derive(Default)]
-pub struct OutlineEntityPool {
+pub(crate) struct OutlineEntityPool {
     /// Entities currently available for reuse
     pub available: Vec<Entity>,
     /// Entities currently in use (being rendered)
@@ -32,7 +32,7 @@ pub struct OutlineEntityPool {
 
 /// Pool for metrics entities associated with a specific sort
 #[derive(Default)]
-pub struct MetricsEntityPool {
+pub(crate) struct MetricsEntityPool {
     /// Entities currently available for reuse
     pub available: Vec<Entity>,
     /// Entities currently in use (being rendered)
@@ -41,7 +41,7 @@ pub struct MetricsEntityPool {
 
 /// Pool for cursor entities (shared across all cursors)
 #[derive(Default)]
-pub struct CursorEntityPool {
+pub(crate) struct CursorEntityPool {
     /// Entities currently available for reuse
     pub available: Vec<Entity>,
     /// Entities currently in use (being rendered)
@@ -50,7 +50,7 @@ pub struct CursorEntityPool {
 
 /// Component to mark entities as pooled (to distinguish from regular entities)
 #[derive(Component)]
-pub struct PooledEntity {
+pub(crate) struct PooledEntity {
     pub entity_type: PooledEntityType,
 }
 
@@ -329,7 +329,7 @@ impl EntityPools {
 
 /// Statistics about entity pool usage
 #[derive(Debug)]
-pub struct PoolStats {
+pub(crate) struct PoolStats {
     pub outline_available: usize,
     pub outline_in_use: usize,
     pub metrics_available: usize,

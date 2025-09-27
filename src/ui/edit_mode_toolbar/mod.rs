@@ -425,7 +425,7 @@ pub use text::TextToolPlugin;
 pub use hyper::HyperTool;
 pub use knife::KnifeTool;
 pub use pan::{PanMode, PanToolPlugin, PresentationMode};
-pub use pen::{PenMode, PenModePlugin};
+pub use pen::PenMode;
 pub use shapes::ShapesToolPlugin;
 
 pub use select::{SelectMode, SelectModeActive};

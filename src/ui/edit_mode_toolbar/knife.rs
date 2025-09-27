@@ -401,8 +401,8 @@ pub fn render_knife_preview(
         // Create dashed line effect with a single batched mesh for performance
         let _direction = (world_end - world_start).normalize();
         let _total_length = world_start.distance(world_end);
-        let dash_length = theme.theme().knife_dash_length() * camera_scale.scale_factor;
-        let gap_length = theme.theme().knife_gap_length() * camera_scale.scale_factor;
+        let dash_length = theme.theme().knife_dash_length() * camera_scale.scale_factor();
+        let gap_length = theme.theme().knife_gap_length() * camera_scale.scale_factor();
         let _segment_length = dash_length + gap_length;
         let line_width = camera_scale.adjusted_line_width();
 
