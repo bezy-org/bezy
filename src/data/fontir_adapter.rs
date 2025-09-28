@@ -150,4 +150,3 @@ pub fn load_font_with_fontir(path: PathBuf) -> Result<FontIRData> {
         }
     }
 }
-

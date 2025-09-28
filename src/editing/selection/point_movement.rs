@@ -14,7 +14,12 @@ use bevy::prelude::*;
 type UnselectedPointsQueryMut<'w, 's> = Query<
     'w,
     's,
-    (Entity, &'static mut Transform, &'static GlyphPointReference, &'static PointType),
+    (
+        Entity,
+        &'static mut Transform,
+        &'static GlyphPointReference,
+        &'static PointType,
+    ),
     (With<SortPointEntity>, Without<Selected>),
 >;
 

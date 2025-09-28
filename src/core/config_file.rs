@@ -5,6 +5,8 @@
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::fs::OpenOptions;
+use std::os::unix::io::AsRawFd;
 use std::path::PathBuf;
 
 /// User configuration from ~/.config/bezy/settings.json
@@ -151,6 +153,45 @@ impl ConfigFile {
         println!("  - Edit settings at: {:?}", settings_path);
         println!("  - Customize themes in: {:?}", themes_dir);
         println!("  - View application logs in: {:?}", logs_dir);
+
+        Ok(())
+    }
+
+    /// Set up log redirection to ~/.config/bezy/logs/
+    /// Used when running without TUI to capture logs to file
+    pub fn setup_log_redirection() -> anyhow::Result<()> {
+        // Check if config directory exists - if not, we'll fail gracefully
+        let config_dir = Self::config_dir();
+        if !config_dir.exists() {
+            // Config directory doesn't exist, so don't try to create logs
+            return Err(anyhow::anyhow!("Config directory doesn't exist"));
+        }
+
+        // Initialize logs directory
+        Self::initialize_logs_directory()?;
+
+        // Get the log file path
+        let log_file_path = Self::current_log_file();
+
+        // Create/open the log file - use truncate instead of append for single log file
+        let log_file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(&log_file_path)?;
+
+        // Redirect stdout and stderr to the log file
+        unsafe {
+            libc::dup2(log_file.as_raw_fd(), libc::STDOUT_FILENO);
+            libc::dup2(log_file.as_raw_fd(), libc::STDERR_FILENO);
+        }
+
+        // Print initial log message to confirm redirection
+        println!(
+            "=== Bezy started at {} ===",
+            chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC")
+        );
+        println!("Logs redirected to: {:?}", log_file_path);
 
         Ok(())
     }

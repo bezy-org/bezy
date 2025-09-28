@@ -78,8 +78,6 @@ pub struct PenInputConsumer {
 
 impl InputConsumer for PenInputConsumer {
     fn should_handle_input(&self, event: &InputEvent, input_state: &InputState) -> bool {
-        
-
         (matches!(
             event,
             InputEvent::MouseClick { .. }

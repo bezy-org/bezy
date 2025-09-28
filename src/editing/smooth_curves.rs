@@ -15,21 +15,39 @@ type HandleInfo = (Entity, Vec2, GlyphPointReference);
 type NeighborHandles = (Option<HandleInfo>, Option<HandleInfo>);
 
 // Type aliases for smooth constraint queries
-type ChangedPointQuery = Query<'static, 'static, (Entity, &'static Transform, &'static GlyphPointReference, &'static PointType), Changed<Transform>>;
-type AllPointsQuery = Query<'static, 'static, (
-    Entity,
-    &'static Transform,
-    &'static GlyphPointReference,
-    &'static PointType,
-    Option<&'static EnhancedPointType>,
-)>;
-type MutablePointsQuery = Query<'static, 'static, (
-    Entity,
-    &'static mut Transform,
-    &'static GlyphPointReference,
-    &'static PointType,
-    Option<&'static EnhancedPointType>,
-)>;
+type ChangedPointQuery = Query<
+    'static,
+    'static,
+    (
+        Entity,
+        &'static Transform,
+        &'static GlyphPointReference,
+        &'static PointType,
+    ),
+    Changed<Transform>,
+>;
+type AllPointsQuery = Query<
+    'static,
+    'static,
+    (
+        Entity,
+        &'static Transform,
+        &'static GlyphPointReference,
+        &'static PointType,
+        Option<&'static EnhancedPointType>,
+    ),
+>;
+type MutablePointsQuery = Query<
+    'static,
+    'static,
+    (
+        Entity,
+        &'static mut Transform,
+        &'static GlyphPointReference,
+        &'static PointType,
+        Option<&'static EnhancedPointType>,
+    ),
+>;
 
 /// Simple function to find direct neighbor handles in a contour
 /// Returns (left_handle, right_handle) where either or both can be None
@@ -544,17 +562,11 @@ pub fn auto_apply_smooth_constraints(
     }
 }
 
-
-
 /// Universal smooth constraint system that monitors ALL Transform changes
 /// This ensures smooth constraints work regardless of how points are moved (drag, nudge, direct manipulation)
 pub fn universal_smooth_constraints(
     // Use ParamSet to avoid query conflicts between immutable and mutable Transform access
-    mut param_set: ParamSet<(
-        ChangedPointQuery,
-        AllPointsQuery,
-        MutablePointsQuery,
-    )>,
+    mut param_set: ParamSet<(ChangedPointQuery, AllPointsQuery, MutablePointsQuery)>,
     // Track processed entities to avoid infinite loops
     mut processed: Local<std::collections::HashSet<Entity>>,
 ) {

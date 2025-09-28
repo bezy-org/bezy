@@ -421,7 +421,8 @@ fn convert_bezpath_to_ufo_contour(bez_path: &kurbo::BezPath) -> norad::Contour {
                 let adjusted_start_idx = if start_idx > 1
                     && all_points[start_idx].typ != norad::PointType::OffCurve
                     && all_points[start_idx - 1].typ == norad::PointType::OffCurve
-                    && all_points[start_idx - 2].typ == norad::PointType::OffCurve {
+                    && all_points[start_idx - 2].typ == norad::PointType::OffCurve
+                {
                     // This on-curve point is preceded by two off-curves
                     start_idx - 2
                 } else {
@@ -585,7 +586,8 @@ fn convert_bezpath_to_ufo_contour_with_attributes(
                 let adjusted_start_idx = if start_idx > 1
                     && all_points[start_idx].typ != norad::PointType::OffCurve
                     && all_points[start_idx - 1].typ == norad::PointType::OffCurve
-                    && all_points[start_idx - 2].typ == norad::PointType::OffCurve {
+                    && all_points[start_idx - 2].typ == norad::PointType::OffCurve
+                {
                     // This on-curve point is preceded by two off-curves
                     start_idx - 2
                 } else {
@@ -638,8 +640,6 @@ fn rotate_points_to_start(
 
     result
 }
-
-
 
 /// Handles export to TTF events
 fn handle_export_ttf_events(

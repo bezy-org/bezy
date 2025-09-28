@@ -5,7 +5,6 @@
 #[cfg(test)]
 mod tests {
 
-
     #[test]
     fn test_affine_transform() {
         use crate::core::state::fontir_app_state::apply_affine_transform;

@@ -81,10 +81,14 @@ impl GameOfLifeState {
                 let ny = y as i32 + dy;
 
                 // Check bounds
-                if nx >= 0 && ny >= 0 && (nx as usize) < self.width && (ny as usize) < self.height
-                    && self.grid[ny as usize][nx as usize] {
-                        count += 1;
-                    }
+                if nx >= 0
+                    && ny >= 0
+                    && (nx as usize) < self.width
+                    && (ny as usize) < self.height
+                    && self.grid[ny as usize][nx as usize]
+                {
+                    count += 1;
+                }
             }
         }
 
