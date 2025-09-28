@@ -10,6 +10,14 @@ use crate::editing::sort::manager::SortPointEntity;
 use bevy::log::{debug, warn};
 use bevy::prelude::*;
 
+// Type alias for mutable query (used in nudge.rs)
+type UnselectedPointsQueryMut<'w, 's> = Query<
+    'w,
+    's,
+    (Entity, &'static mut Transform, &'static GlyphPointReference, &'static PointType),
+    (With<SortPointEntity>, Without<Selected>),
+>;
+
 /// Information about a point that needs to be moved
 #[derive(Debug, Clone)]
 pub struct PointMovement {
@@ -87,10 +95,7 @@ pub fn find_connected_offcurve_points_nudge(
     selected_point_ref: &GlyphPointReference,
     selected_point_type: &PointType,
     movement: Vec2,
-    all_points_query: &Query<
-        (Entity, &mut Transform, &GlyphPointReference, &PointType),
-        (With<SortPointEntity>, Without<Selected>),
-    >,
+    all_points_query: &UnselectedPointsQueryMut,
 ) -> Vec<PointMovement> {
     let mut connected_movements = Vec::new();
 

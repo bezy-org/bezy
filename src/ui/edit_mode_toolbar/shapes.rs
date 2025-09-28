@@ -822,6 +822,7 @@ fn spawn_shape_preview_dashed_line(
 }
 
 /// Spawn mesh-based dimension lines with camera-responsive scaling
+#[allow(clippy::too_many_arguments)]
 fn spawn_shape_dimension_lines(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,

@@ -16,6 +16,12 @@ pub struct FontInfoState {
     pub font_info: Option<FontInfo>,
 }
 
+impl Default for FontInfoState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FontInfoState {
     pub fn new() -> Self {
         Self { font_info: None }

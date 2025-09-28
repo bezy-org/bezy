@@ -18,6 +18,12 @@ pub struct GlyphsState {
     pub is_searching: bool,
 }
 
+impl Default for GlyphsState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GlyphsState {
     pub fn new() -> Self {
         Self {

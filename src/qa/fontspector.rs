@@ -11,7 +11,9 @@ pub struct FontspectorRunner {
 }
 
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub enum FontspectorProfile {
+    #[default]
     Universal,
     OpenType,
 }
@@ -192,11 +194,7 @@ impl FontspectorRunner {
         let glyph_name = if message.contains("glyph") {
             // Look for patterns like "glyph 'name'" or "glyph ('name')"
             if let Some(start) = message.find("'") {
-                if let Some(end) = message[start + 1..].find("'") {
-                    Some(message[start + 1..start + 1 + end].to_string())
-                } else {
-                    None
-                }
+                message[start + 1..].find("'").map(|end| message[start + 1..start + 1 + end].to_string())
             } else {
                 None
             }
@@ -253,8 +251,3 @@ impl FontspectorRunner {
     }
 }
 
-impl Default for FontspectorProfile {
-    fn default() -> Self {
-        FontspectorProfile::Universal
-    }
-}

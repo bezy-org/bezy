@@ -419,6 +419,7 @@ pub fn process_selection_input_events(
 
 /// Find the closest clicked point entity within selection tolerance
 /// Returns deterministic results when multiple entities are at the same location
+#[allow(clippy::type_complexity)]
 pub fn find_clicked_point(
     position: &DPoint,
     selectable_query: &Query<
@@ -474,6 +475,7 @@ pub fn find_clicked_point(
 
 /// System to handle smooth point toggles on double-click
 /// This is split from the main selection system to reduce parameter count
+#[allow(clippy::type_complexity)]
 pub fn handle_smooth_point_toggle(
     time: Res<Time>,
     mut double_click_state: ResMut<DoubleClickState>,

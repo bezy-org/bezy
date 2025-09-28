@@ -38,6 +38,7 @@ impl GameOfLifeState {
         !self.paused && self.last_update.elapsed() >= self.update_interval
     }
 
+    #[allow(clippy::needless_range_loop)]
     pub fn update(&mut self) {
         if !self.should_update() {
             return;
@@ -80,11 +81,10 @@ impl GameOfLifeState {
                 let ny = y as i32 + dy;
 
                 // Check bounds
-                if nx >= 0 && ny >= 0 && (nx as usize) < self.width && (ny as usize) < self.height {
-                    if self.grid[ny as usize][nx as usize] {
+                if nx >= 0 && ny >= 0 && (nx as usize) < self.width && (ny as usize) < self.height
+                    && self.grid[ny as usize][nx as usize] {
                         count += 1;
                     }
-                }
             }
         }
 
@@ -99,6 +99,7 @@ impl GameOfLifeState {
         *self = Self::new(self.width, self.height);
     }
 
+    #[allow(clippy::needless_range_loop)]
     pub fn set_size(&mut self, width: usize, height: usize) {
         if width != self.width || height != self.height {
             // Create a new grid with the new dimensions

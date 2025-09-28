@@ -11,6 +11,12 @@ pub struct FontCompiler {
     cache_dir: PathBuf,
 }
 
+impl Default for FontCompiler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FontCompiler {
     pub fn new() -> Self {
         let temp_dir = Self::get_qa_temp_dir();

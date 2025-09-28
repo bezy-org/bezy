@@ -730,6 +730,7 @@ pub fn create_value_text<T: Bundle>(
 
 /// Creates standardized label-value row layout
 /// This consolidates the duplicate row creation pattern found across 15+ locations
+#[allow(clippy::too_many_arguments)]
 pub fn create_label_value_row<L: Bundle, V: Bundle>(
     parent: &mut ChildSpawnerCommands,
     label_text: &str,

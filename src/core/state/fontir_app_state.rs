@@ -1353,7 +1353,7 @@ impl FontIRAppState {
             // For .designspace files, load the first available UFO source
             if let Some(designspace_dir) = source_path.parent() {
                 // Load the designspace to get the sources
-                if let Ok(designspace) = DesignSpaceDocument::load(&source_path) {
+                if let Ok(designspace) = DesignSpaceDocument::load(source_path) {
                     if let Some(first_source) = designspace.sources.first() {
                         let first_ufo_path = designspace_dir.join(&first_source.filename);
                         if let Ok(font) = norad::Font::load(&first_ufo_path) {
@@ -1413,7 +1413,7 @@ impl FontIRAppState {
             // For .designspace files, load the first available UFO source
             if let Some(designspace_dir) = source_path.parent() {
                 // Load the designspace to get the sources
-                if let Ok(designspace) = DesignSpaceDocument::load(&source_path) {
+                if let Ok(designspace) = DesignSpaceDocument::load(source_path) {
                     if let Some(first_source) = designspace.sources.first() {
                         let first_ufo_path = designspace_dir.join(&first_source.filename);
                         if let Ok(font) = norad::Font::load(&first_ufo_path) {

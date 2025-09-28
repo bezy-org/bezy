@@ -9,6 +9,12 @@ pub struct LogsState {
     pub auto_scroll: bool,
 }
 
+impl Default for LogsState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LogsState {
     pub fn new() -> Self {
         Self {

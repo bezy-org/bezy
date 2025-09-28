@@ -16,6 +16,12 @@ pub struct AIState {
     pub game: GameOfLifeState,
 }
 
+impl Default for AIState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AIState {
     pub fn new() -> Self {
         Self {

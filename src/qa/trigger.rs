@@ -8,6 +8,12 @@ pub struct QASaveTrigger {
     last_analysis_hash: Option<String>,
 }
 
+impl Default for QASaveTrigger {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl QASaveTrigger {
     pub fn new() -> Self {
         Self {

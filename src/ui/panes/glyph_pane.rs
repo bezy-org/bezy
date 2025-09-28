@@ -96,7 +96,7 @@ fn update_glyph_pane(world: &mut World) {
     static mut LOG_COUNT: u32 = 0;
     unsafe {
         LOG_COUNT += 1;
-        if LOG_COUNT % 60 == 0 {
+        if LOG_COUNT.is_multiple_of(60) {
             // Log every second at 60fps
             debug!("update_glyph_pane: Resource contains - glyph: '{}', advance: '{}', lsb: '{}', rsb: '{}'", 
                   metrics.glyph_name, metrics.advance, metrics.left_bearing, metrics.right_bearing);

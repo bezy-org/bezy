@@ -16,6 +16,12 @@ pub struct HelpState {
     pub scroll_offset: usize,
 }
 
+impl Default for HelpState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HelpState {
     pub fn new() -> Self {
         Self { scroll_offset: 0 }

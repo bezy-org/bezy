@@ -27,6 +27,7 @@ impl Plugin for OutlineElementsPlugin {
 }
 
 /// Updates handle lines between on-curve and off-curve points
+#[allow(clippy::too_many_arguments)]
 fn update_handle_lines(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,

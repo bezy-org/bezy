@@ -377,7 +377,7 @@ pub(crate) fn render_glyphs(
                 &camera_scale,
                 &theme,
                 text_editor_state.as_deref(),
-                &smooth_points,
+                smooth_points,
             );
         } else {
             debug!(
@@ -626,7 +626,7 @@ fn render_glyph_outline(
                 &live_positions,
                 sort_position,
                 camera_scale,
-                &theme,
+                theme,
             );
         }
     }

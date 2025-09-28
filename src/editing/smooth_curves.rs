@@ -10,15 +10,33 @@ use bevy::ecs::system::ParamSet;
 use bevy::log::{debug, info};
 use bevy::prelude::*;
 
+// Type aliases for return values and complex query types
+type HandleInfo = (Entity, Vec2, GlyphPointReference);
+type NeighborHandles = (Option<HandleInfo>, Option<HandleInfo>);
+
+// Type aliases for smooth constraint queries
+type ChangedPointQuery = Query<'static, 'static, (Entity, &'static Transform, &'static GlyphPointReference, &'static PointType), Changed<Transform>>;
+type AllPointsQuery = Query<'static, 'static, (
+    Entity,
+    &'static Transform,
+    &'static GlyphPointReference,
+    &'static PointType,
+    Option<&'static EnhancedPointType>,
+)>;
+type MutablePointsQuery = Query<'static, 'static, (
+    Entity,
+    &'static mut Transform,
+    &'static GlyphPointReference,
+    &'static PointType,
+    Option<&'static EnhancedPointType>,
+)>;
+
 /// Simple function to find direct neighbor handles in a contour
 /// Returns (left_handle, right_handle) where either or both can be None
 pub fn find_direct_neighbor_handles(
     smooth_point_ref: &GlyphPointReference,
     point_data: &[(Entity, Vec2, GlyphPointReference, PointType)],
-) -> (
-    Option<(Entity, Vec2, GlyphPointReference)>,
-    Option<(Entity, Vec2, GlyphPointReference)>,
-) {
+) -> NeighborHandles {
     // Get all points in the same contour
     let mut contour_points: Vec<_> = point_data
         .iter()
@@ -155,39 +173,31 @@ pub fn find_curve_handles_for_smooth_point(
     } else {
         smooth_idx - 1
     };
-    while idx != smooth_idx {
+    if idx != smooth_idx {
         let (entity, _, _, point_type) = contour_points[idx];
 
-        if point_type.is_on_curve {
-            // Found the previous on-curve point, stop looking
-            break;
-        } else {
+        if !point_type.is_on_curve {
             // This is an off-curve point (handle) between previous on-curve and our smooth point
             left_handle = Some(*entity);
             debug!(
                 "Found left handle {:?} for smooth point {:?} (moving backwards)",
                 entity, smooth_entity
             );
-            break; // We want the handle closest to our smooth point
         }
     }
 
     // Look forwards from smooth point to find the next on-curve point and any handles
     idx = (smooth_idx + 1) % contour_points.len();
-    while idx != smooth_idx {
+    if idx != smooth_idx {
         let (entity, _, _, point_type) = contour_points[idx];
 
-        if point_type.is_on_curve {
-            // Found the next on-curve point, stop looking
-            break;
-        } else {
+        if !point_type.is_on_curve {
             // This is an off-curve point (handle) between our smooth point and next on-curve
             right_handle = Some(*entity);
             debug!(
                 "Found right handle {:?} for smooth point {:?} (moving forwards)",
                 entity, smooth_entity
             );
-            break; // We want the handle closest to our smooth point
         }
     }
 
@@ -581,24 +591,9 @@ mod tests {
 pub fn universal_smooth_constraints(
     // Use ParamSet to avoid query conflicts between immutable and mutable Transform access
     mut param_set: ParamSet<(
-        // Query for points that have moved (immutable access)
-        Query<(Entity, &Transform, &GlyphPointReference, &PointType), Changed<Transform>>,
-        // Query for all points to analyze constraints (immutable access)
-        Query<(
-            Entity,
-            &Transform,
-            &GlyphPointReference,
-            &PointType,
-            Option<&EnhancedPointType>,
-        )>,
-        // Query for all points to modify (mutable access)
-        Query<(
-            Entity,
-            &mut Transform,
-            &GlyphPointReference,
-            &PointType,
-            Option<&EnhancedPointType>,
-        )>,
+        ChangedPointQuery,
+        AllPointsQuery,
+        MutablePointsQuery,
     )>,
     // Track processed entities to avoid infinite loops
     mut processed: Local<std::collections::HashSet<Entity>>,
@@ -661,7 +656,7 @@ pub fn universal_smooth_constraints(
                 if smooth_ref.glyph_name == moved_ref.glyph_name
                     && smooth_ref.contour_index == moved_ref.contour_index
                     && smooth_point_type.is_on_curve
-                    && smooth_enhanced.map_or(false, |e| e.is_smooth())
+                    && smooth_enhanced.is_some_and(|e| e.is_smooth())
                 {
                     // Use simplified neighbor detection
                     let (left_handle, right_handle) =
@@ -669,10 +664,10 @@ pub fn universal_smooth_constraints(
 
                     let moved_is_left = left_handle
                         .as_ref()
-                        .map_or(false, |(_, _, ref_comp)| ref_comp == moved_ref);
+                        .is_some_and(|(_, _, ref_comp)| ref_comp == moved_ref);
                     let moved_is_right = right_handle
                         .as_ref()
-                        .map_or(false, |(_, _, ref_comp)| ref_comp == moved_ref);
+                        .is_some_and(|(_, _, ref_comp)| ref_comp == moved_ref);
 
                     if moved_is_left || moved_is_right {
                         debug!(

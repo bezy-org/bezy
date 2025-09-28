@@ -34,6 +34,12 @@ pub enum QAView {
     Settings,
 }
 
+impl Default for QAState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl QAState {
     pub fn new() -> Self {
         let mut state = Self {
@@ -183,12 +189,12 @@ impl QAState {
     }
 
     fn severity_matches(&self, issue_severity: &Severity, filter: &Severity) -> bool {
-        match (issue_severity, filter) {
-            (Severity::Error, Severity::Error) => true,
-            (Severity::Warning, Severity::Warning) => true,
-            (Severity::Info, Severity::Info) => true,
-            _ => false,
-        }
+        matches!(
+            (issue_severity, filter),
+            (Severity::Error, Severity::Error)
+                | (Severity::Warning, Severity::Warning)
+                | (Severity::Info, Severity::Info)
+        )
     }
 
     fn category_matches(&self, issue_category: &Category, filter: &Category) -> bool {
@@ -467,32 +473,28 @@ fn draw_issue_detail(f: &mut Frame, state: &QAState, area: Rect) {
             .constraints([Constraint::Min(0), Constraint::Length(3)])
             .split(area);
 
-        let mut lines = Vec::new();
-
-        lines.push(Line::from(vec![
-            Span::styled("Check: ", Style::default().add_modifier(Modifier::BOLD)),
-            Span::raw(&issue.check_id),
-        ]));
-
-        lines.push(Line::from(vec![
-            Span::styled("Severity: ", Style::default().add_modifier(Modifier::BOLD)),
-            Span::styled(
-                issue.severity.as_str(),
-                Style::default().fg(issue.severity.color()),
-            ),
-        ]));
-
-        lines.push(Line::from(vec![
-            Span::styled("Category: ", Style::default().add_modifier(Modifier::BOLD)),
-            Span::raw(issue.category.as_str()),
-        ]));
-
-        lines.push(Line::from(""));
-
-        lines.push(Line::from(vec![Span::styled(
-            "Message: ",
-            Style::default().add_modifier(Modifier::BOLD),
-        )]));
+        let mut lines = vec![
+            Line::from(vec![
+                Span::styled("Check: ", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(&issue.check_id),
+            ]),
+            Line::from(vec![
+                Span::styled("Severity: ", Style::default().add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    issue.severity.as_str(),
+                    Style::default().fg(issue.severity.color()),
+                ),
+            ]),
+            Line::from(vec![
+                Span::styled("Category: ", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(issue.category.as_str()),
+            ]),
+            Line::from(""),
+            Line::from(vec![Span::styled(
+                "Message: ",
+                Style::default().add_modifier(Modifier::BOLD),
+            )]),
+        ];
 
         // Split message into multiple lines if needed
         for line in issue.message.lines() {

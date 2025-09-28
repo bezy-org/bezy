@@ -16,6 +16,12 @@ pub struct FileState {
     pub selected_index: usize,
 }
 
+impl Default for FileState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FileState {
     pub fn new() -> Self {
         Self { selected_index: 0 }

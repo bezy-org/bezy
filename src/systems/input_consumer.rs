@@ -17,6 +17,19 @@ use crate::geometry::world_space::DPoint;
 use crate::systems::ui_interaction::UiHoverState;
 use bevy::prelude::*;
 
+// Type alias for complex query type
+type SelectablePointQuery<'w, 's> = Query<
+    'w,
+    's,
+    (
+        Entity,
+        &'static GlobalTransform,
+        Option<&'static GlyphPointReference>,
+        Option<&'static PointType>,
+    ),
+    With<Selectable>,
+>;
+
 /// Trait for input consumers that handle specific types of input events
 pub trait InputConsumer {
     /// Determine if this consumer should handle the given input event
@@ -65,14 +78,14 @@ pub struct PenInputConsumer {
 
 impl InputConsumer for PenInputConsumer {
     fn should_handle_input(&self, event: &InputEvent, input_state: &InputState) -> bool {
-        let should_handle = matches!(
+        
+
+        (matches!(
             event,
             InputEvent::MouseClick { .. }
                 | InputEvent::MouseDrag { .. }
                 | InputEvent::MouseRelease { .. }
-        ) && helpers::is_input_mode(input_state, InputMode::Pen);
-
-        should_handle
+        ) && helpers::is_input_mode(input_state, InputMode::Pen))
     }
 
     fn handle_input(&mut self, event: &InputEvent, _input_state: &InputState) {
@@ -734,6 +747,7 @@ pub fn process_input_events(
 
 /// Plugin for the input consumer system
 /// System to process selection events stored by SelectionInputConsumer
+#[allow(clippy::too_many_arguments)]
 pub fn process_selection_events(
     mut commands: Commands,
     mut selection_consumer: ResMut<SelectionInputConsumer>,
@@ -742,15 +756,7 @@ pub fn process_selection_events(
     mut drag_state: ResMut<DragSelectionState>,
     mut drag_point_state: ResMut<DragPointState>,
     mut edit_events: EventWriter<crate::editing::selection::nudge::EditEvent>,
-    selectable_query: Query<
-        (
-            Entity,
-            &GlobalTransform,
-            Option<&GlyphPointReference>,
-            Option<&PointType>,
-        ),
-        With<Selectable>,
-    >,
+    selectable_query: SelectablePointQuery,
     selected_query: Query<(Entity, &Transform), With<Selected>>,
     selection_rect_query: Query<Entity, With<SelectionRect>>,
     active_sort_state: Res<crate::editing::sort::ActiveSortState>,

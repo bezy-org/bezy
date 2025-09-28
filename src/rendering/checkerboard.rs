@@ -115,6 +115,7 @@ pub fn calculate_dynamic_grid_size(zoom_scale: f32, theme: &CurrentTheme) -> f32
 ///
 /// This system dynamically spawns and despawns checkerboard squares
 /// based on what's visible to the camera, providing better performance.
+#[allow(clippy::too_many_arguments)]
 pub fn update_checkerboard(
     mut commands: Commands,
     mut state: ResMut<CheckerboardState>,
@@ -207,9 +208,8 @@ pub fn update_checkerboard(
     // Debug logging for checkerboard (only log once per grid size change)
 
     if state.last_grid_size.is_none()
-        || state
-            .last_grid_size
-            .map_or(true, |size| size != current_grid_size)
+        || (state
+            .last_grid_size != Some(current_grid_size))
         || significant_scale_change
     {
         debug!(
@@ -341,6 +341,7 @@ fn is_checkerboard_visible(zoom_scale: f32, theme: &CurrentTheme) -> bool {
 }
 
 /// Updates which squares are visible based on camera position
+#[allow(clippy::too_many_arguments)]
 fn update_visible_squares(
     commands: &mut Commands,
     state: &mut CheckerboardState,
@@ -442,7 +443,7 @@ fn calculate_visible_area(
     static mut LAST_LOGGED_GRID_SIZE: Option<f32> = None;
     unsafe {
         if LAST_LOGGED_GRID_SIZE.is_none()
-            || LAST_LOGGED_GRID_SIZE.map_or(true, |size| size != current_grid_size)
+            || (LAST_LOGGED_GRID_SIZE != Some(current_grid_size))
         {
             debug!(
                 "✅ Screen coverage: window=({:.0}x{:.0}), camera_scale={:.3}, \

@@ -14,6 +14,12 @@ pub struct PathState {
     // TODO: Add path editing state fields
 }
 
+impl Default for PathState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PathState {
     pub fn new() -> Self {
         Self {}

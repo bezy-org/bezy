@@ -4,7 +4,7 @@ pub mod storage;
 pub mod trigger;
 
 use anyhow::Result;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 pub struct QAEngine {
@@ -25,7 +25,7 @@ impl QAEngine {
         })
     }
 
-    pub async fn run_qa_on_save(&mut self, ufo_path: &PathBuf) -> Result<QAReport> {
+    pub async fn run_qa_on_save(&mut self, ufo_path: &Path) -> Result<QAReport> {
         // 1. Compile UFO to TTF/OTF
         let compiled_font = self.compiler.compile_for_qa(ufo_path).await?;
 

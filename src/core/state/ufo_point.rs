@@ -106,7 +106,7 @@ impl UfoPoint {
 
     /// Set the smooth flag (only valid for on-curve points)
     pub fn with_smooth(mut self, smooth: bool) -> Self {
-        if self.point_type.map_or(false, |t| t.can_be_smooth()) {
+        if self.point_type.is_some_and(|t| t.can_be_smooth()) {
             self.smooth = Some(smooth);
         }
         self
@@ -132,7 +132,7 @@ impl UfoPoint {
 
     /// Check if this point is on-curve
     pub fn is_on_curve(&self) -> bool {
-        self.point_type.map_or(true, |t| t.is_on_curve())
+        self.point_type.is_none_or(|t| t.is_on_curve())
     }
 
     /// Check if this point is smooth
