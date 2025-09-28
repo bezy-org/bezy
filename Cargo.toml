@@ -47,6 +47,22 @@ console_error_panic_hook = "0.1"
 tracing-wasm = "0.2"
 web-sys = "0.3"
 
+[profile.release]
+# Optimize for speed and size
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+# Additional size optimizations
+[profile.release.package."*"]
+opt-level = "z"  # Optimize dependencies for size
+
+# For maximum size reduction (uncomment if needed):
+# lto = "fat"  # More aggressive LTO, but much slower compile time
+# incremental = false  # Better for size, worse for compile time
+
 [features]
 # For profiling in development, see:
 # https://github.com/bevyengine/bevy/blob/main/docs/profiling.md
