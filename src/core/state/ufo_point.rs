@@ -153,7 +153,6 @@ impl UfoPoint {
 }
 
 /// Conversion traits for compatibility with existing systems
-
 impl From<crate::core::state::font_data::PointData> for UfoPoint {
     fn from(point: crate::core::state::font_data::PointData) -> Self {
         let point_type = match point.point_type {

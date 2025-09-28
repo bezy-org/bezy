@@ -309,6 +309,7 @@ pub fn create_app_with_tui(
 }
 
 /// System to handle messages from TUI
+#[allow(clippy::too_many_arguments)]
 fn handle_tui_messages(
     mut tui_comm: ResMut<crate::core::tui_communication::TuiCommunication>,
     mut glyph_nav: ResMut<GlyphNavigation>,
@@ -410,7 +411,7 @@ fn handle_tui_messages(
 
 /// Send glyph list from FontIR to TUI
 fn send_glyph_list_to_tui(
-    tui_comm: &mut ResMut<crate::core::tui_communication::TuiCommunication>,
+    tui_comm: &mut crate::core::tui_communication::TuiCommunication,
     fontir_state: &crate::core::state::FontIRAppState,
     app_state: Option<&AppState>,
 ) {
@@ -424,7 +425,7 @@ fn send_glyph_list_to_tui(
 
 /// Send font info from FontIR to TUI
 fn send_font_info_to_tui(
-    tui_comm: &mut ResMut<crate::core::tui_communication::TuiCommunication>,
+    tui_comm: &mut crate::core::tui_communication::TuiCommunication,
     fontir_state: &crate::core::state::FontIRAppState,
 ) {
     let mut font_info = crate::tui::communication::FontInfo {
@@ -469,9 +470,9 @@ fn send_initial_font_data_to_tui(
 ) {
     // Only send data once when both TUI communication and font are available
     if !*sent_initial_data {
-        if let (Some(mut tui_comm), Some(fontir_state)) = (tui_comm.as_mut(), fontir_state.as_ref()) {
-            send_glyph_list_to_tui(&mut tui_comm, fontir_state, app_state.as_deref());
-            send_font_info_to_tui(&mut tui_comm, fontir_state);
+        if let (Some(tui_comm), Some(fontir_state)) = (tui_comm.as_mut(), fontir_state.as_ref()) {
+            send_glyph_list_to_tui(tui_comm, fontir_state, app_state.as_deref());
+            send_font_info_to_tui(tui_comm, fontir_state);
             *sent_initial_data = true;
         }
     }

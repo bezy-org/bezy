@@ -798,6 +798,7 @@ pub fn check_json_theme_changes(
 use super::CurrentTheme;
 
 /// System to update all theme properties when theme changes
+#[allow(clippy::too_many_arguments)]
 pub fn update_all_theme_properties_on_change(
     mut commands: Commands,
     theme: Res<CurrentTheme>,

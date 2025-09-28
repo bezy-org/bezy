@@ -263,7 +263,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -277,7 +277,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -309,7 +309,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -323,7 +323,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -355,7 +355,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -369,7 +369,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -401,7 +401,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -415,7 +415,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -447,7 +447,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -461,7 +461,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -493,7 +493,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -507,7 +507,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -538,7 +538,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -552,7 +552,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()

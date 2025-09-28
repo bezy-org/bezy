@@ -70,6 +70,7 @@ pub struct CliArgs {
     /// This creates the ~/.config/bezy directory with:
     /// - settings.json: User preferences like default theme
     /// - themes/: Copies of all default themes that you can customize
+    ///
     /// This allows full customization without modifying the app installation.
     #[clap(
         long = "new-config",

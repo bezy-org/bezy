@@ -413,7 +413,6 @@ impl CurrentTool {
 ///     }
 /// }
 /// ```
-
 // New tool exports (using current available exports)
 pub use hyper::HyperToolPlugin;
 pub use knife::{KnifeModeActive, KnifeToolPlugin};
