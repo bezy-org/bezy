@@ -3,6 +3,7 @@ name = "bezy"
 version = "0.1.0"
 authors = ["Eli Heuer <elih@bezy.org>"]
 edition = "2021"
+rust-version = "1.90.0"
 description = "A next-gen font editor built with Rust and Bevy for customization and human-AI collaboration"
 license = "GPL-3.0"
 readme = "README.md"

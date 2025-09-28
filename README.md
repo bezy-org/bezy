@@ -22,11 +22,12 @@ The project aims to be a welcoming community that values working in the open, sh
 
 ## Prerequisites
 
-Install Rust by following the [official instructions](https://www.rust-lang.org/tools/install) at [rust-lang.org](https://www.rust-lang.org).
+- **Rust 1.90.0 or later** - Install Rust by following the [official instructions](https://www.rust-lang.org/tools/install) at [rust-lang.org](https://www.rust-lang.org).
 
 ### Verify installation:
 ```bash
 cargo --version
+rustc --version  # Should be 1.90.0 or later
 ```
 
 ## Building from Source
