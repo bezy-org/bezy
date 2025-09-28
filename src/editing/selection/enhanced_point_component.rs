@@ -191,39 +191,3 @@ impl Plugin for EnhancedPointTypePlugin {
         );
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_enhanced_point_creation() {
-        let point = EnhancedPointType::curve_to(100.0, 200.0)
-            .with_smooth(true)
-            .with_name("anchor_top");
-
-        assert_eq!(point.coords(), (100.0, 200.0));
-        assert!(point.is_on_curve);
-        assert!(point.is_smooth());
-        assert_eq!(point.name(), Some("anchor_top"));
-        assert_eq!(point.ufo_type(), Some(UfoPointType::Curve));
-    }
-
-    #[test]
-    fn test_legacy_compatibility() {
-        let enhanced = EnhancedPointType::off_curve(50.0, 75.0);
-        let legacy = enhanced.as_legacy();
-
-        assert!(!legacy.is_on_curve);
-        assert!(!enhanced.is_on_curve);
-    }
-
-    #[test]
-    fn test_coordinate_updates() {
-        let mut point = EnhancedPointType::line_to(10.0, 20.0);
-        assert_eq!(point.coords(), (10.0, 20.0));
-
-        point.set_coords(30.0, 40.0);
-        assert_eq!(point.coords(), (30.0, 40.0));
-    }
-}

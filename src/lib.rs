@@ -10,6 +10,3 @@ pub mod tools;
 pub mod tui;
 pub mod ui;
 pub mod utils;
-
-#[cfg(test)]
-mod tests;

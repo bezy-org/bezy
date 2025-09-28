@@ -4,59 +4,7 @@
 
 #[cfg(test)]
 mod tests {
-    use super::super::fontir_app_state::FontIRAppState;
-    use std::path::PathBuf;
 
-    #[test]
-    #[ignore = "Requires test UFO file to be provided - skipped as test fixtures were removed"]
-    fn test_component_resolution() {
-        // Test component resolution - requires a UFO file with components
-        let ufo_path = std::env::var("TEST_UFO_PATH")
-            .map(PathBuf::from)
-            .unwrap_or_else(|_| PathBuf::from("path/to/test.ufo"));
-
-        // Skip test if font file doesn't exist
-        if !ufo_path.exists() {
-            eprintln!(
-                "Skipping component test - font file not found at {:?}",
-                ufo_path
-            );
-            return;
-        }
-
-        // Create FontIR app state
-        let app_state = FontIRAppState::from_path(ufo_path);
-
-        match app_state {
-            Ok(state) => {
-                // Test getting paths for a composite glyph (alefHamzaabove-ar has components)
-                if let Some(paths) = state.get_glyph_paths_with_components("alefHamzaabove-ar") {
-                    println!("✅ Component resolution test passed!");
-                    println!("   Found {} paths for alefHamzaabove-ar", paths.len());
-
-                    // Should have more paths than just outline (includes components)
-                    assert!(!paths.is_empty(), "Composite glyph should have paths");
-                } else {
-                    println!("❌ Could not resolve components for alefHamzaabove-ar");
-                    // This is not necessarily a failure if FontIR doesn't have the glyph
-                }
-
-                // Test that regular glyphs still work
-                if let Some(paths) = state.get_glyph_paths_with_components("a") {
-                    println!(
-                        "✅ Regular glyph resolution still works: {} paths",
-                        paths.len()
-                    );
-                } else {
-                    println!("❌ Could not get paths for regular glyph 'a'");
-                }
-            }
-            Err(e) => {
-                eprintln!("Could not load FontIR state: {}", e);
-                // This is expected in some environments, so don't fail the test
-            }
-        }
-    }
 
     #[test]
     fn test_affine_transform() {

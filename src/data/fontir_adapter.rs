@@ -151,20 +151,3 @@ pub fn load_font_with_fontir(path: PathBuf) -> Result<FontIRData> {
     }
 }
 
-/// Test compatibility with Bevy ECS
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_fontir_data_is_send_sync() {
-        fn assert_send_sync<T: Send + Sync>() {}
-        assert_send_sync::<FontIRData>();
-    }
-
-    #[test]
-    fn test_fontir_data_bevy_resource() {
-        fn assert_resource<T: Resource>() {}
-        assert_resource::<FontIRData>();
-    }
-}

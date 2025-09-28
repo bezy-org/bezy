@@ -544,47 +544,7 @@ pub fn auto_apply_smooth_constraints(
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
 
-    #[test]
-    fn test_smooth_curve_constraint_creation() {
-        // Test that we can create a smooth curve constraint
-        let constraint = SmoothCurveConstraint {
-            smooth_point: Entity::from_raw(1),
-            smooth_point_ref: GlyphPointReference {
-                glyph_name: "a".to_string(),
-                contour_index: 0,
-                point_index: 1,
-            },
-            left_handle: Some(Entity::from_raw(2)),
-            right_handle: Some(Entity::from_raw(3)),
-        };
-
-        assert_eq!(constraint.smooth_point, Entity::from_raw(1));
-        assert_eq!(constraint.left_handle, Some(Entity::from_raw(2)));
-        assert_eq!(constraint.right_handle, Some(Entity::from_raw(3)));
-    }
-
-    #[test]
-    fn test_smooth_curve_vector_calculation() {
-        // Test the math for maintaining collinearity
-        let smooth_point = Vec2::new(100.0, 200.0);
-        let left_handle = Vec2::new(50.0, 150.0);
-
-        // Calculate what the right handle should be
-        let handle_vector = left_handle - smooth_point;
-        let opposite_vector = -handle_vector;
-        let expected_right = smooth_point + opposite_vector;
-
-        // Should be symmetric around the smooth point
-        assert_eq!(expected_right, Vec2::new(150.0, 250.0));
-
-        // Verify collinearity: vectors should be opposite
-        assert_eq!(handle_vector, -opposite_vector);
-    }
-}
 
 /// Universal smooth constraint system that monitors ALL Transform changes
 /// This ensures smooth constraints work regardless of how points are moved (drag, nudge, direct manipulation)

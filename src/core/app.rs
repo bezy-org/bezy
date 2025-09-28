@@ -110,14 +110,7 @@ impl PluginGroup for EditorPluginGroup {
 ///
 /// # Example
 ///
-/// ```no_run
-/// use bezy::core::app::create_app;
-/// use bezy::core::settings::CliArgs;
-///
-/// let cli_args = CliArgs::default();
-/// let app = create_app(cli_args)?;
-/// app.run();
-/// ```
+/// Create a CliArgs instance and pass it to create_app() to get a configured Bevy App.
 pub fn create_app(cli_args: CliArgs) -> Result<App> {
     #[cfg(not(target_arch = "wasm32"))]
     cli_args

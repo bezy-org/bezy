@@ -22,33 +22,10 @@
 //!
 //! ### For Submenu Developers
 //!
-//! When creating submenu buttons, always use the consistent system:
-//! ```rust,ignore
-//! // 1. Create the button with consistent styling
-//! create_toolbar_button(
-//!     parent,
-//!     icon_string,
-//!     (YourSubMenuButton, YourModeButton { mode }),
-//!     &asset_server,
-//!     &theme,
-//! );
-//!
-//! // 2. Handle background/border color updates
-//! update_toolbar_button_colors(
-//!     interaction,
-//!     is_active,
-//!     &mut background_color,
-//!     &mut border_color,
-//! );
-//!
-//! // 3. Handle icon text color updates (for bright white active icons)
-//! update_toolbar_button_text_colors(
-//!     entity,
-//!     is_active,
-//!     &children_query,
-//!     &mut text_query,
-//! );
-//! ```
+//! When creating submenu buttons, use the consistent system:
+//! 1. Create the button with create_toolbar_button()
+//! 2. Handle background/border colors with update_toolbar_button_colors()
+//! 3. Handle icon text colors with update_toolbar_button_text_colors()
 //!
 //! This approach ensures perfect visual consistency between main toolbar and all submenus,
 //! making it easy to maintain a professional, unified interface.

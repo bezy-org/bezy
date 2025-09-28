@@ -48,55 +48,9 @@
 //! The system is designed for maximum ease of use. Adding a new tool requires:
 //!
 //! 1. **Create your tool file** (`my_tool.rs`):
-//!    ```rust,ignore
-//!    use bevy::prelude::*;
-//!    
-//!    // Define the types for the example
-//!    type ToolId = &'static str;
-//!    
-//!    trait EditTool {
-//!        fn id(&self) -> ToolId;
-//!        fn name(&self) -> &'static str;
-//!        fn icon(&self) -> &'static str;
-//!        fn default_order(&self) -> i32 { 100 }
-//!        fn update(&self, commands: &mut Commands);
-//!    }
-//!    
-//!    #[derive(Resource)]
-//!    struct ToolRegistry {
-//!        tools: Vec<Box<dyn EditTool>>,
-//!    }
-//!    
-//!    impl ToolRegistry {
-//!        fn register_tool(&mut self, tool: Box<dyn EditTool>) {
-//!            self.tools.push(tool);
-//!        }
-//!    }
-//!
-//!    pub struct MyTool;
-//!
-//!    impl EditTool for MyTool {
-//!        fn id(&self) -> ToolId { "my_tool" }
-//!        fn name(&self) -> &'static str { "My Tool" }
-//!        fn icon(&self) -> &'static str { "\u{E019}" }
-//!        fn default_order(&self) -> i32 { 50 }
-//!        
-//!        fn update(&self, commands: &mut Commands) {
-//!            // Your tool's behavior while active
-//!        }
-//!    }
-//!
-//!    pub struct MyToolPlugin;
-//!    impl Plugin for MyToolPlugin {
-//!        fn build(&self, app: &mut App) {
-//!            app.add_systems(Startup, register_my_tool);
-//!        }
-//!    }
-//!
-//!    fn register_my_tool(mut registry: ResMut<ToolRegistry>) {
-//!        registry.register_tool(Box::new(MyTool));
-//!    }
-//!    ```
+//!    - Implement the EditTool trait for your tool struct
+//!    - Create a plugin that registers the tool with ToolRegistry
+//!    - Add systems for tool-specific behavior
 //!
 //! 2. **Add module declaration**: `mod my_tool;` and
 //!    `pub use my_tool::MyToolPlugin;`
@@ -184,47 +138,9 @@ pub type ToolId = &'static str;
 ///
 /// # Example Implementation
 ///
-/// ```rust,ignore
-/// use bevy::prelude::*;
-/// use crate::ui::edit_mode_toolbar::{EditTool, ToolId};
-///
-/// trait EditTool {
-///     fn id(&self) -> ToolId;
-///     fn name(&self) -> &'static str;
-///     fn icon(&self) -> &'static str;
-///     fn shortcut_key(&self) -> Option<char> { None }
-///     fn default_order(&self) -> i32 { 100 }
-///     fn update(&self, commands: &mut Commands);
-///     fn on_enter(&self) {}
-///     fn on_exit(&self) {}
-/// }
-///
-/// pub struct MyCustomTool {
-///     // Tool-specific state can go here
-///     pub some_setting: bool,
-/// }
-///
-/// impl EditTool for MyCustomTool {
-///     fn id(&self) -> ToolId { "my_custom_tool" }
-///     fn name(&self) -> &'static str { "Custom Tool" }
-///     fn icon(&self) -> &'static str { "\u{E020}" }
-///     fn shortcut_key(&self) -> Option<char> { Some('c') }
-///     fn default_order(&self) -> i32 { 75 }
-///     
-///     fn update(&self, commands: &mut Commands) {
-///         // Implement tool behavior (handle input, modify entities, etc.)
-///         // This runs every frame while the tool is active
-///     }
-///     
-///     fn on_enter(&self) {
-///         // Setup tool state, change cursor, etc.
-///     }
-///     
-///     fn on_exit(&self) {
-///         // Cleanup, restore cursor, etc.
-///     }
-/// }
-/// ```
+/// Implement the EditTool trait with required methods id(), name(), icon(),
+/// and update(). Optional methods include shortcut_key(), default_order(),
+/// on_enter(), and on_exit() for enhanced functionality.
 pub trait EditTool: Send + Sync + 'static {
     /// Unique identifier for this tool (used internally)
     fn id(&self) -> ToolId;
@@ -274,13 +190,8 @@ pub trait EditTool: Send + Sync + 'static {
 ///
 /// # Usage
 ///
-/// Tools typically register themselves in their plugin's `build()` method:
-///
-/// ```rust,ignore
-/// fn register_my_tool(mut tool_registry: ResMut<ToolRegistry>) {
-///     tool_registry.register_tool(Box::new(MyTool));
-/// }
-/// ```
+/// Tools typically register themselves in their plugin's `build()` method
+/// by calling tool_registry.register_tool() with a boxed instance.
 ///
 /// The registry automatically handles ordering and makes tools available to the UI system.
 #[derive(Resource, Default)]
@@ -370,47 +281,18 @@ impl CurrentTool {
 ///
 /// ## Setting Custom Order
 ///
-/// ```rust,ignore
-/// fn setup_toolbar_order(mut tool_ordering: ResMut<ToolOrdering>) {
-///     // Put select first, then pen, then custom tools
-///     tool_ordering.set_order(vec![
-///         "select",
-///         "pen",
-///         "my_custom_tool",
-///         "eraser",
-///         // Any unspecified tools will appear after these in default order
-///     ]);
-/// }
-/// ```
+/// Use tool_ordering.set_order() to define a custom sequence of tool IDs.
+/// Unspecified tools appear after custom-ordered ones in default order.
 ///
 /// ## Using Preset Orders
 ///
-/// ```rust,ignore
-/// fn setup_design_workflow(mut tool_ordering: ResMut<ToolOrdering>) {
-///     // Optimized for design-focused work
-///     tool_ordering.set_design_focused_order();
-/// }
-///
-/// fn setup_annotation_workflow(mut tool_ordering: ResMut<ToolOrdering>) {
-///     // Optimized for annotation and markup work
-///     tool_ordering.set_annotation_focused_order();
-/// }
-/// ```
+/// Use set_design_focused_order() for design work or
+/// set_annotation_focused_order() for annotation tasks.
 ///
 /// ## Dynamic Ordering
 ///
-/// ```rust,ignore
-/// fn setup_user_preference_order(
-///     mut tool_ordering: ResMut<ToolOrdering>,
-///     user_prefs: Res<UserPreferences>
-/// ) {
-///     match user_prefs.workflow_type {
-///         WorkflowType::Design => tool_ordering.set_design_focused_order(),
-///         WorkflowType::Annotation => tool_ordering.set_annotation_focused_order(),
-///         WorkflowType::Custom => tool_ordering.set_order(user_prefs.custom_tool_order.clone()),
-///     }
-/// }
-/// ```
+/// Tool ordering can be changed at runtime based on user preferences
+/// or workflow requirements using the various set_*_order() methods.
 // New tool exports (using current available exports)
 pub use hyper::HyperToolPlugin;
 pub use knife::{KnifeModeActive, KnifeToolPlugin};
