@@ -51,7 +51,9 @@ impl EditTool for ConfigurableTool {
             ToolBehavior::Select => {
                 // Select tool behavior is handled by SelectToolPlugin
                 // The actual tool activation happens through the tool system
-                debug!("Config system: Select tool selected, activation handled by SelectToolPlugin");
+                debug!(
+                    "Config system: Select tool selected, activation handled by SelectToolPlugin"
+                );
             }
             ToolBehavior::Pan => {
                 // Set input mode for pan tool
@@ -89,7 +91,9 @@ impl EditTool for ConfigurableTool {
                 commands.insert_resource(InputMode::Hyper);
                 // Deactivate other modes when switching to hyper
                 commands.insert_resource(crate::tools::pen::PenModeActive(false));
-                commands.insert_resource(crate::ui::edit_mode_toolbar::select::SelectModeActive(false));
+                commands.insert_resource(crate::ui::edit_mode_toolbar::select::SelectModeActive(
+                    false,
+                ));
             }
             ToolBehavior::Measure => {
                 // Set input mode for measure tool

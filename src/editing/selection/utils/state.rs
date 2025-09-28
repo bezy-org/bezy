@@ -16,4 +16,3 @@ pub fn clear_selection_on_app_change(
         debug!("Cleared selection due to app state change");
     }
 }
-

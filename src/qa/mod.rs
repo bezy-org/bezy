@@ -1,7 +1,7 @@
-pub mod fontspector;
 pub mod compiler;
-pub mod trigger;
+pub mod fontspector;
 pub mod storage;
+pub mod trigger;
 
 use anyhow::Result;
 use std::path::PathBuf;
@@ -39,7 +39,7 @@ impl QAEngine {
     }
 }
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QAReport {
@@ -135,7 +135,9 @@ pub mod time_serde {
     where
         S: Serializer,
     {
-        let duration = time.duration_since(UNIX_EPOCH).map_err(serde::ser::Error::custom)?;
+        let duration = time
+            .duration_since(UNIX_EPOCH)
+            .map_err(serde::ser::Error::custom)?;
         duration.as_secs().serialize(serializer)
     }
 

@@ -733,13 +733,18 @@ impl JsonThemeManager {
                 if should_reload {
                     match JsonTheme::load_from_file(&theme_file_path) {
                         Ok(theme) => {
-                            self.loaded_themes.insert(current_theme_name.to_string(), theme);
-                            self.file_timestamps.insert(current_theme_name.to_string(), modified);
+                            self.loaded_themes
+                                .insert(current_theme_name.to_string(), theme);
+                            self.file_timestamps
+                                .insert(current_theme_name.to_string(), modified);
                             changed_themes.push(current_theme_name.to_string());
                             debug!("✅ Reloaded theme: {}", current_theme_name);
                         }
                         Err(e) => {
-                            debug!("❌ Failed to reload theme from {:?}: {}", theme_file_path, e);
+                            debug!(
+                                "❌ Failed to reload theme from {:?}: {}",
+                                theme_file_path, e
+                            );
                         }
                     }
                 }
@@ -869,19 +874,22 @@ pub fn update_all_theme_properties_on_change(
 /// System to update UI pane text colors when theme changes
 pub fn update_ui_pane_text_colors_on_theme_change(
     theme: Res<CurrentTheme>,
-    mut text_query: Query<&mut TextColor, Or<(
-        With<crate::ui::panes::glyph_pane::GlyphNameText>,
-        With<crate::ui::panes::glyph_pane::GlyphUnicodeText>,
-        With<crate::ui::panes::glyph_pane::GlyphAdvanceText>,
-        With<crate::ui::panes::glyph_pane::GlyphLeftBearingText>,
-        With<crate::ui::panes::glyph_pane::GlyphRightBearingText>,
-        With<crate::ui::panes::glyph_pane::GlyphLeftGroupText>,
-        With<crate::ui::panes::glyph_pane::GlyphRightGroupText>,
-        With<crate::ui::panes::coordinate_pane::XValue>,
-        With<crate::ui::panes::coordinate_pane::YValue>,
-        With<crate::ui::panes::coordinate_pane::WidthValue>,
-        With<crate::ui::panes::coordinate_pane::HeightValue>,
-    )>>,
+    mut text_query: Query<
+        &mut TextColor,
+        Or<(
+            With<crate::ui::panes::glyph_pane::GlyphNameText>,
+            With<crate::ui::panes::glyph_pane::GlyphUnicodeText>,
+            With<crate::ui::panes::glyph_pane::GlyphAdvanceText>,
+            With<crate::ui::panes::glyph_pane::GlyphLeftBearingText>,
+            With<crate::ui::panes::glyph_pane::GlyphRightBearingText>,
+            With<crate::ui::panes::glyph_pane::GlyphLeftGroupText>,
+            With<crate::ui::panes::glyph_pane::GlyphRightGroupText>,
+            With<crate::ui::panes::coordinate_pane::XValue>,
+            With<crate::ui::panes::coordinate_pane::YValue>,
+            With<crate::ui::panes::coordinate_pane::WidthValue>,
+            With<crate::ui::panes::coordinate_pane::HeightValue>,
+        )>,
+    >,
 ) {
     // Only update in debug mode for hot-reload development
     #[cfg(debug_assertions)]

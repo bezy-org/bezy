@@ -8,8 +8,8 @@ use ratatui::{
 };
 use tokio::sync::mpsc;
 
-use crate::tui::communication::TuiMessage;
 pub use super::game_of_life::GameOfLifeState;
+use crate::tui::communication::TuiMessage;
 
 #[derive(Debug, Clone)]
 pub struct AIState {
@@ -70,15 +70,12 @@ pub fn draw(f: &mut Frame, state: &mut AIState, area: Rect) {
         grid_lines.push(Line::from(line));
     }
 
-    let game_widget = Paragraph::new(grid_lines).block(
-        Block::default()
-            .borders(Borders::ALL)
-            .title(format!(
-                "Conway's Game of Life - Generation: {} {}",
-                state.game.generation,
-                if state.game.paused { "(PAUSED)" } else { "" }
-            )),
-    );
+    let game_widget =
+        Paragraph::new(grid_lines).block(Block::default().borders(Borders::ALL).title(format!(
+            "Conway's Game of Life - Generation: {} {}",
+            state.game.generation,
+            if state.game.paused { "(PAUSED)" } else { "" }
+        )));
 
     f.render_widget(game_widget, chunks[0]);
 

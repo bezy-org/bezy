@@ -839,4 +839,3 @@ fn calculate_final_position_dpoint(
 
     DPoint::from_raw(final_pos)
 }
-

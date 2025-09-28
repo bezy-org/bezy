@@ -1,6 +1,6 @@
+use crate::tui::communication::{AppMessage, FontInfo, GlyphInfo, TuiMessage};
 use bevy::prelude::*;
 use tokio::sync::mpsc;
-use crate::tui::communication::{AppMessage, TuiMessage, FontInfo, GlyphInfo};
 
 #[derive(Resource)]
 pub struct TuiCommunication {

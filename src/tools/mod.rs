@@ -5,7 +5,7 @@
 //!
 //! ## Architecture Overview
 //!
-//! ```
+//! ```text
 //! /src/tools/          ← YOU ARE HERE - Core tool behavior & logic
 //! /src/ui/toolbars/    ← Visual toolbar UI, registration, configuration
 //! ```

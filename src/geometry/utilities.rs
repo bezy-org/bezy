@@ -69,10 +69,9 @@ mod tests {
     fn test_position_with_grid_snap() {
         let cursor_pos = Vec2::new(123.4, 567.8);
         let result = calculate_final_position_with_constraints(
-            cursor_pos,
-            true,  // snap to grid
-            10.0,  // grid size
-            None,  // no axis lock
+            cursor_pos, true, // snap to grid
+            10.0, // grid size
+            None, // no axis lock
         );
         assert_eq!(result, Vec2::new(120.0, 570.0));
     }
@@ -83,8 +82,8 @@ mod tests {
         let relative_to = Vec2::new(50.0, 60.0);
         let result = calculate_final_position_with_constraints(
             cursor_pos,
-            false, // no grid snap
-            1.0,   // grid size (unused)
+            false,             // no grid snap
+            1.0,               // grid size (unused)
             Some(relative_to), // axis lock
         );
         assert_eq!(result, Vec2::new(100.0, 60.0)); // locked horizontally

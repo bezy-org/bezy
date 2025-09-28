@@ -4,8 +4,8 @@
 //! making it easier to manage the application's architecture.
 
 use bevy::gizmos::{config::DefaultGizmoConfigGroup, config::GizmoConfigStore};
+use bevy::log::{Level, LogPlugin};
 use bevy::prelude::*;
-use bevy::log::{LogPlugin, Level};
 
 use crate::editing::sort::SortPlugin;
 use crate::ui::themes::CurrentTheme;
@@ -29,7 +29,8 @@ pub fn configure_logging() -> LogPlugin {
         // Silence entity despawn warnings as they're expected in ECS
         LogPlugin {
             level: Level::WARN,
-            filter: "bezy=warn,bevy=warn,wgpu=error,winit=error,bevy_ecs::error::handler=error".to_string(),
+            filter: "bezy=warn,bevy=warn,wgpu=error,winit=error,bevy_ecs::error::handler=error"
+                .to_string(),
             ..default()
         }
     }
@@ -40,8 +41,8 @@ pub fn configure_logging_for_tui() -> LogPlugin {
     // When TUI is active, we need to disable all console output
     // This prevents logs from corrupting the TUI display
     LogPlugin {
-        level: Level::ERROR,  // Only show critical errors (minimizes output)
-        filter: "all=off".to_string(),  // Disable all logs via filter
+        level: Level::ERROR,           // Only show critical errors (minimizes output)
+        filter: "all=off".to_string(), // Disable all logs via filter
         ..default()
     }
 }
@@ -78,7 +79,7 @@ pub fn configure_default_plugins_for_tui() -> bevy::app::PluginGroupBuilder {
             }),
             ..default()
         })
-        .set(configure_logging_for_tui())  // Use TUI-specific logging that disables console output
+        .set(configure_logging_for_tui()) // Use TUI-specific logging that disables console output
 }
 
 /// System to configure gizmo appearance

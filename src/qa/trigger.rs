@@ -1,7 +1,7 @@
 use anyhow::Result;
-use std::path::PathBuf;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
+use std::path::PathBuf;
 
 pub struct QASaveTrigger {
     current_font: Option<PathBuf>,

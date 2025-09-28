@@ -177,7 +177,6 @@ pub fn process_selection_input_events(
             event
         );
 
-
         // Only handle events that are relevant to selection
         match event {
             InputEvent::MouseMove { .. } => {
@@ -1051,7 +1050,10 @@ pub fn handle_selection_release(
         if let Some(rect_entity) = rect_entity {
             if let Ok(mut entity_commands) = commands.get_entity(rect_entity) {
                 entity_commands.despawn();
-                debug!("SelectionRect entity {:?} successfully despawned on release", rect_entity);
+                debug!(
+                    "SelectionRect entity {:?} successfully despawned on release",
+                    rect_entity
+                );
             } else {
                 debug!("ERROR: Failed to get SelectionRect entity {:?} for despawning - entity may not exist", rect_entity);
             }

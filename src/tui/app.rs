@@ -1,5 +1,5 @@
 use crate::tui::{
-    communication::{AppMessage, TuiMessage, FontInfo, GlyphInfo},
+    communication::{AppMessage, FontInfo, GlyphInfo, TuiMessage},
     events::{handle_events, InputEvent},
     tabs::{unicode, Tab, TabState, TabType},
     ui,
@@ -23,15 +23,15 @@ pub struct App {
 impl App {
     pub fn new(app_tx: mpsc::UnboundedSender<TuiMessage>) -> Self {
         let tabs = vec![
-            Tab::new(TabType::File),      // 1
-            Tab::new(TabType::Edit),      // 2
-            Tab::new(TabType::Unicode),   // 3 (renamed from Codepoints)
-            Tab::new(TabType::FontInfo),  // 4
-            Tab::new(TabType::QA),        // 5
-            Tab::new(TabType::Glyph),     // 6
-            Tab::new(TabType::Path),      // 7
-            Tab::new(TabType::AI),        // 8
-            Tab::new(TabType::Help),      // 9
+            Tab::new(TabType::File),     // 1
+            Tab::new(TabType::Edit),     // 2
+            Tab::new(TabType::Unicode),  // 3 (renamed from Codepoints)
+            Tab::new(TabType::FontInfo), // 4
+            Tab::new(TabType::QA),       // 5
+            Tab::new(TabType::Glyph),    // 6
+            Tab::new(TabType::Path),     // 7
+            Tab::new(TabType::AI),       // 8
+            Tab::new(TabType::Help),     // 9
         ];
 
         Self {
@@ -127,7 +127,14 @@ impl App {
                 if let Some(tab) = self.tabs.get_mut(current_tab_idx) {
                     match &mut tab.state {
                         TabState::Unicode(state) => {
-                            unicode::handle_key_event_simple(state, key, &app_tx, glyphs_len, &self.glyphs).await?;
+                            unicode::handle_key_event_simple(
+                                state,
+                                key,
+                                &app_tx,
+                                glyphs_len,
+                                &self.glyphs,
+                            )
+                            .await?;
                         }
                         TabState::AI(state) => {
                             // Handle Game of Life controls
@@ -135,7 +142,8 @@ impl App {
                                 crossterm::event::KeyCode::Char(' ') => {
                                     state.game.toggle_pause();
                                 }
-                                crossterm::event::KeyCode::Char('r') | crossterm::event::KeyCode::Char('R') => {
+                                crossterm::event::KeyCode::Char('r')
+                                | crossterm::event::KeyCode::Char('R') => {
                                     state.game.reset();
                                 }
                                 _ => {}
@@ -205,5 +213,4 @@ impl App {
     pub fn get_current_tab_mut(&mut self) -> &mut Tab {
         &mut self.tabs[self.current_tab]
     }
-
 }

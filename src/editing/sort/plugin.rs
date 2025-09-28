@@ -51,7 +51,6 @@ impl Plugin for SortPlugin {
             .add_systems(
                 Update,
                 (respawn_sort_points_on_glyph_change,).in_set(SortSystemSet::PointSpawning),
-            )
-            ;
+            );
     }
 }

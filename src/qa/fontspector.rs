@@ -1,10 +1,10 @@
-use crate::qa::{QAReport, QAIssue, QASummary, Severity, Category};
-use anyhow::{Result, Context};
+use crate::qa::{Category, QAIssue, QAReport, QASummary, Severity};
+use anyhow::{Context, Result};
+use serde_json::Value;
 use std::path::Path;
 use std::time::SystemTime;
-use tokio::process::Command;
-use serde_json::Value;
 use tempfile::NamedTempFile;
+use tokio::process::Command;
 
 pub struct FontspectorRunner {
     profile: FontspectorProfile,
@@ -56,13 +56,18 @@ impl FontspectorRunner {
             let stderr = String::from_utf8_lossy(&output.stderr);
             // Only treat as error if stderr contains actual error messages or if status is not 1
             if !stderr.trim().is_empty() || output.status.code() != Some(1) {
-                return Err(anyhow::anyhow!("Fontspector failed with status {}: {}", output.status, stderr));
+                return Err(anyhow::anyhow!(
+                    "Fontspector failed with status {}: {}",
+                    output.status,
+                    stderr
+                ));
             }
             // Status 1 with empty stderr is normal when there are FAIL-level issues
         }
 
         // Read and parse JSON output
-        let json_content = tokio::fs::read_to_string(json_path).await
+        let json_content = tokio::fs::read_to_string(json_path)
+            .await
             .context("Failed to read Fontspector JSON output")?;
 
         let json: Value = serde_json::from_str(&json_content)
@@ -83,15 +88,34 @@ impl FontspectorRunner {
     }
 
     fn parse_summary(&self, json: &Value) -> Result<QASummary> {
-        let summary_obj = json["summary"].as_object()
+        let summary_obj = json["summary"]
+            .as_object()
             .context("Missing or invalid summary in Fontspector output")?;
 
-        let skip = summary_obj.get("SKIP").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
-        let pass = summary_obj.get("PASS").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
-        let info = summary_obj.get("INFO").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
-        let warn = summary_obj.get("WARN").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
-        let fail = summary_obj.get("FAIL").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
-        let error = summary_obj.get("ERROR").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+        let skip = summary_obj
+            .get("SKIP")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0) as u32;
+        let pass = summary_obj
+            .get("PASS")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0) as u32;
+        let info = summary_obj
+            .get("INFO")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0) as u32;
+        let warn = summary_obj
+            .get("WARN")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0) as u32;
+        let fail = summary_obj
+            .get("FAIL")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0) as u32;
+        let error = summary_obj
+            .get("ERROR")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0) as u32;
 
         Ok(QASummary {
             total_checks: (skip + pass + info + warn + fail + error) as usize,
@@ -139,7 +163,8 @@ impl FontspectorRunner {
                         _ => Severity::Info,
                     };
 
-                    let message = subresult["message"].as_str()
+                    let message = subresult["message"]
+                        .as_str()
                         .unwrap_or("No message provided")
                         .to_string();
 
@@ -204,9 +229,15 @@ impl FontspectorRunner {
     }
 
     fn categorize_check(check_id: &str) -> Category {
-        if check_id.contains("outline") || check_id.contains("contour") || check_id.contains("glyph") {
+        if check_id.contains("outline")
+            || check_id.contains("contour")
+            || check_id.contains("glyph")
+        {
             Category::Outlines
-        } else if check_id.contains("meta") || check_id.contains("name") || check_id.contains("info") {
+        } else if check_id.contains("meta")
+            || check_id.contains("name")
+            || check_id.contains("info")
+        {
             Category::Metadata
         } else if check_id.contains("hint") {
             Category::Hinting

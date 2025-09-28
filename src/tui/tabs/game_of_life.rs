@@ -55,9 +55,9 @@ impl GameOfLifeState {
                 // 2. Any dead cell with exactly 3 neighbors becomes alive
                 // 3. All other cells die or remain dead
                 new_grid[y][x] = match (is_alive, alive_neighbors) {
-                    (true, 2) | (true, 3) => true,  // Survival
-                    (false, 3) => true,             // Birth
-                    _ => false,                     // Death or remains dead
+                    (true, 2) | (true, 3) => true, // Survival
+                    (false, 3) => true,            // Birth
+                    _ => false,                    // Death or remains dead
                 };
             }
         }

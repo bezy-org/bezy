@@ -88,7 +88,10 @@ fn reset_select_mode_when_inactive(
     if current_tool.get_current() != Some("select") {
         // Mark select mode as inactive when not the current tool
         commands.insert_resource(SelectModeActive(false));
-        debug!("[SELECT TOOL] Deactivating select mode - current tool: {:?}", current_tool.get_current());
+        debug!(
+            "[SELECT TOOL] Deactivating select mode - current tool: {:?}",
+            current_tool.get_current()
+        );
     }
 }
 

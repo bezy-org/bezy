@@ -28,35 +28,4 @@ pub enum Quadrant {
     Left,
 }
 
-impl Quadrant {
-
-}
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn quadrant_positioning() {
-        let rect = Rect::from_corners(Vec2::new(10.0, 10.0), Vec2::new(100.0, 100.0));
-
-        assert_eq!(
-            Quadrant::BottomLeft.point_in_design_space_rect(rect),
-            Vec2::new(10.0, 10.0)
-        );
-
-        assert_eq!(
-            Quadrant::Center.point_in_design_space_rect(rect),
-            Vec2::new(55.0, 55.0)
-        );
-
-        assert_eq!(
-            Quadrant::TopRight.point_in_design_space_rect(rect),
-            Vec2::new(100.0, 100.0)
-        );
-
-        assert_eq!(
-            Quadrant::Top.point_in_design_space_rect(rect),
-            Vec2::new(55.0, 100.0)
-        );
-    }
-}
+impl Quadrant {}

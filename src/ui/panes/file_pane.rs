@@ -5,10 +5,10 @@
 //! UFO masters in a designspace.
 
 use crate::core::state::fontir_app_state::FontIRAppState;
-use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::systems::sorts::sort_entities::BufferSortEntities;
 use crate::ui::theme::*;
 use crate::ui::themes::{CurrentTheme, UiBorderRadius};
+use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use bevy::prelude::*;
 use bevy::ui::Display;
 use bevy::window::{PrimaryWindow, Window, WindowMode};

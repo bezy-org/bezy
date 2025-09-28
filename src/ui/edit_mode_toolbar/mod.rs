@@ -5,8 +5,8 @@
 //!
 //! ## Architecture Overview
 //!
-//! ```
-//! /src/tools/          ← Core tool behavior & logic  
+//! ```text
+//! /src/tools/          ← Core tool behavior & logic
 //! /src/ui/toolbars/    ← YOU ARE HERE - Visual toolbar UI, registration, configuration
 //! ```
 //!
@@ -264,7 +264,6 @@ pub trait EditTool: Send + Sync + 'static {
     fn supports_temporary_mode(&self) -> bool {
         false
     }
-
 }
 
 /// Registry for all available edit tools.
@@ -333,7 +332,6 @@ impl ToolRegistry {
 
         self.ordering_dirty = false;
     }
-
 }
 
 /// Current active tool state
@@ -438,7 +436,6 @@ pub trait EditModeSystem: Send + Sync + 'static {
     #[allow(dead_code)]
     fn on_exit(&self) {}
 }
-
 
 /// System to initialize the default tool (Select) on startup
 fn initialize_default_tool(

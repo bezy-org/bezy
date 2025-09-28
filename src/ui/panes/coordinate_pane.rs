@@ -7,11 +7,11 @@
 #![allow(unused_variables)]
 
 use crate::editing::selection::components::Selected;
-use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::geometry::quadrant::Quadrant;
+use crate::ui::edit_mode_toolbar::ui::{create_label_text, create_value_text};
 use crate::ui::theme::*;
 use crate::ui::themes::{CurrentTheme, UiBorderRadius};
-use crate::ui::edit_mode_toolbar::ui::{create_label_text, create_value_text};
+use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use bevy::ecs::system::ParamSet;
 use bevy::prelude::*;
 use bevy::reflect::Reflect;
@@ -166,14 +166,7 @@ pub fn spawn_coordinate_pane(
                         &theme,
                     );
                     // X value
-                    create_value_text(
-                        row,
-                        "0",
-                        XValue,
-                        &asset_server,
-                        &embedded_fonts,
-                        &theme,
-                    );
+                    create_value_text(row, "0", XValue, &asset_server, &embedded_fonts, &theme);
                 });
 
             // Y coordinate row

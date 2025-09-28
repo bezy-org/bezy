@@ -1,9 +1,9 @@
-use anyhow::{Result, anyhow};
-use std::path::{Path, PathBuf};
+use anyhow::{anyhow, Result};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
-use tokio::process::Command;
+use std::path::{Path, PathBuf};
 use tokio::fs;
+use tokio::process::Command;
 
 pub struct FontCompiler {
     #[allow(dead_code)]
@@ -24,7 +24,11 @@ impl FontCompiler {
 
     fn get_qa_temp_dir() -> PathBuf {
         let config_dir = if let Ok(home) = std::env::var("HOME") {
-            PathBuf::from(home).join(".config").join("bezy").join("qa").join("temp")
+            PathBuf::from(home)
+                .join(".config")
+                .join("bezy")
+                .join("qa")
+                .join("temp")
         } else {
             PathBuf::from("/tmp").join("bezy-qa")
         };
@@ -50,7 +54,9 @@ impl FontCompiler {
         if cached_font.exists() {
             if let Ok(cache_meta) = fs::metadata(&cached_font).await {
                 if let Ok(source_meta) = fs::metadata(ufo_path).await {
-                    if let (Ok(cache_time), Ok(source_time)) = (cache_meta.modified(), source_meta.modified()) {
+                    if let (Ok(cache_time), Ok(source_time)) =
+                        (cache_meta.modified(), source_meta.modified())
+                    {
                         if cache_time >= source_time {
                             return Ok(cached_font);
                         }
@@ -67,9 +73,7 @@ impl FontCompiler {
 
     async fn compile_with_fontc(&self, ufo_path: &Path, output_path: &Path) -> Result<()> {
         let mut cmd = Command::new("fontc");
-        cmd.arg(ufo_path)
-            .arg("--output")
-            .arg(output_path);
+        cmd.arg(ufo_path).arg("--output").arg(output_path);
 
         let output = cmd.output().await?;
 

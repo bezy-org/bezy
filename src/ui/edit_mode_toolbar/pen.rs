@@ -16,14 +16,14 @@ use crate::editing::selection::systems::AppStateChanged;
 use crate::editing::selection::{DragPointState, DragSelectionState, SelectionState};
 use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::ActiveSortState;
-use crate::utils::embedded_assets::EmbeddedFonts;
-use crate::geometry::world_space::DPoint;
 use crate::geometry::utilities::axis_lock_position;
+use crate::geometry::world_space::DPoint;
 use crate::systems::ui_interaction::UiHoverState;
 use crate::ui::edit_mode_toolbar::select::SelectModeActive;
 use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
 use crate::ui::theme::*;
 use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
+use crate::utils::embedded_assets::EmbeddedFonts;
 use bevy::input::keyboard::KeyCode;
 use bevy::input::mouse::MouseButton;
 use bevy::prelude::*;
@@ -755,7 +755,6 @@ fn draw_close_indicator_if_needed(
 // ================================================================
 // UTILITY FUNCTIONS
 // ================================================================
-
 
 /// Create a UFO contour from a list of points
 fn create_contour_from_points(points: &[Vec2], active_sort_offset: Vec2) -> Option<Contour> {

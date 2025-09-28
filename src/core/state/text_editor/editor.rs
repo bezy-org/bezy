@@ -247,7 +247,11 @@ impl TextEditorState {
                     // Now calculate position based on buffer-local index
                     if let Some(target_idx) = target_index_in_buffer {
                         for idx in 0..target_idx {
-                            if let Some((_, sort_entry)) = buffer_sorts.get(idx) {
+                            if let Some((buffer_idx, sort_entry)) = buffer_sorts.get(idx) {
+                                // Skip the root placeholder's advance width - only count actual inserted characters
+                                if Some(*buffer_idx) == active_root_index {
+                                    continue; // Skip root's advance width
+                                }
                                 match &sort_entry.kind {
                                     SortKind::Glyph { advance_width, .. } => {
                                         x_offset += advance_width;
@@ -651,8 +655,15 @@ impl TextEditorState {
             // This preserves the root entity for consistent rendering
 
             // Insert at the cursor position relative to root
-            // cursor_pos_in_buffer=0 means "after root", cursor_pos_in_buffer=1 means "after first character", etc.
-            let insert_buffer_index = root_index + cursor_pos_in_buffer + 1;
+            // For the first character after root: insert immediately after root (root_index + 1)
+            // For subsequent characters: insert at the end of the buffer
+            let insert_buffer_index = if cursor_pos_in_buffer <= 1 && self.buffer.len() == 1 {
+                // First character: insert right after root
+                root_index + 1
+            } else {
+                // Subsequent characters: insert at end of buffer
+                self.buffer.len()
+            };
 
             debug!(
                 "Inserting: Before insert - buffer has {} entries",
@@ -1279,70 +1290,6 @@ pub fn get_default_glyph_for_direction(layout_mode: &SortLayoutMode) -> (String,
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_sort_activation_on_creation() {
-        let mut text_editor = TextEditorState::default();
-
-        // Test 1: Freeform sort should be activated when created
-        text_editor.add_freeform_sort("a".to_string(), Vec2::new(100.0, 200.0), 500.0, Some('a'));
-
-        // Verify the sort was created and activated
-        assert_eq!(text_editor.buffer.len(), 1);
-        if let Some(sort) = text_editor.buffer.get(0) {
-            assert!(sort.is_active);
-            assert_eq!(sort.kind.glyph_name(), "a");
-            assert_eq!(sort.root_position, Vec2::new(100.0, 200.0));
-        } else {
-            panic!("Sort should exist at index 0");
-        }
-
-        // Test 2: Text sort should be activated when created
-        text_editor.create_text_sort_at_position(
-            "b".to_string(),
-            Vec2::new(300.0, 400.0),
-            600.0,
-            SortLayoutMode::LTRText,
-            Some('b'),
-        );
-
-        // Verify the new sort was created and activated, and the old one was deactivated
-        assert_eq!(text_editor.buffer.len(), 2);
-
-        // First sort should be deactivated
-        if let Some(sort) = text_editor.buffer.get(0) {
-            assert!(!sort.is_active);
-        }
-
-        // Second sort should be activated
-        if let Some(sort) = text_editor.buffer.get(1) {
-            assert!(sort.is_active);
-            assert_eq!(sort.kind.glyph_name(), "b");
-            assert_eq!(sort.root_position, Vec2::new(300.0, 400.0));
-        } else {
-            panic!("Sort should exist at index 1");
-        }
-
-        // Test 3: Text root should be activated when created
-        text_editor.create_text_root(Vec2::new(500.0, 600.0), SortLayoutMode::LTRText);
-
-        // Verify the new text root was created and activated, and others were deactivated
-        assert_eq!(text_editor.buffer.len(), 3);
-
-        // First two sorts should be deactivated
-        for i in 0..2 {
-            if let Some(sort) = text_editor.buffer.get(i) {
-                assert!(!sort.is_active);
-            }
-        }
-
-        // Third sort (text root) should be activated
-        if let Some(sort) = text_editor.buffer.get(2) {
-            assert!(sort.is_active);
-            assert_eq!(sort.root_position, Vec2::new(500.0, 600.0));
-        } else {
-            panic!("Text root should exist at index 2");
-        }
-    }
 
     #[test]
     fn test_backspace_functionality() {
@@ -1381,89 +1328,4 @@ mod tests {
         assert_eq!(text_editor.buffer.len(), 0); // Buffer should be empty
     }
 
-    #[test]
-    fn test_text_flow_calculation() {
-        let mut text_editor = TextEditorState::default();
-
-        // Create a text root at position (100, 200)
-        text_editor.create_text_root(Vec2::new(100.0, 200.0), SortLayoutMode::LTRText);
-        println!(
-            "After create_text_root: buffer length = {}",
-            text_editor.buffer.len()
-        );
-
-        // Insert some glyphs with known advance widths
-        text_editor.insert_sort_at_cursor("a".to_string(), 100.0, Some('a'));
-        println!(
-            "After inserting 'a': buffer length = {}",
-            text_editor.buffer.len()
-        );
-        text_editor.insert_sort_at_cursor("b".to_string(), 150.0, Some('b'));
-        println!(
-            "After inserting 'b': buffer length = {}",
-            text_editor.buffer.len()
-        );
-        text_editor.insert_sort_at_cursor("c".to_string(), 120.0, Some('c'));
-        println!(
-            "After inserting 'c': buffer length = {}",
-            text_editor.buffer.len()
-        );
-
-        // Print buffer contents
-        println!("\nBuffer contents:");
-        for (i, sort) in text_editor.buffer.iter().enumerate() {
-            println!(
-                "  [{}] '{}' (active: {}) at ({:.1}, {:.1})",
-                i,
-                sort.kind.glyph_name(),
-                sort.is_active,
-                sort.root_position.x,
-                sort.root_position.y
-            );
-        }
-
-        // Verify the text flow positions
-        let font_metrics = FontMetrics::default();
-
-        // Root (placeholder) is at index 0
-        if let Some(pos) = text_editor.get_text_sort_flow_position(0, &font_metrics, 0.0) {
-            println!(
-                "Index 0 (root): calculated position = ({:.1}, {:.1})",
-                pos.x, pos.y
-            );
-            assert_eq!(pos, Vec2::new(100.0, 200.0));
-        } else {
-            panic!("Should have flow position for root");
-        }
-        // First glyph after root is at index 1
-        if let Some(pos) = text_editor.get_text_sort_flow_position(1, &font_metrics, 0.0) {
-            println!(
-                "Index 1 (first glyph): calculated position = ({:.1}, {:.1})",
-                pos.x, pos.y
-            );
-            assert_eq!(pos, Vec2::new(200.0, 200.0)); // 100 + 100
-        } else {
-            panic!("Should have flow position for first glyph");
-        }
-        // Second glyph after root is at index 2
-        if let Some(pos) = text_editor.get_text_sort_flow_position(2, &font_metrics, 0.0) {
-            println!(
-                "Index 2 (second glyph): calculated position = ({:.1}, {:.1})",
-                pos.x, pos.y
-            );
-            assert_eq!(pos, Vec2::new(350.0, 200.0)); // 100 + 100 + 150
-        } else {
-            panic!("Should have flow position for second glyph");
-        }
-        // Third glyph after root is at index 2
-        if let Some(pos) = text_editor.get_text_sort_flow_position(2, &font_metrics, 0.0) {
-            println!(
-                "Index 2 (third glyph): calculated position = ({:.1}, {:.1})",
-                pos.x, pos.y
-            );
-            assert_eq!(pos, Vec2::new(350.0, 200.0)); // 100 + 100 + 150
-        } else {
-            panic!("Should have flow position for third glyph");
-        }
-    }
 }

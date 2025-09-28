@@ -1398,8 +1398,12 @@ impl FontIRAppState {
                     }
                     debug!(
                         "✅ FONTIR UNICODE: Found {} codepoints for glyph '{}': {:?}",
-                        codepoints.len(), glyph_name,
-                        codepoints.iter().map(|c| format!("U+{:04X}", c)).collect::<Vec<_>>()
+                        codepoints.len(),
+                        glyph_name,
+                        codepoints
+                            .iter()
+                            .map(|c| format!("U+{:04X}", c))
+                            .collect::<Vec<_>>()
                     );
                 } else {
                     debug!("⚠️ FONTIR UNICODE: Glyph '{}' not found in UFO", glyph_name);

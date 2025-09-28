@@ -3,8 +3,8 @@
 #![allow(clippy::useless_vec)]
 
 use super::components::*;
-use super::events::ClickWorldPosition;
 use super::coordinate_system::SelectionCoordinateSystem;
+use super::events::ClickWorldPosition;
 use super::DragPointState;
 use super::DragSelectionState;
 use crate::core::io::input::{helpers, InputEvent, InputState};
@@ -29,7 +29,6 @@ use bevy::window::PrimaryWindow;
 /// Event to signal that app state has changed
 #[derive(Event, Debug, Clone)]
 pub struct AppStateChanged;
-
 
 // Constants for selection
 #[allow(dead_code)]
@@ -109,7 +108,6 @@ pub fn handle_selection_shortcuts(
         event_writer.write(EditEvent {});
     }
 }
-
 
 /// System to update the actual glyph data when a point is moved
 #[allow(clippy::type_complexity)]

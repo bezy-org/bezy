@@ -7,8 +7,8 @@
 
 use crate::core::state::{AppState, FontIRAppState, SortLayoutMode};
 use crate::editing::sort::{ActiveSort, InactiveSort, Sort, SortSystemSet};
-use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::ui::themes::CurrentTheme;
+use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
 use bevy::text::TextBounds;

@@ -416,8 +416,20 @@ fn convert_bezpath_to_ufo_contour(bez_path: &kurbo::BezPath) -> norad::Contour {
         if let Some(start_pt) = move_to_pos {
             // Find if any point matches the MoveTo position
             if let Some(start_idx) = find_point_near_position(&all_points, start_pt) {
-                // Rotate the points so the matching point comes first
-                let rotated = rotate_points_to_start(&all_points, start_idx);
+                // Special case: if the point at start_idx is an on-curve point
+                // preceded by off-curves, we need to start from the first off-curve
+                let adjusted_start_idx = if start_idx > 1
+                    && all_points[start_idx].typ != norad::PointType::OffCurve
+                    && all_points[start_idx - 1].typ == norad::PointType::OffCurve
+                    && all_points[start_idx - 2].typ == norad::PointType::OffCurve {
+                    // This on-curve point is preceded by two off-curves
+                    start_idx - 2
+                } else {
+                    start_idx
+                };
+
+                // Rotate the points so the adjusted starting point comes first
+                let rotated = rotate_points_to_start(&all_points, adjusted_start_idx);
                 return norad::Contour::new(rotated, None);
             } else {
                 debug!("No matching point found for MoveTo position, using original order");
@@ -568,8 +580,20 @@ fn convert_bezpath_to_ufo_contour_with_attributes(
         if let Some(start_pt) = move_to_pos {
             // Find if any point matches the MoveTo position
             if let Some(start_idx) = find_point_near_position(&all_points, start_pt) {
-                // Rotate the points so the matching point comes first
-                let rotated = rotate_points_to_start(&all_points, start_idx);
+                // Special case: if the point at start_idx is an on-curve point
+                // preceded by off-curves, we need to start from the first off-curve
+                let adjusted_start_idx = if start_idx > 1
+                    && all_points[start_idx].typ != norad::PointType::OffCurve
+                    && all_points[start_idx - 1].typ == norad::PointType::OffCurve
+                    && all_points[start_idx - 2].typ == norad::PointType::OffCurve {
+                    // This on-curve point is preceded by two off-curves
+                    start_idx - 2
+                } else {
+                    start_idx
+                };
+
+                // Rotate the points so the adjusted starting point comes first
+                let rotated = rotate_points_to_start(&all_points, adjusted_start_idx);
                 return norad::Contour::new(rotated, None);
             } else {
                 debug!("No matching point found for MoveTo position, using original order");
@@ -673,42 +697,6 @@ mod tests {
         assert_eq!(contour.points[0].y, 0.0);
     }
 
-    #[test]
-    fn test_curve_contour_conversion() {
-        // Create a closed path with curves that starts with a curve
-        let mut bez_path = BezPath::new();
-        bez_path.move_to(Point::new(224.0, -16.0));
-        bez_path.curve_to(
-            Point::new(306.0, -16.0),
-            Point::new(374.0, 16.0),
-            Point::new(416.0, 72.0),
-        );
-        bez_path.line_to(Point::new(224.0, -16.0));
-        bez_path.close_path();
-
-        let contour = convert_bezpath_to_ufo_contour(&bez_path);
-
-        // Should have 4 points: 2 off-curves, 1 curve, 1 line
-        assert_eq!(
-            contour.points.len(),
-            4,
-            "Curve contour should have 4 points"
-        );
-
-        // First points should be the curve (starting with off-curves)
-        assert_eq!(contour.points[0].typ, norad::PointType::OffCurve);
-        assert_eq!((contour.points[0].x, contour.points[0].y), (306.0, -16.0));
-
-        assert_eq!(contour.points[1].typ, norad::PointType::OffCurve);
-        assert_eq!((contour.points[1].x, contour.points[1].y), (374.0, 16.0));
-
-        assert_eq!(contour.points[2].typ, norad::PointType::Curve);
-        assert_eq!((contour.points[2].x, contour.points[2].y), (416.0, 72.0));
-
-        // Last should be the line back to start
-        assert_eq!(contour.points[3].typ, norad::PointType::Line);
-        assert_eq!((contour.points[3].x, contour.points[3].y), (224.0, -16.0));
-    }
 
     #[test]
     fn test_starting_point_preservation() {

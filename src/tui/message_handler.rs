@@ -1,8 +1,8 @@
-use crate::core::state::{GlyphNavigation, FontIRAppState, TextEditorState};
-use crate::ui::edit_mode_toolbar::CurrentTool;
-use crate::ui::edit_mode_toolbar::text::TextPlacementMode;
-use crate::systems::sorts::sort_entities::BufferSortRespawnQueue;
+use crate::core::state::{FontIRAppState, GlyphNavigation, TextEditorState};
 use crate::systems::sorts::input_utilities::unicode_to_glyph_name_fontir;
+use crate::systems::sorts::sort_entities::BufferSortRespawnQueue;
+use crate::ui::edit_mode_toolbar::text::TextPlacementMode;
+use crate::ui::edit_mode_toolbar::CurrentTool;
 use bevy::prelude::*;
 
 /// Handle TUI message to select/insert a glyph
@@ -82,7 +82,10 @@ pub fn handle_glyph_selection(
                 text_state.viewport_offset = current_viewport + bevy::math::Vec2::new(0.001, 0.0);
                 text_state.viewport_offset = current_viewport; // Reset it but triggers change detection
 
-                info!("Inserted new sort for glyph '{}' (U+{:04X}) at cursor position", glyph_name, unicode_codepoint);
+                info!(
+                    "Inserted new sort for glyph '{}' (U+{:04X}) at cursor position",
+                    glyph_name, unicode_codepoint
+                );
                 Ok(glyph_name)
             } else {
                 Err("Invalid Unicode codepoint".to_string())
@@ -143,7 +146,10 @@ fn change_active_sort_glyph(
                     glyph_name: glyph_name.to_string(),
                     advance_width,
                 };
-                info!("Changed active sort to display glyph U+{:04X}", unicode_codepoint);
+                info!(
+                    "Changed active sort to display glyph U+{:04X}",
+                    unicode_codepoint
+                );
 
                 // Queue the sort for respawn so the visual updates
                 respawn_queue.indices.push(index);

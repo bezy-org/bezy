@@ -180,7 +180,6 @@ pub(crate) fn render_glyphs(
         active_count, inactive_count, point_count
     );
 
-
     if active_count == 0 && inactive_count == 0 {
         update_tracker.needs_update = false;
         return;

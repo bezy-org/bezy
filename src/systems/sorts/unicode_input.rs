@@ -1391,4 +1391,3 @@ fn calculate_line_navigation_position(
 
     Some(best_position)
 }
-

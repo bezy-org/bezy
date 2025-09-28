@@ -10,15 +10,16 @@ use crate::core::AppState;
 use crate::editing::{FontEditorSystemSetsPlugin, SelectionPlugin, TextEditorPlugin};
 use crate::rendering::{
     cameras::CameraPlugin, checkerboard::CheckerboardPlugin,
-    sort_renderer::SortLabelRenderingPlugin,
-    zoom_aware_scaling::CameraResponsivePlugin, EntityPoolingPlugin, GlyphRenderingPlugin,
-    MeshCachingPlugin, MetricsRenderingPlugin, PostEditingRenderingPlugin, SortHandleRenderingPlugin,
+    sort_renderer::SortLabelRenderingPlugin, zoom_aware_scaling::CameraResponsivePlugin,
+    EntityPoolingPlugin, GlyphRenderingPlugin, MeshCachingPlugin, MetricsRenderingPlugin,
+    PostEditingRenderingPlugin, SortHandleRenderingPlugin,
 };
 use crate::systems::{
     center_camera_on_startup_layout, create_startup_layout, exit_on_esc, load_fontir_font,
-    BezySystems, CommandsPlugin, InputConsumerPlugin, TextShapingPlugin, UiInteractionPlugin,
-    plugins::configure_default_plugins,
+    plugins::configure_default_plugins, BezySystems, CommandsPlugin, InputConsumerPlugin,
+    TextShapingPlugin, UiInteractionPlugin,
 };
+use crate::tui::communication::{AppMessage, TuiMessage};
 use crate::ui::edit_mode_toolbar::EditModeToolbarPlugin;
 use crate::ui::file_menu::FileMenuPlugin;
 use crate::ui::panes::coordinate_pane::CoordinatePanePlugin;
@@ -32,7 +33,6 @@ use bevy::app::{PluginGroup, PluginGroupBuilder};
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
 use tokio::sync::mpsc;
-use crate::tui::communication::{AppMessage, TuiMessage};
 
 /// Plugin group for core application functionality (internal)
 #[derive(Default)]
@@ -289,10 +289,12 @@ pub fn create_app_with_tui(
     let mut app = App::new();
 
     // Add TUI communication resource
-    app.insert_resource(crate::core::tui_communication::TuiCommunication::new(tui_rx, app_tx));
+    app.insert_resource(crate::core::tui_communication::TuiCommunication::new(
+        tui_rx, app_tx,
+    ));
 
     configure_resources(&mut app, cli_args);
-    configure_window_plugins_for_tui(&mut app);  // Use TUI-specific configuration
+    configure_window_plugins_for_tui(&mut app); // Use TUI-specific configuration
     add_plugin_groups(&mut app);
     add_startup_and_exit_systems(&mut app);
 
@@ -343,7 +345,8 @@ fn handle_tui_messages(
                             text_state.set_changed();
                             // Force viewport micro-change to trigger rendering pipeline
                             let current_viewport = text_state.viewport_offset;
-                            text_state.viewport_offset = current_viewport + bevy::math::Vec2::new(0.0001, 0.0001);
+                            text_state.viewport_offset =
+                                current_viewport + bevy::math::Vec2::new(0.0001, 0.0001);
                             text_state.viewport_offset = current_viewport;
                         }
                         glyph_nav.set_changed();
@@ -360,7 +363,8 @@ fn handle_tui_messages(
                 if let Some(ref fontir_state) = fontir_state {
                     send_glyph_list_to_tui(&mut tui_comm, fontir_state, app_state.as_deref());
                 } else {
-                    tui_comm.send_log("No font loaded - please use --edit to load a font".to_string());
+                    tui_comm
+                        .send_log("No font loaded - please use --edit to load a font".to_string());
                 }
             }
             TuiMessage::RequestFontInfo => {
@@ -368,7 +372,8 @@ fn handle_tui_messages(
                 if let Some(ref fontir_state) = fontir_state {
                     send_font_info_to_tui(&mut tui_comm, fontir_state);
                 } else {
-                    tui_comm.send_log("No font loaded - please use --edit to load a font".to_string());
+                    tui_comm
+                        .send_log("No font loaded - please use --edit to load a font".to_string());
                 }
             }
             TuiMessage::ChangeZoom(zoom) => {
@@ -382,7 +387,8 @@ fn handle_tui_messages(
 
                     // Force viewport change to trigger rendering
                     let current_viewport = text_state.viewport_offset;
-                    text_state.viewport_offset = current_viewport + bevy::math::Vec2::new(0.001, 0.0);
+                    text_state.viewport_offset =
+                        current_viewport + bevy::math::Vec2::new(0.001, 0.0);
                     text_state.viewport_offset = current_viewport;
                 }
 
@@ -420,7 +426,10 @@ fn send_glyph_list_to_tui(
 
     info!("Sending {} glyphs to TUI", glyphs.len());
     tui_comm.send_glyph_list(glyphs);
-    tui_comm.send_log(format!("Loaded {} glyphs from font", fontir_state.glyph_cache.len()));
+    tui_comm.send_log(format!(
+        "Loaded {} glyphs from font",
+        fontir_state.glyph_cache.len()
+    ));
 }
 
 /// Send font info from FontIR to TUI

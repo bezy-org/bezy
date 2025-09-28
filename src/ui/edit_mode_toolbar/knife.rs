@@ -45,7 +45,9 @@ impl EditTool for KnifeTool {
     }
 
     fn update(&self, commands: &mut Commands) {
-        debug!("🔪 KNIFE_TOOL: update() called - setting knife mode active and input mode to Knife");
+        debug!(
+            "🔪 KNIFE_TOOL: update() called - setting knife mode active and input mode to Knife"
+        );
         commands.insert_resource(KnifeModeActive(true));
         commands.insert_resource(crate::core::io::input::InputMode::Knife);
     }

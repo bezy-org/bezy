@@ -37,7 +37,9 @@ impl InputConsumer for SelectionInputConsumer {
     fn should_handle_input(&self, event: &InputEvent, input_state: &InputState) -> bool {
         let is_mouse_event = matches!(
             event,
-            InputEvent::MouseClick { .. } | InputEvent::MouseDrag { .. } | InputEvent::MouseRelease { .. }
+            InputEvent::MouseClick { .. }
+                | InputEvent::MouseDrag { .. }
+                | InputEvent::MouseRelease { .. }
         );
         let is_select_mode = helpers::is_input_mode(input_state, InputMode::Select);
 
@@ -679,7 +681,6 @@ pub fn process_input_events(
 ) {
     let events: Vec<_> = input_events.read().collect();
 
-
     for event in events {
         // Route events to consumers based on priority
         // High priority: Text input
@@ -778,7 +779,10 @@ pub fn process_selection_events(
                 modifiers,
             } => {
                 if button == bevy::input::mouse::MouseButton::Left {
-                    debug!("[process_selection_events] Left mouse click at {:?}", position);
+                    debug!(
+                        "[process_selection_events] Left mouse click at {:?}",
+                        position
+                    );
                     // Use the existing selection click handling from mouse.rs
                     crate::editing::selection::input::mouse::handle_selection_click(
                         &mut commands,
@@ -833,7 +837,10 @@ pub fn process_selection_events(
                 modifiers,
             } => {
                 if button == bevy::input::mouse::MouseButton::Left {
-                    debug!("[process_selection_events] Left mouse release at {:?}", position);
+                    debug!(
+                        "[process_selection_events] Left mouse release at {:?}",
+                        position
+                    );
                     // Use the existing selection release handling from mouse.rs
                     crate::editing::selection::input::mouse::handle_selection_release(
                         &mut commands,
@@ -854,7 +861,6 @@ pub fn process_selection_events(
     }
 }
 
-
 pub struct InputConsumerPlugin;
 
 impl Plugin for InputConsumerPlugin {
@@ -870,10 +876,7 @@ impl Plugin for InputConsumerPlugin {
             .init_resource::<TextInputConsumer>()
             .init_resource::<CameraInputConsumer>()
             .init_resource::<MeasureInputConsumer>()
-            .add_systems(
-                Update,
-                (process_input_events, process_selection_events),
-            );
+            .add_systems(Update, (process_input_events, process_selection_events));
 
         debug!("[INPUT CONSUMER] InputConsumerPlugin registration complete");
     }

@@ -53,10 +53,10 @@
 //! This approach ensures perfect visual consistency between main toolbar and all submenus,
 //! making it easy to maintain a professional, unified interface.
 
-use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::ui::edit_mode_toolbar::*;
 use crate::ui::theme::TOOLBAR_GRID_SPACING;
 use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
+use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use bevy::prelude::*;
 
 // COMPONENTS ------------------------------------------------------------------
@@ -695,10 +695,8 @@ pub fn create_label_text<T: Bundle>(
     parent.spawn((
         Text::new(text),
         TextFont {
-            font: asset_server.load_font_with_fallback(
-                theme.theme().mono_font_path(),
-                embedded_fonts,
-            ),
+            font: asset_server
+                .load_font_with_fallback(theme.theme().mono_font_path(), embedded_fonts),
             font_size: crate::ui::theme_system::layout_constants::WIDGET_TEXT_FONT_SIZE,
             ..default()
         },
@@ -720,10 +718,8 @@ pub fn create_value_text<T: Bundle>(
     parent.spawn((
         Text::new(text),
         TextFont {
-            font: asset_server.load_font_with_fallback(
-                theme.theme().mono_font_path(),
-                embedded_fonts,
-            ),
+            font: asset_server
+                .load_font_with_fallback(theme.theme().mono_font_path(), embedded_fonts),
             font_size: crate::ui::theme_system::layout_constants::WIDGET_TEXT_FONT_SIZE,
             ..default()
         },

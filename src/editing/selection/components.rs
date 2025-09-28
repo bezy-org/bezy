@@ -36,7 +36,6 @@ pub struct Selectable;
 #[reflect(Component)]
 pub struct Selected;
 
-
 /// Component for the selection rectangle during drag operations
 #[derive(Component, Debug, Default, Reflect)]
 #[reflect(Component)]
@@ -96,4 +95,3 @@ pub struct SelectionState {
     #[reflect(ignore)]
     pub selected: BTreeSet<Entity>,
 }
-

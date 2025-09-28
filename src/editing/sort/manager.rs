@@ -17,7 +17,6 @@ use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use std::collections::HashMap;
 
-
 /// Component to mark point entities that belong to a sort
 #[derive(Component, Debug, Copy, Clone)]
 pub struct SortPointEntity {
@@ -381,7 +380,6 @@ pub fn spawn_sort_point_entities(
         );
     }
 }
-
 
 /// System to spawn initial sort for the current glyph when needed
 pub fn spawn_current_glyph_sort(

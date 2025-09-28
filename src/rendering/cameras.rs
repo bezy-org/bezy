@@ -7,7 +7,6 @@ use bevy::prelude::*;
 use bevy::render::camera::OrthographicProjection;
 use bevy_pancam::{PanCam, PanCamPlugin};
 
-
 // Component to mark the main design camera
 #[derive(Component)]
 pub struct DesignCamera;

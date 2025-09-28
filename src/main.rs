@@ -5,11 +5,11 @@
 
 use anyhow::Result;
 use bezy::core;
+use std::fs::OpenOptions;
+use std::os::unix::io::AsRawFd;
 use std::sync::Arc;
 use std::thread;
 use tokio::sync::mpsc;
-use std::fs::OpenOptions;
-use std::os::unix::io::AsRawFd;
 
 /// Set up log redirection to ~/.config/bezy/logs/
 /// Used when running without TUI to capture logs to file
@@ -43,7 +43,10 @@ fn setup_log_redirection() -> Result<()> {
     }
 
     // Print initial log message to confirm redirection
-    println!("=== Bezy started at {} ===", chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC"));
+    println!(
+        "=== Bezy started at {} ===",
+        chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC")
+    );
     println!("Logs redirected to: {:?}", log_file_path);
 
     Ok(())
@@ -94,11 +97,11 @@ fn run_app_with_tui(cli_args: core::cli::CliArgs) -> Result<()> {
     match core::app::create_app_with_tui((*cli_args_arc).clone(), tui_rx, app_tx) {
         Ok(mut app) => {
             app.run();
-        },
+        }
         Err(e) => {
             eprintln!("Failed to create Bevy app: {}", e);
             return Err(e);
-        },
+        }
     }
 
     // Wait for TUI thread to finish

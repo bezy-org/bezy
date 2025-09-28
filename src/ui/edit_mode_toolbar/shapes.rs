@@ -8,11 +8,11 @@
 use crate::core::settings::BezySettings;
 use crate::core::state::{AppState, GlyphNavigation};
 use crate::editing::selection::events::AppStateChanged;
-use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
 use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
 use crate::ui::theme::*;
 use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
+use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh2d;
 use bevy::sprite::{ColorMaterial, MeshMaterial2d};

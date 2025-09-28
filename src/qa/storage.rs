@@ -1,9 +1,9 @@
 use crate::qa::QAReport;
-use anyhow::{Result, anyhow};
-use serde::{Serialize, Deserialize};
-use std::path::{Path, PathBuf};
+use anyhow::{anyhow, Result};
+use serde::{Deserialize, Serialize};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
+use std::path::{Path, PathBuf};
 use tokio::fs;
 use tokio::io::AsyncWriteExt;
 
@@ -28,7 +28,11 @@ impl ReportStorage {
 
     fn get_reports_dir() -> PathBuf {
         if let Ok(home) = std::env::var("HOME") {
-            PathBuf::from(home).join(".config").join("bezy").join("qa").join("reports")
+            PathBuf::from(home)
+                .join(".config")
+                .join("bezy")
+                .join("qa")
+                .join("reports")
         } else {
             PathBuf::from("/tmp").join("bezy-qa-reports")
         }
@@ -49,15 +53,18 @@ impl ReportStorage {
 
         // Store as latest.json
         let latest_path = font_dir.join("latest.json");
-        self.write_report_to_file(&stored_report, &latest_path).await?;
+        self.write_report_to_file(&stored_report, &latest_path)
+            .await?;
 
         // Store timestamped copy
-        let timestamp = stored_report.storage_timestamp
+        let timestamp = stored_report
+            .storage_timestamp
             .duration_since(std::time::UNIX_EPOCH)
             .map_err(|e| anyhow!("Time error: {}", e))?
             .as_secs();
         let timestamped_path = font_dir.join(format!("{}.json", timestamp));
-        self.write_report_to_file(&stored_report, &timestamped_path).await?;
+        self.write_report_to_file(&stored_report, &timestamped_path)
+            .await?;
 
         // Update summary
         self.update_summary(&font_hash, &stored_report).await?;
@@ -105,9 +112,10 @@ impl ReportStorage {
             let file_name = file_name.to_string_lossy();
 
             // Count timestamped JSON files (exclude latest.json and summary.json)
-            if file_name.ends_with(".json") &&
-               file_name != "latest.json" &&
-               file_name != "summary.json" {
+            if file_name.ends_with(".json")
+                && file_name != "latest.json"
+                && file_name != "summary.json"
+            {
                 count += 1;
             }
         }
@@ -124,10 +132,10 @@ impl ReportStorage {
             let file_name_str = file_name.to_string_lossy();
 
             // Only consider timestamped reports
-            if file_name_str.ends_with(".json") &&
-               file_name_str != "latest.json" &&
-               file_name_str != "summary.json" {
-
+            if file_name_str.ends_with(".json")
+                && file_name_str != "latest.json"
+                && file_name_str != "summary.json"
+            {
                 if let Ok(metadata) = entry.metadata().await {
                     if let Ok(modified) = metadata.modified() {
                         reports.push((entry.path(), modified));
@@ -166,7 +174,11 @@ impl ReportStorage {
         Ok(Some(report))
     }
 
-    pub async fn load_report_history(&self, font_path: &Path, limit: Option<usize>) -> Result<Vec<StoredQAReport>> {
+    pub async fn load_report_history(
+        &self,
+        font_path: &Path,
+        limit: Option<usize>,
+    ) -> Result<Vec<StoredQAReport>> {
         let font_hash = self.calculate_font_hash(font_path)?;
         let font_dir = self.reports_dir.join(&font_hash);
 
@@ -182,10 +194,10 @@ impl ReportStorage {
             let file_name = entry.file_name();
             let file_name_str = file_name.to_string_lossy();
 
-            if file_name_str.ends_with(".json") &&
-               file_name_str != "latest.json" &&
-               file_name_str != "summary.json" {
-
+            if file_name_str.ends_with(".json")
+                && file_name_str != "latest.json"
+                && file_name_str != "summary.json"
+            {
                 if let Ok(metadata) = entry.metadata().await {
                     if let Ok(modified) = metadata.modified() {
                         entries.push((entry.path(), modified));

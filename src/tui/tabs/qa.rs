@@ -7,11 +7,11 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem, Paragraph, Wrap},
     Frame,
 };
-use tokio::sync::mpsc;
 use std::sync::{Arc, Mutex};
+use tokio::sync::mpsc;
 
+use crate::qa::{Category, Location, QAIssue, QAReport, QASummary, Severity};
 use crate::tui::communication::TuiMessage;
-use crate::qa::{QAReport, QAIssue, QASummary, Severity, Category, Location};
 
 #[derive(Debug, Clone)]
 pub struct QAState {
@@ -242,7 +242,9 @@ pub async fn handle_key_event(
             state.progress = 0.0;
 
             // Run real Fontspector analysis on BezyGrotesk sample font
-            let font_path = std::path::PathBuf::from("/home/eli/Bezy/repos/bezy/assets/fonts/BezyGrotesk-Regular.ttf");
+            let font_path = std::path::PathBuf::from(
+                "/home/eli/Bezy/repos/bezy/assets/fonts/BezyGrotesk-Regular.ttf",
+            );
 
             if font_path.exists() {
                 let runner = crate::qa::fontspector::FontspectorRunner::new();
@@ -336,7 +338,10 @@ pub fn draw(f: &mut Frame, state: &mut QAState, area: Rect) {
     if let Some(ref report_mutex) = state.current_report {
         if let Ok(report) = report_mutex.lock() {
             // Update issues from the report if it has data
-            if !report.issues.is_empty() && state.issues.len() == 1 && state.issues[0].check_id == "system.analysis" {
+            if !report.issues.is_empty()
+                && state.issues.len() == 1
+                && state.issues[0].check_id == "system.analysis"
+            {
                 state.issues = report.issues.clone();
                 state.is_running = false;
             }
@@ -384,7 +389,9 @@ fn draw_issue_list(f: &mut Frame, state: &mut QAState, area: Rect) {
         .skip(state.scroll_offset)
         .take(visible_height)
         .map(|(_, issue)| {
-            let severity_style = Style::default().fg(issue.severity.color()).add_modifier(Modifier::BOLD);
+            let severity_style = Style::default()
+                .fg(issue.severity.color())
+                .add_modifier(Modifier::BOLD);
             let line = Line::from(vec![
                 Span::styled(format!("{:<6}", issue.severity.as_str()), severity_style),
                 Span::raw(" "),
@@ -422,25 +429,33 @@ fn draw_issue_list(f: &mut Frame, state: &mut QAState, area: Rect) {
 }
 
 fn draw_filters(f: &mut Frame, state: &QAState, area: Rect) {
-    let severity_filter = state.filter_severity.as_ref()
+    let severity_filter = state
+        .filter_severity
+        .as_ref()
         .map(|s| s.as_str())
         .unwrap_or("All");
 
-    let category_filter = state.filter_category.as_ref()
+    let category_filter = state
+        .filter_category
+        .as_ref()
         .map(|c| c.as_str())
         .unwrap_or("All");
 
-    let text = format!("Severity: [{}]  Category: [{}]", severity_filter, category_filter);
-    let paragraph = Paragraph::new(text)
-        .block(Block::default().borders(Borders::ALL).title("Filters"));
+    let text = format!(
+        "Severity: [{}]  Category: [{}]",
+        severity_filter, category_filter
+    );
+    let paragraph =
+        Paragraph::new(text).block(Block::default().borders(Borders::ALL).title("Filters"));
 
     f.render_widget(paragraph, area);
 }
 
 fn draw_controls(f: &mut Frame, area: Rect) {
-    let text = "↑↓/j/k: Navigate | Enter: Details | S: Summary | F: Filter | R: Refresh | Esc: Back";
-    let paragraph = Paragraph::new(text)
-        .block(Block::default().borders(Borders::ALL).title("Controls"));
+    let text =
+        "↑↓/j/k: Navigate | Enter: Details | S: Summary | F: Filter | R: Refresh | Esc: Back";
+    let paragraph =
+        Paragraph::new(text).block(Block::default().borders(Borders::ALL).title("Controls"));
 
     f.render_widget(paragraph, area);
 }
@@ -461,7 +476,10 @@ fn draw_issue_detail(f: &mut Frame, state: &QAState, area: Rect) {
 
         lines.push(Line::from(vec![
             Span::styled("Severity: ", Style::default().add_modifier(Modifier::BOLD)),
-            Span::styled(issue.severity.as_str(), Style::default().fg(issue.severity.color())),
+            Span::styled(
+                issue.severity.as_str(),
+                Style::default().fg(issue.severity.color()),
+            ),
         ]));
 
         lines.push(Line::from(vec![
@@ -471,9 +489,10 @@ fn draw_issue_detail(f: &mut Frame, state: &QAState, area: Rect) {
 
         lines.push(Line::from(""));
 
-        lines.push(Line::from(vec![
-            Span::styled("Message: ", Style::default().add_modifier(Modifier::BOLD)),
-        ]));
+        lines.push(Line::from(vec![Span::styled(
+            "Message: ",
+            Style::default().add_modifier(Modifier::BOLD),
+        )]));
 
         // Split message into multiple lines if needed
         for line in issue.message.lines() {
@@ -482,9 +501,10 @@ fn draw_issue_detail(f: &mut Frame, state: &QAState, area: Rect) {
 
         if let Some(ref location) = issue.location {
             lines.push(Line::from(""));
-            lines.push(Line::from(vec![
-                Span::styled("Location: ", Style::default().add_modifier(Modifier::BOLD)),
-            ]));
+            lines.push(Line::from(vec![Span::styled(
+                "Location: ",
+                Style::default().add_modifier(Modifier::BOLD),
+            )]));
 
             if let Some(ref glyph) = location.glyph_name {
                 lines.push(Line::from(format!("  Glyph: {}", glyph)));
@@ -495,7 +515,11 @@ fn draw_issue_detail(f: &mut Frame, state: &QAState, area: Rect) {
         }
 
         let paragraph = Paragraph::new(lines)
-            .block(Block::default().borders(Borders::ALL).title("Issue Details"))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Issue Details"),
+            )
             .wrap(Wrap { trim: true });
 
         f.render_widget(paragraph, chunks[0]);
@@ -521,57 +545,104 @@ fn draw_summary(f: &mut Frame, state: &QAState, area: Rect) {
 
             lines.push(Line::from(vec![
                 Span::styled("📁 Font: ", Style::default().add_modifier(Modifier::BOLD)),
-                Span::raw(report.font_path.file_name().unwrap_or_default().to_string_lossy()),
+                Span::raw(
+                    report
+                        .font_path
+                        .file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy(),
+                ),
             ]));
 
             if let Ok(elapsed) = report.timestamp.elapsed() {
                 lines.push(Line::from(vec![
-                    Span::styled("⏱️  Last run: ", Style::default().add_modifier(Modifier::BOLD)),
+                    Span::styled(
+                        "⏱️  Last run: ",
+                        Style::default().add_modifier(Modifier::BOLD),
+                    ),
                     Span::raw(format!("{:.0} seconds ago", elapsed.as_secs())),
                 ]));
             }
 
             lines.push(Line::from(""));
-            lines.push(Line::from(vec![
-                Span::styled("📊 QA Analysis Results", Style::default().add_modifier(Modifier::BOLD)),
-            ]));
+            lines.push(Line::from(vec![Span::styled(
+                "📊 QA Analysis Results",
+                Style::default().add_modifier(Modifier::BOLD),
+            )]));
             lines.push(Line::from(""));
 
             // Progress bar visualization
             let total = report.summary.total_checks as f32;
             let passed_pct = (report.summary.passed as f32 / total * 100.0) as u8;
-            lines.push(Line::from(format!("  📈 Overall Score: {}% ({} of {} checks passed)",
-                passed_pct, report.summary.passed, report.summary.total_checks)));
+            lines.push(Line::from(format!(
+                "  📈 Overall Score: {}% ({} of {} checks passed)",
+                passed_pct, report.summary.passed, report.summary.total_checks
+            )));
             lines.push(Line::from(""));
 
             lines.push(Line::from(vec![
-                Span::styled("  ✅ Passed: ", Style::default().add_modifier(Modifier::BOLD)),
-                Span::styled(format!("{}", report.summary.passed), Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "  ✅ Passed: ",
+                    Style::default().add_modifier(Modifier::BOLD),
+                ),
+                Span::styled(
+                    format!("{}", report.summary.passed),
+                    Style::default()
+                        .fg(Color::Green)
+                        .add_modifier(Modifier::BOLD),
+                ),
             ]));
             lines.push(Line::from(vec![
-                Span::styled("  ❌ Failed: ", Style::default().add_modifier(Modifier::BOLD)),
-                Span::styled(format!("{}", report.summary.failed), Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "  ❌ Failed: ",
+                    Style::default().add_modifier(Modifier::BOLD),
+                ),
+                Span::styled(
+                    format!("{}", report.summary.failed),
+                    Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+                ),
             ]));
             lines.push(Line::from(vec![
-                Span::styled("  ⚠️  Warnings: ", Style::default().add_modifier(Modifier::BOLD)),
-                Span::styled(format!("{}", report.summary.warnings), Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "  ⚠️  Warnings: ",
+                    Style::default().add_modifier(Modifier::BOLD),
+                ),
+                Span::styled(
+                    format!("{}", report.summary.warnings),
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD),
+                ),
             ]));
             lines.push(Line::from(vec![
-                Span::styled("  ℹ️  Info: ", Style::default().add_modifier(Modifier::BOLD)),
-                Span::styled(format!("{}", report.summary.info), Style::default().fg(Color::Blue).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "  ℹ️  Info: ",
+                    Style::default().add_modifier(Modifier::BOLD),
+                ),
+                Span::styled(
+                    format!("{}", report.summary.info),
+                    Style::default()
+                        .fg(Color::Blue)
+                        .add_modifier(Modifier::BOLD),
+                ),
             ]));
             lines.push(Line::from(vec![
-                Span::styled("  ⏭️  Skipped: ", Style::default().add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    "  ⏭️  Skipped: ",
+                    Style::default().add_modifier(Modifier::BOLD),
+                ),
                 Span::raw(format!("{}", report.summary.skipped)),
             ]));
 
             lines.push(Line::from(""));
             lines.push(Line::from("🔧 Critical issues require immediate attention"));
-            lines.push(Line::from("⚡ This analysis shows real Fontspector check results"));
+            lines.push(Line::from(
+                "⚡ This analysis shows real Fontspector check results",
+            ));
 
             let paragraph = Paragraph::new(lines)
-            .block(Block::default().borders(Borders::ALL).title("QA Summary"))
-            .wrap(Wrap { trim: true });
+                .block(Block::default().borders(Borders::ALL).title("QA Summary"))
+                .wrap(Wrap { trim: true });
 
             f.render_widget(paragraph, chunks[0]);
 
@@ -592,8 +663,8 @@ fn draw_settings(f: &mut Frame, _state: &QAState, area: Rect) {
         Line::from("(Settings panel not yet implemented)"),
     ];
 
-    let paragraph = Paragraph::new(lines)
-        .block(Block::default().borders(Borders::ALL).title("Settings"));
+    let paragraph =
+        Paragraph::new(lines).block(Block::default().borders(Borders::ALL).title("Settings"));
 
     f.render_widget(paragraph, area);
 }
@@ -622,8 +693,11 @@ fn draw_no_report(f: &mut Frame, area: Rect) {
         Line::from("• Press S for summary view"),
     ];
 
-    let paragraph = Paragraph::new(lines)
-        .block(Block::default().borders(Borders::ALL).title("QA - Demo Ready"));
+    let paragraph = Paragraph::new(lines).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("QA - Demo Ready"),
+    );
 
     f.render_widget(paragraph, area);
 }

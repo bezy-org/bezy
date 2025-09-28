@@ -104,7 +104,7 @@ pub struct SmoothCurveResult {
 /// the smooth on-curve point. This ensures smooth curve transitions without kinks.
 ///
 /// **Example contour sequence:**
-/// ```
+/// ```text
 /// [on-curve] → [off-curve] → [SMOOTH on-curve] → [off-curve] → [on-curve]
 ///                    ↑              ↑                ↑
 ///                left handle    smooth point    right handle

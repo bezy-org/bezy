@@ -14,7 +14,6 @@ pub struct EditPoint {
     pub point_type: PointTypeData, // Point type (move, line, curve, etc.)
 }
 
-
 /// Unique identifier for entities in a glyph (points, guides, components)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Reflect)]
 pub struct EntityId {
@@ -30,4 +29,3 @@ pub enum EntityKind {
     Guide,     // A guide line for alignment
     Component, // A component reference to another glyph
 }
-

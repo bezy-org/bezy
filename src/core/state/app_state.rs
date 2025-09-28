@@ -112,7 +112,6 @@ impl AppState {
             .get_mut(point_idx)
     }
 
-
     /// Set the position of a point
     pub fn set_point_position(
         &mut self,
@@ -130,7 +129,6 @@ impl AppState {
             false
         }
     }
-
 }
 
 impl Workspace {

@@ -1,7 +1,4 @@
-use crate::tui::{
-    app::App,
-    tabs::TabState,
-};
+use crate::tui::{app::App, tabs::TabState};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
@@ -38,7 +35,11 @@ fn draw_tabs(f: &mut Frame, app: &App, area: Rect) {
     let tabs = Tabs::new(titles)
         .block(Block::default().borders(Borders::ALL).title("Bezy"))
         .style(Style::default().fg(Color::White))
-        .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+        .highlight_style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        )
         .select(app.current_tab)
         .divider("│");
 

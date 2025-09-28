@@ -116,7 +116,7 @@ mod nudge_tests {
 
     #[test]
     fn test_edit_event_creation() {
-        let event = EditEvent {};
+        let _event = EditEvent {};
 
         assert!(
             true, // Edit event should have correct type

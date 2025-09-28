@@ -5,9 +5,9 @@
 
 use crate::core::state::fontir_app_state::FontIRAppState;
 use crate::core::state::AppState;
-use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::ui::theme::*;
 use crate::ui::themes::CurrentTheme;
+use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use bevy::prelude::*;
 use kurbo::{BezPath, PathEl};
 
