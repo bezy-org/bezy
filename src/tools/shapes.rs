@@ -21,12 +21,12 @@ impl EditTool for ShapesTool {
     }
 
     fn on_activate(&mut self, commands: &mut Commands) {
-        commands.insert_resource(crate::core::io::input::InputMode::Shape);
+        commands.insert_resource(crate::io::input::InputMode::Shape);
         debug!("Shapes tool activated");
     }
 
     fn on_deactivate(&mut self, commands: &mut Commands) {
-        commands.insert_resource(crate::core::io::input::InputMode::Normal);
+        commands.insert_resource(crate::io::input::InputMode::Normal);
         debug!("Shapes tool deactivated");
     }
 }

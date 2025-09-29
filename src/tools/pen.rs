@@ -9,11 +9,11 @@
 #![allow(clippy::too_many_arguments)]
 
 use super::{EditTool, ToolInfo};
-use crate::core::io::input::{helpers, InputEvent, InputMode, InputState};
-use crate::core::io::pointer::PointerInfo;
 use crate::core::state::{AppState, ContourData, PointData, PointTypeData};
 use crate::editing::selection::events::AppStateChanged;
 use crate::geometry::world_space::DPoint;
+use crate::io::input::{helpers, InputEvent, InputMode, InputState};
+use crate::io::pointer::PointerInfo;
 use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
 use crate::systems::ui_interaction::UiHoverState;
 use bevy::input::keyboard::KeyCode;
@@ -188,7 +188,7 @@ pub fn handle_pen_mouse_events(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     pointer_info: Res<PointerInfo>,
     ui_hover_state: Res<UiHoverState>,
-    settings: Res<crate::core::settings::BezySettings>,
+    settings: Res<crate::core::config::BezySettings>,
     // Query for active sort to get its position
     active_sort_query: Query<
         (Entity, &crate::editing::sort::Sort, &Transform),
@@ -331,7 +331,7 @@ pub fn render_pen_preview(
     current_tool: Option<Res<crate::ui::edit_mode_toolbar::CurrentTool>>,
     pointer_info: Res<PointerInfo>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    settings: Res<crate::core::settings::BezySettings>,
+    settings: Res<crate::core::config::BezySettings>,
     camera_scale: Res<CameraResponsiveScale>,
     existing_preview_query: Query<Entity, With<PenPreviewElement>>,
     theme: Res<crate::ui::themes::CurrentTheme>,
@@ -819,7 +819,7 @@ fn calculate_final_position_dpoint(
     cursor_pos: DPoint,
     keyboard: &Res<ButtonInput<KeyCode>>,
     pen_state: &PenToolState,
-    settings: &crate::core::settings::BezySettings,
+    settings: &crate::core::config::BezySettings,
 ) -> DPoint {
     let shift_pressed =
         keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);

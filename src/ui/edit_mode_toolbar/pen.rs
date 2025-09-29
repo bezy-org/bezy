@@ -7,9 +7,7 @@
 //! The tool converts placed points into UFO contours that are saved to the font file.
 
 use super::EditModeSystem;
-use crate::core::io::input::{helpers, InputEvent, InputMode, InputState, ModifierState};
-use crate::core::io::pointer::PointerInfo;
-use crate::core::settings::BezySettings;
+use crate::core::config::BezySettings;
 use crate::core::state::AppState;
 use crate::editing::selection::components::{GlyphPointReference, PointType, Selectable, Selected};
 use crate::editing::selection::systems::AppStateChanged;
@@ -18,6 +16,8 @@ use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::ActiveSortState;
 use crate::geometry::utilities::axis_lock_position;
 use crate::geometry::world_space::DPoint;
+use crate::io::input::{helpers, InputEvent, InputMode, InputState, ModifierState};
+use crate::io::pointer::PointerInfo;
 use crate::systems::ui_interaction::UiHoverState;
 use crate::ui::edit_mode_toolbar::select::SelectModeActive;
 use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
@@ -61,7 +61,7 @@ impl EditTool for PenTool {
         // Ensure pen mode is active
         commands.insert_resource(PenModeActive(true));
         commands.insert_resource(SelectModeActive(false));
-        commands.insert_resource(crate::core::io::input::InputMode::Pen);
+        commands.insert_resource(crate::io::input::InputMode::Pen);
     }
 
     fn on_enter(&self) {

@@ -5,7 +5,7 @@ pub mod message_handler;
 pub mod tabs;
 pub mod ui;
 
-use crate::core::cli::CliArgs;
+use crate::core::config::CliArgs;
 use anyhow::Result;
 use communication::{AppMessage, TuiMessage};
 use std::sync::Arc;

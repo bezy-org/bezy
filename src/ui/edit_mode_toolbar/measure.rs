@@ -36,7 +36,7 @@ impl EditTool for MeasureTool {
     fn update(&self, commands: &mut Commands) {
         debug!("📏 MEASURE_TOOL: update() called - setting measure mode active and input mode to Measure");
         commands.insert_resource(MeasureModeActive(true));
-        commands.insert_resource(crate::core::io::input::InputMode::Measure);
+        commands.insert_resource(crate::io::input::InputMode::Measure);
     }
 
     fn on_enter(&self) {

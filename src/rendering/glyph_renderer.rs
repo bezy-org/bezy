@@ -1437,52 +1437,25 @@ fn detect_sort_changes(
     inactive_sort_query: InactiveSortChangeQuery,
     removed_active: RemovedComponents<ActiveSort>,
     removed_inactive: RemovedComponents<crate::editing::sort::InactiveSort>,
-    // CRITICAL FIX: Also trigger updates when points are available for active sorts
-    point_query: Query<&crate::editing::sort::manager::SortPointEntity>,
-    buffer_active_sorts: Query<
-        Entity,
-        (
-            With<ActiveSort>,
-            With<crate::systems::sorts::sort_entities::BufferSortIndex>,
-        ),
-    >,
 ) {
     let active_changed = !active_sort_query.is_empty();
     let inactive_changed = !inactive_sort_query.is_empty();
     let removed_active_count = removed_active.len();
     let removed_inactive_count = removed_inactive.len();
 
-    // CRITICAL FIX: Also check if active buffer sorts have points but visual update wasn't triggered
-    let mut points_ready_for_rendering = false;
-    for sort_entity in buffer_active_sorts.iter() {
-        let point_count = point_query
-            .iter()
-            .filter(|point_parent| point_parent.sort_entity == sort_entity)
-            .count();
-        if point_count > 0 && !update_tracker.needs_update {
-            points_ready_for_rendering = true;
-            debug!(
-                "🔄 POINTS READY: Sort {:?} has {} points but visual update not triggered",
-                sort_entity, point_count
-            );
-            break;
-        }
-    }
+    // REMOVED EXPENSIVE CHECK: The point spawning system already triggers visual updates
+    // when points are spawned, so we don't need to check for existing points here.
+    // This eliminates the O(n*m) nested loop that was causing lag.
 
     let needs_update = active_changed
         || inactive_changed
         || removed_active_count > 0
-        || removed_inactive_count > 0
-        || points_ready_for_rendering;
+        || removed_inactive_count > 0;
 
     if needs_update {
         update_tracker.needs_update = true;
-        if points_ready_for_rendering {
-            debug!("🔄 POINTS READY DETECTED: Setting update flag for active sorts with existing points");
-        } else {
-            debug!("🔄 SORT CHANGES DETECTED: Setting update flag - active_changed: {}, inactive_changed: {}, removed_active: {}, removed_inactive: {}", 
-                  active_changed, inactive_changed, removed_active_count, removed_inactive_count);
-        }
+        debug!("🔄 SORT CHANGES DETECTED: Setting update flag - active_changed: {}, inactive_changed: {}, removed_active: {}, removed_inactive: {}",
+              active_changed, inactive_changed, removed_active_count, removed_inactive_count);
     }
 }
 
@@ -1560,12 +1533,18 @@ impl Plugin for GlyphRenderingPlugin {
         app.init_resource::<GlyphRenderEntities>()
             .init_resource::<SortVisualUpdateTracker>()
             .init_resource::<GlyphRenderingData>()
+            // CRITICAL: All systems MUST be in PostEditingRenderingSet!
+            // This ensures rendering happens AFTER point spawning completes.
+            // Without this, outlines lag 1-2 seconds behind metrics updates.
             .add_systems(
                 Update,
-                detect_sort_changes.in_set(crate::rendering::PostEditingRenderingSet),
-            )
-            .add_systems(Update, collect_rendering_data)
-            .add_systems(Update, render_glyphs.after(collect_rendering_data));
+                (
+                    detect_sort_changes,
+                    collect_rendering_data,
+                    render_glyphs.after(collect_rendering_data),
+                )
+                    .in_set(crate::rendering::PostEditingRenderingSet),
+            );
     }
 }
 

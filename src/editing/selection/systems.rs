@@ -7,9 +7,7 @@ use super::coordinate_system::SelectionCoordinateSystem;
 use super::events::ClickWorldPosition;
 use super::DragPointState;
 use super::DragSelectionState;
-use crate::core::io::input::{helpers, InputEvent, InputState};
-use crate::core::io::pointer::PointerInfo;
-use crate::core::settings::BezySettings;
+use crate::core::config::BezySettings;
 use crate::core::state::AppState;
 use crate::core::state::FontMetrics;
 use crate::core::state::TextEditorState;
@@ -18,6 +16,8 @@ use crate::editing::selection::nudge::{EditEvent, NudgeState};
 use crate::geometry::point::{EditPoint, EntityId, EntityKind};
 #[allow(unused_imports)]
 use crate::geometry::world_space::DPoint;
+use crate::io::input::{helpers, InputEvent, InputState};
+use crate::io::pointer::PointerInfo;
 use bevy::ecs::system::ParamSet;
 use bevy::input::mouse::MouseButton;
 use bevy::input::ButtonInput;
@@ -538,8 +538,8 @@ pub fn cleanup_click_resource(mut commands: Commands) {
 #[allow(clippy::too_many_arguments)]
 pub fn process_selection_input_events(
     mut commands: Commands,
-    mut input_events: EventReader<crate::core::io::input::InputEvent>,
-    input_state: Res<crate::core::io::input::InputState>,
+    mut input_events: EventReader<crate::io::input::InputEvent>,
+    input_state: Res<crate::io::input::InputState>,
     mut drag_state: ResMut<DragSelectionState>,
     mut drag_point_state: ResMut<DragPointState>,
     mut event_writer: EventWriter<EditEvent>,
@@ -564,10 +564,8 @@ pub fn process_selection_input_events(
     debug!("[process_selection_input_events] Called");
 
     // Check if select tool is active by checking InputMode
-    if !crate::core::io::input::helpers::is_input_mode(
-        &input_state,
-        crate::core::io::input::InputMode::Select,
-    ) {
+    if !crate::io::input::helpers::is_input_mode(&input_state, crate::io::input::InputMode::Select)
+    {
         debug!("[process_selection_input_events] Not in Select input mode, returning early");
         return;
     }
@@ -586,14 +584,14 @@ pub fn process_selection_input_events(
         );
 
         // Skip if UI is consuming input
-        if crate::core::io::input::helpers::is_ui_consuming(&input_state) {
+        if crate::io::input::helpers::is_ui_consuming(&input_state) {
             debug!("Selection: Skipping event - UI is consuming input");
             continue;
         }
 
         // Only handle events that are relevant to selection
         match event {
-            crate::core::io::input::InputEvent::MouseClick {
+            crate::io::input::InputEvent::MouseClick {
                 button,
                 position,
                 modifiers,
@@ -665,7 +663,7 @@ pub fn process_selection_input_events(
                     }
                 }
             }
-            crate::core::io::input::InputEvent::MouseDrag {
+            crate::io::input::InputEvent::MouseDrag {
                 button,
                 start_position,
                 current_position,
@@ -706,7 +704,7 @@ pub fn process_selection_input_events(
                     debug!("Selection: handle_selection_drag completed");
                 }
             }
-            crate::core::io::input::InputEvent::MouseRelease {
+            crate::io::input::InputEvent::MouseRelease {
                 button,
                 position,
                 modifiers,
@@ -729,7 +727,7 @@ pub fn process_selection_input_events(
                     );
                 }
             }
-            crate::core::io::input::InputEvent::KeyPress { key, modifiers } => {
+            crate::io::input::InputEvent::KeyPress { key, modifiers } => {
                 if matches!(
                     key,
                     bevy::input::keyboard::KeyCode::KeyA | bevy::input::keyboard::KeyCode::Escape
@@ -767,7 +765,7 @@ pub fn process_selection_input_events(
 pub fn handle_selection_click(
     commands: &mut Commands,
     position: &DPoint,
-    modifiers: &crate::core::io::input::ModifierState,
+    modifiers: &crate::io::input::ModifierState,
     _drag_state: &mut ResMut<DragSelectionState>,
     drag_point_state: &mut ResMut<DragPointState>,
     event_writer: &mut EventWriter<EditEvent>,
@@ -975,7 +973,7 @@ pub fn handle_selection_drag(
     start_position: &DPoint,
     current_position: &DPoint,
     delta: &Vec2,
-    modifiers: &crate::core::io::input::ModifierState,
+    modifiers: &crate::io::input::ModifierState,
     drag_state: &mut ResMut<DragSelectionState>,
     _drag_point_state: &mut ResMut<DragPointState>,
     _event_writer: &mut EventWriter<EditEvent>,
@@ -1190,7 +1188,7 @@ pub fn handle_selection_drag(
 pub fn handle_selection_release(
     commands: &mut Commands,
     position: &DPoint,
-    _modifiers: &crate::core::io::input::ModifierState,
+    _modifiers: &crate::io::input::ModifierState,
     drag_state: &mut ResMut<DragSelectionState>,
     drag_point_state: &mut ResMut<DragPointState>,
     _event_writer: &mut EventWriter<EditEvent>,
@@ -1243,7 +1241,7 @@ pub fn handle_selection_release(
 pub fn handle_selection_key_press(
     commands: &mut Commands,
     key: &KeyCode,
-    modifiers: &crate::core::io::input::ModifierState,
+    modifiers: &crate::io::input::ModifierState,
     selectable_query: &Query<
         (
             Entity,

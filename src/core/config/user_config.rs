@@ -5,8 +5,6 @@
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::fs::OpenOptions;
-use std::os::unix::io::AsRawFd;
 use std::path::PathBuf;
 
 /// User configuration from ~/.config/bezy/settings.json
@@ -36,25 +34,6 @@ impl ConfigFile {
         let config_dir = dirs::config_dir()
             .unwrap_or_else(|| dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")));
         config_dir.join("bezy")
-    }
-
-    /// Get the path to the logs directory
-    pub fn logs_dir() -> PathBuf {
-        Self::config_dir().join("logs")
-    }
-
-    /// Get the path to the current log file
-    pub fn current_log_file() -> PathBuf {
-        let timestamp = chrono::Utc::now().format("%Y-%m-%d");
-        Self::logs_dir().join(format!("bezy-{}.log", timestamp))
-    }
-
-    /// Initialize the logs directory
-    pub fn initialize_logs_directory() -> anyhow::Result<()> {
-        let logs_dir = Self::logs_dir();
-        fs::create_dir_all(&logs_dir)?;
-        debug!("Created logs directory: {:?}", logs_dir);
-        Ok(())
     }
 
     /// Load configuration from the user config file
@@ -105,6 +84,7 @@ impl ConfigFile {
     /// 1. The ~/.config/bezy directory structure
     /// 2. A settings.json file with default values
     /// 3. A themes/ directory with copies of all embedded themes
+    /// 4. A logs/ directory for application logs
     pub fn initialize_config_directory() -> anyhow::Result<()> {
         let config_dir = dirs::config_dir()
             .unwrap_or_else(|| dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")))
@@ -114,7 +94,7 @@ impl ConfigFile {
         fs::create_dir_all(&config_dir)?;
         println!("Created config directory: {:?}", config_dir);
 
-        // Create logs directory
+        // Create logs directory (using the logging module)
         let logs_dir = config_dir.join("logs");
         fs::create_dir_all(&logs_dir)?;
         println!("Created logs directory: {:?}", logs_dir);
@@ -153,45 +133,6 @@ impl ConfigFile {
         println!("  - Edit settings at: {:?}", settings_path);
         println!("  - Customize themes in: {:?}", themes_dir);
         println!("  - View application logs in: {:?}", logs_dir);
-
-        Ok(())
-    }
-
-    /// Set up log redirection to ~/.config/bezy/logs/
-    /// Used when running without TUI to capture logs to file
-    pub fn setup_log_redirection() -> anyhow::Result<()> {
-        // Check if config directory exists - if not, we'll fail gracefully
-        let config_dir = Self::config_dir();
-        if !config_dir.exists() {
-            // Config directory doesn't exist, so don't try to create logs
-            return Err(anyhow::anyhow!("Config directory doesn't exist"));
-        }
-
-        // Initialize logs directory
-        Self::initialize_logs_directory()?;
-
-        // Get the log file path
-        let log_file_path = Self::current_log_file();
-
-        // Create/open the log file - use truncate instead of append for single log file
-        let log_file = OpenOptions::new()
-            .create(true)
-            .write(true)
-            .truncate(true)
-            .open(&log_file_path)?;
-
-        // Redirect stdout and stderr to the log file
-        unsafe {
-            libc::dup2(log_file.as_raw_fd(), libc::STDOUT_FILENO);
-            libc::dup2(log_file.as_raw_fd(), libc::STDERR_FILENO);
-        }
-
-        // Print initial log message to confirm redirection
-        println!(
-            "=== Bezy started at {} ===",
-            chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC")
-        );
-        println!("Logs redirected to: {:?}", log_file_path);
 
         Ok(())
     }

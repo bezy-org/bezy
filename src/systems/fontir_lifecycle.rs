@@ -3,7 +3,7 @@
 //! This module contains systems that handle font loading and management
 //! using FontIR instead of the old custom data structures.
 
-use crate::core::cli::CliArgs;
+use crate::core::config::CliArgs;
 use crate::core::state::FontIRAppState;
 use bevy::prelude::*;
 use fontir::source::Source;

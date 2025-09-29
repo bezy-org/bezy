@@ -13,10 +13,18 @@ use bevy::prelude::*;
 /// 2. After nudge input handling (`handle_nudge_input`)
 /// 3. Before final frame presentation
 ///
-/// Systems in this set:
-/// - `detect_sort_changes` (glyph rendering)
+/// CRITICAL: ALL rendering systems MUST be in this set to prevent lag!
+/// Without this, rendering systems can execute before point data is ready,
+/// causing outline rendering to lag 1-2 seconds behind metrics updates.
+/// This was a real bug that caused TUI glyph selection to have visible lag.
+///
+/// Systems that MUST be in this set:
+/// - `detect_sort_changes` (change detection)
+/// - `collect_rendering_data` (data preparation)
+/// - `render_glyphs` (outline rendering)
 /// - `render_points_with_meshes` (point rendering)
-/// - `update_handle_lines` (outline rendering)
+/// - `update_handle_lines` (handle rendering)
+/// - Any future rendering systems that depend on point/sort data
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone)]
 pub struct PostEditingRenderingSet;
 

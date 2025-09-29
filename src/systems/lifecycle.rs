@@ -14,7 +14,7 @@ pub fn exit_on_esc(keyboard: Res<ButtonInput<KeyCode>>, mut app_exit_events: Eve
 
 /// System to load UFO font on startup
 pub fn load_ufo_font(
-    cli_args: Res<crate::core::cli::CliArgs>,
+    cli_args: Res<crate::core::config::CliArgs>,
     mut app_state: ResMut<crate::core::state::AppState>,
 ) {
     // clap provides the default value, so font_source is guaranteed to be Some

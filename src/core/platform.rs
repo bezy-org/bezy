@@ -39,14 +39,14 @@ pub fn handle_error(error: anyhow::Error) {
 ///
 /// - On native platforms: Parses command line arguments
 /// - On WebAssembly: Returns default arguments for web
-pub fn get_cli_args() -> crate::core::cli::CliArgs {
+pub fn get_cli_args() -> crate::core::config::CliArgs {
     #[cfg(not(target_arch = "wasm32"))]
     {
         use clap::Parser;
-        crate::core::cli::CliArgs::parse()
+        crate::core::config::CliArgs::parse()
     }
     #[cfg(target_arch = "wasm32")]
     {
-        crate::core::cli::CliArgs::default_for_web()
+        crate::core::config::CliArgs::default_for_web()
     }
 }

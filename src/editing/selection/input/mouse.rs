@@ -1,6 +1,5 @@
 //! Mouse input handling for selection
 
-use crate::core::io::input::{InputEvent, InputState, ModifierState};
 use crate::core::state::TextEditorState;
 use crate::editing::selection::components::{
     GlyphPointReference, PointType, Selectable, Selected, SelectionRect, SelectionState,
@@ -12,6 +11,7 @@ use crate::editing::selection::input::shortcuts::handle_selection_key_press;
 use crate::editing::selection::nudge::EditEvent;
 use crate::editing::selection::{DragPointState, DragSelectionState};
 use crate::geometry::world_space::DPoint;
+use crate::io::input::{InputEvent, InputState, ModifierState};
 use bevy::input::mouse::MouseButton;
 use bevy::prelude::*;
 use std::time::Duration;
@@ -84,10 +84,8 @@ pub fn collect_selection_input_events(
     );
 
     // Check if select tool is active
-    let is_select_mode = crate::core::io::input::helpers::is_input_mode(
-        &input_state,
-        crate::core::io::input::InputMode::Select,
-    );
+    let is_select_mode =
+        crate::io::input::helpers::is_input_mode(&input_state, crate::io::input::InputMode::Select);
     debug!(
         "collect_selection_input_events: is_select_mode = {}",
         is_select_mode
@@ -119,7 +117,7 @@ pub fn collect_selection_input_events(
     let mut collected_count = 0;
     for event in input_events.read() {
         // Skip if UI is consuming input
-        if crate::core::io::input::helpers::is_ui_consuming(&input_state) {
+        if crate::io::input::helpers::is_ui_consuming(&input_state) {
             debug!("collect_selection_input_events: Skipping event - UI is consuming input");
             continue;
         }

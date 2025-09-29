@@ -98,7 +98,7 @@ impl EditTool for TextTool {
 
     fn on_activate(&mut self, commands: &mut Commands) {
         commands.insert_resource(TextModeActive(true));
-        commands.insert_resource(crate::core::io::input::InputMode::Text);
+        commands.insert_resource(crate::io::input::InputMode::Text);
 
         debug!("Text tool activated - Enhanced features:");
         debug!("• Click to place sorts, type letters to add glyphs");
@@ -108,7 +108,7 @@ impl EditTool for TextTool {
 
     fn on_deactivate(&mut self, commands: &mut Commands) {
         commands.insert_resource(TextModeActive(false));
-        commands.insert_resource(crate::core::io::input::InputMode::Normal);
+        commands.insert_resource(crate::io::input::InputMode::Normal);
 
         debug!("Text tool deactivated");
     }

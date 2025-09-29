@@ -26,13 +26,13 @@ impl EditTool for MetaballsTool {
 
     fn on_activate(&mut self, commands: &mut Commands) {
         commands.insert_resource(MetaballsModeActive(true));
-        commands.insert_resource(crate::core::io::input::InputMode::Metaballs);
+        commands.insert_resource(crate::io::input::InputMode::Metaballs);
         debug!("Metaballs tool activated");
     }
 
     fn on_deactivate(&mut self, commands: &mut Commands) {
         commands.insert_resource(MetaballsModeActive(false));
-        commands.insert_resource(crate::core::io::input::InputMode::Normal);
+        commands.insert_resource(crate::io::input::InputMode::Normal);
         debug!("Metaballs tool deactivated");
     }
 }

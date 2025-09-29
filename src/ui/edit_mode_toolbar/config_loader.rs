@@ -44,7 +44,7 @@ impl EditTool for ConfigurableTool {
     }
 
     fn update(&self, commands: &mut Commands) {
-        use crate::core::io::input::InputMode;
+        use crate::io::input::InputMode;
 
         // Delegate to the appropriate behavior based on config
         match self.config.behavior {

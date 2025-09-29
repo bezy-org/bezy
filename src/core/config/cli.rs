@@ -4,7 +4,7 @@
 //! validation for user inputs. Many CLI options are documented with
 //! examples to help users understand the expected format.
 
-use crate::core::config_file::ConfigFile;
+use super::user_config::ConfigFile;
 use crate::ui::themes::ThemeVariant;
 use bevy::prelude::*;
 use clap::Parser;

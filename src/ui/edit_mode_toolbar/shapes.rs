@@ -5,7 +5,7 @@
 
 #![allow(dead_code)]
 
-use crate::core::settings::BezySettings;
+use crate::core::config::BezySettings;
 use crate::core::state::{AppState, GlyphNavigation};
 use crate::editing::selection::events::AppStateChanged;
 use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;

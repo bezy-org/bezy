@@ -49,7 +49,7 @@ impl EditTool for KnifeTool {
             "🔪 KNIFE_TOOL: update() called - setting knife mode active and input mode to Knife"
         );
         commands.insert_resource(KnifeModeActive(true));
-        commands.insert_resource(crate::core::io::input::InputMode::Knife);
+        commands.insert_resource(crate::io::input::InputMode::Knife);
     }
 
     fn on_enter(&self) {

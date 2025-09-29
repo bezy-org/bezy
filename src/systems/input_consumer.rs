@@ -5,8 +5,6 @@
 //! It ensures that input is handled consistently and predictably across
 //! the application.
 
-use crate::core::io::input::{helpers, InputEvent, InputMode, InputState};
-use crate::core::io::pointer::PointerInfo;
 use crate::editing::selection::components::{
     GlyphPointReference, PointType, Selectable, Selected, SelectionRect,
 };
@@ -14,6 +12,8 @@ use crate::editing::selection::{DragPointState, DragSelectionState, SelectionSta
 use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::ActiveSortState;
 use crate::geometry::world_space::DPoint;
+use crate::io::input::{helpers, InputEvent, InputMode, InputState};
+use crate::io::pointer::PointerInfo;
 use crate::systems::ui_interaction::UiHoverState;
 use bevy::prelude::*;
 

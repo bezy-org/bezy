@@ -1,10 +1,10 @@
 //! Keyboard shortcut handling for selection
 
-use crate::core::io::input::ModifierState;
 use crate::editing::selection::components::{
     GlyphPointReference, PointType, Selectable, Selected, SelectionState,
 };
 use crate::editing::selection::nudge::{EditEvent, NudgeState};
+use crate::io::input::ModifierState;
 use bevy::input::ButtonInput;
 use bevy::prelude::*;
 

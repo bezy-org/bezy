@@ -10,7 +10,7 @@
 
 #![allow(clippy::manual_map)]
 
-use crate::core::settings::BezySettings;
+use crate::core::config::BezySettings;
 use crate::core::state::{
     AppState, FontIRAppState, GlyphNavigation, SortLayoutMode, TextEditorState, TextModeConfig,
 };
@@ -322,7 +322,7 @@ pub fn handle_text_mode_cursor(
     mut text_mode_state: ResMut<TextModeState>,
     mut cursor_moved_events: EventReader<CursorMoved>,
     ui_hover_state: Res<crate::systems::ui_interaction::UiHoverState>,
-    pointer_info: Res<crate::core::io::pointer::PointerInfo>,
+    pointer_info: Res<crate::io::pointer::PointerInfo>,
 ) {
     if !text_mode_active.0 {
         return;
@@ -352,7 +352,7 @@ pub fn handle_text_mode_mouse_clicks(
     text_mode_active: Res<TextModeActive>,
     current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     ui_hover_state: Res<crate::systems::ui_interaction::UiHoverState>,
-    pointer_info: Res<crate::core::io::pointer::PointerInfo>,
+    pointer_info: Res<crate::io::pointer::PointerInfo>,
     mut current_placement_mode: ResMut<TextPlacementMode>,
     mut text_editor_state: ResMut<TextEditorState>,
     app_state: Option<Res<AppState>>,
@@ -475,7 +475,7 @@ pub fn handle_text_mode_sort_placement(
     _text_editor_state: &mut ResMut<TextEditorState>,
     _glyph_navigation: &Res<GlyphNavigation>,
     _current_placement_mode: &TextPlacementMode,
-    _pointer_info: &Res<crate::core::io::pointer::PointerInfo>,
+    _pointer_info: &Res<crate::io::pointer::PointerInfo>,
     _camera_query: &mut Query<&mut Projection, With<DesignCamera>>,
     _glyph_names: &[String],
     _default_advance_width: f32,
@@ -495,7 +495,7 @@ pub fn render_sort_preview(
     glyph_navigation: Res<GlyphNavigation>,
     app_state: Option<Res<AppState>>,
     fontir_app_state: Option<Res<FontIRAppState>>,
-    pointer_info: Res<crate::core::io::pointer::PointerInfo>,
+    pointer_info: Res<crate::io::pointer::PointerInfo>,
     camera_query: Query<&Projection, With<DesignCamera>>,
     mut preview_metrics_state: ResMut<crate::rendering::metrics::PreviewMetricsState>,
     theme: Res<CurrentTheme>,
