@@ -14,7 +14,28 @@ keywords = ["font", "editor", "typography", "ufo", "bevy"]
 categories = ["graphics", "text-editors", "development-tools"]
 
 [dependencies]
-bevy = "0.16.1"
+bevy = { version = "0.16.1", default-features = false, features = [
+    "bevy_winit",
+    "bevy_render",
+    "bevy_core_pipeline",
+    "bevy_ui",
+    "bevy_text",
+    "bevy_asset",
+    "bevy_sprite",
+    "bevy_scene",
+    "bevy_gltf",
+    "bevy_animation",
+    "bevy_log",
+    "bevy_gizmos",
+    "png",
+    "hdr",
+    "ktx2",
+    "zstd",
+    "vorbis",
+    "x11",
+    "file_watcher",
+    "multi_threaded"
+] }
 bevy_pancam = "0.18.0"
 norad = { version = "0.16.0", features = ["kurbo", "rayon"] }
 kurbo = { version = "0.12.0", features = ["libm", "serde"] }
@@ -33,9 +54,9 @@ harfrust = { git = "https://github.com/harfbuzz/harfrust.git", version = "0.3.1"
 chrono = { version = "0.4", features = ["serde"] }
 tempfile = "3.8"
 dirs = "5.0"
-ratatui = "0.27"
-crossterm = "0.27"
-tokio = { version = "1.0", features = ["sync", "time", "rt-multi-thread", "macros", "process", "fs", "io-util"] }
+ratatui = { version = "0.27", optional = true }
+crossterm = { version = "0.27", optional = true }
+tokio = { version = "1.0", features = ["sync", "time", "rt-multi-thread", "process", "fs", "io-util", "macros"] }
 libc = "0.2"
 rand = "0.8"
 # fontspector = "1.5.0"  # Binary only - using CLI interface instead
@@ -66,6 +87,8 @@ opt-level = "z"  # Optimize dependencies for size
 [features]
 # For profiling in development, see:
 # https://github.com/bevyengine/bevy/blob/main/docs/profiling.md
+default = ["tui"]
 dev = [
     "bevy/dynamic_linking",
 ]
+tui = ["ratatui", "crossterm"]

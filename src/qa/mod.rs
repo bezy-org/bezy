@@ -75,6 +75,7 @@ impl Severity {
         }
     }
 
+    #[cfg(feature = "tui")]
     pub fn color(&self) -> ratatui::style::Color {
         match self {
             Severity::Error => ratatui::style::Color::Red,

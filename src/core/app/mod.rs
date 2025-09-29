@@ -9,4 +9,6 @@ pub mod builder;
 pub mod plugins;
 
 // Re-export the main app creation functions for convenience
-pub use builder::{create_app, create_app_with_tui};
+pub use builder::create_app;
+#[cfg(feature = "tui")]
+pub use builder::create_app_with_tui;

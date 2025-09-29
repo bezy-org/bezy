@@ -10,6 +10,7 @@ pub mod qa;
 pub mod rendering;
 pub mod systems;
 pub mod tools;
+#[cfg(feature = "tui")]
 pub mod tui;
 pub mod ui;
 pub mod utils;

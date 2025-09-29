@@ -9,6 +9,7 @@ use crate::systems::{
     center_camera_on_startup_layout, create_startup_layout, exit_on_esc, load_fontir_font,
     plugins::{configure_default_plugins, configure_default_plugins_for_tui},
 };
+#[cfg(feature = "tui")]
 use crate::tui::communication::{AppMessage, TuiMessage};
 use crate::ui::theme::CurrentTheme;
 use crate::utils::embedded_assets::EmbeddedAssetsPlugin;
@@ -101,6 +102,7 @@ fn configure_window_plugins(app: &mut App) {
     }
 }
 
+#[cfg(feature = "tui")]
 /// Configure window plugins for TUI mode (no window output)
 fn configure_window_plugins_for_tui(app: &mut App) {
     let window_config = Window {
@@ -146,6 +148,7 @@ fn add_startup_and_exit_systems(app: &mut App) {
         .add_systems(Update, (exit_on_esc, center_camera_on_startup_layout));
 }
 
+#[cfg(feature = "tui")]
 /// Creates a Bevy app configured for TUI mode with communication channels.
 ///
 /// This variant sets up the app with channels for bi-directional communication
@@ -189,6 +192,7 @@ pub fn create_app_with_tui(
     Ok(app)
 }
 
+#[cfg(feature = "tui")]
 /// System to handle messages from TUI
 #[allow(clippy::too_many_arguments)]
 fn handle_tui_messages(
@@ -293,6 +297,7 @@ fn handle_tui_messages(
     }
 }
 
+#[cfg(feature = "tui")]
 /// System to send initial font data to TUI on startup
 fn send_initial_font_data_to_tui(
     mut tui_comm: ResMut<crate::core::tui_communication::TuiCommunication>,
@@ -307,6 +312,7 @@ fn send_initial_font_data_to_tui(
     }
 }
 
+#[cfg(feature = "tui")]
 fn send_glyph_list_to_tui(
     tui_comm: &mut crate::core::tui_communication::TuiCommunication,
     fontir_state: &crate::core::state::FontIRAppState,
@@ -317,6 +323,7 @@ fn send_glyph_list_to_tui(
     tui_comm.send_glyph_list(glyphs);
 }
 
+#[cfg(feature = "tui")]
 fn send_font_info_to_tui(
     tui_comm: &mut crate::core::tui_communication::TuiCommunication,
     _fontir_state: &crate::core::state::FontIRAppState,

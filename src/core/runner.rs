@@ -32,7 +32,15 @@ pub fn run_app(cli_args: CliArgs) -> Result<()> {
         app.run();
         Ok(())
     } else {
-        // When TUI is enabled, also redirect logs to prevent terminal corruption
-        crate::tui::run_app_with_tui(cli_args)
+        #[cfg(feature = "tui")]
+        {
+            // When TUI is enabled, also redirect logs to prevent terminal corruption
+            crate::tui::run_app_with_tui(cli_args)
+        }
+        #[cfg(not(feature = "tui"))]
+        {
+            eprintln!("TUI feature not compiled. Use --no-tui flag to run without TUI.");
+            std::process::exit(1);
+        }
     }
 }
