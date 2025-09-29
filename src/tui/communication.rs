@@ -27,13 +27,11 @@ pub fn generate_glyph_list(
     }
 
     // Sort glyphs by Unicode value, then by name
-    glyphs.sort_by(|a, b| {
-        match (a.unicode, b.unicode) {
-            (Some(a_unicode), Some(b_unicode)) => a_unicode.cmp(&b_unicode),
-            (Some(_), None) => std::cmp::Ordering::Less,
-            (None, Some(_)) => std::cmp::Ordering::Greater,
-            (None, None) => a.codepoint.cmp(&b.codepoint),
-        }
+    glyphs.sort_by(|a, b| match (a.unicode, b.unicode) {
+        (Some(a_unicode), Some(b_unicode)) => a_unicode.cmp(&b_unicode),
+        (Some(_), None) => std::cmp::Ordering::Less,
+        (None, Some(_)) => std::cmp::Ordering::Greater,
+        (None, None) => a.codepoint.cmp(&b.codepoint),
     });
 
     glyphs

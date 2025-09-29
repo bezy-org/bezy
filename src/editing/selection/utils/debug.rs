@@ -3,8 +3,8 @@
 use crate::editing::selection::components::SelectionRect;
 use bevy::prelude::*;
 
-/// Debug system to print selection rectangle information
-pub fn debug_print_selection_rects(selection_rects: Query<&SelectionRect>) {
+/// Debug system to print selection rectangle information (internal)
+pub(crate) fn debug_print_selection_rects(selection_rects: Query<&SelectionRect>) {
     for (i, rect) in selection_rects.iter().enumerate() {
         debug!(
             "SelectionRect {}: start=({:.1}, {:.1}), end=({:.1}, {:.1})",
@@ -13,8 +13,8 @@ pub fn debug_print_selection_rects(selection_rects: Query<&SelectionRect>) {
     }
 }
 
-/// Debug system to validate point entity uniqueness
-pub fn debug_validate_point_entity_uniqueness(
+/// Debug system to validate point entity uniqueness (internal)
+pub(crate) fn debug_validate_point_entity_uniqueness(
     point_entities: Query<
         (
             Entity,
@@ -47,14 +47,4 @@ pub fn debug_validate_point_entity_uniqueness(
     }
 }
 
-/// Debug utility to print selection state information
-pub fn debug_selection_state(
-    selection_state: Res<crate::editing::selection::components::SelectionState>,
-) {
-    if !selection_state.selected.is_empty() {
-        debug!(
-            "Current selection: {} entities",
-            selection_state.selected.len()
-        );
-    }
-}
+// Removed unused debug_selection_state function

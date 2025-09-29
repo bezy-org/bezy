@@ -25,7 +25,7 @@ pub fn create_startup_layout(
     fontir_state: Option<Res<FontIRAppState>>,
     mut text_editor_state: ResMut<TextEditorState>,
     mut commands: Commands,
-    cli_args: Res<crate::core::cli::CliArgs>,
+    cli_args: Res<crate::core::config::CliArgs>,
 ) {
     // Only create default layout if no sorts exist yet
     if !text_editor_state.buffer.is_empty() {

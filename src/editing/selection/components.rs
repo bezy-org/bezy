@@ -36,13 +36,6 @@ pub struct Selectable;
 #[reflect(Component)]
 pub struct Selected;
 
-/// Marker component for entities that are currently hovered
-/// Disabled per user request - hover functionality removed
-#[allow(dead_code)]
-#[derive(Component, Debug, Default, Reflect)]
-#[reflect(Component)]
-pub struct Hovered;
-
 /// Component for the selection rectangle during drag operations
 #[derive(Component, Debug, Default, Reflect)]
 #[reflect(Component)]
@@ -101,66 +94,4 @@ pub struct SelectionState {
     /// Using a public field without reflect(ignore) to make it more accessible to other systems
     #[reflect(ignore)]
     pub selected: BTreeSet<Entity>,
-}
-
-/// A collection of selected entities
-#[derive(Debug, Clone, Default)]
-#[allow(dead_code)]
-pub struct Selection(BTreeSet<Entity>);
-
-impl Selection {
-    /// Create a new empty selection
-    #[allow(dead_code)]
-    pub fn new() -> Self {
-        Self(BTreeSet::new())
-    }
-
-    /// Check if the selection is empty
-    #[allow(dead_code)]
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-
-    /// Get the number of selected entities
-    #[allow(dead_code)]
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    /// Check if the selection contains the given entity
-    #[allow(dead_code)]
-    pub fn contains(&self, entity: &Entity) -> bool {
-        self.0.contains(entity)
-    }
-
-    /// Insert an entity into the selection
-    #[allow(dead_code)]
-    pub fn insert(&mut self, entity: Entity) -> bool {
-        self.0.insert(entity)
-    }
-
-    /// Remove an entity from the selection
-    #[allow(dead_code)]
-    pub fn remove(&mut self, entity: &Entity) -> bool {
-        self.0.remove(entity)
-    }
-
-    /// Clear the selection
-    #[allow(dead_code)]
-    pub fn clear(&mut self) {
-        self.0.clear();
-    }
-
-    /// Select a single entity, clearing any previous selection
-    #[allow(dead_code)]
-    pub fn select_one(&mut self, entity: Entity) {
-        self.clear();
-        self.insert(entity);
-    }
-}
-
-impl FromIterator<Entity> for Selection {
-    fn from_iter<I: IntoIterator<Item = Entity>>(iter: I) -> Self {
-        Self(iter.into_iter().collect())
-    }
 }

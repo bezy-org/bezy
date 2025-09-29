@@ -5,8 +5,6 @@
 //! It ensures that input is handled consistently and predictably across
 //! the application.
 
-use crate::core::io::input::{helpers, InputEvent, InputMode, InputState};
-use crate::core::io::pointer::PointerInfo;
 use crate::editing::selection::components::{
     GlyphPointReference, PointType, Selectable, Selected, SelectionRect,
 };
@@ -14,8 +12,23 @@ use crate::editing::selection::{DragPointState, DragSelectionState, SelectionSta
 use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::ActiveSortState;
 use crate::geometry::world_space::DPoint;
+use crate::io::input::{helpers, InputEvent, InputMode, InputState};
+use crate::io::pointer::PointerInfo;
 use crate::systems::ui_interaction::UiHoverState;
 use bevy::prelude::*;
+
+// Type alias for complex query type
+type SelectablePointQuery<'w, 's> = Query<
+    'w,
+    's,
+    (
+        Entity,
+        &'static GlobalTransform,
+        Option<&'static GlyphPointReference>,
+        Option<&'static PointType>,
+    ),
+    With<Selectable>,
+>;
 
 /// Trait for input consumers that handle specific types of input events
 pub trait InputConsumer {
@@ -37,7 +50,9 @@ impl InputConsumer for SelectionInputConsumer {
     fn should_handle_input(&self, event: &InputEvent, input_state: &InputState) -> bool {
         let is_mouse_event = matches!(
             event,
-            InputEvent::MouseClick { .. } | InputEvent::MouseDrag { .. } | InputEvent::MouseRelease { .. }
+            InputEvent::MouseClick { .. }
+                | InputEvent::MouseDrag { .. }
+                | InputEvent::MouseRelease { .. }
         );
         let is_select_mode = helpers::is_input_mode(input_state, InputMode::Select);
 
@@ -63,14 +78,12 @@ pub struct PenInputConsumer {
 
 impl InputConsumer for PenInputConsumer {
     fn should_handle_input(&self, event: &InputEvent, input_state: &InputState) -> bool {
-        let should_handle = matches!(
+        (matches!(
             event,
             InputEvent::MouseClick { .. }
                 | InputEvent::MouseDrag { .. }
                 | InputEvent::MouseRelease { .. }
-        ) && helpers::is_input_mode(input_state, InputMode::Pen);
-
-        should_handle
+        ) && helpers::is_input_mode(input_state, InputMode::Pen))
     }
 
     fn handle_input(&mut self, event: &InputEvent, _input_state: &InputState) {
@@ -679,11 +692,6 @@ pub fn process_input_events(
 ) {
     let events: Vec<_> = input_events.read().collect();
 
-    // Get active sort position for coordinate conversion - disabled since pen tool doesn't use InputConsumer anymore
-    // let _active_sort_position = active_sort_query.iter().next()
-    //     .map(|(_, _, transform)| transform.translation.truncate())
-    //     .unwrap_or(Vec2::ZERO);
-
     for event in events {
         // Route events to consumers based on priority
         // High priority: Text input
@@ -737,6 +745,7 @@ pub fn process_input_events(
 
 /// Plugin for the input consumer system
 /// System to process selection events stored by SelectionInputConsumer
+#[allow(clippy::too_many_arguments)]
 pub fn process_selection_events(
     mut commands: Commands,
     mut selection_consumer: ResMut<SelectionInputConsumer>,
@@ -745,15 +754,7 @@ pub fn process_selection_events(
     mut drag_state: ResMut<DragSelectionState>,
     mut drag_point_state: ResMut<DragPointState>,
     mut edit_events: EventWriter<crate::editing::selection::nudge::EditEvent>,
-    selectable_query: Query<
-        (
-            Entity,
-            &GlobalTransform,
-            Option<&GlyphPointReference>,
-            Option<&PointType>,
-        ),
-        With<Selectable>,
-    >,
+    selectable_query: SelectablePointQuery,
     selected_query: Query<(Entity, &Transform), With<Selected>>,
     selection_rect_query: Query<Entity, With<SelectionRect>>,
     active_sort_state: Res<crate::editing::sort::ActiveSortState>,
@@ -782,7 +783,10 @@ pub fn process_selection_events(
                 modifiers,
             } => {
                 if button == bevy::input::mouse::MouseButton::Left {
-                    debug!("[process_selection_events] Left mouse click at {:?}", position);
+                    debug!(
+                        "[process_selection_events] Left mouse click at {:?}",
+                        position
+                    );
                     // Use the existing selection click handling from mouse.rs
                     crate::editing::selection::input::mouse::handle_selection_click(
                         &mut commands,
@@ -837,7 +841,10 @@ pub fn process_selection_events(
                 modifiers,
             } => {
                 if button == bevy::input::mouse::MouseButton::Left {
-                    debug!("[process_selection_events] Left mouse release at {:?}", position);
+                    debug!(
+                        "[process_selection_events] Left mouse release at {:?}",
+                        position
+                    );
                     // Use the existing selection release handling from mouse.rs
                     crate::editing::selection::input::mouse::handle_selection_release(
                         &mut commands,
@@ -858,7 +865,6 @@ pub fn process_selection_events(
     }
 }
 
-
 pub struct InputConsumerPlugin;
 
 impl Plugin for InputConsumerPlugin {
@@ -874,10 +880,7 @@ impl Plugin for InputConsumerPlugin {
             .init_resource::<TextInputConsumer>()
             .init_resource::<CameraInputConsumer>()
             .init_resource::<MeasureInputConsumer>()
-            .add_systems(
-                Update,
-                (process_input_events, process_selection_events),
-            );
+            .add_systems(Update, (process_input_events, process_selection_events));
 
         debug!("[INPUT CONSUMER] InputConsumerPlugin registration complete");
     }

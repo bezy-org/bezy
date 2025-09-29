@@ -22,9 +22,9 @@ pub struct CursorRenderingState {
     pub last_camera_scale: Option<f32>,
 }
 
-/// Render a text cursor at the specified world position
+/// Render a text cursor at the specified world position (internal)
 #[allow(clippy::too_many_arguments)]
-pub fn render_cursor_at_position(
+pub(crate) fn render_cursor_at_position(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<ColorMaterial>>,
@@ -55,8 +55,11 @@ pub fn render_cursor_at_position(
     );
 }
 
-/// Clear all cursor entities from the screen
-pub fn clear_cursor_entities(commands: &mut Commands, entity_pools: &mut ResMut<EntityPools>) {
+/// Clear all cursor entities from the screen (internal)
+pub(crate) fn clear_cursor_entities(
+    commands: &mut Commands,
+    entity_pools: &mut ResMut<EntityPools>,
+) {
     entity_pools.return_cursor_entities(commands);
 }
 

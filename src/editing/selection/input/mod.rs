@@ -4,6 +4,5 @@ pub mod drag;
 pub mod mouse;
 pub mod shortcuts;
 
-pub use drag::*;
-pub use mouse::*;
-pub use shortcuts::*;
+// Note: These are re-exported at the parent module level
+// to avoid deep nesting in imports

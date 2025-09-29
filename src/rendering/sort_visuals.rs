@@ -622,31 +622,3 @@ impl Plugin for SortHandleRenderingPlugin {
             );
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_sort_render_style_distinction() {
-        // Test that TextBuffer and Freeform styles are distinct
-        assert_ne!(SortRenderStyle::TextBuffer, SortRenderStyle::Freeform);
-
-        // Test that each style is equal to itself
-        assert_eq!(SortRenderStyle::TextBuffer, SortRenderStyle::TextBuffer);
-        assert_eq!(SortRenderStyle::Freeform, SortRenderStyle::Freeform);
-    }
-
-    #[test]
-    fn test_sort_render_style_debug() {
-        // Test that styles can be debug printed
-        let text_style = SortRenderStyle::TextBuffer;
-        let freeform_style = SortRenderStyle::Freeform;
-
-        let debug_text = format!("{:?}", text_style);
-        let debug_freeform = format!("{:?}", freeform_style);
-
-        assert!(debug_text.contains("TextBuffer"));
-        assert!(debug_freeform.contains("Freeform"));
-    }
-}

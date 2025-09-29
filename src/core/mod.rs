@@ -8,19 +8,15 @@
 //! - Input system
 
 pub mod app;
-pub mod cli;
-pub mod config_file;
+pub mod config;
 pub mod errors;
-pub mod io;
 pub mod platform;
-pub mod settings;
+pub mod runner;
 pub mod state;
 pub mod tui_communication;
 
 // Re-export commonly used items
 pub use app::{create_app, create_app_with_tui};
-pub use cli::CliArgs;
-pub use io::input::{helpers, InputEvent, InputState};
-pub use io::pointer::{PointerInfo, PointerPlugin};
-pub use settings::BezySettings;
+pub use config::{BezySettings, CliArgs, ConfigFile};
+pub use runner::run_app;
 pub use state::{AppState, GlyphNavigation};

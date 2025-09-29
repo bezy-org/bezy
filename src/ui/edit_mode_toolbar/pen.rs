@@ -7,22 +7,23 @@
 //! The tool converts placed points into UFO contours that are saved to the font file.
 
 use super::EditModeSystem;
-use crate::core::io::input::{helpers, InputEvent, InputMode, InputState, ModifierState};
-use crate::core::io::pointer::PointerInfo;
-use crate::core::settings::BezySettings;
+use crate::core::config::BezySettings;
 use crate::core::state::AppState;
 use crate::editing::selection::components::{GlyphPointReference, PointType, Selectable, Selected};
 use crate::editing::selection::systems::AppStateChanged;
 use crate::editing::selection::{DragPointState, DragSelectionState, SelectionState};
 use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::ActiveSortState;
-use crate::utils::embedded_assets::EmbeddedFonts;
+use crate::geometry::utilities::axis_lock_position;
 use crate::geometry::world_space::DPoint;
+use crate::io::input::{helpers, InputEvent, InputMode, InputState, ModifierState};
+use crate::io::pointer::PointerInfo;
 use crate::systems::ui_interaction::UiHoverState;
 use crate::ui::edit_mode_toolbar::select::SelectModeActive;
 use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
 use crate::ui::theme::*;
 use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
+use crate::utils::embedded_assets::EmbeddedFonts;
 use bevy::input::keyboard::KeyCode;
 use bevy::input::mouse::MouseButton;
 use bevy::prelude::*;
@@ -60,7 +61,7 @@ impl EditTool for PenTool {
         // Ensure pen mode is active
         commands.insert_resource(PenModeActive(true));
         commands.insert_resource(SelectModeActive(false));
-        commands.insert_resource(crate::core::io::input::InputMode::Pen);
+        commands.insert_resource(crate::io::input::InputMode::Pen);
     }
 
     fn on_enter(&self) {
@@ -86,47 +87,15 @@ const CURSOR_INDICATOR_SIZE: f32 = 4.0;
 // PLUGIN SETUP
 // ================================================================
 
-/// Bevy plugin that sets up the pen tool
-///
-/// This plugin initializes the pen tool's state resources and registers
-/// all the systems needed for pen functionality:
-/// - Mouse input handling for placing points
-/// - Keyboard shortcuts (Escape to cancel)
-/// - Visual preview rendering of the current path
-/// - Cleanup when switching away from pen mode
-pub struct PenModePlugin;
-
-impl Plugin for PenModePlugin {
-    fn build(&self, app: &mut App) {
-        app.init_resource::<PenToolState>()
-            .init_resource::<PenModeActive>()
-            .init_resource::<PenDrawingMode>() // Default is Regular
-            .add_systems(Startup, register_pen_tool)
-            // Business logic is handled by /src/tools/pen.rs PenToolPlugin
-            // This UI module only handles toolbar integration
-            .add_systems(
-                Update,
-                (
-                    reset_pen_mode_when_inactive,
-                    toggle_pen_submenu_visibility,
-                    handle_pen_submenu_selection,
-                ),
-            )
-            .add_systems(PostStartup, spawn_pen_submenu);
-    }
-}
-
-fn register_pen_tool(mut tool_registry: ResMut<ToolRegistry>) {
-    tool_registry.register_tool(Box::new(PenTool));
-}
+// Plugin integration is now handled by /src/tools/pen.rs PenToolPlugin
+// This module only provides UI functions and tool implementation
 
 // ================================================================
 // RESOURCES AND STATE
 // ================================================================
 
-/// Resource to track if pen mode is currently active
-#[derive(Resource, Default, PartialEq, Eq)]
-pub struct PenModeActive(pub bool);
+// Use PenModeActive from tools::pen and re-export it
+pub use crate::tools::pen::PenModeActive;
 
 /// Input consumer for pen tool
 #[derive(Resource)]
@@ -461,19 +430,21 @@ fn calculate_final_position(
     pen_state: &PenToolState,
     settings: &BezySettings,
 ) -> Vec2 {
-    // Apply snap to grid first
-    let snapped_pos = settings.apply_grid_snap(cursor_pos);
-
-    // Apply axis locking if shift is held and we have points
     let shift_pressed =
         keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
 
-    if shift_pressed && !pen_state.points.is_empty() {
-        let last_point = pen_state.points.last().unwrap();
-        axis_lock_position(snapped_pos, *last_point)
+    let axis_lock = if shift_pressed && !pen_state.points.is_empty() {
+        pen_state.points.last().copied()
     } else {
-        snapped_pos
-    }
+        None
+    };
+
+    crate::geometry::utilities::calculate_final_position_with_constraints(
+        cursor_pos,
+        settings.grid.enabled,
+        settings.grid.unit_size,
+        axis_lock,
+    )
 }
 
 /// Start a new path with the first point
@@ -784,17 +755,6 @@ fn draw_close_indicator_if_needed(
 // ================================================================
 // UTILITY FUNCTIONS
 // ================================================================
-
-/// Lock a position to horizontal or vertical axis relative to another point
-/// (used when shift is held to constrain movement)
-fn axis_lock_position(pos: Vec2, relative_to: Vec2) -> Vec2 {
-    let dxy = pos - relative_to;
-    if dxy.x.abs() > dxy.y.abs() {
-        Vec2::new(pos.x, relative_to.y)
-    } else {
-        Vec2::new(relative_to.x, pos.y)
-    }
-}
 
 /// Create a UFO contour from a list of points
 fn create_contour_from_points(points: &[Vec2], active_sort_offset: Vec2) -> Option<Contour> {

@@ -272,11 +272,12 @@ pub struct PointRenderingPlugin;
 
 impl Plugin for PointRenderingPlugin {
     fn build(&self, app: &mut App) {
+        // CRITICAL: Must use PostEditingRenderingSet, not individual .after() dependencies!
+        // This ensures points render AFTER point entities are spawned.
+        // Using .after() alone caused race conditions and 1-2 second rendering lag.
         app.add_systems(
             Update,
-            render_points_with_meshes
-                .after(crate::systems::sorts::spawn_active_sort_points_optimized)
-                .after(crate::editing::selection::nudge::handle_nudge_input),
+            render_points_with_meshes.in_set(crate::rendering::PostEditingRenderingSet),
         );
     }
 }

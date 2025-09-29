@@ -1,4 +1,4 @@
-use crate::core::settings::BezySettings;
+use crate::core::config::BezySettings;
 use crate::editing::selection::components::{GlyphPointReference, PointType, Selected};
 use crate::editing::selection::enhanced_point_component::EnhancedPointType;
 use crate::editing::selection::point_movement::{

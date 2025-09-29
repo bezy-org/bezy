@@ -12,7 +12,10 @@ pub mod sort_entities;
 pub mod sort_placement;
 pub mod unicode_input;
 
-// Re-export commonly used functions
+// Re-export all sort system functionality
+// TODO: Phase 3 - These modules have mixed pub/pub(crate) visibility that needs careful refactoring
+// Many of these are tightly coupled internal systems that shouldn't be public
+// For now, keeping wildcards to avoid breaking the text editor plugin
 pub use cursor::*;
 pub use input_utilities::*;
 pub use keyboard_input::*;

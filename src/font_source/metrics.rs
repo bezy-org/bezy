@@ -130,20 +130,20 @@ impl FontMetrics {
             .unwrap_or(1024.0);
 
         // Load metrics from UFO, using reasonable defaults based on units_per_em if missing
-        let ascender = font_info.ascender.or(Some(units_per_em * 0.8)); // 80% of UPM
-        let descender = font_info.descender.or_else(|| Some(-(units_per_em * 0.2))); // -20% of UPM
+        let ascender = font_info.ascender.unwrap_or(units_per_em * 0.8); // 80% of UPM
+        let descender = font_info.descender.unwrap_or(-(units_per_em * 0.2)); // -20% of UPM
         let x_height = font_info.x_height;
         let cap_height = font_info.cap_height;
         let _italic_angle = font_info.italic_angle;
 
-        let line_height = ascender.unwrap() - descender.unwrap();
+        let line_height = ascender - descender;
 
         Self {
             units_per_em,
-            descender,
+            descender: Some(descender),
             x_height,
             cap_height,
-            ascender,
+            ascender: Some(ascender),
             italic_angle: None,
             line_height,
         }

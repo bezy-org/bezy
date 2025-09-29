@@ -1,29 +1,38 @@
 //! Application state management.
 //!
-//! This module defines thread-safe data structures optimized for our font editor.
-//! We use norad only for loading/saving UFO files, not as runtime storage.
-//!
-//! The main AppState resource contains all font data in a format optimized for
-//! real-time editing operations. Changes are batched and synchronized with the
-//! UFO format only when saving.
+//! This module contains core application state. Font source editing data
+//! has been moved to the font_source module for clarity.
 
-// Sub-modules
+// Core state modules that remain here
 pub mod app_state;
-pub mod font_data;
-pub mod font_metrics;
-pub mod fontir_app_state;
 pub mod navigation;
 pub mod text_editor;
-pub mod ufo_point;
 
-#[cfg(test)]
-mod test_components;
-
-// Re-export all public items to maintain the existing API
+// Re-export core state
 pub use app_state::*;
-pub use font_data::*;
-pub use font_metrics::*;
-pub use fontir_app_state::*;
 pub use navigation::*;
 pub use text_editor::*;
-pub use ufo_point::*;
+
+// TEMPORARY: Re-export font_source items for backward compatibility
+// TODO: Update all imports to use font_source directly, then remove these
+pub use crate::font_source::{
+    ComponentData, ContourData, EditableGlyphInstance, FontData, FontIRAppState, FontIRMetrics,
+    FontInfo, FontMetrics, GlyphData, OutlineData, PointData, PointTypeData, UfoPoint,
+    UfoPointComponent, UfoPointType,
+};
+
+// Keep old module names for now to avoid breaking imports
+pub mod font_data {
+    pub use crate::font_source::{
+        ComponentData, ContourData, FontData, GlyphData, OutlineData, PointData, PointTypeData,
+    };
+}
+pub mod font_metrics {
+    pub use crate::font_source::{FontInfo, FontMetrics};
+}
+pub mod fontir_app_state {
+    pub use crate::font_source::{EditableGlyphInstance, FontIRAppState, FontIRMetrics};
+}
+pub mod ufo_point {
+    pub use crate::font_source::{UfoPoint, UfoPointComponent, UfoPointType};
+}

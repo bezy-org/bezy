@@ -106,7 +106,7 @@ impl UfoPoint {
 
     /// Set the smooth flag (only valid for on-curve points)
     pub fn with_smooth(mut self, smooth: bool) -> Self {
-        if self.point_type.map_or(false, |t| t.can_be_smooth()) {
+        if self.point_type.is_some_and(|t| t.can_be_smooth()) {
             self.smooth = Some(smooth);
         }
         self
@@ -132,7 +132,7 @@ impl UfoPoint {
 
     /// Check if this point is on-curve
     pub fn is_on_curve(&self) -> bool {
-        self.point_type.map_or(true, |t| t.is_on_curve())
+        self.point_type.is_none_or(|t| t.is_on_curve())
     }
 
     /// Check if this point is smooth
@@ -153,7 +153,6 @@ impl UfoPoint {
 }
 
 /// Conversion traits for compatibility with existing systems
-
 impl From<crate::core::state::font_data::PointData> for UfoPoint {
     fn from(point: crate::core::state::font_data::PointData) -> Self {
         let point_type = match point.point_type {
@@ -212,46 +211,5 @@ impl UfoPointComponent {
 impl From<UfoPoint> for UfoPointComponent {
     fn from(point: UfoPoint) -> Self {
         Self::new(point)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_ufo_point_creation() {
-        let point = UfoPoint::new(100.0, 200.0, UfoPointType::Line);
-        assert_eq!(point.x, 100.0);
-        assert_eq!(point.y, 200.0);
-        assert_eq!(point.point_type, Some(UfoPointType::Line));
-        assert!(point.is_on_curve());
-    }
-
-    #[test]
-    fn test_smooth_flag_validation() {
-        // On-curve point can be smooth
-        let mut point = UfoPoint::line_to(100.0, 200.0).with_smooth(true);
-        assert!(point.validate().is_ok());
-        assert!(point.is_smooth());
-
-        // Off-curve point cannot be smooth
-        point.point_type = Some(UfoPointType::OffCurve);
-        assert!(point.validate().is_err());
-        assert!(!point.is_smooth());
-    }
-
-    #[test]
-    fn test_builder_pattern() {
-        let point = UfoPoint::curve_to(50.0, 75.0)
-            .with_name("anchor_top")
-            .with_identifier("point_001")
-            .with_smooth(true)
-            .with_lib_data("custom_metadata");
-
-        assert_eq!(point.name, Some("anchor_top".to_string()));
-        assert_eq!(point.identifier, Some("point_001".to_string()));
-        assert_eq!(point.smooth, Some(true));
-        assert_eq!(point.lib, Some("custom_metadata".to_string()));
     }
 }

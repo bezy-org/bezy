@@ -38,6 +38,7 @@ impl GameOfLifeState {
         !self.paused && self.last_update.elapsed() >= self.update_interval
     }
 
+    #[allow(clippy::needless_range_loop)]
     pub fn update(&mut self) {
         if !self.should_update() {
             return;
@@ -55,9 +56,9 @@ impl GameOfLifeState {
                 // 2. Any dead cell with exactly 3 neighbors becomes alive
                 // 3. All other cells die or remain dead
                 new_grid[y][x] = match (is_alive, alive_neighbors) {
-                    (true, 2) | (true, 3) => true,  // Survival
-                    (false, 3) => true,             // Birth
-                    _ => false,                     // Death or remains dead
+                    (true, 2) | (true, 3) => true, // Survival
+                    (false, 3) => true,            // Birth
+                    _ => false,                    // Death or remains dead
                 };
             }
         }
@@ -80,10 +81,13 @@ impl GameOfLifeState {
                 let ny = y as i32 + dy;
 
                 // Check bounds
-                if nx >= 0 && ny >= 0 && (nx as usize) < self.width && (ny as usize) < self.height {
-                    if self.grid[ny as usize][nx as usize] {
-                        count += 1;
-                    }
+                if nx >= 0
+                    && ny >= 0
+                    && (nx as usize) < self.width
+                    && (ny as usize) < self.height
+                    && self.grid[ny as usize][nx as usize]
+                {
+                    count += 1;
                 }
             }
         }
@@ -99,6 +103,7 @@ impl GameOfLifeState {
         *self = Self::new(self.width, self.height);
     }
 
+    #[allow(clippy::needless_range_loop)]
     pub fn set_size(&mut self, width: usize, height: usize) {
         if width != self.width || height != self.height {
             // Create a new grid with the new dimensions

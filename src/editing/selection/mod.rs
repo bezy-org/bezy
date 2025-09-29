@@ -1,7 +1,4 @@
-#![allow(unused_imports)]
-
-use crate::core::state::AppState;
-use crate::editing::selection::systems::*;
+use crate::editing::FontEditorSets;
 use bevy::prelude::*;
 
 pub mod components;
@@ -15,14 +12,40 @@ pub mod point_movement;
 pub mod systems;
 pub mod utils;
 
-pub use components::*;
-pub use enhanced_point_component::*;
-pub use entity_management::*;
+// Explicit re-exports for public API
+// Components
+pub use components::{
+    FontIRPointReference, GlyphPointReference, PointType, Selectable, Selected, SelectionRect,
+    SelectionState,
+};
+// Enhanced point types
+pub use enhanced_point_component::{EnhancedPointType, EnhancedPointTypePlugin, migrate_point_types};
+// Entity management
+pub use entity_management::{
+    EnhancedPointAttributes, cleanup_click_resource, despawn_inactive_sort_points,
+    spawn_active_sort_points, sync_enhanced_point_attributes, sync_point_positions_to_sort,
+    update_glyph_data_from_selection,
+};
+// Events
 pub use events::{AppStateChanged, ClickWorldPosition, SELECTION_MARGIN};
-pub use input::mouse::DoubleClickState;
-pub use input::*;
-pub use nudge::*;
-pub use utils::{clear_selection_on_app_change, update_hover_state};
+// Input handling
+pub use input::mouse::{
+    DoubleClickState, SelectionInputEvents, DOUBLE_CLICK_THRESHOLD_SECS,
+    collect_selection_input_events, find_clicked_point, handle_selection_click,
+    handle_selection_drag, handle_selection_release, handle_smooth_point_toggle,
+    process_selection_input_events,
+};
+pub use input::drag::handle_point_drag;
+pub use input::shortcuts::{
+    handle_key_releases, handle_selection_key_press, handle_selection_shortcuts,
+};
+// Nudge functionality
+pub use nudge::{
+    EditEvent, NudgePlugin, NudgeState, PointCoordinates, handle_nudge_input, reset_nudge_state,
+    sync_nudged_points_on_completion,
+};
+// Utilities
+pub use utils::clear_selection_on_app_change;
 
 use std::collections::HashMap;
 
@@ -73,7 +96,6 @@ impl Plugin for SelectionPlugin {
             // Register components
             .register_type::<Selectable>()
             .register_type::<Selected>()
-            .register_type::<Hovered>()
             .register_type::<SelectionRect>()
             .register_type::<PointType>()
             .register_type::<GlyphPointReference>()
@@ -82,18 +104,14 @@ impl Plugin for SelectionPlugin {
             .init_resource::<DragSelectionState>()
             .init_resource::<DragPointState>()
             .init_resource::<DoubleClickState>()
-            .init_resource::<input::SelectionInputEvents>()
-            .init_resource::<entity_management::EnhancedPointAttributes>()
+            .init_resource::<input::mouse::SelectionInputEvents>()
+            .init_resource::<entity_management::sync::EnhancedPointAttributes>()
             // SelectModeActive is now properly managed by SelectToolPlugin
             // Configure system sets for proper ordering
-            .configure_sets(
-                Update,
-                (SelectionSystemSet::Input, SelectionSystemSet::Processing).chain(),
-            )
-            .configure_sets(PostUpdate, (SelectionSystemSet::Render,))
+            // Selection systems now use FontEditorSets for better integration
             // NOTE: Input handling moved to SelectionInputConsumer in input_consumer.rs
             // to prevent event consumption conflicts
-            .add_systems(Update, input::handle_point_drag)
+            .add_systems(Update, input::drag::handle_point_drag)
             // Processing systems
             .add_systems(
                 Update,
@@ -108,8 +126,7 @@ impl Plugin for SelectionPlugin {
                     clear_selection_on_app_change,
                     entity_management::cleanup_click_resource,
                 )
-                    .in_set(SelectionSystemSet::Processing)
-                    .after(SelectionSystemSet::Input),
+                    .in_set(FontEditorSets::Rendering),
             )
             // Rendering systems - moved to PostUpdate to run after transform propagation
             .add_systems(
@@ -118,7 +135,7 @@ impl Plugin for SelectionPlugin {
                     crate::rendering::selection::render_selection_marquee,
                     utils::debug_print_selection_rects, // TEMP: debug system
                 )
-                    .in_set(SelectionSystemSet::Render),
+                    .in_set(FontEditorSets::Rendering),
             )
             // Add the nudge plugin
             .add_plugins(NudgePlugin);
@@ -127,21 +144,12 @@ impl Plugin for SelectionPlugin {
         #[cfg(debug_assertions)]
         app.add_systems(
             PostUpdate,
-            utils::debug_validate_point_entity_uniqueness.after(SelectionSystemSet::Render),
+            utils::debug_validate_point_entity_uniqueness.in_set(FontEditorSets::Cleanup),
         );
     }
 }
 
-/// System sets for Selection
-#[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
-pub enum SelectionSystemSet {
-    #[allow(dead_code)]
-    Input,
-    #[allow(dead_code)]
-    Processing,
-    #[allow(dead_code)]
-    Render,
-}
+// SelectionSystemSet removed - now using FontEditorSets for better integration
 
 /// System to ensure Selected components are synchronized with SelectionState
 pub fn sync_selected_components(

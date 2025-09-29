@@ -164,7 +164,7 @@ pub fn manage_pane_visibility(
     static mut DEBUG_COUNTER: u32 = 0;
     unsafe {
         DEBUG_COUNTER += 1;
-        if DEBUG_COUNTER % 60 == 0 {
+        if DEBUG_COUNTER.is_multiple_of(60) {
             // Log every second at 60fps
             debug!(
                 "🎭 PANE DEBUG: spacebar={}, pan_tool={}, current_tool={:?}, should_hide={}",

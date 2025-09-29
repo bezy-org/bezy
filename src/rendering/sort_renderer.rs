@@ -6,9 +6,9 @@
 #![allow(clippy::type_complexity)]
 
 use crate::core::state::{AppState, FontIRAppState, SortLayoutMode};
-use crate::editing::sort::{ActiveSort, InactiveSort, Sort};
-use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
+use crate::editing::sort::{ActiveSort, InactiveSort, Sort, SortSystemSet};
 use crate::ui::themes::CurrentTheme;
+use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
 use bevy::text::TextBounds;
@@ -282,4 +282,22 @@ fn get_unicode_for_glyph(glyph_name: &str, app_state: &AppState) -> Option<Strin
         }
     }
     None
+}
+
+/// Plugin for sort label rendering systems
+pub struct SortLabelRenderingPlugin;
+
+impl Plugin for SortLabelRenderingPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(
+            Update,
+            (
+                manage_sort_labels,
+                update_sort_label_positions,
+                update_sort_label_colors,
+            )
+                .chain()
+                .in_set(SortSystemSet::Rendering),
+        );
+    }
 }

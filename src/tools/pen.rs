@@ -9,11 +9,11 @@
 #![allow(clippy::too_many_arguments)]
 
 use super::{EditTool, ToolInfo};
-use crate::core::io::input::{helpers, InputEvent, InputMode, InputState};
-use crate::core::io::pointer::PointerInfo;
 use crate::core::state::{AppState, ContourData, PointData, PointTypeData};
 use crate::editing::selection::events::AppStateChanged;
 use crate::geometry::world_space::DPoint;
+use crate::io::input::{helpers, InputEvent, InputMode, InputState};
+use crate::io::pointer::PointerInfo;
 use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
 use crate::systems::ui_interaction::UiHoverState;
 use bevy::input::keyboard::KeyCode;
@@ -125,7 +125,7 @@ impl Plugin for PenToolPlugin {
         app.init_resource::<PenToolState>()
             .init_resource::<PenModeActive>()
             .init_resource::<crate::ui::edit_mode_toolbar::pen::PenDrawingMode>() // Default is Regular
-            .add_systems(Startup, pen_tool_startup_log)
+            .add_systems(Startup, (pen_tool_startup_log, register_pen_tool))
             .add_systems(
                 PostStartup,
                 crate::ui::edit_mode_toolbar::pen::spawn_pen_submenu,
@@ -148,6 +148,11 @@ impl Plugin for PenToolPlugin {
 /// Startup system to confirm pen tool plugin loaded
 fn pen_tool_startup_log() {
     debug!("🖊️ PenToolPlugin successfully initialized with all systems");
+}
+
+/// Register the pen tool with the tool registry
+fn register_pen_tool(mut tool_registry: ResMut<crate::ui::edit_mode_toolbar::ToolRegistry>) {
+    tool_registry.register_tool(Box::new(crate::ui::edit_mode_toolbar::pen::PenTool));
 }
 
 /// Debug system to monitor pen tool state
@@ -183,7 +188,7 @@ pub fn handle_pen_mouse_events(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     pointer_info: Res<PointerInfo>,
     ui_hover_state: Res<UiHoverState>,
-    settings: Res<crate::core::settings::BezySettings>,
+    settings: Res<crate::core::config::BezySettings>,
     // Query for active sort to get its position
     active_sort_query: Query<
         (Entity, &crate::editing::sort::Sort, &Transform),
@@ -212,8 +217,8 @@ pub fn handle_pen_mouse_events(
     }
 
     // Early exit if pen tool is not active, no active sort, or UI is being hovered
-    if !pen_is_active || active_sort.is_none() || ui_hover_state.is_hovering_ui {
-        if pen_is_active && active_sort.is_none() {
+    let Some((_sort_entity, _sort, sort_transform)) = active_sort else {
+        if pen_is_active {
             // Only show this message when pen tool is actually trying to be used
             if mouse_button_input.just_pressed(MouseButton::Left) {
                 debug!(
@@ -222,9 +227,11 @@ pub fn handle_pen_mouse_events(
             }
         }
         return;
-    }
+    };
 
-    let (_sort_entity, _sort, sort_transform) = active_sort.unwrap();
+    if !pen_is_active || ui_hover_state.is_hovering_ui {
+        return;
+    }
     let sort_position = sort_transform.translation.truncate();
 
     debug!("Pen tool: Mouse input system active and processing clicks");
@@ -324,7 +331,7 @@ pub fn render_pen_preview(
     current_tool: Option<Res<crate::ui::edit_mode_toolbar::CurrentTool>>,
     pointer_info: Res<PointerInfo>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    settings: Res<crate::core::settings::BezySettings>,
+    settings: Res<crate::core::config::BezySettings>,
     camera_scale: Res<CameraResponsiveScale>,
     existing_preview_query: Query<Entity, With<PenPreviewElement>>,
     theme: Res<crate::ui::themes::CurrentTheme>,
@@ -352,11 +359,13 @@ pub fn render_pen_preview(
         None
     };
 
-    if !pen_is_active || active_sort.is_none() {
+    let Some((_sort_entity, _sort, sort_transform)) = active_sort else {
+        return;
+    };
+
+    if !pen_is_active {
         return;
     }
-
-    let (_sort_entity, _sort, sort_transform) = active_sort.unwrap();
     let sort_position = sort_transform.translation.truncate();
 
     // Debug: Log the current path state
@@ -810,39 +819,23 @@ fn calculate_final_position_dpoint(
     cursor_pos: DPoint,
     keyboard: &Res<ButtonInput<KeyCode>>,
     pen_state: &PenToolState,
-    settings: &crate::core::settings::BezySettings,
+    settings: &crate::core::config::BezySettings,
 ) -> DPoint {
-    // Convert to Vec2 for grid snap
-    let raw_pos = cursor_pos.to_raw();
-
-    // Apply snap to grid first
-    let snapped_pos = settings.apply_grid_snap(raw_pos);
-
-    // Apply axis locking if shift is held and we have points
     let shift_pressed =
         keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
 
-    let final_vec2 = if shift_pressed && !pen_state.current_path.is_empty() {
-        if let Some(last_point) = pen_state.current_path.last() {
-            axis_lock_position(snapped_pos, last_point.to_raw())
-        } else {
-            snapped_pos
-        }
+    let axis_lock = if shift_pressed && !pen_state.current_path.is_empty() {
+        pen_state.current_path.last().map(|p| p.to_raw())
     } else {
-        snapped_pos
+        None
     };
 
-    // Convert back to DPoint
-    DPoint::from_raw(final_vec2)
-}
+    let final_pos = crate::geometry::utilities::calculate_final_position_with_constraints(
+        cursor_pos.to_raw(),
+        settings.grid.enabled,
+        settings.grid.unit_size,
+        axis_lock,
+    );
 
-/// Lock a position to horizontal or vertical axis relative to another point
-/// (used when shift is held to constrain movement)
-fn axis_lock_position(pos: Vec2, relative_to: Vec2) -> Vec2 {
-    let dxy = pos - relative_to;
-    if dxy.x.abs() > dxy.y.abs() {
-        Vec2::new(pos.x, relative_to.y)
-    } else {
-        Vec2::new(relative_to.x, pos.y)
-    }
+    DPoint::from_raw(final_pos)
 }

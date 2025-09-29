@@ -5,9 +5,9 @@
 
 use crate::core::state::fontir_app_state::FontIRAppState;
 use crate::core::state::AppState;
-use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::ui::theme::*;
 use crate::ui::themes::CurrentTheme;
+use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use bevy::prelude::*;
 use kurbo::{BezPath, PathEl};
 
@@ -96,7 +96,7 @@ fn update_glyph_pane(world: &mut World) {
     static mut LOG_COUNT: u32 = 0;
     unsafe {
         LOG_COUNT += 1;
-        if LOG_COUNT % 60 == 0 {
+        if LOG_COUNT.is_multiple_of(60) {
             // Log every second at 60fps
             debug!("update_glyph_pane: Resource contains - glyph: '{}', advance: '{}', lsb: '{}', rsb: '{}'", 
                   metrics.glyph_name, metrics.advance, metrics.left_bearing, metrics.right_bearing);
@@ -263,7 +263,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -277,7 +277,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -309,7 +309,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -323,7 +323,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -355,7 +355,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -369,7 +369,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -401,7 +401,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -415,7 +415,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -447,7 +447,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -461,7 +461,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -493,7 +493,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -507,7 +507,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -538,7 +538,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -552,7 +552,7 @@ pub fn spawn_glyph_pane(
                         TextFont {
                             font: asset_server.load_font_with_fallback(
                                 theme.theme().mono_font_path(),
-                                &embedded_fonts,
+                                embedded_fonts,
                             ),
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
@@ -598,10 +598,16 @@ pub fn update_glyph_metrics(
             // For now, try to get it from glyph name
             metrics.unicode = if glyph_name == "a" {
                 "0061".to_string() // Unicode for 'a'
-            } else if glyph_name.len() == 1
-                && glyph_name.chars().next().unwrap().is_ascii_lowercase()
-            {
-                format!("{:04X}", glyph_name.chars().next().unwrap() as u32)
+            } else if glyph_name.len() == 1 {
+                if let Some(ch) = glyph_name.chars().next() {
+                    if ch.is_ascii_lowercase() {
+                        format!("{:04X}", ch as u32)
+                    } else {
+                        String::new()
+                    }
+                } else {
+                    String::new()
+                }
             } else {
                 String::new()
             };

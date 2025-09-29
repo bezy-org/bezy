@@ -1391,9 +1391,3 @@ fn calculate_line_navigation_position(
 
     Some(best_position)
 }
-
-/// Legacy function - replaced by handle_unicode_text_input
-pub fn handle_unicode_input() {
-    // This function is kept for compatibility but does nothing
-    // Use handle_unicode_text_input instead
-}

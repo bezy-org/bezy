@@ -1,98 +1,29 @@
-//! Application initialization and configuration
+//! Application builder and initialization
+//!
+//! This module provides the main app creation functions
 
-use crate::core::cli::CliArgs;
-use crate::core::io::gamepad::GamepadPlugin;
-use crate::core::io::input::InputPlugin;
-use crate::core::io::pointer::PointerPlugin;
-use crate::core::settings::{BezySettings, DEFAULT_WINDOW_SIZE, WINDOW_TITLE};
-use crate::core::state::GlyphNavigation;
-use crate::core::AppState;
-use crate::editing::{FontEditorSystemSetsPlugin, SelectionPlugin, TextEditorPlugin};
-use crate::rendering::{
-    cameras::CameraPlugin, checkerboard::CheckerboardPlugin,
-    zoom_aware_scaling::CameraResponsivePlugin, EntityPoolingPlugin, GlyphRenderingPlugin,
-    MeshCachingPlugin, MetricsRenderingPlugin, SortHandleRenderingPlugin,
-};
+use super::plugins::{CorePluginGroup, EditorPluginGroup, RenderingPluginGroup};
+use crate::core::config::{BezySettings, CliArgs, DEFAULT_WINDOW_SIZE, WINDOW_TITLE};
+use crate::core::state::{AppState, GlyphNavigation};
 use crate::systems::{
     center_camera_on_startup_layout, create_startup_layout, exit_on_esc, load_fontir_font,
-    BezySystems, CommandsPlugin, InputConsumerPlugin, TextShapingPlugin, UiInteractionPlugin,
-    plugins::configure_default_plugins,
+    plugins::{configure_default_plugins, configure_default_plugins_for_tui},
 };
-use crate::ui::edit_mode_toolbar::EditModeToolbarPlugin;
-use crate::ui::file_menu::FileMenuPlugin;
-use crate::ui::panes::coordinate_pane::CoordinatePanePlugin;
-use crate::ui::panes::file_pane::FilePanePlugin;
-use crate::ui::panes::glyph_pane::GlyphPanePlugin;
+use crate::tui::communication::{AppMessage, TuiMessage};
 use crate::ui::theme::CurrentTheme;
+use crate::utils::embedded_assets::EmbeddedAssetsPlugin;
 #[cfg(debug_assertions)]
 use crate::ui::theme_system::RuntimeThemePlugin;
 use anyhow::Result;
-use bevy::app::{PluginGroup, PluginGroupBuilder};
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
 use tokio::sync::mpsc;
-use crate::tui::communication::{AppMessage, TuiMessage};
 
-/// Plugin group for core application functionality
-#[derive(Default)]
-pub struct CorePluginGroup;
-
-impl PluginGroup for CorePluginGroup {
-    fn build(self) -> PluginGroupBuilder {
-        PluginGroupBuilder::start::<Self>()
-            .add(PointerPlugin)
-            .add(InputPlugin)
-            .add(GamepadPlugin)
-            .add(InputConsumerPlugin)
-            .add(FontEditorSystemSetsPlugin) // Must be added before other font editor plugins
-            .add(TextEditorPlugin)
-            // Unified text shaping for RTL support (includes Arabic and HarfBuzz)
-            .add(TextShapingPlugin)
-            .add(SelectionPlugin)
-            .add(UiInteractionPlugin)
-            .add(CommandsPlugin)
-            .add(BezySystems)
-    }
-}
-
-/// Plugin group for rendering functionality
-#[derive(Default)]
-pub struct RenderingPluginGroup;
-
-impl PluginGroup for RenderingPluginGroup {
-    fn build(self) -> PluginGroupBuilder {
-        PluginGroupBuilder::start::<Self>()
-            .add(CameraPlugin)
-            .add(CameraResponsivePlugin)
-            .add(CheckerboardPlugin)
-            .add(EntityPoolingPlugin)
-            .add(MeshCachingPlugin)
-            .add(MetricsRenderingPlugin)
-            .add(SortHandleRenderingPlugin)
-            .add(GlyphRenderingPlugin)
-    }
-}
-
-/// Plugin group for editor UI
-#[derive(Default)]
-pub struct EditorPluginGroup;
-
-impl PluginGroup for EditorPluginGroup {
-    fn build(self) -> PluginGroupBuilder {
-        PluginGroupBuilder::start::<Self>()
-            .add(FilePanePlugin)
-            .add(GlyphPanePlugin)
-            .add(CoordinatePanePlugin)
-            .add(EditModeToolbarPlugin) // ✅ Includes ConfigBasedToolbarPlugin - handles all tools automatically
-            .add(FileMenuPlugin)
-            // ✅ NEW SYSTEM: All tools are now automatically registered via EditModeToolbarPlugin
-            // No need for manual tool plugin registration - everything is handled by toolbar_config.rs
-            .add(crate::tools::PenToolPlugin) // Re-enabled - pen tool needs its business logic plugin
-            .add(crate::tools::SelectToolPlugin) // Select tool business logic plugin
-    }
-}
-
-/// Creates a fully configured Bevy GUI application ready to run
+/// Creates a fully configured Bevy font editor application.
+///
+/// This is the main entry point for the Bezy font editor. It creates a complete
+/// Bevy application with all necessary plugins, resources, and systems configured
+/// for font editing functionality.
 pub fn create_app(cli_args: CliArgs) -> Result<App> {
     #[cfg(not(target_arch = "wasm32"))]
     cli_args
@@ -120,8 +51,6 @@ fn configure_resources(app: &mut App, cli_args: CliArgs) {
     let current_theme = CurrentTheme::new(theme_variant);
     let background_color = current_theme.theme().background_color();
 
-    // Note: FontIRAppState is initialized by load_fontir_font startup system
-    // app.init_resource::<AppState>() // Old system - keeping for gradual migration
     app.insert_resource(cli_args)
         .insert_resource(glyph_navigation)
         .insert_resource(settings)
@@ -165,31 +94,14 @@ fn configure_window_plugins(app: &mut App) {
 
     #[cfg(target_arch = "wasm32")]
     {
-        app.add_plugins(
-            DefaultPlugins
-                .set(WindowPlugin {
-                    primary_window: Some(Window {
-                        canvas: None,
-                        prevent_default_event_handling: false,
-                        ..window_config
-                    }),
-                    ..default()
-                })
-                .set(bevy::render::RenderPlugin {
-                    render_creation: bevy::render::settings::RenderCreation::Automatic(
-                        bevy::render::settings::WgpuSettings {
-                            backends: Some(bevy::render::settings::Backends::GL),
-                            power_preference: bevy::render::settings::PowerPreference::LowPower,
-                            ..default()
-                        },
-                    ),
-                    ..default()
-                }),
-        );
+        app.add_plugins(configure_default_plugins().set(WindowPlugin {
+            primary_window: Some(window_config),
+            ..default()
+        }));
     }
 }
 
-/// Configure window and default plugins for TUI mode
+/// Configure window plugins for TUI mode (no window output)
 fn configure_window_plugins_for_tui(app: &mut App) {
     let window_config = Window {
         title: WINDOW_TITLE.to_string(),
@@ -199,7 +111,6 @@ fn configure_window_plugins_for_tui(app: &mut App) {
 
     #[cfg(not(target_arch = "wasm32"))]
     {
-        use crate::systems::plugins::configure_default_plugins_for_tui;
         app.add_plugins(configure_default_plugins_for_tui().set(WindowPlugin {
             primary_window: Some(window_config),
             ..default()
@@ -218,7 +129,7 @@ fn add_plugin_groups(app: &mut App) {
     debug!("Adding plugin groups...");
 
     // Add embedded assets plugin to provide fonts when installed via cargo install
-    app.add_plugins(crate::utils::embedded_assets::EmbeddedAssetsPlugin);
+    app.add_plugins(EmbeddedAssetsPlugin);
 
     app.add_plugins((RenderingPluginGroup, EditorPluginGroup, CorePluginGroup));
 
@@ -235,7 +146,11 @@ fn add_startup_and_exit_systems(app: &mut App) {
         .add_systems(Update, (exit_on_esc, center_camera_on_startup_layout));
 }
 
-/// Creates a fully configured Bevy GUI application with TUI support
+/// Creates a Bevy app configured for TUI mode with communication channels.
+///
+/// This variant sets up the app with channels for bi-directional communication
+/// between the Bevy app and the TUI. It disables console logging to prevent
+/// terminal corruption.
 pub fn create_app_with_tui(
     cli_args: CliArgs,
     tui_rx: mpsc::UnboundedReceiver<TuiMessage>,
@@ -249,26 +164,33 @@ pub fn create_app_with_tui(
     let mut app = App::new();
 
     // Add TUI communication resource
-    app.insert_resource(crate::core::tui_communication::TuiCommunication::new(tui_rx, app_tx));
+    app.insert_resource(crate::core::tui_communication::TuiCommunication::new(
+        tui_rx, app_tx,
+    ));
 
     configure_resources(&mut app, cli_args);
-    configure_window_plugins_for_tui(&mut app);  // Use TUI-specific configuration
+    configure_window_plugins_for_tui(&mut app); // Use TUI-specific configuration
     add_plugin_groups(&mut app);
     add_startup_and_exit_systems(&mut app);
 
-    // Force more aggressive update settings for TUI mode
+    // TUI mode needs immediate GUI updates - use continuous mode for instant responsiveness
     app.insert_resource(WinitSettings {
         focused_mode: bevy::winit::UpdateMode::Continuous,
         unfocused_mode: bevy::winit::UpdateMode::Continuous,
     });
 
     // Add TUI communication systems
-    app.add_systems(Update, (handle_tui_messages, send_initial_font_data_to_tui));
+    // TUI message handling needs to run in Input system set to ensure respawn queue is processed immediately
+    app.add_systems(Update,
+        handle_tui_messages.in_set(crate::editing::FontEditorSets::Input)
+    );
+    app.add_systems(Update, send_initial_font_data_to_tui);
 
     Ok(app)
 }
 
 /// System to handle messages from TUI
+#[allow(clippy::too_many_arguments)]
 fn handle_tui_messages(
     mut tui_comm: ResMut<crate::core::tui_communication::TuiCommunication>,
     mut glyph_nav: ResMut<GlyphNavigation>,
@@ -296,7 +218,7 @@ fn handle_tui_messages(
                         // Send confirmation back to TUI
                         tui_comm.send_current_glyph(glyph_name);
 
-                        // Force immediate redraw by triggering all change detection
+                        // Force immediate GUI redraw by triggering all change detection
                         use bevy::prelude::DetectChangesMut;
                         if let Some(ref mut text_state) = text_editor_state {
                             text_state.set_changed();
@@ -319,7 +241,8 @@ fn handle_tui_messages(
                 if let Some(ref fontir_state) = fontir_state {
                     send_glyph_list_to_tui(&mut tui_comm, fontir_state, app_state.as_deref());
                 } else {
-                    tui_comm.send_log("No font loaded - please use --edit to load a font".to_string());
+                    tui_comm
+                        .send_log("No font loaded - please use --edit to load a font".to_string());
                 }
             }
             TuiMessage::RequestFontInfo => {
@@ -327,7 +250,8 @@ fn handle_tui_messages(
                 if let Some(ref fontir_state) = fontir_state {
                     send_font_info_to_tui(&mut tui_comm, fontir_state);
                 } else {
-                    tui_comm.send_log("No font loaded - please use --edit to load a font".to_string());
+                    tui_comm
+                        .send_log("No font loaded - please use --edit to load a font".to_string());
                 }
             }
             TuiMessage::ChangeZoom(zoom) => {
@@ -349,90 +273,64 @@ fn handle_tui_messages(
                     use bevy::prelude::DetectChangesMut;
                     glyph_nav.set_changed();
                 }
+                respawn_queue.set_changed();
 
                 info!("Force redraw requested by TUI");
             }
-            TuiMessage::Quit => {
-                info!("TUI requested quit");
-                // The TUI handles its own quit, this is just informational
-            }
             TuiMessage::QAReportReady(report) => {
-                info!("QA report ready with {} issues", report.issues.len());
-                // The TUI handles the report directly through the shared state
+                info!("QA report ready: {:?}", report);
+                // TODO: Handle QA report
             }
             TuiMessage::QAAnalysisFailed(error) => {
                 warn!("QA analysis failed: {}", error);
                 tui_comm.send_log(format!("QA analysis failed: {}", error));
             }
+            TuiMessage::Quit => {
+                info!("TUI requested quit");
+                // TODO: Handle quit request
+            }
         }
     }
 }
 
-/// Send glyph list from FontIR to TUI
+/// System to send initial font data to TUI on startup
+fn send_initial_font_data_to_tui(
+    mut tui_comm: ResMut<crate::core::tui_communication::TuiCommunication>,
+    fontir_state: Option<Res<crate::core::state::FontIRAppState>>,
+    app_state: Option<Res<AppState>>,
+) {
+    if let Some(fontir_state) = fontir_state {
+        if fontir_state.is_changed() {
+            send_font_info_to_tui(&mut tui_comm, &fontir_state);
+            send_glyph_list_to_tui(&mut tui_comm, &fontir_state, app_state.as_deref());
+        }
+    }
+}
+
 fn send_glyph_list_to_tui(
-    tui_comm: &mut ResMut<crate::core::tui_communication::TuiCommunication>,
+    tui_comm: &mut crate::core::tui_communication::TuiCommunication,
     fontir_state: &crate::core::state::FontIRAppState,
     app_state: Option<&AppState>,
 ) {
-    // Delegate to TUI module for glyph list generation
+    // Use the proper function that extracts Unicode values from FontIR
     let glyphs = crate::tui::communication::generate_glyph_list(fontir_state, app_state);
-
-    info!("Sending {} glyphs to TUI", glyphs.len());
     tui_comm.send_glyph_list(glyphs);
-    tui_comm.send_log(format!("Loaded {} glyphs from font", fontir_state.glyph_cache.len()));
 }
 
-/// Send font info from FontIR to TUI
 fn send_font_info_to_tui(
-    tui_comm: &mut ResMut<crate::core::tui_communication::TuiCommunication>,
-    fontir_state: &crate::core::state::FontIRAppState,
+    tui_comm: &mut crate::core::tui_communication::TuiCommunication,
+    _fontir_state: &crate::core::state::FontIRAppState,
 ) {
-    let mut font_info = crate::tui::communication::FontInfo {
-        family_name: None,
-        style_name: None,
+    let font_info = crate::tui::communication::FontInfo {
+        family_name: Some("Unknown".to_string()), // TODO: Get from fontir_state
+        style_name: Some("Regular".to_string()),  // TODO: Get from fontir_state
         version: None,
         ascender: None,
         descender: None,
         cap_height: None,
         x_height: None,
-        units_per_em: None,
+        units_per_em: Some(1000.0),              // TODO: Get from fontir_state
     };
 
-    // Extract basic font info from FontIR context
-    if let Some(context) = &fontir_state.context {
-        // Get static metadata
-        let static_metadata = context.static_metadata.get();
-        font_info.units_per_em = Some(static_metadata.units_per_em as f32);
-
-        // Set basic font information - we'll improve this later
-        font_info.family_name = Some("Font Family".to_string());
-        font_info.style_name = Some("Regular".to_string());
-        font_info.version = Some("1.0".to_string());
-
-        // Use reasonable default values for metrics
-        font_info.ascender = Some(800.0);
-        font_info.descender = Some(-200.0);
-        font_info.cap_height = Some(700.0);
-        font_info.x_height = Some(500.0);
-    }
-
-    info!("Sending font info to TUI");
     tui_comm.send_font_info(font_info);
-}
-
-/// System to send initial font data to TUI when font loads
-fn send_initial_font_data_to_tui(
-    mut tui_comm: Option<ResMut<crate::core::tui_communication::TuiCommunication>>,
-    fontir_state: Option<ResMut<crate::core::state::FontIRAppState>>,
-    app_state: Option<Res<AppState>>,
-    mut sent_initial_data: Local<bool>,
-) {
-    // Only send data once when both TUI communication and font are available
-    if !*sent_initial_data {
-        if let (Some(mut tui_comm), Some(fontir_state)) = (tui_comm.as_mut(), fontir_state.as_ref()) {
-            send_glyph_list_to_tui(&mut tui_comm, fontir_state, app_state.as_deref());
-            send_font_info_to_tui(&mut tui_comm, fontir_state);
-            *sent_initial_data = true;
-        }
-    }
 }

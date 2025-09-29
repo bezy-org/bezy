@@ -16,6 +16,12 @@ pub struct HelpState {
     pub scroll_offset: usize,
 }
 
+impl Default for HelpState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HelpState {
     pub fn new() -> Self {
         Self { scroll_offset: 0 }
@@ -35,18 +41,20 @@ pub async fn handle_key_event(
 /// Draw the Help tab UI
 pub fn draw(f: &mut Frame, _state: &mut HelpState, area: Rect) {
     let help_text = vec![
-        Line::from(vec![
-            Span::styled("Global Controls:", Style::default().add_modifier(Modifier::BOLD)),
-        ]),
+        Line::from(vec![Span::styled(
+            "Global Controls:",
+            Style::default().add_modifier(Modifier::BOLD),
+        )]),
         Line::from(""),
         Line::from("  Ctrl+Q         - Quit application"),
         Line::from("  Tab            - Next tab"),
         Line::from("  Shift+Tab      - Previous tab"),
         Line::from("  1-9            - Jump to tab by number"),
         Line::from(""),
-        Line::from(vec![
-            Span::styled("Unicode Tab:", Style::default().add_modifier(Modifier::BOLD)),
-        ]),
+        Line::from(vec![Span::styled(
+            "Unicode Tab:",
+            Style::default().add_modifier(Modifier::BOLD),
+        )]),
         Line::from(""),
         Line::from("  ↑/↓ or j/k     - Navigate codepoint list"),
         Line::from("  Page Up/Down   - Navigate by page"),
@@ -54,16 +62,18 @@ pub fn draw(f: &mut Frame, _state: &mut HelpState, area: Rect) {
         Line::from("  /              - Search codepoints"),
         Line::from("  Esc            - Exit search"),
         Line::from(""),
-        Line::from(vec![
-            Span::styled("AI Tab:", Style::default().add_modifier(Modifier::BOLD)),
-        ]),
+        Line::from(vec![Span::styled(
+            "AI Tab:",
+            Style::default().add_modifier(Modifier::BOLD),
+        )]),
         Line::from(""),
         Line::from("  Space          - Pause/Resume Game of Life"),
         Line::from("  R              - Reset with new random state"),
         Line::from(""),
-        Line::from(vec![
-            Span::styled("Navigation:", Style::default().add_modifier(Modifier::BOLD)),
-        ]),
+        Line::from(vec![Span::styled(
+            "Navigation:",
+            Style::default().add_modifier(Modifier::BOLD),
+        )]),
         Line::from(""),
         Line::from("  Use number keys 1-9 to quickly jump between tabs"),
         Line::from("  Tab/Shift+Tab to cycle through tabs"),

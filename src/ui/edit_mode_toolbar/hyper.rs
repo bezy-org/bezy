@@ -3,7 +3,7 @@
 //! This tool allows users to draw smooth hyperbezier curves with automatic
 //! control point calculation for smooth interpolation between points.
 
-use crate::core::settings::BezySettings;
+use crate::core::config::BezySettings;
 use crate::core::state::{AppState, GlyphNavigation};
 use crate::editing::selection::systems::AppStateChanged;
 use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
@@ -41,9 +41,8 @@ impl EditTool for HyperTool {
     }
 }
 
-/// Resource to track if hyper mode is active
-#[derive(Resource, Default, PartialEq, Eq)]
-pub struct HyperModeActive(pub bool);
+// Use HyperModeActive from tools::hyper and re-export it
+pub use crate::tools::hyper::HyperModeActive;
 
 /// The state of the hyper tool
 #[derive(Resource, Default)]

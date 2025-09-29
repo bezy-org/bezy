@@ -19,7 +19,7 @@ use std::collections::{HashMap, HashSet};
 
 /// Resource to collect rendering data and reduce system parameter count
 #[derive(Resource, Default)]
-pub struct GlyphRenderingData {
+pub(crate) struct GlyphRenderingData {
     pub smooth_points: HashMap<Entity, bool>,
     pub needs_update: bool,
 }
@@ -58,7 +58,7 @@ pub struct GlyphRenderEntities {
 
 /// Resource to track when sorts need visual updates (prevents unnecessary rebuilding)
 #[derive(Resource, Default)]
-pub struct SortVisualUpdateTracker {
+pub(crate) struct SortVisualUpdateTracker {
     pub needs_update: bool,
 }
 
@@ -69,7 +69,7 @@ const POINT_Z: f32 = 10.0; // Unselected points
 const SELECTED_POINT_Z: f32 = 15.0; // Selected points - always above unselected
 
 /// System to collect rendering data with fewer parameters
-pub fn collect_rendering_data(
+pub(crate) fn collect_rendering_data(
     enhanced_points_query: Query<(Entity, &EnhancedPointType)>,
     enhanced_attributes: Res<crate::editing::selection::entity_management::EnhancedPointAttributes>,
     point_refs_query: Query<
@@ -113,7 +113,7 @@ pub fn collect_rendering_data(
 /// Main glyph rendering system - renders both active (with points/handles) and inactive (filled outlines) sorts
 /// This single system eliminates coordination complexity between separate rendering systems
 #[allow(clippy::type_complexity)]
-pub fn render_glyphs(
+pub(crate) fn render_glyphs(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
@@ -179,21 +179,6 @@ pub fn render_glyphs(
         "🎨 UNIFIED RENDERING EXECUTING: active_sorts={}, inactive_sorts={}, points={}",
         active_count, inactive_count, point_count
     );
-
-    // Debug: Check what components all entities with SortPointEntity have
-    // (Commented out - debug query removed to reduce parameter count)
-    // if point_count == 0 && !existing_sort_points.is_empty() {
-    //     let all_sort_point_entities = existing_sort_points.iter().count();
-    //     debug!("🔍 DEBUG: {} entities with SortPointEntity exist, but 0 match full point query - component mismatch!", all_sort_point_entities);
-    //
-    //     // Let's see what the first few SortPointEntity entities actually have
-    //     for (i, entity) in existing_sort_points.iter().enumerate() {
-    //         if i >= 3 {
-    //             break;
-    //         } // Only check first 3 for debugging
-    //         debug!("🔍 DEBUG: Entity {:?} has SortPointEntity", entity);
-    //     }
-    // }
 
     if active_count == 0 && inactive_count == 0 {
         update_tracker.needs_update = false;
@@ -392,7 +377,7 @@ pub fn render_glyphs(
                 &camera_scale,
                 &theme,
                 text_editor_state.as_deref(),
-                &smooth_points,
+                smooth_points,
             );
         } else {
             debug!(
@@ -641,7 +626,7 @@ fn render_glyph_outline(
                 &live_positions,
                 sort_position,
                 camera_scale,
-                &theme,
+                theme,
             );
         }
     }
@@ -1452,52 +1437,25 @@ fn detect_sort_changes(
     inactive_sort_query: InactiveSortChangeQuery,
     removed_active: RemovedComponents<ActiveSort>,
     removed_inactive: RemovedComponents<crate::editing::sort::InactiveSort>,
-    // CRITICAL FIX: Also trigger updates when points are available for active sorts
-    point_query: Query<&crate::editing::sort::manager::SortPointEntity>,
-    buffer_active_sorts: Query<
-        Entity,
-        (
-            With<ActiveSort>,
-            With<crate::systems::sorts::sort_entities::BufferSortIndex>,
-        ),
-    >,
 ) {
     let active_changed = !active_sort_query.is_empty();
     let inactive_changed = !inactive_sort_query.is_empty();
     let removed_active_count = removed_active.len();
     let removed_inactive_count = removed_inactive.len();
 
-    // CRITICAL FIX: Also check if active buffer sorts have points but visual update wasn't triggered
-    let mut points_ready_for_rendering = false;
-    for sort_entity in buffer_active_sorts.iter() {
-        let point_count = point_query
-            .iter()
-            .filter(|point_parent| point_parent.sort_entity == sort_entity)
-            .count();
-        if point_count > 0 && !update_tracker.needs_update {
-            points_ready_for_rendering = true;
-            debug!(
-                "🔄 POINTS READY: Sort {:?} has {} points but visual update not triggered",
-                sort_entity, point_count
-            );
-            break;
-        }
-    }
+    // REMOVED EXPENSIVE CHECK: The point spawning system already triggers visual updates
+    // when points are spawned, so we don't need to check for existing points here.
+    // This eliminates the O(n*m) nested loop that was causing lag.
 
     let needs_update = active_changed
         || inactive_changed
         || removed_active_count > 0
-        || removed_inactive_count > 0
-        || points_ready_for_rendering;
+        || removed_inactive_count > 0;
 
     if needs_update {
         update_tracker.needs_update = true;
-        if points_ready_for_rendering {
-            debug!("🔄 POINTS READY DETECTED: Setting update flag for active sorts with existing points");
-        } else {
-            debug!("🔄 SORT CHANGES DETECTED: Setting update flag - active_changed: {}, inactive_changed: {}, removed_active: {}, removed_inactive: {}", 
-                  active_changed, inactive_changed, removed_active_count, removed_inactive_count);
-        }
+        debug!("🔄 SORT CHANGES DETECTED: Setting update flag - active_changed: {}, inactive_changed: {}, removed_active: {}, removed_inactive: {}",
+              active_changed, inactive_changed, removed_active_count, removed_inactive_count);
     }
 }
 
@@ -1513,9 +1471,9 @@ fn spawn_contour_start_arrow(
     theme: &CurrentTheme,
 ) -> Entity {
     // Create arrow shape - tall and narrow
-    let arrow_height = 16.0 * camera_scale.scale_factor; // Height (how far the arrow extends)
-    let arrow_width = 16.0 * camera_scale.scale_factor; // Width (base of the triangle)
-    let gap = 8.0 * camera_scale.scale_factor; // Gap between point and arrow
+    let arrow_height = 16.0 * camera_scale.scale_factor(); // Height (how far the arrow extends)
+    let arrow_width = 16.0 * camera_scale.scale_factor(); // Width (base of the triangle)
+    let gap = 8.0 * camera_scale.scale_factor(); // Gap between point and arrow
 
     // Arrow points in the direction of the contour
     let perpendicular = Vec2::new(-direction.y, direction.x) * arrow_width * 0.5;
@@ -1575,14 +1533,18 @@ impl Plugin for GlyphRenderingPlugin {
         app.init_resource::<GlyphRenderEntities>()
             .init_resource::<SortVisualUpdateTracker>()
             .init_resource::<GlyphRenderingData>()
+            // CRITICAL: All systems MUST be in PostEditingRenderingSet!
+            // This ensures rendering happens AFTER point spawning completes.
+            // Without this, outlines lag 1-2 seconds behind metrics updates.
             .add_systems(
                 Update,
-                detect_sort_changes
-                    .after(crate::systems::sorts::spawn_active_sort_points_optimized)
-                    .after(crate::editing::selection::nudge::handle_nudge_input),
-            )
-            .add_systems(Update, collect_rendering_data)
-            .add_systems(Update, render_glyphs.after(collect_rendering_data));
+                (
+                    detect_sort_changes,
+                    collect_rendering_data,
+                    render_glyphs.after(collect_rendering_data),
+                )
+                    .in_set(crate::rendering::PostEditingRenderingSet),
+            );
     }
 }
 

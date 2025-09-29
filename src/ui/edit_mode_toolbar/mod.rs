@@ -5,8 +5,8 @@
 //!
 //! ## Architecture Overview
 //!
-//! ```
-//! /src/tools/          ← Core tool behavior & logic  
+//! ```text
+//! /src/tools/          ← Core tool behavior & logic
 //! /src/ui/toolbars/    ← YOU ARE HERE - Visual toolbar UI, registration, configuration
 //! ```
 //!
@@ -48,55 +48,9 @@
 //! The system is designed for maximum ease of use. Adding a new tool requires:
 //!
 //! 1. **Create your tool file** (`my_tool.rs`):
-//!    ```rust,ignore
-//!    use bevy::prelude::*;
-//!    
-//!    // Define the types for the example
-//!    type ToolId = &'static str;
-//!    
-//!    trait EditTool {
-//!        fn id(&self) -> ToolId;
-//!        fn name(&self) -> &'static str;
-//!        fn icon(&self) -> &'static str;
-//!        fn default_order(&self) -> i32 { 100 }
-//!        fn update(&self, commands: &mut Commands);
-//!    }
-//!    
-//!    #[derive(Resource)]
-//!    struct ToolRegistry {
-//!        tools: Vec<Box<dyn EditTool>>,
-//!    }
-//!    
-//!    impl ToolRegistry {
-//!        fn register_tool(&mut self, tool: Box<dyn EditTool>) {
-//!            self.tools.push(tool);
-//!        }
-//!    }
-//!
-//!    pub struct MyTool;
-//!
-//!    impl EditTool for MyTool {
-//!        fn id(&self) -> ToolId { "my_tool" }
-//!        fn name(&self) -> &'static str { "My Tool" }
-//!        fn icon(&self) -> &'static str { "\u{E019}" }
-//!        fn default_order(&self) -> i32 { 50 }
-//!        
-//!        fn update(&self, commands: &mut Commands) {
-//!            // Your tool's behavior while active
-//!        }
-//!    }
-//!
-//!    pub struct MyToolPlugin;
-//!    impl Plugin for MyToolPlugin {
-//!        fn build(&self, app: &mut App) {
-//!            app.add_systems(Startup, register_my_tool);
-//!        }
-//!    }
-//!
-//!    fn register_my_tool(mut registry: ResMut<ToolRegistry>) {
-//!        registry.register_tool(Box::new(MyTool));
-//!    }
-//!    ```
+//!    - Implement the EditTool trait for your tool struct
+//!    - Create a plugin that registers the tool with ToolRegistry
+//!    - Add systems for tool-specific behavior
 //!
 //! 2. **Add module declaration**: `mod my_tool;` and
 //!    `pub use my_tool::MyToolPlugin;`
@@ -116,7 +70,6 @@
 //! - **UI Integration**: Visual feedback and interactive toolbar
 //! - **Extensibility**: Easy to add new tools with minimal code changes
 
-#![allow(unused_imports)]
 
 use bevy::prelude::*;
 use std::collections::HashMap;
@@ -135,7 +88,7 @@ pub mod pen;
 pub mod select;
 mod shapes;
 pub mod text;
-mod ui;
+pub mod ui;
 
 // Add the spacebar toggle module
 mod spacebar_toggle;
@@ -184,47 +137,9 @@ pub type ToolId = &'static str;
 ///
 /// # Example Implementation
 ///
-/// ```rust,ignore
-/// use bevy::prelude::*;
-/// use crate::ui::edit_mode_toolbar::{EditTool, ToolId};
-///
-/// trait EditTool {
-///     fn id(&self) -> ToolId;
-///     fn name(&self) -> &'static str;
-///     fn icon(&self) -> &'static str;
-///     fn shortcut_key(&self) -> Option<char> { None }
-///     fn default_order(&self) -> i32 { 100 }
-///     fn update(&self, commands: &mut Commands);
-///     fn on_enter(&self) {}
-///     fn on_exit(&self) {}
-/// }
-///
-/// pub struct MyCustomTool {
-///     // Tool-specific state can go here
-///     pub some_setting: bool,
-/// }
-///
-/// impl EditTool for MyCustomTool {
-///     fn id(&self) -> ToolId { "my_custom_tool" }
-///     fn name(&self) -> &'static str { "Custom Tool" }
-///     fn icon(&self) -> &'static str { "\u{E020}" }
-///     fn shortcut_key(&self) -> Option<char> { Some('c') }
-///     fn default_order(&self) -> i32 { 75 }
-///     
-///     fn update(&self, commands: &mut Commands) {
-///         // Implement tool behavior (handle input, modify entities, etc.)
-///         // This runs every frame while the tool is active
-///     }
-///     
-///     fn on_enter(&self) {
-///         // Setup tool state, change cursor, etc.
-///     }
-///     
-///     fn on_exit(&self) {
-///         // Cleanup, restore cursor, etc.
-///     }
-/// }
-/// ```
+/// Implement the EditTool trait with required methods id(), name(), icon(),
+/// and update(). Optional methods include shortcut_key(), default_order(),
+/// on_enter(), and on_exit() for enhanced functionality.
 pub trait EditTool: Send + Sync + 'static {
     /// Unique identifier for this tool (used internally)
     fn id(&self) -> ToolId;
@@ -236,7 +151,6 @@ pub trait EditTool: Send + Sync + 'static {
     fn icon(&self) -> &'static str;
 
     /// Optional keyboard shortcut (e.g., Some('v') for Select tool)
-    #[allow(dead_code)]
     fn shortcut_key(&self) -> Option<char> {
         None
     }
@@ -248,7 +162,6 @@ pub trait EditTool: Send + Sync + 'static {
     }
 
     /// Description for tooltips/help
-    #[allow(dead_code)]
     fn description(&self) -> &'static str {
         ""
     }
@@ -259,11 +172,10 @@ pub trait EditTool: Send + Sync + 'static {
     /// Called when switching to this tool
     fn on_enter(&self) {}
 
-    /// Called when switching away from this tool  
+    /// Called when switching away from this tool
     fn on_exit(&self) {}
 
     /// Whether this tool supports temporary activation via spacebar (e.g., pan tool)
-    #[allow(dead_code)]
     fn supports_temporary_mode(&self) -> bool {
         false
     }
@@ -277,13 +189,8 @@ pub trait EditTool: Send + Sync + 'static {
 ///
 /// # Usage
 ///
-/// Tools typically register themselves in their plugin's `build()` method:
-///
-/// ```rust,ignore
-/// fn register_my_tool(mut tool_registry: ResMut<ToolRegistry>) {
-///     tool_registry.register_tool(Box::new(MyTool));
-/// }
-/// ```
+/// Tools typically register themselves in their plugin's `build()` method
+/// by calling tool_registry.register_tool() with a boxed instance.
 ///
 /// The registry automatically handles ordering and makes tools available to the UI system.
 #[derive(Resource, Default)]
@@ -335,42 +242,6 @@ impl ToolRegistry {
 
         self.ordering_dirty = false;
     }
-
-    /// Apply custom ordering preferences
-    #[allow(dead_code)]
-    pub fn apply_custom_ordering(&mut self, custom_order: &ToolOrdering) {
-        if custom_order.custom_order.is_empty() {
-            // No custom order specified, use default
-            self.rebuild_ordering();
-            return;
-        }
-
-        let mut ordered_tools = Vec::new();
-
-        // First, add tools in the custom order
-        for &tool_id in &custom_order.custom_order {
-            if self.tools.contains_key(tool_id) {
-                ordered_tools.push(tool_id);
-            }
-        }
-
-        // Then add any remaining tools in their default order
-        let mut remaining_tools: Vec<(ToolId, i32)> = self
-            .tools
-            .iter()
-            .filter(|(id, _)| !ordered_tools.contains(id))
-            .map(|(id, tool)| (*id, tool.default_order()))
-            .collect();
-
-        remaining_tools.sort_by_key(|(_, order)| *order);
-
-        for (id, _) in remaining_tools {
-            ordered_tools.push(id);
-        }
-
-        self.ordered_tool_ids = ordered_tools;
-        self.ordering_dirty = false;
-    }
 }
 
 /// Current active tool state
@@ -409,85 +280,18 @@ impl CurrentTool {
 ///
 /// ## Setting Custom Order
 ///
-/// ```rust,ignore
-/// fn setup_toolbar_order(mut tool_ordering: ResMut<ToolOrdering>) {
-///     // Put select first, then pen, then custom tools
-///     tool_ordering.set_order(vec![
-///         "select",
-///         "pen",
-///         "my_custom_tool",
-///         "eraser",
-///         // Any unspecified tools will appear after these in default order
-///     ]);
-/// }
-/// ```
+/// Use tool_ordering.set_order() to define a custom sequence of tool IDs.
+/// Unspecified tools appear after custom-ordered ones in default order.
 ///
 /// ## Using Preset Orders
 ///
-/// ```rust,ignore
-/// fn setup_design_workflow(mut tool_ordering: ResMut<ToolOrdering>) {
-///     // Optimized for design-focused work
-///     tool_ordering.set_design_focused_order();
-/// }
-///
-/// fn setup_annotation_workflow(mut tool_ordering: ResMut<ToolOrdering>) {
-///     // Optimized for annotation and markup work
-///     tool_ordering.set_annotation_focused_order();
-/// }
-/// ```
+/// Use set_design_focused_order() for design work or
+/// set_annotation_focused_order() for annotation tasks.
 ///
 /// ## Dynamic Ordering
 ///
-/// ```rust,ignore
-/// fn setup_user_preference_order(
-///     mut tool_ordering: ResMut<ToolOrdering>,
-///     user_prefs: Res<UserPreferences>
-/// ) {
-///     match user_prefs.workflow_type {
-///         WorkflowType::Design => tool_ordering.set_design_focused_order(),
-///         WorkflowType::Annotation => tool_ordering.set_annotation_focused_order(),
-///         WorkflowType::Custom => tool_ordering.set_order(user_prefs.custom_tool_order.clone()),
-///     }
-/// }
-/// ```
-#[derive(Resource, Default)]
-pub struct ToolOrdering {
-    #[allow(dead_code)]
-    pub custom_order: Vec<ToolId>,
-}
-
-impl ToolOrdering {
-    /// Set a custom order for tools (tools not listed will use default ordering
-    /// after these)
-    #[allow(dead_code)]
-    pub fn set_order(&mut self, order: Vec<ToolId>) {
-        self.custom_order = order;
-    }
-
-    /// Preset order optimized for design-focused work
-    #[allow(dead_code)]
-    pub fn set_design_focused_order(&mut self) {
-        self.custom_order = vec![
-            "select",  // Primary selection tool
-            "pen",     // Drawing/editing paths
-            "shapes",  // Creating geometric shapes
-            "text",    // Text handling
-            "measure", // Measurement and guides
-            "hyper",   // Advanced editing
-            "pan",     // Navigation
-            "knife",   // Path cutting (less common in design)
-        ];
-    }
-
-    /// Preset order optimized for annotation and markup work
-    #[allow(dead_code)]
-    pub fn set_annotation_focused_order(&mut self) {
-        self.custom_order = vec![
-            "select", "text", "pen", "shapes", "measure", "eraser", "knife", "hyper", "pan",
-        ];
-    }
-}
-
+/// Tool ordering can be changed at runtime based on user preferences
+/// or workflow requirements using the various set_*_order() methods.
 // New tool exports (using current available exports)
 pub use hyper::HyperToolPlugin;
 pub use knife::{KnifeModeActive, KnifeToolPlugin};
@@ -499,21 +303,10 @@ pub use text::TextToolPlugin;
 pub use hyper::HyperTool;
 pub use knife::KnifeTool;
 pub use pan::{PanMode, PanToolPlugin, PresentationMode};
-pub use pen::{PenMode, PenModePlugin};
+pub use pen::PenMode;
 pub use shapes::ShapesToolPlugin;
 
 pub use select::{SelectMode, SelectModeActive};
-// pub use text::TextMode;  // Will be available after porting
-// pub use measure::MeasureMode;  // Will be available after porting
-
-// Shapes exports will be added as we port the shapes module
-// pub use shapes::{
-//     handle_primitive_mouse_events, render_active_primitive_drawing,
-//     ActivePrimitiveDrawing, CurrentCornerRadius, UiInteractionState,
-//     handle_primitive_selection, spawn_shapes_submenu,
-//     toggle_shapes_submenu_visibility, CurrentPrimitiveType,
-//     PrimitiveType, ShapesToolPlugin,
-// };
 
 // Legacy trait (will be removed after migration)
 pub trait EditModeSystem: Send + Sync + 'static {
@@ -523,12 +316,6 @@ pub trait EditModeSystem: Send + Sync + 'static {
     fn on_enter(&self) {}
     #[allow(dead_code)]
     fn on_exit(&self) {}
-}
-
-// Legacy compatibility - will be removed after migration
-pub struct ShapesMode;
-impl EditModeSystem for ShapesMode {
-    fn update(&self, _commands: &mut Commands) {}
 }
 
 /// System to initialize the default tool (Select) on startup
@@ -587,7 +374,6 @@ impl Plugin for EditModeToolbarPlugin {
             // Initialize the new tool system
             .init_resource::<ToolRegistry>()
             .init_resource::<CurrentTool>()
-            .init_resource::<ToolOrdering>()
             // Legacy resources (will be removed after migration)
             // .init_resource::<CurrentPrimitiveType>()  // Will be added when shapes is ported
             // .init_resource::<ActivePrimitiveDrawing>()  // Will be added when shapes is ported

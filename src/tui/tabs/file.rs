@@ -16,6 +16,12 @@ pub struct FileState {
     pub selected_index: usize,
 }
 
+impl Default for FileState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FileState {
     pub fn new() -> Self {
         Self { selected_index: 0 }
@@ -66,24 +72,26 @@ pub async fn handle_key_event(
 pub fn draw(f: &mut Frame, _state: &mut FileState, area: Rect) {
     let file_menu = vec![
         Line::from(""),
-        Line::from(vec![
-            Span::styled("  File Operations", Style::default().add_modifier(Modifier::BOLD)),
-        ]),
+        Line::from(vec![Span::styled(
+            "  File Operations",
+            Style::default().add_modifier(Modifier::BOLD),
+        )]),
         Line::from(""),
         Line::from("  Ctrl+S         - Save current font"),
         Line::from("  Ctrl+Shift+S   - Save As..."),
         Line::from("  Ctrl+O         - Open font file"),
         Line::from("  Ctrl+E         - Export as TTF"),
         Line::from(""),
-        Line::from(vec![
-            Span::styled("  Recent Files", Style::default().add_modifier(Modifier::BOLD)),
-        ]),
+        Line::from(vec![Span::styled(
+            "  Recent Files",
+            Style::default().add_modifier(Modifier::BOLD),
+        )]),
         Line::from(""),
         Line::from("  No recent files"),
     ];
 
-    let paragraph = Paragraph::new(file_menu)
-        .block(Block::default().borders(Borders::ALL).title("File"));
+    let paragraph =
+        Paragraph::new(file_menu).block(Block::default().borders(Borders::ALL).title("File"));
 
     f.render_widget(paragraph, area);
 }

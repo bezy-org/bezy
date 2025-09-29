@@ -6,9 +6,8 @@
 
 use bevy::prelude::*;
 
-/// Resource to track if select mode is active
-#[derive(Resource, Default, PartialEq, Eq)]
-pub struct SelectModeActive(pub bool);
+// Use SelectModeActive from tools::select and re-export it
+pub use crate::tools::select::SelectModeActive;
 
 /// Just an alias for clarity
 pub type SelectMode = SelectModeActive;

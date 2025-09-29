@@ -6,7 +6,6 @@
 //! - UI interaction detection and processing
 //! - Input consumer system
 
-#![allow(unused_imports)]
 
 pub mod commands;
 pub mod fontir_lifecycle;

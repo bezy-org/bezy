@@ -16,6 +16,12 @@ pub struct EditState {
     pub selected_index: usize,
 }
 
+impl Default for EditState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EditState {
     pub fn new() -> Self {
         Self { selected_index: 0 }
@@ -73,9 +79,10 @@ pub async fn handle_key_event(
 pub fn draw(f: &mut Frame, _state: &mut EditState, area: Rect) {
     let edit_menu = vec![
         Line::from(""),
-        Line::from(vec![
-            Span::styled("  Edit Operations", Style::default().add_modifier(Modifier::BOLD)),
-        ]),
+        Line::from(vec![Span::styled(
+            "  Edit Operations",
+            Style::default().add_modifier(Modifier::BOLD),
+        )]),
         Line::from(""),
         Line::from("  Ctrl+Z         - Undo"),
         Line::from("  Ctrl+Shift+Z   - Redo"),
@@ -84,17 +91,18 @@ pub fn draw(f: &mut Frame, _state: &mut EditState, area: Rect) {
         Line::from("  Ctrl+V         - Paste"),
         Line::from("  Ctrl+A         - Select All"),
         Line::from(""),
-        Line::from(vec![
-            Span::styled("  Transform", Style::default().add_modifier(Modifier::BOLD)),
-        ]),
+        Line::from(vec![Span::styled(
+            "  Transform",
+            Style::default().add_modifier(Modifier::BOLD),
+        )]),
         Line::from(""),
         Line::from("  Ctrl+T         - Transform selection"),
         Line::from("  Ctrl+R         - Rotate"),
         Line::from("  Ctrl+M         - Mirror/Flip"),
     ];
 
-    let paragraph = Paragraph::new(edit_menu)
-        .block(Block::default().borders(Borders::ALL).title("Edit"));
+    let paragraph =
+        Paragraph::new(edit_menu).block(Block::default().borders(Borders::ALL).title("Edit"));
 
     f.render_widget(paragraph, area);
 }

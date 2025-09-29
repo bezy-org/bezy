@@ -84,7 +84,7 @@ impl ComponentData {
         let base_name: norad::Name = self
             .base_glyph
             .parse()
-            .unwrap_or_else(|_| "a".parse().unwrap()); // Fallback to 'a' if invalid name
+            .unwrap_or_else(|_| "a".parse().expect("'a' should always be a valid glyph name")); // Fallback to 'a' if invalid name
 
         let transform = norad::AffineTransform {
             x_scale: self.transform[0],

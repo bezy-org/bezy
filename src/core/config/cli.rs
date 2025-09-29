@@ -4,7 +4,7 @@
 //! validation for user inputs. Many CLI options are documented with
 //! examples to help users understand the expected format.
 
-use crate::core::config_file::ConfigFile;
+use super::user_config::ConfigFile;
 use crate::ui::themes::ThemeVariant;
 use bevy::prelude::*;
 use clap::Parser;
@@ -70,6 +70,7 @@ pub struct CliArgs {
     /// This creates the ~/.config/bezy directory with:
     /// - settings.json: User preferences like default theme
     /// - themes/: Copies of all default themes that you can customize
+    ///
     /// This allows full customization without modifying the app installation.
     #[clap(
         long = "new-config",

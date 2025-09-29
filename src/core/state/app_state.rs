@@ -3,14 +3,13 @@
 //! This module contains the main AppState and Workspace structures
 //! that manage the overall font editing session.
 
-use anyhow::{ensure, Context};
+use anyhow::Context;
 use bevy::prelude::*;
 use std::path::PathBuf;
 
-use crate::core::errors::{validate_finite_coords, validate_ufo_path, BezyContext, BezyResult};
+use crate::core::errors::{validate_ufo_path, BezyContext, BezyResult};
 use crate::core::state::font_data::{FontData, PointData};
 use crate::core::state::font_metrics::FontInfo;
-use crate::{contour_out_of_bounds, glyph_not_found, point_out_of_bounds};
 
 /// The main application state - thread-safe for Bevy
 #[derive(Resource, Default, Clone)]
@@ -27,7 +26,6 @@ pub struct Workspace {
     /// Information about the font (name, metrics, etc.)
     pub info: FontInfo,
     /// The currently selected glyph (if any)
-    #[allow(dead_code)]
     pub selected: Option<String>,
 }
 
@@ -114,95 +112,6 @@ impl AppState {
             .get_mut(point_idx)
     }
 
-    /// Update a specific point in a glyph
-    ///
-    /// This method updates a point's data with comprehensive validation.
-    #[allow(dead_code)]
-    pub fn update_point(
-        &mut self,
-        glyph_name: &str,
-        contour_idx: usize,
-        point_idx: usize,
-        new_point: PointData,
-    ) -> BezyResult<()> {
-        // Validate coordinates first
-        validate_finite_coords(new_point.x, new_point.y)?;
-
-        // Validate glyph exists
-        let glyph = self
-            .workspace
-            .font
-            .glyphs
-            .get(glyph_name)
-            .ok_or_else(|| glyph_not_found!(glyph_name, self.workspace.font.glyphs.len()))?;
-
-        // Validate outline exists
-        let outline = glyph
-            .outline
-            .as_ref()
-            .context(format!("Glyph '{glyph_name}' has no outline data"))?;
-
-        // Validate contour exists
-        ensure!(
-            contour_idx < outline.contours.len(),
-            contour_out_of_bounds!(glyph_name, contour_idx, outline.contours.len())
-        );
-
-        // Validate point exists
-        let contour = &outline.contours[contour_idx];
-        ensure!(
-            point_idx < contour.points.len(),
-            point_out_of_bounds!(glyph_name, contour_idx, point_idx, contour.points.len())
-        );
-
-        // Update the point (we know it exists after validation)
-        let point = self
-            .get_point_mut(glyph_name, contour_idx, point_idx)
-            .context("Point should exist after validation")?;
-        *point = new_point;
-
-        Ok(())
-    }
-
-    /// Get a point by reference (read-only)
-    #[allow(dead_code)]
-    pub fn get_point(
-        &self,
-        glyph_name: &str,
-        contour_idx: usize,
-        point_idx: usize,
-    ) -> Option<&PointData> {
-        self.workspace
-            .font
-            .glyphs
-            .get(glyph_name)?
-            .outline
-            .as_ref()?
-            .contours
-            .get(contour_idx)?
-            .points
-            .get(point_idx)
-    }
-
-    /// Move a point by a delta amount
-    #[allow(dead_code)]
-    pub fn move_point(
-        &mut self,
-        glyph_name: &str,
-        contour_idx: usize,
-        point_idx: usize,
-        delta_x: f64,
-        delta_y: f64,
-    ) -> bool {
-        if let Some(point) = self.get_point_mut(glyph_name, contour_idx, point_idx) {
-            point.x += delta_x;
-            point.y += delta_y;
-            true
-        } else {
-            false
-        }
-    }
-
     /// Set the position of a point
     pub fn set_point_position(
         &mut self,
@@ -219,50 +128,6 @@ impl AppState {
         } else {
             false
         }
-    }
-
-    /// Get all points in a contour (read-only)
-    #[allow(dead_code)]
-    pub fn get_contour_points(
-        &self,
-        glyph_name: &str,
-        contour_idx: usize,
-    ) -> Option<&Vec<PointData>> {
-        self.workspace
-            .font
-            .glyphs
-            .get(glyph_name)?
-            .outline
-            .as_ref()?
-            .contours
-            .get(contour_idx)
-            .map(|contour| &contour.points)
-    }
-
-    /// Get the number of contours in a glyph
-    #[allow(dead_code)]
-    pub fn get_contour_count(&self, glyph_name: &str) -> Option<usize> {
-        self.workspace
-            .font
-            .glyphs
-            .get(glyph_name)?
-            .outline
-            .as_ref()
-            .map(|outline| outline.contours.len())
-    }
-
-    /// Get the number of points in a specific contour
-    #[allow(dead_code)]
-    pub fn get_point_count(&self, glyph_name: &str, contour_idx: usize) -> Option<usize> {
-        self.workspace
-            .font
-            .glyphs
-            .get(glyph_name)?
-            .outline
-            .as_ref()?
-            .contours
-            .get(contour_idx)
-            .map(|contour| contour.points.len())
     }
 }
 

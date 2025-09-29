@@ -22,11 +22,12 @@ The project aims to be a welcoming community that values working in the open, sh
 
 ## Prerequisites
 
-Install Rust by following the [official instructions](https://www.rust-lang.org/tools/install) at [rust-lang.org](https://www.rust-lang.org).
+- **Rust 1.90.0 or later** - Install Rust by following the [official instructions](https://www.rust-lang.org/tools/install) at [rust-lang.org](https://www.rust-lang.org).
 
 ### Verify installation:
 ```bash
 cargo --version
+rustc --version  # Should be 1.90.0 or later
 ```
 
 ## Building from Source
@@ -240,6 +241,14 @@ bezy --theme mytheme
 
 ### Hot Reload
 When using custom themes from `~/.config/bezy/themes/`, changes are reflected instantly when you save theme files (in debug builds).
+
+# Known Limitations
+
+- **Limited to UFO format**: Direct editing is only supported for UFO format. TTF/OTF files cannot be directly edited.
+- **Experimental AI features**: AI-powered editing capabilities require additional setup and are still experimental.
+- **Advanced OpenType features**: Some advanced OpenType features are not yet supported.
+- **Performance with large fonts**: Performance optimization is needed for fonts with many glyphs (hundreds of glyphs may cause slowdowns).
+- **Glyphs.app compatibility**: UFOs exported from Glyphs.app may have incompatible anchor formatting that can cause loading errors.
 
 # License
 [GNU GENERAL PUBLIC LICENSE](https://www.gnu.org/licenses/gpl-3.0.en.html) Version 3, 29 June 2007

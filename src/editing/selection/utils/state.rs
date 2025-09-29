@@ -16,9 +16,3 @@ pub fn clear_selection_on_app_change(
         debug!("Cleared selection due to app state change");
     }
 }
-
-/// System to update hover state (currently disabled)
-#[allow(dead_code)]
-pub fn update_hover_state(/* hover state parameters would go here when enabled */) {
-    // Hover functionality is disabled per user request
-}

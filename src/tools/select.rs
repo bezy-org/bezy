@@ -29,13 +29,13 @@ impl EditTool for SelectTool {
 
     fn on_activate(&mut self, commands: &mut Commands) {
         commands.insert_resource(SelectModeActive(true));
-        commands.insert_resource(crate::core::io::input::InputMode::Select);
+        commands.insert_resource(crate::io::input::InputMode::Select);
         debug!("Entered Select tool");
     }
 
     fn on_deactivate(&mut self, commands: &mut Commands) {
         commands.insert_resource(SelectModeActive(false));
-        commands.insert_resource(crate::core::io::input::InputMode::Normal);
+        commands.insert_resource(crate::io::input::InputMode::Normal);
         debug!("Exited Select tool");
     }
 }
@@ -75,7 +75,7 @@ fn handle_select_tool_activation(
         if !select_mode.0 {
             debug!("🔍 SELECT_DEBUG: Activating select tool via CurrentTool change");
             commands.insert_resource(SelectModeActive(true));
-            commands.insert_resource(crate::core::io::input::InputMode::Select);
+            commands.insert_resource(crate::io::input::InputMode::Select);
         }
     }
 }
@@ -88,7 +88,10 @@ fn reset_select_mode_when_inactive(
     if current_tool.get_current() != Some("select") {
         // Mark select mode as inactive when not the current tool
         commands.insert_resource(SelectModeActive(false));
-        debug!("[SELECT TOOL] Deactivating select mode - current tool: {:?}", current_tool.get_current());
+        debug!(
+            "[SELECT TOOL] Deactivating select mode - current tool: {:?}",
+            current_tool.get_current()
+        );
     }
 }
 

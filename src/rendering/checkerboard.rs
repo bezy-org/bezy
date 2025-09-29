@@ -30,19 +30,7 @@ const MIN_VISIBILITY_ZOOM: f32 = 0.01;
 
 /// When camera moves, how much does it need to move to trigger a grid respawn
 const GRID_SIZE_CHANGE_THRESHOLD: f32 = 1.25;
-#[allow(dead_code)]
-const VISIBLE_AREA_COVERAGE_MULTIPLIER: f32 = 1.2;
 const MAX_SQUARES_PER_FRAME: usize = 2000;
-
-// /// The alpha of the darker checkerboard squares.
-// const CHECKERBOARD_DARK_ALPHA: f32 = 0.04;
-//
-// /// The target number of grid squares to cover the larger of the screen dimensions
-// /// This is used to calculate the ideal grid size at a given zoom level
-// const TARGET_GRID_SQUARES_COVERAGE: f32 = 8.0;
-//
-// /// The scale factor for the secondary grid lines (e.g., 10x smaller/larger)
-// const SECONDARY_GRID_SCALE_FACTOR: f32 = 10.0;
 
 // Resources -------------------
 
@@ -127,6 +115,7 @@ pub fn calculate_dynamic_grid_size(zoom_scale: f32, theme: &CurrentTheme) -> f32
 ///
 /// This system dynamically spawns and despawns checkerboard squares
 /// based on what's visible to the camera, providing better performance.
+#[allow(clippy::too_many_arguments)]
 pub fn update_checkerboard(
     mut commands: Commands,
     mut state: ResMut<CheckerboardState>,
@@ -219,7 +208,7 @@ pub fn update_checkerboard(
     // Debug logging for checkerboard (only log once per grid size change)
 
     if state.last_grid_size.is_none()
-        || state.last_grid_size.unwrap() != current_grid_size
+        || (state.last_grid_size != Some(current_grid_size))
         || significant_scale_change
     {
         debug!(
@@ -351,6 +340,7 @@ fn is_checkerboard_visible(zoom_scale: f32, theme: &CurrentTheme) -> bool {
 }
 
 /// Updates which squares are visible based on camera position
+#[allow(clippy::too_many_arguments)]
 fn update_visible_squares(
     commands: &mut Commands,
     state: &mut CheckerboardState,
@@ -389,7 +379,7 @@ fn update_visible_squares(
     let needed_squares = get_needed_squares(&visible_area, current_grid_size);
 
     // Debug logging for visible area (only when grid size changes)
-    if state.last_grid_size.is_none() || state.last_grid_size.unwrap() != current_grid_size {
+    if state.last_grid_size.map_or(true, |last_size| last_size != current_grid_size) {
         debug!(
             "Design space grid: visible=({:.0}, {:.0}) to ({:.0}, {:.0}), \
                {} squares",
@@ -451,7 +441,7 @@ fn calculate_visible_area(
     #[allow(static_mut_refs)]
     static mut LAST_LOGGED_GRID_SIZE: Option<f32> = None;
     unsafe {
-        if LAST_LOGGED_GRID_SIZE.is_none() || LAST_LOGGED_GRID_SIZE.unwrap() != current_grid_size {
+        if LAST_LOGGED_GRID_SIZE.is_none() || (LAST_LOGGED_GRID_SIZE != Some(current_grid_size)) {
             debug!(
                 "✅ Screen coverage: window=({:.0}x{:.0}), camera_scale={:.3}, \
                    min_screen=({:.0}, {:.0}), final=({:.0}, {:.0}), \

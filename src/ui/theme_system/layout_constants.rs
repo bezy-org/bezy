@@ -42,9 +42,7 @@ pub const TOOLBAR_BORDER_RADIUS: f32 = 0.0;
 
 /// Grid-based spacing between buttons - scales with button size
 pub const TOOLBAR_GRID_SPACING: f32 = 64.0 * 0.0625; // 4px at 64px button size
-/// Legacy constant for compatibility - use TOOLBAR_GRID_SPACING instead
-pub const TOOLBAR_ITEM_SPACING: f32 = TOOLBAR_GRID_SPACING;
-// BUTTON_ICON_SIZE moved to theme trait
+                                                     // BUTTON_ICON_SIZE moved to theme trait
 
 /// Helper function to calculate submenu position below main toolbar
 pub fn toolbar_submenu_top_position() -> f32 {

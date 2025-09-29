@@ -1,7 +1,6 @@
 //! Point drag handling for selection
 
-use crate::core::io::pointer::PointerInfo;
-use crate::core::settings::BezySettings;
+use crate::core::config::BezySettings;
 use crate::core::state::{AppState, FontIRAppState};
 use crate::editing::selection::components::{GlyphPointReference, PointType, Selected};
 use crate::editing::selection::enhanced_point_component::EnhancedPointType;
@@ -14,6 +13,7 @@ use crate::editing::smooth_curves::{
     apply_smooth_curve_constraints, find_all_smooth_constraints,
     update_smooth_constraint_transforms,
 };
+use crate::io::pointer::PointerInfo;
 use bevy::input::ButtonInput;
 use bevy::log::{debug, warn};
 use bevy::prelude::*;
@@ -143,15 +143,10 @@ pub fn handle_point_drag(
                     all_points_query.get_mut(movement.entity)
                 {
                     // Store original position if not already stored
-                    if !drag_point_state
+                    drag_point_state
                         .original_positions
-                        .contains_key(&movement.entity)
-                    {
-                        drag_point_state.original_positions.insert(
-                            movement.entity,
-                            Vec2::new(transform.translation.x, transform.translation.y),
-                        );
-                    }
+                        .entry(movement.entity)
+                        .or_insert(Vec2::new(transform.translation.x, transform.translation.y));
 
                     // Update to the new position (already calculated in shared utility)
                     transform.translation.x = movement.new_position.x;
@@ -206,10 +201,10 @@ pub fn handle_point_drag(
                         if movement.is_connected_offcurve {
                             let moved_is_left = left_handle
                                 .as_ref()
-                                .map_or(false, |(entity, _, _)| *entity == movement.entity);
+                                .is_some_and(|(entity, _, _)| *entity == movement.entity);
                             let moved_is_right = right_handle
                                 .as_ref()
-                                .map_or(false, |(entity, _, _)| *entity == movement.entity);
+                                .is_some_and(|(entity, _, _)| *entity == movement.entity);
 
                             if moved_is_left || moved_is_right {
                                 // Calculate opposite handle position
@@ -221,18 +216,18 @@ pub fn handle_point_drag(
                                 let opposite_position = smooth_point_vec2 + opposite_vector;
 
                                 // Apply the constraint to the opposite handle
-                                if moved_is_left && right_handle.is_some() {
-                                    // Left handle moved, adjust right handle
-                                    smooth_adjustments.push((
-                                        right_handle.as_ref().unwrap().0,
-                                        opposite_position,
-                                    ));
-                                    debug!("Smooth constraint: left handle moved, adjusting right handle to ({:.1}, {:.1})", opposite_position.x, opposite_position.y);
-                                } else if moved_is_right && left_handle.is_some() {
-                                    // Right handle moved, adjust left handle
-                                    smooth_adjustments
-                                        .push((left_handle.as_ref().unwrap().0, opposite_position));
-                                    debug!("Smooth constraint: right handle moved, adjusting left handle to ({:.1}, {:.1})", opposite_position.x, opposite_position.y);
+                                if moved_is_left {
+                                    if let Some((right_entity, _, _)) = right_handle {
+                                        // Left handle moved, adjust right handle
+                                        smooth_adjustments.push((right_entity, opposite_position));
+                                        debug!("Smooth constraint: left handle moved, adjusting right handle to ({:.1}, {:.1})", opposite_position.x, opposite_position.y);
+                                    }
+                                } else if moved_is_right {
+                                    if let Some((left_entity, _, _)) = left_handle {
+                                        // Right handle moved, adjust left handle
+                                        smooth_adjustments.push((left_entity, opposite_position));
+                                        debug!("Smooth constraint: right handle moved, adjusting left handle to ({:.1}, {:.1})", opposite_position.x, opposite_position.y);
+                                    }
                                 }
                             }
                         }
@@ -253,11 +248,10 @@ pub fn handle_point_drag(
                         coordinates.y = new_position.y;
 
                         // Store original position for newly adjusted points
-                        if !drag_point_state.original_positions.contains_key(entity) {
-                            drag_point_state
-                                .original_positions
-                                .insert(*entity, *new_position);
-                        }
+                        drag_point_state
+                            .original_positions
+                            .entry(*entity)
+                            .or_insert(*new_position);
                     }
                 }
 
@@ -330,39 +324,31 @@ fn find_curve_handles_for_smooth_point_drag(
     } else {
         smooth_idx - 1
     };
-    while idx != smooth_idx {
+    if idx != smooth_idx {
         let (entity, _, _, point_type) = contour_points[idx];
 
-        if point_type.is_on_curve {
-            // Found the previous on-curve point, stop looking
-            break;
-        } else {
+        if !point_type.is_on_curve {
             // This is an off-curve point (handle) between previous on-curve and our smooth point
             left_handle = Some(*entity);
             debug!(
                 "Found left handle {:?} for smooth point {:?} (moving backwards)",
                 entity, smooth_entity
             );
-            break; // We want the handle closest to our smooth point
         }
     }
 
     // Look forwards from smooth point to find the next on-curve point and any handles
     idx = (smooth_idx + 1) % contour_points.len();
-    while idx != smooth_idx {
+    if idx != smooth_idx {
         let (entity, _, _, point_type) = contour_points[idx];
 
-        if point_type.is_on_curve {
-            // Found the next on-curve point, stop looking
-            break;
-        } else {
+        if !point_type.is_on_curve {
             // This is an off-curve point (handle) between our smooth point and next on-curve
             right_handle = Some(*entity);
             debug!(
                 "Found right handle {:?} for smooth point {:?} (moving forwards)",
                 entity, smooth_entity
             );
-            break; // We want the handle closest to our smooth point
         }
     }
 

@@ -18,6 +18,12 @@ pub struct GlyphsState {
     pub is_searching: bool,
 }
 
+impl Default for GlyphsState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GlyphsState {
     pub fn new() -> Self {
         Self {
@@ -178,28 +184,27 @@ pub fn draw(f: &mut Frame, glyphs: &[GlyphInfo], state: &mut GlyphsState, area: 
         .split(area);
 
     // Filter glyphs based on search query
-    let filtered_glyphs: Vec<(usize, &GlyphInfo)> = if state.is_searching
-        && !state.search_query.is_empty()
-    {
-        glyphs
-            .iter()
-            .enumerate()
-            .filter(|(_, g)| {
-                let name = g.name.as_deref().unwrap_or(&g.codepoint);
-                let unicode_str = g
-                    .unicode
-                    .map(|u| format!("U+{:04X}", u))
-                    .unwrap_or_default();
-                name.to_lowercase()
-                    .contains(&state.search_query.to_lowercase())
-                    || unicode_str
-                        .to_lowercase()
+    let filtered_glyphs: Vec<(usize, &GlyphInfo)> =
+        if state.is_searching && !state.search_query.is_empty() {
+            glyphs
+                .iter()
+                .enumerate()
+                .filter(|(_, g)| {
+                    let name = g.name.as_deref().unwrap_or(&g.codepoint);
+                    let unicode_str = g
+                        .unicode
+                        .map(|u| format!("U+{:04X}", u))
+                        .unwrap_or_default();
+                    name.to_lowercase()
                         .contains(&state.search_query.to_lowercase())
-            })
-            .collect()
-    } else {
-        glyphs.iter().enumerate().collect()
-    };
+                        || unicode_str
+                            .to_lowercase()
+                            .contains(&state.search_query.to_lowercase())
+                })
+                .collect()
+        } else {
+            glyphs.iter().enumerate().collect()
+        };
 
     // Create list items
     let items: Vec<ListItem> = filtered_glyphs
@@ -271,22 +276,23 @@ pub fn draw(f: &mut Frame, glyphs: &[GlyphInfo], state: &mut GlyphsState, area: 
         )
         .highlight_symbol("> ");
 
-    f.render_stateful_widget(
-        visible_list,
-        chunks[0],
-        &mut list_state,
-    );
+    f.render_stateful_widget(visible_list, chunks[0], &mut list_state);
 
     // Controls/status area
     let controls_text = if state.is_searching {
-        format!("Search: {} | Press Esc to cancel, Enter to confirm", state.search_query)
+        format!(
+            "Search: {} | Press Esc to cancel, Enter to confirm",
+            state.search_query
+        )
     } else {
         let selected_glyph = filtered_glyphs
             .get(filtered_selected)
             .and_then(|(_, g)| g.name.as_deref())
             .unwrap_or("None");
-        format!("Selected: {} | Use ↑↓ or j/k to navigate, Enter to select, / to search",
-            selected_glyph)
+        format!(
+            "Selected: {} | Use ↑↓ or j/k to navigate, Enter to select, / to search",
+            selected_glyph
+        )
     };
 
     let controls = Paragraph::new(controls_text)

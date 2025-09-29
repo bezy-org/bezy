@@ -1,15 +1,16 @@
-pub mod fontspector;
 pub mod compiler;
-pub mod trigger;
+pub mod fontspector;
 pub mod storage;
+pub mod trigger;
 
 use anyhow::Result;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 pub struct QAEngine {
     fontspector: fontspector::FontspectorRunner,
     compiler: compiler::FontCompiler,
+    #[allow(dead_code)]
     trigger: trigger::QASaveTrigger,
     storage: storage::ReportStorage,
 }
@@ -24,7 +25,7 @@ impl QAEngine {
         })
     }
 
-    pub async fn run_qa_on_save(&mut self, ufo_path: &PathBuf) -> Result<QAReport> {
+    pub async fn run_qa_on_save(&mut self, ufo_path: &Path) -> Result<QAReport> {
         // 1. Compile UFO to TTF/OTF
         let compiled_font = self.compiler.compile_for_qa(ufo_path).await?;
 
@@ -38,7 +39,7 @@ impl QAEngine {
     }
 }
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QAReport {
@@ -134,7 +135,9 @@ pub mod time_serde {
     where
         S: Serializer,
     {
-        let duration = time.duration_since(UNIX_EPOCH).map_err(serde::ser::Error::custom)?;
+        let duration = time
+            .duration_since(UNIX_EPOCH)
+            .map_err(serde::ser::Error::custom)?;
         duration.as_secs().serialize(serializer)
     }
 

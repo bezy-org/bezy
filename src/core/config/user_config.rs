@@ -36,25 +36,6 @@ impl ConfigFile {
         config_dir.join("bezy")
     }
 
-    /// Get the path to the logs directory
-    pub fn logs_dir() -> PathBuf {
-        Self::config_dir().join("logs")
-    }
-
-    /// Get the path to the current log file
-    pub fn current_log_file() -> PathBuf {
-        let timestamp = chrono::Utc::now().format("%Y-%m-%d");
-        Self::logs_dir().join(format!("bezy-{}.log", timestamp))
-    }
-
-    /// Initialize the logs directory
-    pub fn initialize_logs_directory() -> anyhow::Result<()> {
-        let logs_dir = Self::logs_dir();
-        fs::create_dir_all(&logs_dir)?;
-        debug!("Created logs directory: {:?}", logs_dir);
-        Ok(())
-    }
-
     /// Load configuration from the user config file
     pub fn load() -> Option<Self> {
         let path = Self::config_path();
@@ -103,6 +84,7 @@ impl ConfigFile {
     /// 1. The ~/.config/bezy directory structure
     /// 2. A settings.json file with default values
     /// 3. A themes/ directory with copies of all embedded themes
+    /// 4. A logs/ directory for application logs
     pub fn initialize_config_directory() -> anyhow::Result<()> {
         let config_dir = dirs::config_dir()
             .unwrap_or_else(|| dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")))
@@ -112,7 +94,7 @@ impl ConfigFile {
         fs::create_dir_all(&config_dir)?;
         println!("Created config directory: {:?}", config_dir);
 
-        // Create logs directory
+        // Create logs directory (using the logging module)
         let logs_dir = config_dir.join("logs");
         fs::create_dir_all(&logs_dir)?;
         println!("Created logs directory: {:?}", logs_dir);

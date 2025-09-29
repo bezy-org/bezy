@@ -56,11 +56,8 @@ impl Default for ZoomRanges {
 pub struct CameraResponsiveScale {
     /// Current scale factor to apply to visual elements
     /// 1.0 = base size, >1.0 = bigger, <1.0 = smaller
-    /// TODO: This field is public but gets overwritten every frame by
-    /// update_camera_responsive_scale system, making manual changes pointless.
-    /// Either make it private with a getter, add manual override mode, or
-    /// remove the automatic update system.
-    pub scale_factor: f32,
+    /// This field is private as it's automatically updated every frame
+    scale_factor: f32,
     /// Base line width in world units at normal zoom
     pub base_line_width: f32,
     /// Configuration for scale factors at different zoom levels
@@ -87,6 +84,11 @@ impl CameraResponsiveScale {
             config,
             ranges,
         }
+    }
+
+    /// Gets the current scale factor
+    pub fn scale_factor(&self) -> f32 {
+        self.scale_factor
     }
 
     /// Calculates scale factor based on camera zoom level

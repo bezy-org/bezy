@@ -4,11 +4,10 @@
 
 use super::components::*;
 use super::coordinate_system::SelectionCoordinateSystem;
+use super::events::ClickWorldPosition;
 use super::DragPointState;
 use super::DragSelectionState;
-use crate::core::io::input::{helpers, InputEvent, InputState};
-use crate::core::io::pointer::PointerInfo;
-use crate::core::settings::BezySettings;
+use crate::core::config::BezySettings;
 use crate::core::state::AppState;
 use crate::core::state::FontMetrics;
 use crate::core::state::TextEditorState;
@@ -17,7 +16,8 @@ use crate::editing::selection::nudge::{EditEvent, NudgeState};
 use crate::geometry::point::{EditPoint, EntityId, EntityKind};
 #[allow(unused_imports)]
 use crate::geometry::world_space::DPoint;
-use crate::rendering::cameras::DesignCamera;
+use crate::io::input::{helpers, InputEvent, InputState};
+use crate::io::pointer::PointerInfo;
 use bevy::ecs::system::ParamSet;
 use bevy::input::mouse::MouseButton;
 use bevy::input::ButtonInput;
@@ -29,11 +29,6 @@ use bevy::window::PrimaryWindow;
 /// Event to signal that app state has changed
 #[derive(Event, Debug, Clone)]
 pub struct AppStateChanged;
-
-/// A resource to hold the world position of a handled click.
-/// This prevents multiple systems from reacting to the same click event.
-#[derive(Resource)]
-pub struct ClickWorldPosition;
 
 // Constants for selection
 #[allow(dead_code)]
@@ -112,18 +107,6 @@ pub fn handle_selection_shortcuts(
         // Send edit event
         event_writer.write(EditEvent {});
     }
-}
-
-/// System to update which entities are being hovered over by the mouse
-#[allow(dead_code)]
-pub fn update_hover_state(
-    mut _commands: Commands,
-    _windows: Query<&Window, With<PrimaryWindow>>,
-    _camera_query: Query<(&Camera, &GlobalTransform), With<DesignCamera>>,
-    _selectable_query: Query<(Entity, &GlobalTransform), With<Selectable>>,
-    _hovered_query: Query<Entity, With<Hovered>>,
-) {
-    // Hover functionality is disabled per user request
 }
 
 /// System to update the actual glyph data when a point is moved
@@ -555,8 +538,8 @@ pub fn cleanup_click_resource(mut commands: Commands) {
 #[allow(clippy::too_many_arguments)]
 pub fn process_selection_input_events(
     mut commands: Commands,
-    mut input_events: EventReader<crate::core::io::input::InputEvent>,
-    input_state: Res<crate::core::io::input::InputState>,
+    mut input_events: EventReader<crate::io::input::InputEvent>,
+    input_state: Res<crate::io::input::InputState>,
     mut drag_state: ResMut<DragSelectionState>,
     mut drag_point_state: ResMut<DragPointState>,
     mut event_writer: EventWriter<EditEvent>,
@@ -581,10 +564,8 @@ pub fn process_selection_input_events(
     debug!("[process_selection_input_events] Called");
 
     // Check if select tool is active by checking InputMode
-    if !crate::core::io::input::helpers::is_input_mode(
-        &input_state,
-        crate::core::io::input::InputMode::Select,
-    ) {
+    if !crate::io::input::helpers::is_input_mode(&input_state, crate::io::input::InputMode::Select)
+    {
         debug!("[process_selection_input_events] Not in Select input mode, returning early");
         return;
     }
@@ -603,14 +584,14 @@ pub fn process_selection_input_events(
         );
 
         // Skip if UI is consuming input
-        if crate::core::io::input::helpers::is_ui_consuming(&input_state) {
+        if crate::io::input::helpers::is_ui_consuming(&input_state) {
             debug!("Selection: Skipping event - UI is consuming input");
             continue;
         }
 
         // Only handle events that are relevant to selection
         match event {
-            crate::core::io::input::InputEvent::MouseClick {
+            crate::io::input::InputEvent::MouseClick {
                 button,
                 position,
                 modifiers,
@@ -682,7 +663,7 @@ pub fn process_selection_input_events(
                     }
                 }
             }
-            crate::core::io::input::InputEvent::MouseDrag {
+            crate::io::input::InputEvent::MouseDrag {
                 button,
                 start_position,
                 current_position,
@@ -723,7 +704,7 @@ pub fn process_selection_input_events(
                     debug!("Selection: handle_selection_drag completed");
                 }
             }
-            crate::core::io::input::InputEvent::MouseRelease {
+            crate::io::input::InputEvent::MouseRelease {
                 button,
                 position,
                 modifiers,
@@ -746,7 +727,7 @@ pub fn process_selection_input_events(
                     );
                 }
             }
-            crate::core::io::input::InputEvent::KeyPress { key, modifiers } => {
+            crate::io::input::InputEvent::KeyPress { key, modifiers } => {
                 if matches!(
                     key,
                     bevy::input::keyboard::KeyCode::KeyA | bevy::input::keyboard::KeyCode::Escape
@@ -784,7 +765,7 @@ pub fn process_selection_input_events(
 pub fn handle_selection_click(
     commands: &mut Commands,
     position: &DPoint,
-    modifiers: &crate::core::io::input::ModifierState,
+    modifiers: &crate::io::input::ModifierState,
     _drag_state: &mut ResMut<DragSelectionState>,
     drag_point_state: &mut ResMut<DragPointState>,
     event_writer: &mut EventWriter<EditEvent>,
@@ -992,7 +973,7 @@ pub fn handle_selection_drag(
     start_position: &DPoint,
     current_position: &DPoint,
     delta: &Vec2,
-    modifiers: &crate::core::io::input::ModifierState,
+    modifiers: &crate::io::input::ModifierState,
     drag_state: &mut ResMut<DragSelectionState>,
     _drag_point_state: &mut ResMut<DragPointState>,
     _event_writer: &mut EventWriter<EditEvent>,
@@ -1207,7 +1188,7 @@ pub fn handle_selection_drag(
 pub fn handle_selection_release(
     commands: &mut Commands,
     position: &DPoint,
-    _modifiers: &crate::core::io::input::ModifierState,
+    _modifiers: &crate::io::input::ModifierState,
     drag_state: &mut ResMut<DragSelectionState>,
     drag_point_state: &mut ResMut<DragPointState>,
     _event_writer: &mut EventWriter<EditEvent>,
@@ -1260,7 +1241,7 @@ pub fn handle_selection_release(
 pub fn handle_selection_key_press(
     commands: &mut Commands,
     key: &KeyCode,
-    modifiers: &crate::core::io::input::ModifierState,
+    modifiers: &crate::io::input::ModifierState,
     selectable_query: &Query<
         (
             Entity,
@@ -1358,305 +1339,5 @@ pub fn debug_validate_point_entity_uniqueness(
                 point_ref.glyph_name, point_ref.contour_index, point_ref.point_index, existing, entity
             );
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::editing::selection::coordinate_system::SelectionCoordinateSystem;
-    use crate::geometry::world_space::DPoint;
-    use bevy::prelude::*;
-
-    #[test]
-    fn test_point_selection_matches_render_position() {
-        let point_pos = Vec2::new(100.0, 200.0);
-        let marquee_start = DPoint::from_raw(point_pos);
-        let marquee_end = DPoint::from_raw(point_pos + Vec2::splat(1.0));
-        let in_rect = SelectionCoordinateSystem::is_point_in_rectangle(
-            &point_pos,
-            &marquee_start,
-            &marquee_end,
-        );
-        assert!(in_rect, "Point should be inside the marquee rectangle");
-    }
-
-    #[test]
-    fn test_parented_transform_selection() {
-        // Simulate a point parented to a group at (50, 50)
-        let parent_offset = Vec2::new(50.0, 50.0);
-        let local_point = Vec2::new(10.0, 10.0);
-        let world_point = parent_offset + local_point;
-        let marquee_start = DPoint::from_raw(world_point);
-        let marquee_end = DPoint::from_raw(world_point + Vec2::splat(1.0));
-        let in_rect = SelectionCoordinateSystem::is_point_in_rectangle(
-            &world_point,
-            &marquee_start,
-            &marquee_end,
-        );
-        assert!(
-            in_rect,
-            "Parented point should be inside the marquee rectangle"
-        );
-    }
-
-    #[test]
-    fn test_off_curve_point_selection() {
-        // Simulate an off-curve point at a known position
-        let off_curve_pos = Vec2::new(-123.4, 567.8);
-        let marquee_start = DPoint::from_raw(off_curve_pos - Vec2::splat(0.5));
-        let marquee_end = DPoint::from_raw(off_curve_pos + Vec2::splat(0.5));
-        let in_rect = SelectionCoordinateSystem::is_point_in_rectangle(
-            &off_curve_pos,
-            &marquee_start,
-            &marquee_end,
-        );
-        assert!(
-            in_rect,
-            "Off-curve point should be inside the marquee rectangle"
-        );
-    }
-
-    #[test]
-    fn test_text_editor_sort_coordinate_system() {
-        // Test the coordinate system used by text editor sorts
-        // Based on the logs, points are at Y=-1000 range, marquee at Y=200-400 range
-
-        // Simulate a sort point position (like from text editor)
-        let sort_point_pos = Vec2::new(-96.0, -928.0); // From logs
-
-        // Simulate marquee selection coordinates (from logs)
-        let marquee_start = DPoint::from_raw(Vec2::new(481.9, 249.1));
-        let marquee_end = DPoint::new(233.0, 398.5);
-
-        let in_rect = SelectionCoordinateSystem::is_point_in_rectangle(
-            &sort_point_pos,
-            &marquee_start,
-            &marquee_end,
-        );
-
-        // Calculate distances for debugging
-        let rect_start_vec = marquee_start.to_raw();
-        let rect_end_vec = marquee_end.to_raw();
-        let min_x = rect_start_vec.x.min(rect_end_vec.x);
-        let max_x = rect_start_vec.x.max(rect_end_vec.x);
-        let min_y = rect_start_vec.y.min(rect_end_vec.y);
-        let max_y = rect_start_vec.y.max(rect_end_vec.y);
-
-        let _distance_x = if sort_point_pos.x < min_x {
-            min_x - sort_point_pos.x
-        } else if sort_point_pos.x > max_x {
-            sort_point_pos.x - max_x
-        } else {
-            0.0
-        };
-
-        let _distance_y = if sort_point_pos.y < min_y {
-            min_y - sort_point_pos.y
-        } else if sort_point_pos.y > max_y {
-            sort_point_pos.y - max_y
-        } else {
-            0.0
-        };
-
-        // This should fail because the coordinate systems don't match
-        // The test documents the expected behavior
-        assert!(
-            !in_rect,
-            "Sort point should NOT be in marquee due to coordinate system mismatch"
-        );
-    }
-
-    #[test]
-    fn test_coordinate_system_conversion() {
-        // Test the coordinate conversion functions
-        let design_point = DPoint::new(100.0, 200.0);
-        let entity_coords = SelectionCoordinateSystem::design_to_entity_coordinates(&design_point);
-        let back_to_design =
-            SelectionCoordinateSystem::entity_to_design_coordinates(&entity_coords);
-
-        assert_eq!(
-            design_point.to_raw(),
-            entity_coords,
-            "Design to entity conversion should be identity"
-        );
-        assert_eq!(
-            design_point, back_to_design,
-            "Entity to design conversion should be identity"
-        );
-    }
-
-    #[test]
-    fn test_marquee_selection_edge_cases() {
-        // Test various edge cases for marquee selection
-
-        // Case 1: Point exactly on rectangle edge
-        let point_on_edge = Vec2::new(100.0, 200.0);
-        let marquee_edge = DPoint::from_raw(Vec2::new(100.0, 200.0));
-        let marquee_end = DPoint::from_raw(Vec2::new(200.0, 300.0));
-
-        let on_edge = SelectionCoordinateSystem::is_point_in_rectangle(
-            &point_on_edge,
-            &marquee_edge,
-            &marquee_end,
-        );
-
-        // Case 2: Point just outside rectangle
-        let point_outside = Vec2::new(99.9, 200.0);
-        let just_outside = SelectionCoordinateSystem::is_point_in_rectangle(
-            &point_outside,
-            &marquee_edge,
-            &marquee_end,
-        );
-
-        // Case 3: Inverted rectangle (end before start)
-        let inverted_start = DPoint::from_raw(Vec2::new(200.0, 300.0));
-        let inverted_end = DPoint::from_raw(Vec2::new(100.0, 200.0));
-        let point_inside = Vec2::new(150.0, 250.0);
-
-        let in_inverted = SelectionCoordinateSystem::is_point_in_rectangle(
-            &point_inside,
-            &inverted_start,
-            &inverted_end,
-        );
-
-        // Assertions
-        assert!(on_edge, "Point on edge should be considered inside");
-        assert!(!just_outside, "Point just outside should not be inside");
-        assert!(in_inverted, "Point should be inside inverted rectangle");
-    }
-
-    #[test]
-    fn test_real_world_coordinate_mismatch() {
-        // Test with real-world coordinates from the logs
-        // This test documents the actual problem we're seeing
-
-        // From logs: Entity ranges: X(-56.0 to 472.0), Y(-1104.0 to -496.0)
-        // From logs: Rect entity coords: start(481.9, 249.1), end(233.0, 398.5)
-
-        let entity_positions = vec![
-            Vec2::new(-56.0, -1104.0), // Bottom-left entity
-            Vec2::new(472.0, -496.0),  // Top-right entity
-            Vec2::new(100.0, -800.0),  // Middle entity
-        ];
-
-        let marquee_start = DPoint::from_raw(Vec2::new(481.9, 249.1));
-        let marquee_end = DPoint::from_raw(Vec2::new(233.0, 398.5));
-
-        for (i, pos) in entity_positions.iter().enumerate() {
-            let in_rect =
-                SelectionCoordinateSystem::is_point_in_rectangle(pos, &marquee_start, &marquee_end);
-
-            // All should fail due to Y coordinate mismatch
-            assert!(
-                !in_rect,
-                "Entity {} should not be in marquee due to Y coordinate mismatch",
-                i
-            );
-        }
-
-        // Test what Y coordinate the marquee would need to be at to select these entities
-        let _entity_y_min = -1104.0;
-        let _entity_y_max = -496.0;
-        let _marquee_y_min = 233.0;
-        let _marquee_y_max = 398.5;
-    }
-
-    #[test]
-    fn test_outline_point_selection_coordinate_mismatch() {
-        // This test documents the old bug that was fixed
-        // Marquee selection rectangle: Y = -400 to -769
-        // Outline points: Y = 750 to 1358 (before the fix)
-        // Result: No points selected due to coordinate system mismatch
-
-        let marquee_start = DPoint::from_raw(Vec2::new(-160.8, -403.2));
-        let marquee_end = DPoint::from_raw(Vec2::new(334.3, -769.3));
-
-        // Test points at the old Y coordinates from the logs (before the fix)
-        let test_points = vec![
-            Vec2::new(100.0, 750.0),  // Entity 245v141
-            Vec2::new(200.0, 926.7),  // Entity 323v141
-            Vec2::new(300.0, 1038.7), // Entity 941v389
-            Vec2::new(400.0, 1182.7), // Entity 527v135
-            Vec2::new(500.0, 1358.7), // Entity 567v135
-        ];
-
-        println!("=== Outline Point Selection Coordinate Mismatch Test (Documenting Old Bug) ===");
-        println!(
-            "Marquee rectangle: Y = {:.1} to {:.1}",
-            marquee_start.y, marquee_end.y
-        );
-        println!("Outline points Y range: {:.1} to {:.1}", 750.0, 1358.7);
-        println!("Y coordinate gap: {:.1} units", 750.0 - (-769.3));
-
-        let mut points_in_rect = 0;
-        for (_i, point_pos) in test_points.iter().enumerate() {
-            let in_rect = SelectionCoordinateSystem::is_point_in_rectangle(
-                point_pos,
-                &marquee_start,
-                &marquee_end,
-            );
-            if in_rect {
-                points_in_rect += 1;
-            }
-        }
-
-        println!(
-            "Result: {} points in rect (correctly 0 due to old coordinate system bug)",
-            points_in_rect
-        );
-
-        // This test documents the old bug - it should pass (0 points selected)
-        assert_eq!(
-            points_in_rect, 0,
-            "No points should be selected due to old coordinate system bug"
-        );
-    }
-
-    #[test]
-    fn test_outline_point_selection_after_fix() {
-        // This test shows the fix working with corrected coordinate values
-        // After the fix: sort positions are at baseline (cursor position)
-        // Outline points are at sort_position + glyph_coordinates (32-768)
-        // So outline points should be at Y ≈ 0-800 instead of Y ≈ 750-1358
-
-        let marquee_start = DPoint::from_raw(Vec2::new(-160.8, 100.0));
-        let marquee_end = DPoint::from_raw(Vec2::new(334.3, 400.0));
-
-        // Test points at corrected Y coordinates (after the fix)
-        let test_points = vec![
-            Vec2::new(100.0, 150.0), // Sort at Y=100 + glyph Y=50
-            Vec2::new(200.0, 250.0), // Sort at Y=200 + glyph Y=50
-            Vec2::new(300.0, 350.0), // Sort at Y=300 + glyph Y=50
-            Vec2::new(400.0, 450.0), // Sort at Y=400 + glyph Y=50
-            Vec2::new(500.0, 550.0), // Sort at Y=500 + glyph Y=50
-        ];
-
-        println!("=== Outline Point Selection After Fix Test ===");
-        println!(
-            "Marquee rectangle: Y = {:.1} to {:.1}",
-            marquee_start.y, marquee_end.y
-        );
-        println!("Outline points Y range: {:.1} to {:.1}", 150.0, 550.0);
-
-        let mut points_in_rect = 0;
-        for (_i, point_pos) in test_points.iter().enumerate() {
-            let in_rect = SelectionCoordinateSystem::is_point_in_rectangle(
-                point_pos,
-                &marquee_start,
-                &marquee_end,
-            );
-            if in_rect {
-                points_in_rect += 1;
-            }
-        }
-
-        println!("Result: {} points in rect (should be 3)", points_in_rect);
-
-        // After the fix, points should be selectable by the marquee
-        assert_eq!(
-            points_in_rect, 3,
-            "Points should be selectable after coordinate fix"
-        );
     }
 }

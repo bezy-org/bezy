@@ -3,6 +3,7 @@ name = "bezy"
 version = "0.1.0"
 authors = ["Eli Heuer <elih@bezy.org>"]
 edition = "2021"
+rust-version = "1.90.0"
 description = "A next-gen font editor built with Rust and Bevy for customization and human-AI collaboration"
 license = "GPL-3.0"
 readme = "README.md"
@@ -22,19 +23,12 @@ fontir = "0.3.0"
 ufo2fontir = "0.2.2"
 fontdrasil = "0.2.2"
 fontc = "0.3.0"
-smol_str = "0.2"
 anyhow = "1.0.86"
 clap = { version = "4.5.4", features = ["derive"] }
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 tracing = "0.1.40"
-log = "0.4.22"
-env_logger = "0.11.3"
-plist = "1.7.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.120"
-base64 = "0.22.1"
 contour-isobands = "0.4"
-cosmic-text = "0.14.2"
 harfrust = { git = "https://github.com/harfbuzz/harfrust.git", version = "0.3.1" }
 chrono = { version = "0.4", features = ["serde"] }
 tempfile = "3.8"
@@ -52,6 +46,22 @@ wasm-bindgen = "0.2"
 console_error_panic_hook = "0.1"
 tracing-wasm = "0.2"
 web-sys = "0.3"
+
+[profile.release]
+# Optimize for speed and size
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+# Additional size optimizations
+[profile.release.package."*"]
+opt-level = "z"  # Optimize dependencies for size
+
+# For maximum size reduction (uncomment if needed):
+# lto = "fat"  # More aggressive LTO, but much slower compile time
+# incremental = false  # Better for size, worse for compile time
 
 [features]
 # For profiling in development, see:

@@ -5,10 +5,10 @@
 //! UFO masters in a designspace.
 
 use crate::core::state::fontir_app_state::FontIRAppState;
-use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use crate::systems::sorts::sort_entities::BufferSortEntities;
 use crate::ui::theme::*;
 use crate::ui::themes::{CurrentTheme, UiBorderRadius};
+use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use bevy::prelude::*;
 use bevy::ui::Display;
 use bevy::window::{PrimaryWindow, Window, WindowMode};
@@ -670,7 +670,42 @@ type LastExportedTextQuery<'w, 's> = Query<
     ),
 >;
 
+// Type aliases for complex row queries
+type DesignspaceRowQuery<'w, 's> = Query<
+    'w,
+    's,
+    &'static mut Node,
+    (
+        With<DesignspaceRowContainer>,
+        Without<SavedRowContainer>,
+        Without<ExportedRowContainer>,
+    ),
+>;
+
+type SavedRowQuery<'w, 's> = Query<
+    'w,
+    's,
+    &'static mut Node,
+    (
+        With<SavedRowContainer>,
+        Without<ExportedRowContainer>,
+        Without<DesignspaceRowContainer>,
+    ),
+>;
+
+type ExportedRowQuery<'w, 's> = Query<
+    'w,
+    's,
+    &'static mut Node,
+    (
+        With<ExportedRowContainer>,
+        Without<SavedRowContainer>,
+        Without<DesignspaceRowContainer>,
+    ),
+>;
+
 /// Updates the displayed file information
+#[allow(clippy::too_many_arguments)]
 fn update_file_display(
     file_info: Res<FileInfo>,
     fontir_state: Option<Res<FontIRAppState>>,
@@ -678,30 +713,9 @@ fn update_file_display(
     mut ufo_query: CurrentUFOTextQuery,
     mut saved_query: LastSavedTextQuery,
     mut exported_query: LastExportedTextQuery,
-    mut designspace_row_query: Query<
-        &mut Node,
-        (
-            With<DesignspaceRowContainer>,
-            Without<SavedRowContainer>,
-            Without<ExportedRowContainer>,
-        ),
-    >,
-    mut saved_row_query: Query<
-        &mut Node,
-        (
-            With<SavedRowContainer>,
-            Without<ExportedRowContainer>,
-            Without<DesignspaceRowContainer>,
-        ),
-    >,
-    mut exported_row_query: Query<
-        &mut Node,
-        (
-            With<ExportedRowContainer>,
-            Without<SavedRowContainer>,
-            Without<DesignspaceRowContainer>,
-        ),
-    >,
+    mut designspace_row_query: DesignspaceRowQuery,
+    mut saved_row_query: SavedRowQuery,
+    mut exported_row_query: ExportedRowQuery,
 ) {
     // Check if this is a single UFO or designspace
     let is_single_ufo = fontir_state

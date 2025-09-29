@@ -5,7 +5,7 @@
 //!
 //! ## Architecture Overview
 //!
-//! ```
+//! ```text
 //! /src/tools/          ← YOU ARE HERE - Core tool behavior & logic
 //! /src/ui/toolbars/    ← Visual toolbar UI, registration, configuration
 //! ```
@@ -39,7 +39,6 @@
 //!
 //! This clean separation makes tools easy to understand, test, and maintain.
 
-pub mod adapters;
 pub mod ai;
 pub mod hyper;
 pub mod knife;
@@ -51,18 +50,18 @@ pub mod select;
 pub mod shapes;
 pub mod text;
 
-// Re-export all tools
-pub use adapters::*;
-pub use ai::*;
-pub use hyper::*;
-pub use knife::*;
-pub use measure::*;
-pub use metaballs::*;
-pub use pan::*;
-pub use pen::*;
-pub use select::*;
-pub use shapes::*;
-pub use text::*;
+// Explicit re-exports for each tool
+// Each tool provides its main struct and plugin
+pub use ai::{AiTool, AiToolPlugin};
+pub use hyper::{HyperTool, HyperToolPlugin};
+pub use knife::{KnifeTool, KnifeToolPlugin};
+pub use measure::{MeasureTool, MeasureToolPlugin};
+pub use metaballs::{MetaballsTool, MetaballsToolPlugin};
+pub use pan::{PanTool, PanToolPlugin};
+pub use pen::{PenTool, PenToolPlugin, PenToolState};
+pub use select::{SelectTool, SelectToolPlugin};
+pub use shapes::{ShapesTool, ShapesToolPlugin};
+pub use text::{TextTool, TextToolPlugin};
 
 use bevy::prelude::*;
 

@@ -14,9 +14,8 @@ use kurbo::{BezPath, ParamCurve, ParamCurveNearest, PathEl, Point, Shape};
 
 // Simple path operations are defined at the end of this file
 
-/// Resource to track if knife mode is active
-#[derive(Resource, Default, PartialEq, Eq)]
-pub struct KnifeModeActive(pub bool);
+// Use KnifeModeActive from tools::knife and re-export it
+pub use crate::tools::knife::KnifeModeActive;
 
 pub struct KnifeTool;
 
@@ -46,9 +45,11 @@ impl EditTool for KnifeTool {
     }
 
     fn update(&self, commands: &mut Commands) {
-        debug!("🔪 KNIFE_TOOL: update() called - setting knife mode active and input mode to Knife");
+        debug!(
+            "🔪 KNIFE_TOOL: update() called - setting knife mode active and input mode to Knife"
+        );
         commands.insert_resource(KnifeModeActive(true));
-        commands.insert_resource(crate::core::io::input::InputMode::Knife);
+        commands.insert_resource(crate::io::input::InputMode::Knife);
     }
 
     fn on_enter(&self) {
@@ -170,17 +171,19 @@ pub fn handle_knife_mouse_events(
     };
 
     // Early exit if knife tool is not active, no active sort, or other conditions
-    if !knife_is_active || active_sort.is_none() {
-        if knife_is_active && active_sort.is_none() {
+    let Some((_sort_entity, _sort, sort_transform)) = active_sort else {
+        if knife_is_active {
             // Only show this message when knife tool is actually trying to be used
             if mouse_button_input.just_pressed(MouseButton::Left) {
                 debug!("🔪 Knife tool: Cannot cut without an active sort. Please select a glyph first.");
             }
         }
         return;
-    }
+    };
 
-    let (_sort_entity, _sort, sort_transform) = active_sort.unwrap();
+    if !knife_is_active {
+        return;
+    }
     let sort_position = sort_transform.translation.truncate();
 
     let Ok(window) = windows.single() else {
@@ -401,8 +404,8 @@ pub fn render_knife_preview(
         // Create dashed line effect with a single batched mesh for performance
         let _direction = (world_end - world_start).normalize();
         let _total_length = world_start.distance(world_end);
-        let dash_length = theme.theme().knife_dash_length() * camera_scale.scale_factor;
-        let gap_length = theme.theme().knife_gap_length() * camera_scale.scale_factor;
+        let dash_length = theme.theme().knife_dash_length() * camera_scale.scale_factor();
+        let gap_length = theme.theme().knife_gap_length() * camera_scale.scale_factor();
         let _segment_length = dash_length + gap_length;
         let line_width = camera_scale.adjusted_line_width();
 

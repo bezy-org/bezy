@@ -82,14 +82,13 @@ impl GlyphMetricsCache {
         // TODO: Add generation tracking when FontIRAppState API supports it
 
         if self.font_metrics.is_none() {
-            self.font_metrics = Some(fontir_state.get_font_metrics());
-            debug!(
-                "Cached font metrics: UPM={}",
-                self.font_metrics.as_ref().unwrap().units_per_em
-            );
+            let metrics = fontir_state.get_font_metrics();
+            debug!("Cached font metrics: UPM={}", metrics.units_per_em);
+            self.font_metrics = Some(metrics);
         }
 
-        self.font_metrics.as_ref().unwrap()
+        // Safe unwrap: font_metrics is guaranteed to be Some after the above block
+        self.font_metrics.as_ref().expect("font_metrics should be initialized")
     }
 
     /// Clear all cached data (useful for debugging)
@@ -216,8 +215,8 @@ fn get_or_update_metrics_line(
     entity
 }
 
-/// System to render mesh-based metrics lines for all active sorts
-pub fn render_mesh_metrics_lines(
+/// System to render mesh-based metrics lines for all active sorts (internal)
+pub(crate) fn render_mesh_metrics_lines(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,

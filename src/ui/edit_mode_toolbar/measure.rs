@@ -36,7 +36,7 @@ impl EditTool for MeasureTool {
     fn update(&self, commands: &mut Commands) {
         debug!("📏 MEASURE_TOOL: update() called - setting measure mode active and input mode to Measure");
         commands.insert_resource(MeasureModeActive(true));
-        commands.insert_resource(crate::core::io::input::InputMode::Measure);
+        commands.insert_resource(crate::io::input::InputMode::Measure);
     }
 
     fn on_enter(&self) {
@@ -191,8 +191,8 @@ pub fn render_measure_preview(
         let line_width = camera_scale.adjusted_line_width();
 
         // Create dashed line for measuring (like knife tool)
-        let dash_length = camera_scale.scale_factor * 8.0; // Match knife tool dash length
-        let gap_length = camera_scale.scale_factor * 4.0; // Match knife tool gap length
+        let dash_length = camera_scale.scale_factor() * 8.0; // Match knife tool dash length
+        let gap_length = camera_scale.scale_factor() * 4.0; // Match knife tool gap length
 
         let dashed_line_entity = spawn_dashed_measure_line(
             &mut commands,
@@ -700,13 +700,13 @@ fn spawn_measure_text_with_pill_background(
 
     // Calculate camera-responsive font size
     let base_font_size = 14.0;
-    let scaled_font_size = base_font_size * camera_scale.scale_factor;
+    let scaled_font_size = base_font_size * camera_scale.scale_factor();
 
     // Estimate text dimensions for background pill
     let text_width = text_content.len() as f32 * scaled_font_size * 0.6; // Rough estimation
     let text_height = scaled_font_size;
-    let pill_width = text_width + (8.0 * camera_scale.scale_factor); // Padding
-    let pill_height = text_height + (4.0 * camera_scale.scale_factor); // Padding
+    let pill_width = text_width + (8.0 * camera_scale.scale_factor()); // Padding
+    let pill_height = text_height + (4.0 * camera_scale.scale_factor()); // Padding
 
     // Create pill-shaped background (rounded rectangle) using orange color
     let background_color = theme.theme().action_color(); // Same orange as hit points

@@ -15,6 +15,12 @@ pub struct GlyphState {
     pub current_glyph: Option<String>,
 }
 
+impl Default for GlyphState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GlyphState {
     pub fn new() -> Self {
         Self {

@@ -1,6 +1,5 @@
 //! Mouse input handling for selection
 
-use crate::core::io::input::{InputEvent, InputState, ModifierState};
 use crate::core::state::TextEditorState;
 use crate::editing::selection::components::{
     GlyphPointReference, PointType, Selectable, Selected, SelectionRect, SelectionState,
@@ -12,6 +11,7 @@ use crate::editing::selection::input::shortcuts::handle_selection_key_press;
 use crate::editing::selection::nudge::EditEvent;
 use crate::editing::selection::{DragPointState, DragSelectionState};
 use crate::geometry::world_space::DPoint;
+use crate::io::input::{InputEvent, InputState, ModifierState};
 use bevy::input::mouse::MouseButton;
 use bevy::prelude::*;
 use std::time::Duration;
@@ -84,10 +84,8 @@ pub fn collect_selection_input_events(
     );
 
     // Check if select tool is active
-    let is_select_mode = crate::core::io::input::helpers::is_input_mode(
-        &input_state,
-        crate::core::io::input::InputMode::Select,
-    );
+    let is_select_mode =
+        crate::io::input::helpers::is_input_mode(&input_state, crate::io::input::InputMode::Select);
     debug!(
         "collect_selection_input_events: is_select_mode = {}",
         is_select_mode
@@ -119,7 +117,7 @@ pub fn collect_selection_input_events(
     let mut collected_count = 0;
     for event in input_events.read() {
         // Skip if UI is consuming input
-        if crate::core::io::input::helpers::is_ui_consuming(&input_state) {
+        if crate::io::input::helpers::is_ui_consuming(&input_state) {
             debug!("collect_selection_input_events: Skipping event - UI is consuming input");
             continue;
         }
@@ -176,13 +174,6 @@ pub fn process_selection_input_events(
             "[process_selection_input_events] Processing event: {:?}",
             event
         );
-
-        // Skip if UI is consuming input
-        // Note: input_state check removed as it's handled in event collection
-        // if crate::core::io::input::helpers::is_ui_consuming(&input_state) {
-        //     debug!("Selection: Skipping event - UI is consuming input");
-        //     continue;
-        // }
 
         // Only handle events that are relevant to selection
         match event {
@@ -426,6 +417,7 @@ pub fn process_selection_input_events(
 
 /// Find the closest clicked point entity within selection tolerance
 /// Returns deterministic results when multiple entities are at the same location
+#[allow(clippy::type_complexity)]
 pub fn find_clicked_point(
     position: &DPoint,
     selectable_query: &Query<
@@ -481,6 +473,7 @@ pub fn find_clicked_point(
 
 /// System to handle smooth point toggles on double-click
 /// This is split from the main selection system to reduce parameter count
+#[allow(clippy::type_complexity)]
 pub fn handle_smooth_point_toggle(
     time: Res<Time>,
     mut double_click_state: ResMut<DoubleClickState>,
@@ -1057,7 +1050,10 @@ pub fn handle_selection_release(
         if let Some(rect_entity) = rect_entity {
             if let Ok(mut entity_commands) = commands.get_entity(rect_entity) {
                 entity_commands.despawn();
-                debug!("SelectionRect entity {:?} successfully despawned on release", rect_entity);
+                debug!(
+                    "SelectionRect entity {:?} successfully despawned on release",
+                    rect_entity
+                );
             } else {
                 debug!("ERROR: Failed to get SelectionRect entity {:?} for despawning - entity may not exist", rect_entity);
             }

@@ -168,7 +168,7 @@ pub fn update_glyph_data_from_selection(
                     if smooth_ref.glyph_name == moved_ref.glyph_name
                         && smooth_ref.contour_index == moved_ref.contour_index
                         && smooth_point_type.is_on_curve
-                        && smooth_enhanced.map_or(false, |e| e.is_smooth())
+                        && smooth_enhanced.is_some_and(|e| e.is_smooth())
                     {
                         // Use simplified neighbor check
                         let (left_handle, right_handle) =
@@ -184,10 +184,10 @@ pub fn update_glyph_data_from_selection(
                         let smooth_pos = smooth_transform.translation.truncate();
                         let moved_is_left = left_handle
                             .as_ref()
-                            .map_or(false, |(_, _, ref_comp)| ref_comp == moved_ref);
+                            .is_some_and(|(_, _, ref_comp)| ref_comp == moved_ref);
                         let moved_is_right = right_handle
                             .as_ref()
-                            .map_or(false, |(_, _, ref_comp)| ref_comp == moved_ref);
+                            .is_some_and(|(_, _, ref_comp)| ref_comp == moved_ref);
 
                         if moved_is_left || moved_is_right {
                             debug!(

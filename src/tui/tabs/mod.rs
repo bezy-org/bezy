@@ -86,9 +86,7 @@ impl Tab {
         app: &crate::tui::app::App,
     ) -> Result<()> {
         match &mut self.state {
-            TabState::Unicode(state) => {
-                unicode::handle_key_event(state, key, app_tx, app).await
-            }
+            TabState::Unicode(state) => unicode::handle_key_event(state, key, app_tx, app).await,
             TabState::File(state) => file::handle_key_event(state, key, app_tx).await,
             TabState::Edit(state) => edit::handle_key_event(state, key, app_tx).await,
             TabState::FontInfo(state) => font_info::handle_key_event(state, key, app_tx).await,

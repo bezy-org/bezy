@@ -14,7 +14,10 @@ pub async fn handle_events(tx: mpsc::UnboundedSender<InputEvent>) -> anyhow::Res
             match event::read()? {
                 Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
                     if let KeyCode::Char('q') = key_event.code {
-                        if key_event.modifiers.contains(crossterm::event::KeyModifiers::CONTROL) {
+                        if key_event
+                            .modifiers
+                            .contains(crossterm::event::KeyModifiers::CONTROL)
+                        {
                             let _ = tx.send(InputEvent::Quit);
                             break;
                         }

@@ -65,7 +65,7 @@ impl Plugin for TextEditorPlugin {
                     .chain()
                     .in_set(super::FontEditorSets::EntitySync),
             )
-            // Entity spawning/despawning
+            // Entity spawning/despawning - must run AFTER sort entity management
             .add_systems(
                 Update,
                 (
@@ -75,7 +75,8 @@ impl Plugin for TextEditorPlugin {
                     regenerate_points_on_fontir_change, // Regenerate when FontIR data changes
                 )
                     .chain()
-                    .in_set(super::FontEditorSets::EntitySync),
+                    .in_set(super::FontEditorSets::EntitySync)
+                    .after(manage_sort_activation), // Ensure points spawn after sort activation
             )
             // Rendering systems
             .add_systems(
