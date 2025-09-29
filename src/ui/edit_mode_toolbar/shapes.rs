@@ -118,6 +118,7 @@ pub struct ActiveShapeDrawing {
     pub shape_type: ShapeType,
     pub start_position: Option<Vec2>,
     pub current_position: Option<Vec2>,
+    pub needs_immediate_regeneration: bool,
 }
 
 impl ActiveShapeDrawing {
@@ -163,8 +164,17 @@ impl Plugin for ShapesToolPlugin {
             .add_systems(
                 Update,
                 (
-                    handle_shape_mouse_events,
-                    render_active_shape_drawing_with_dimensions,
+                    // Input handling runs first
+                    handle_shape_mouse_events
+                        .in_set(crate::editing::FontEditorSets::Input),
+                    // Force immediate update after shape creation
+                    trigger_immediate_shape_update
+                        .after(handle_shape_mouse_events)
+                        .in_set(crate::editing::FontEditorSets::Input),
+                    // Preview rendering runs in rendering phase
+                    render_active_shape_drawing_with_dimensions
+                        .in_set(crate::editing::FontEditorSets::Rendering),
+                    // Mode management runs anytime
                     reset_shapes_mode_when_inactive,
                     toggle_shapes_submenu_visibility,
                     handle_shapes_submenu_selection,
@@ -199,6 +209,7 @@ pub fn handle_shape_mouse_events(
         (Entity, &crate::editing::sort::Sort, &Transform),
         With<crate::editing::sort::ActiveSort>,
     >,
+    mut visual_update_tracker: ResMut<crate::rendering::glyph_renderer::SortVisualUpdateTracker>,
 ) {
     // Check if shapes mode is active via multiple methods
     let shapes_is_active = shapes_mode.as_ref().is_some_and(|s| s.0)
@@ -312,6 +323,18 @@ pub fn handle_shape_mouse_events(
                         &mut app_state_changed,
                     );
                 }
+
+                // Send multiple events to ensure all systems are triggered
+                // This helps prevent the lag issue where the shape doesn't appear immediately
+                app_state_changed.write(AppStateChanged);
+                app_state_changed.write(AppStateChanged);
+
+                // CRITICAL: Immediately trigger visual update to prevent lag
+                visual_update_tracker.needs_update = true;
+                debug!("🔄 SHAPES TOOL: Immediately triggered visual update after shape creation");
+
+                // Mark that we need immediate regeneration
+                active_drawing.needs_immediate_regeneration = true;
             }
 
             // Reset drawing state
@@ -342,7 +365,7 @@ pub fn render_active_shape_drawing_with_dimensions(
         With<crate::editing::sort::ActiveSort>,
     >,
 ) {
-    // Clean up existing preview elements
+    // Clean up existing preview elements - ALWAYS do this first
     for entity in existing_preview_query.iter() {
         if let Ok(mut entity_commands) = commands.get_entity(entity) {
             entity_commands.despawn();
@@ -353,6 +376,12 @@ pub fn render_active_shape_drawing_with_dimensions(
     let shapes_is_active = shapes_mode.as_ref().is_some_and(|s| s.0)
         || (current_tool.as_ref().and_then(|t| t.get_current()) == Some("shapes"));
 
+    // Early exit if shapes tool is not active
+    if !shapes_is_active {
+        debug!("SHAPES PREVIEW: Shapes mode not active, exiting after cleanup");
+        return;
+    }
+
     // Shapes tool requires an active sort to work
     let active_sort = if let Ok((sort_entity, sort, sort_transform)) = active_sort_query.single() {
         Some((sort_entity, sort, sort_transform))
@@ -361,27 +390,22 @@ pub fn render_active_shape_drawing_with_dimensions(
     };
 
     // Debug: Always log when this system runs
-    debug!("SHAPES PREVIEW: System running - shapes_mode_active: {:?}, active_sort: {}, current_tool: {:?}, is_drawing: {}, shapes_is_active: {}", 
+    debug!("SHAPES PREVIEW: System running - shapes_mode_active: {:?}, active_sort: {}, current_tool: {:?}, is_drawing: {}",
            shapes_mode.as_ref().map(|s| s.0),
            active_sort.is_some(),
            current_tool.as_ref().and_then(|t| t.get_current()),
-           active_drawing.is_drawing,
-           shapes_is_active);
+           active_drawing.is_drawing);
 
-    // Only render if shapes tool is active and there's an active sort
+    // Only render if there's an active sort and we're drawing
     let Some((_sort_entity, _sort, sort_transform)) = active_sort else {
-        debug!("SHAPES PREVIEW: Shapes mode not active or no active sort, exiting");
+        debug!("SHAPES PREVIEW: No active sort, exiting after cleanup");
         return;
     };
 
-    if !shapes_is_active {
-        debug!("SHAPES PREVIEW: Shapes mode not active, exiting");
-        return;
-    }
     let sort_position = sort_transform.translation.truncate();
 
     if !active_drawing.is_drawing {
-        debug!("SHAPES PREVIEW: Not drawing, exiting");
+        debug!("SHAPES PREVIEW: Not drawing, exiting after cleanup");
         return;
     }
 
@@ -439,6 +463,23 @@ pub fn render_active_shape_drawing_with_dimensions(
         );
     } else {
         debug!("SHAPES PREVIEW: No rect available from active_drawing.get_rect()");
+    }
+}
+
+/// System to trigger immediate update when shape is created
+pub fn trigger_immediate_shape_update(
+    mut active_drawing: ResMut<ActiveShapeDrawing>,
+    mut app_state_changed: EventWriter<AppStateChanged>,
+    mut visual_update_tracker: ResMut<crate::rendering::glyph_renderer::SortVisualUpdateTracker>,
+) {
+    if active_drawing.needs_immediate_regeneration {
+        // Send more events to ensure all systems process them
+        for _ in 0..3 {
+            app_state_changed.write(AppStateChanged);
+        }
+        visual_update_tracker.needs_update = true;
+        active_drawing.needs_immediate_regeneration = false;
+        debug!("🚀 SHAPES TOOL: Forced immediate update pipeline for shape rendering");
     }
 }
 

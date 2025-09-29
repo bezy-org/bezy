@@ -296,10 +296,17 @@ pub fn regenerate_points_on_fontir_change(
     fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
     _app_state: Option<Res<crate::core::state::AppState>>,
     mut selection_state: ResMut<crate::editing::selection::SelectionState>,
+    mut visual_update_tracker: ResMut<crate::rendering::glyph_renderer::SortVisualUpdateTracker>,
 ) {
     // Only run when FontIR data changes
-    if app_state_events.read().count() == 0 {
+    let has_events = !app_state_events.is_empty();
+    if !has_events {
         return;
+    }
+
+    // Clear the events after checking
+    for _ in app_state_events.read() {
+        // Process each event
     }
 
     // For each active sort, regenerate its point entities to include new contours
@@ -412,6 +419,15 @@ pub fn regenerate_points_on_fontir_change(
                     "FontIR: Regenerated {} points for active sort '{}'",
                     point_count, sort.glyph_name
                 );
+
+                // CRITICAL: Trigger visual update after regenerating points
+                if point_count > 0 {
+                    visual_update_tracker.needs_update = true;
+                    debug!(
+                        "🔄 TRIGGERED VISUAL UPDATE: Points regenerated for sort '{}' after shape creation",
+                        sort.glyph_name
+                    );
+                }
             }
         }
     }
