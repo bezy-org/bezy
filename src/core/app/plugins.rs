@@ -26,6 +26,7 @@ impl PluginGroup for CorePluginGroup {
             .add(TextEditorPlugin)
             .add(TextShapingPlugin) // Unified text shaping for RTL support
             .add(SelectionPlugin)
+            .add(crate::editing::offcurve_insertion::OffCurveInsertionPlugin)
             .add(UiInteractionPlugin)
             .add(CommandsPlugin)
             .add(BezySystems)

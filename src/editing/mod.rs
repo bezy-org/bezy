@@ -8,6 +8,7 @@
 
 
 pub mod edit_session;
+pub mod offcurve_insertion;
 pub mod selection;
 pub mod smooth_curves;
 pub mod sort;
