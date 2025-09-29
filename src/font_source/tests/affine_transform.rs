@@ -7,7 +7,7 @@ mod tests {
 
     #[test]
     fn test_affine_transform() {
-        use crate::core::state::fontir_app_state::apply_affine_transform;
+        use crate::font_source::fontir_state::apply_affine_transform;
         use kurbo::{BezPath, Point};
 
         // Create a simple path

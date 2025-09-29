@@ -8,8 +8,15 @@ pub mod fontir_state;
 pub mod metrics;
 pub mod ufo_point;
 
-// Keep re-exports simple and explicit for clarity
-pub use data::*; // Exports FontData and all related types
+#[cfg(test)]
+mod tests;
+
+// Explicit re-exports for public API
+// Data structures
+pub use data::{ComponentData, ContourData, FontData, GlyphData, OutlineData, PointData, PointTypeData};
+// FontIR state
 pub use fontir_state::{EditableGlyphInstance, FontIRAppState, FontIRMetrics};
+// Metrics
 pub use metrics::{FontInfo, FontMetrics};
+// UFO point types
 pub use ufo_point::{UfoPoint, UfoPointComponent, UfoPointType};
