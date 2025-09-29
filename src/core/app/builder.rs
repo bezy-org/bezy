@@ -7,6 +7,7 @@ use crate::core::config::{BezySettings, CliArgs, DEFAULT_WINDOW_SIZE, WINDOW_TIT
 use crate::core::state::{AppState, GlyphNavigation};
 use crate::systems::{
     center_camera_on_startup_layout, create_startup_layout, exit_on_esc, load_fontir_font,
+    deferred_fontir_font_loading,
     plugins::{configure_default_plugins, configure_default_plugins_for_tui},
 };
 #[cfg(feature = "tui")]
@@ -36,6 +37,10 @@ pub fn create_app(cli_args: CliArgs) -> Result<App> {
     configure_window_plugins(&mut app);
     add_plugin_groups(&mut app);
     add_startup_and_exit_systems(&mut app);
+
+    // Add deferred font loading system to load fonts after window is shown
+    app.add_systems(Update, deferred_fontir_font_loading);
+
     Ok(app)
 }
 
@@ -188,6 +193,9 @@ pub fn create_app_with_tui(
         handle_tui_messages.in_set(crate::editing::FontEditorSets::Input)
     );
     app.add_systems(Update, send_initial_font_data_to_tui);
+
+    // Add deferred font loading system to load fonts after window is shown
+    app.add_systems(Update, deferred_fontir_font_loading);
 
     Ok(app)
 }
