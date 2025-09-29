@@ -58,7 +58,7 @@ pub struct GlyphRenderEntities {
 
 /// Resource to track when sorts need visual updates (prevents unnecessary rebuilding)
 #[derive(Resource, Default)]
-pub(crate) struct SortVisualUpdateTracker {
+pub struct SortVisualUpdateTracker {
     pub needs_update: bool,
 }
 
