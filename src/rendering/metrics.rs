@@ -82,14 +82,13 @@ impl GlyphMetricsCache {
         // TODO: Add generation tracking when FontIRAppState API supports it
 
         if self.font_metrics.is_none() {
-            self.font_metrics = Some(fontir_state.get_font_metrics());
-            debug!(
-                "Cached font metrics: UPM={}",
-                self.font_metrics.as_ref().unwrap().units_per_em
-            );
+            let metrics = fontir_state.get_font_metrics();
+            debug!("Cached font metrics: UPM={}", metrics.units_per_em);
+            self.font_metrics = Some(metrics);
         }
 
-        self.font_metrics.as_ref().unwrap()
+        // Safe unwrap: font_metrics is guaranteed to be Some after the above block
+        self.font_metrics.as_ref().expect("font_metrics should be initialized")
     }
 
     /// Clear all cached data (useful for debugging)

@@ -61,7 +61,9 @@ fn update_handle_lines(
     }
 
     // Get glyph name from the first point (they should all be from the same glyph)
-    let first_point = point_query.iter().next().unwrap();
+    let Some(first_point) = point_query.iter().next() else {
+        return; // No points to render
+    };
     let glyph_name = &first_point.2.glyph_name;
 
     // Use FontIR as the primary runtime data structure

@@ -598,10 +598,16 @@ pub fn update_glyph_metrics(
             // For now, try to get it from glyph name
             metrics.unicode = if glyph_name == "a" {
                 "0061".to_string() // Unicode for 'a'
-            } else if glyph_name.len() == 1
-                && glyph_name.chars().next().unwrap().is_ascii_lowercase()
-            {
-                format!("{:04X}", glyph_name.chars().next().unwrap() as u32)
+            } else if glyph_name.len() == 1 {
+                if let Some(ch) = glyph_name.chars().next() {
+                    if ch.is_ascii_lowercase() {
+                        format!("{:04X}", ch as u32)
+                    } else {
+                        String::new()
+                    }
+                } else {
+                    String::new()
+                }
             } else {
                 String::new()
             };

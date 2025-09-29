@@ -1,7 +1,3 @@
-#![allow(unused_imports)]
-
-use crate::core::state::AppState;
-use crate::editing::selection::systems::*;
 use crate::editing::FontEditorSets;
 use bevy::prelude::*;
 

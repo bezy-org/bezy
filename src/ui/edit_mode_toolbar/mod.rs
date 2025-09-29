@@ -70,7 +70,6 @@
 //! - **UI Integration**: Visual feedback and interactive toolbar
 //! - **Extensibility**: Easy to add new tools with minimal code changes
 
-#![allow(unused_imports)]
 
 use bevy::prelude::*;
 use std::collections::HashMap;

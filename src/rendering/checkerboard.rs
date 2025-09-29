@@ -379,7 +379,7 @@ fn update_visible_squares(
     let needed_squares = get_needed_squares(&visible_area, current_grid_size);
 
     // Debug logging for visible area (only when grid size changes)
-    if state.last_grid_size.is_none() || state.last_grid_size.unwrap() != current_grid_size {
+    if state.last_grid_size.map_or(true, |last_size| last_size != current_grid_size) {
         debug!(
             "Design space grid: visible=({:.0}, {:.0}) to ({:.0}, {:.0}), \
                {} squares",

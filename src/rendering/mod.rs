@@ -7,7 +7,6 @@
 //! - Debug visualization tools
 //! - Selection visualization (marquee, selected points, handles)
 
-#![allow(unused_imports)]
 
 pub mod cameras;
 pub mod checkerboard;

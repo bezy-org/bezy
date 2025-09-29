@@ -1,4 +1,3 @@
-#![allow(unused_imports)]
 
 pub mod coordinate_pane;
 pub mod file_pane;
