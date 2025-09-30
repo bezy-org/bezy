@@ -9,55 +9,6 @@ Bezy is a next-gen font editor built with Rust and Bevy, designed for customizat
 1. A multi-buffer text editor for right-to-left (RTL, Arabic) and left-to-right (LTR, Latin) type design.
 2. A TUI/CLI first workflow designed for AI and automation.
 
-## ⚠️ CRITICAL: TUI-First Architecture
-
-**Bezy runs with a TUI (Terminal User Interface) by default.** This is NOT optional - it's a core design decision.
-
-### Logging and Output Rules (MUST FOLLOW)
-
-**NEVER write code that outputs to stdout/stderr directly:**
-- ❌ **NEVER use** `println!()` - breaks TUI
-- ❌ **NEVER use** `eprintln!()` - breaks TUI
-- ❌ **NEVER use** `dbg!()` - breaks TUI
-- ❌ **NEVER use** `print!()` or `eprint!()` - breaks TUI
-- ✅ **ALWAYS use** Bevy's logging: `info!()`, `warn!()`, `error!()`, `debug!()`, `trace!()`
-
-**Why this matters:**
-- The TUI takes over the terminal display using Ratatui
-- Any stdout/stderr output corrupts the TUI display
-- All logs go to `~/.config/bezy/logs/bezy-YYYY-MM-DD.log`
-- The `~/.config/bezy/` directory is created by `--new-config` flag
-
-**Exceptions (only these files, only for fatal pre-TUI errors):**
-- `src/logging/mod.rs` - Initial log setup messages
-- `src/core/runner.rs` - Fatal errors during app startup BEFORE TUI initializes
-- `src/tui/mod.rs` - Fatal TUI initialization failures (before terminal is captured)
-- `src/core/platform.rs` - Fatal platform errors before app starts
-
-**Everywhere else: Use Bevy logging macros ONLY.**
-
-### How Logging Works
-1. **By default**: All logs go to `~/.config/bezy/logs/bezy-YYYY-MM-DD.log`
-2. Logging redirection happens automatically in `src/core/runner.rs`
-3. Bevy's logging macros (info!, error!, etc.) write to log files
-4. TUI remains clean and functional
-5. **With `--no-tui` flag**: Logs go to stdout/stderr for debugging (terminal only)
-6. Log files are date-stamped and created automatically
-
-### Viewing Logs
-```bash
-# Initialize config directory first (if needed)
-cargo run -- --new-config
-
-# Run the app (with TUI)
-cargo run --release -- --edit ~/path/to/font.ufo
-
-# View logs in another terminal
-tail -f ~/.config/bezy/logs/bezy-$(date +%Y-%m-%d).log
-
-# Or use the TUI's log viewer tab (built-in)
-``` 
-
 ### Core Technologies
 - **Rust**: Primary language with focus on readability and education (1.90.0+)
 - **Bevy 0.16.1**: ECS-based game engine for GUI framework
@@ -190,6 +141,49 @@ The multi-buffer text editor is a core innovation of Bezy, supporting both LTR a
 
 ### 0. TUI Output Protection (HIGHEST PRIORITY)
 **This rule overrides all others. Breaking it makes the app unusable.**
+
+## ⚠️ CRITICAL: TUI-First Architecture
+
+**Bezy runs with a TUI (Terminal User Interface) by default.** This is NOT optional - it's a core design decision.
+
+### Logging and Output Rules (MUST FOLLOW)
+
+**NEVER write code that outputs to stdout/stderr directly:**
+**Use Bevy logging macros ONLY.**
+- ❌ **NEVER use** `println!()` - breaks TUI
+- ❌ **NEVER use** `eprintln!()` - breaks TUI
+- ❌ **NEVER use** `dbg!()` - breaks TUI
+- ❌ **NEVER use** `print!()` or `eprint!()` - breaks TUI
+- ✅ **ALWAYS use** Bevy's logging: `info!()`, `warn!()`, `error!()`, `debug!()`, `trace!()`
+
+**Why this matters:**
+- The TUI takes over the terminal display using Ratatui
+- Any stdout/stderr output corrupts the TUI display
+- All logs go to `~/.config/bezy/logs/bezy-YYYY-MM-DD.log`
+- The `~/.config/bezy/` directory is created by `--new-config` flag
+
+### How Logging Works
+1. **By default**: All logs go to `~/.config/bezy/logs/bezy-YYYY-MM-DD.log`
+2. Logging redirection happens automatically in `src/core/runner.rs`
+3. Bevy's logging macros (info!, error!, etc.) write to log files
+4. TUI remains clean and functional
+5. **With `--no-tui` flag**: Logs go to stdout/stderr for debugging (terminal only)
+6. Log files are date-stamped and created automatically
+
+### Viewing Logs
+```bash
+# Initialize config directory first (if needed)
+cargo run -- --new-config
+
+# Run the app (with TUI)
+cargo run --release -- --edit ~/path/to/font.ufo
+
+# View logs in another terminal
+tail -f ~/.config/bezy/logs/bezy-$(date +%Y-%m-%d).log
+
+# Or use the TUI's log viewer tab (built-in)
+``` 
+
 
 Located in `src/logging/mod.rs`:
 - All application output goes to `~/.config/bezy/logs/bezy-YYYY-MM-DD.log`

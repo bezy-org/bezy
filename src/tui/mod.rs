@@ -71,18 +71,22 @@ pub fn run_app_with_tui(cli_args: CliArgs) -> Result<()> {
 
     // Run Bevy app in the main thread (needed for proper window initialization on Linux)
     // The TUI-specific configuration will disable console logging to prevent terminal corruption
-    match crate::core::app::create_app_with_tui((*cli_args_arc).clone(), tui_rx, app_tx) {
+    let app_result = match crate::core::app::create_app_with_tui((*cli_args_arc).clone(), tui_rx, app_tx) {
         Ok(mut app) => {
             app.run();
+            Ok(())
         }
-        Err(e) => {
-            eprintln!("Failed to create Bevy app: {}", e);
-            return Err(e);
-        }
-    }
+        Err(e) => Err(e),
+    };
 
-    // Wait for TUI thread to finish
+    // Wait for TUI thread to finish cleanup before any error output
     let _ = tui_handle.join();
+
+    // Now safe to output errors after TUI has cleaned up
+    if let Err(e) = app_result {
+        eprintln!("Failed to create Bevy app: {}", e);
+        return Err(e);
+    }
 
     Ok(())
 }
