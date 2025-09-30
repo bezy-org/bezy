@@ -22,19 +22,22 @@ pub fn run_app(cli_args: CliArgs) -> Result<()> {
         }
     }
 
-    // Run the main application
-    if cli_args.no_tui {
-        // Set up log redirection when TUI is disabled
+    // Default: Always redirect logs to ~/.config/bezy/logs/
+    // Only skip redirection if --no-tui is used (for debugging)
+    if !cli_args.no_tui {
         if let Err(e) = logging::setup_log_redirection() {
             eprintln!("Failed to setup log redirection: {}", e);
         }
+    }
+
+    // Run the main application
+    if cli_args.no_tui {
         let mut app = crate::core::app::create_app(cli_args)?;
         app.run();
         Ok(())
     } else {
         #[cfg(feature = "tui")]
         {
-            // When TUI is enabled, also redirect logs to prevent terminal corruption
             crate::tui::run_app_with_tui(cli_args)
         }
         #[cfg(not(feature = "tui"))]
