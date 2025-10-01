@@ -22,16 +22,10 @@ pub fn run_app(cli_args: CliArgs) -> Result<()> {
         }
     }
 
-    // Default: Always redirect logs to ~/.config/bezy/logs/
-    // Only skip redirection if --no-tui is used (for debugging)
-    if !cli_args.no_tui {
-        if let Err(e) = logging::setup_log_redirection() {
-            eprintln!("Failed to setup log redirection: {}", e);
-        }
-    }
-
     // Run the main application
     if cli_args.no_tui {
+        // Only redirect logs when NOT using TUI (for debugging)
+        // When TUI is enabled, redirection happens AFTER TUI captures terminal
         let mut app = crate::core::app::create_app(cli_args)?;
         app.run();
         Ok(())

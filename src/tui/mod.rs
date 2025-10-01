@@ -31,6 +31,10 @@ pub async fn run_tui(
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
+    // NOTE: We cannot redirect stdout/stderr when TUI is active
+    // The TUI needs stdout for terminal control
+    // Bevy logging must be configured to write directly to files (not via stdout)
+
     let mut app = app::App::new(app_tx.clone());
     let result = app.run(&mut terminal, &mut app_rx).await;
 

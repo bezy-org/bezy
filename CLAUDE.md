@@ -50,33 +50,34 @@ cargo test    # Run tests
 ### Module Structure & Separation of Concerns
 ```
 src/
-├── core/        # App initialization, CLI, settings, state (including text editor state)
+├── core/        # App foundation: initialization, CLI, settings, state, runner
 ├── data/        # Font data handling (UFO, FontIR conversions)
 ├── editing/     # EDITING LOGIC: selection, sorts, text editor plugin
 ├── font_source/ # FontIR state management, UFO point handling, metrics
 ├── geometry/    # Mathematical primitives, bezier curves, coordinates
-├── io/          # Input handling (keyboard, mouse, gamepad, pointer)
-├── logging/     # Logging: redirects stdout/stderr to ~/.config/bezy/logs/
+├── io/          # Low-level input handling (keyboard, mouse, gamepad, pointer)
+├── logging/     # Log redirection: stdout/stderr → ~/.config/bezy/logs/
 ├── qa/          # Quality assurance (fontspector, compiler, storage, triggers)
-├── rendering/   # PURE RENDERING: visual display, text cursor, no editing logic
-├── systems/     # System implementations: text buffer, shaping, sorts, commands
+├── rendering/   # PURE RENDERING: visual display only, no editing logic
+├── systems/     # ECS system implementations (text buffer, shaping, sorts, input)
 ├── tools/       # User interaction tools (select, pen, knife, ai, text, etc.)
-├── tui/         # Terminal UI interface (optional feature)
-├── ui/          # Interface components, toolbars, panes, theme system
+├── tui/         # Terminal UI (default mode, handles terminal capture/cleanup)
+├── ui/          # Visual interface components, toolbars, theme system
 └── utils/       # Helper utilities
 ```
 
 **Key Separation:**
-- **Core** (`src/core/`): App foundation (initialization, CLI args, settings, shared state)
-- **Editing** (`src/editing/`): Modifies font data, handles user edits, selection, sorts, text editor plugin
-- **Rendering** (`src/rendering/`): Displays data visually, no modifications
-- **Tools** (`src/tools/`): User interaction and tool-specific logic (implements EditTool trait)
+- **Core** (`src/core/`): App foundation - initialization, CLI, settings, shared state (text editor state lives here)
+- **Editing** (`src/editing/`): Modifies font data - selection, sorts, text editor plugin coordination
+- **Rendering** (`src/rendering/`): Pure visual display - glyph rendering, cursor, no modifications
+- **Tools** (`src/tools/`): User interaction - each tool implements EditTool trait
 - **Font Source** (`src/font_source/`): FontIR state and UFO data management
-- **Systems** (`src/systems/`): ECS system implementations (text buffer, text shaping, sort systems, commands)
-- **IO** (`src/io/`): Low-level input handling abstraction (keyboard, mouse, gamepad, pointer)
+- **Systems** (`src/systems/`): ECS system implementations - text buffer, shaping, sorts, commands, input routing
+- **IO** (`src/io/`): Low-level input abstraction - keyboard, mouse, gamepad, pointer events
+- **Logging** (`src/logging/`): **Critical** - Redirects stdout/stderr to log files to prevent TUI corruption
 - **QA** (`src/qa/`): Font quality assurance and validation tools
-- **TUI** (`src/tui/`): Optional terminal interface (feature-gated)
-- **UI** (`src/ui/`): Visual interface components, toolbars, theme system
+- **TUI** (`src/tui/`): Terminal UI (default mode, not optional) - manages terminal capture and cleanup
+- **UI** (`src/ui/`): Visual interface - toolbars, panes, theme system with JSON themes
 
 ### Key Design Patterns
 
