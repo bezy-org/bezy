@@ -73,7 +73,7 @@ impl PluginGroup for EditorPluginGroup {
         use crate::ui::panes::glyph_pane::GlyphPanePlugin;
 
         PluginGroupBuilder::start::<Self>()
-            .add(FilePanePlugin)
+            // .add(FilePanePlugin)  // Temporarily disabled - moving to TUI
             .add(GlyphPanePlugin)
             .add(CoordinatePanePlugin)
             .add(EditModeToolbarPlugin) // Handles all tools automatically

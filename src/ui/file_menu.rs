@@ -40,6 +40,7 @@ impl Plugin for FileMenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<SaveFileEvent>()
             .add_event::<ExportTTFEvent>()
+            .init_resource::<FileInfo>()
             .insert_resource(FileMenuState { initialized: false })
             .add_systems(Startup, setup_file_menu)
             .add_systems(PreUpdate, handle_keyboard_shortcuts)
