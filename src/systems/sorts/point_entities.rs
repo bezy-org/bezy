@@ -6,7 +6,6 @@ use crate::editing::selection::components::{GlyphPointReference, PointType, Sele
 use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::{ActiveSort, InactiveSort, Sort};
 use crate::geometry::point::EditPoint;
-use crate::geometry::world_space::DPoint;
 use bevy::prelude::*;
 use kurbo::{PathEl, Point};
 use std::collections::HashMap;

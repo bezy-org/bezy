@@ -9,14 +9,12 @@
 //! All actual selection logic (what is selected, hit testing, etc.)
 //! remains in the editing/selection module.
 
-use crate::core::state::{AppState, FontIRAppState, TextEditorState};
 use crate::editing::selection::components::{
-    GlyphPointReference, PointType, Selected, SelectionRect,
+    PointType, Selected, SelectionRect,
 };
 use crate::editing::selection::nudge::NudgeState;
 use crate::editing::selection::{DragPointState, DragSelectionState};
 use crate::editing::sort::manager::SortPointEntity;
-use crate::editing::sort::ActiveSort;
 use crate::ui::theme::*;
 use crate::ui::themes::CurrentTheme;
 use bevy::prelude::*;

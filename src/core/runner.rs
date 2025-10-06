@@ -3,7 +3,7 @@
 //! Handles the different ways to run the Bezy application
 
 use crate::core::config::{CliArgs, ConfigFile};
-use crate::logging;
+// use crate::logging;  // Not currently used
 use anyhow::Result;
 
 /// Create and run the application with the given CLI arguments.

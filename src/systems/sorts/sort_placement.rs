@@ -188,7 +188,7 @@ fn create_independent_sort_with_fontir(
 ) -> bevy::prelude::Entity {
     use crate::core::state::text_editor::buffer::BufferId;
     use crate::core::state::text_editor::{SortData, SortKind, SortLayoutMode};
-    use crate::systems::text_buffer_manager::{add_sort_to_buffer, create_text_buffer};
+    use crate::systems::text_buffer_manager::create_text_buffer;
 
     debug!("🖱️ INSIDE create_independent_sort_with_fontir: Starting function");
 

@@ -4,7 +4,6 @@
 //! to determine when selection behavior should be active. The actual tool behavior is
 //! handled by the config-based toolbar system.
 
-use bevy::prelude::*;
 
 // Use SelectModeActive from tools::select and re-export it
 pub use crate::tools::select::SelectModeActive;

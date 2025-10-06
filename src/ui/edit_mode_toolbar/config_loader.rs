@@ -46,6 +46,8 @@ impl EditTool for ConfigurableTool {
     fn update(&self, commands: &mut Commands) {
         use crate::io::input::InputMode;
 
+        // TODO(human): Send SwitchToolEvent to activate tool through unified system
+
         // Delegate to the appropriate behavior based on config
         match self.config.behavior {
             ToolBehavior::Select => {

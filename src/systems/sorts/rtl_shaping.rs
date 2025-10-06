@@ -4,8 +4,6 @@
 //! using HarfRust to properly shape and position Arabic glyphs.
 
 use bevy::prelude::*;
-use harfrust::{Direction, GlyphBuffer, Language, Script, Shaper, ShaperBuilder, UnicodeBuffer};
-use std::fs;
 
 /// Resource to hold the shaped text results
 #[derive(Resource, Default)]

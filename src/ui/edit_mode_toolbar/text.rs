@@ -10,22 +10,17 @@
 
 #![allow(clippy::manual_map)]
 
-use crate::core::config::BezySettings;
 use crate::core::state::{
     AppState, FontIRAppState, GlyphNavigation, SortLayoutMode, TextEditorState, TextModeConfig,
 };
 use crate::utils::embedded_assets::EmbeddedFonts;
-use bevy::input::ButtonState;
-use bevy::log::info;
 use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
-use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::rendering::cameras::DesignCamera;
 use crate::rendering::checkerboard::calculate_dynamic_grid_size;
 use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
 use crate::ui::theme::*;
-use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
+use crate::ui::themes::CurrentTheme;
 
 /// Resource to track if text mode is active
 #[derive(Resource, Default)]

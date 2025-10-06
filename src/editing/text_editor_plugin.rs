@@ -8,8 +8,7 @@ use crate::systems::sorts::{
     despawn_missing_buffer_sort_entities,   // NEW: Despawn deleted buffer sorts
     detect_sort_glyph_changes, // NEW: Detect glyph changes and force point regeneration
     handle_arabic_text_input,  // NEW: Arabic and Unicode text input
-    handle_sort_placement_input, // NEW: Uses centralized input system
-    handle_text_editor_keyboard_input,
+    handle_sort_placement_input,
     handle_unicode_text_input, // NEW: Unicode character input using Bevy events
     initialize_rtl_shaping,    // NEW: Initialize RTL shaping resources
     initialize_text_editor_sorts,

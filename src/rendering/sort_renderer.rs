@@ -5,7 +5,7 @@
 
 #![allow(clippy::type_complexity)]
 
-use crate::core::state::{AppState, FontIRAppState, SortLayoutMode};
+use crate::core::state::AppState;
 use crate::editing::sort::{ActiveSort, InactiveSort, Sort, SortSystemSet};
 use crate::ui::themes::CurrentTheme;
 use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};

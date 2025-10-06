@@ -9,12 +9,8 @@ use crate::editing::selection::components::{
     GlyphPointReference, PointType, Selectable, Selected, SelectionRect,
 };
 use crate::editing::selection::{DragPointState, DragSelectionState, SelectionState};
-use crate::editing::sort::manager::SortPointEntity;
-use crate::editing::sort::ActiveSortState;
 use crate::geometry::world_space::DPoint;
 use crate::io::input::{helpers, InputEvent, InputMode, InputState};
-use crate::io::pointer::PointerInfo;
-use crate::systems::ui_interaction::UiHoverState;
 use bevy::prelude::*;
 
 // Type alias for complex query type
@@ -56,12 +52,20 @@ impl InputConsumer for SelectionInputConsumer {
         );
         let is_select_mode = helpers::is_input_mode(input_state, InputMode::Select);
 
+        if is_mouse_event {
+            debug!(
+                "[SelectionInputConsumer] Mouse event, InputMode: {:?}, is_select_mode: {}",
+                input_state.mode, is_select_mode
+            );
+        }
+
         is_mouse_event && is_select_mode
     }
 
     fn handle_input(&mut self, event: &InputEvent, _input_state: &InputState) {
         // Store the event for processing by the ECS system
         self.pending_events.push(event.clone());
+        debug!("[SelectionInputConsumer] Stored event for processing: {:?}", event);
     }
 }
 
@@ -729,6 +733,7 @@ pub fn process_input_events(
 
         // Normal mode consumers
         if selection_consumer.should_handle_input(event, &input_state) {
+            debug!("[INPUT_CONSUMER] Routing event to selection consumer: {:?}", event);
             selection_consumer.handle_input(event, &input_state);
             continue;
         }

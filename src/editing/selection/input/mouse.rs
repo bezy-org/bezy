@@ -14,7 +14,6 @@ use crate::geometry::world_space::DPoint;
 use crate::io::input::{InputEvent, InputState, ModifierState};
 use bevy::input::mouse::MouseButton;
 use bevy::prelude::*;
-use std::time::Duration;
 
 /// Threshold for detecting double-clicks in seconds
 pub const DOUBLE_CLICK_THRESHOLD_SECS: f32 = 0.5;

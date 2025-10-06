@@ -1,7 +1,7 @@
 //! Data synchronization between ECS entities and UFO font data
 
 use crate::core::state::AppState;
-use crate::editing::selection::components::{GlyphPointReference, PointType, Selected};
+use crate::editing::selection::components::{GlyphPointReference, PointType};
 use crate::editing::selection::enhanced_point_component::EnhancedPointType;
 use crate::editing::selection::nudge::NudgeState;
 use crate::editing::smooth_curves::find_direct_neighbor_handles;

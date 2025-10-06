@@ -9,19 +9,16 @@ use super::DragPointState;
 use super::DragSelectionState;
 use crate::core::config::BezySettings;
 use crate::core::state::AppState;
-use crate::core::state::FontMetrics;
 use crate::core::state::TextEditorState;
 use crate::editing::selection::nudge::{EditEvent, NudgeState};
 #[allow(unused_imports)]
 use crate::geometry::point::{EditPoint, EntityId, EntityKind};
 #[allow(unused_imports)]
 use crate::geometry::world_space::DPoint;
-use crate::io::input::{helpers, InputEvent, InputState};
 use crate::io::pointer::PointerInfo;
 use bevy::ecs::system::ParamSet;
 use bevy::input::mouse::MouseButton;
 use bevy::input::ButtonInput;
-use bevy::log::info;
 use bevy::prelude::*;
 #[allow(unused_imports)]
 use bevy::window::PrimaryWindow;

@@ -69,13 +69,14 @@ impl PluginGroup for EditorPluginGroup {
         use crate::ui::edit_mode_toolbar::EditModeToolbarPlugin;
         use crate::ui::file_menu::FileMenuPlugin;
         use crate::ui::panes::coordinate_pane::CoordinatePanePlugin;
-        use crate::ui::panes::file_pane::FilePanePlugin;
+        // use crate::ui::panes::file_pane::FilePanePlugin;  // Temporarily disabled
         use crate::ui::panes::glyph_pane::GlyphPanePlugin;
 
         PluginGroupBuilder::start::<Self>()
             // .add(FilePanePlugin)  // Temporarily disabled - moving to TUI
             .add(GlyphPanePlugin)
             .add(CoordinatePanePlugin)
+            .add(crate::tools::ToolStatePlugin) // Unified tool state management
             .add(EditModeToolbarPlugin) // Handles all tools automatically
             .add(FileMenuPlugin)
             // Tool business logic plugins

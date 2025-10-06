@@ -133,6 +133,11 @@ impl Plugin for PenToolPlugin {
             .add_systems(
                 Update,
                 (
+                    // New direct input handling
+                    handle_pen_direct_input,
+                    render_pen_preview_direct,
+                    sync_pen_mode_with_tool_state,
+                    // Legacy systems (will be removed)
                     handle_pen_mouse_events, // Re-enabled to fix pen tool functionality
                     handle_pen_keyboard_events,
                     render_pen_preview,
@@ -142,6 +147,94 @@ impl Plugin for PenToolPlugin {
                     crate::ui::edit_mode_toolbar::pen::handle_pen_submenu_selection,
                 ),
             );
+    }
+}
+
+// TODO(human): Implement direct input handling for pen tool similar to select tool
+// This should bypass input_consumer.rs for instant path preview
+fn handle_pen_direct_input(
+    tool_state: Res<crate::tools::ToolState>,
+    pen_state: ResMut<PenToolState>,
+    mouse_input: Res<ButtonInput<MouseButton>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    windows: Query<&Window>,
+    camera_query: Query<(&Camera, &GlobalTransform), With<bevy::core_pipeline::core_2d::Camera2d>>,
+) {
+    // Only process if pen tool is active
+    if !tool_state.is_active(crate::tools::ToolId::Pen) {
+        return;
+    }
+
+    // TODO(human): Add pen tool input logic here
+}
+
+/// Render the pen tool preview using gizmos for immediate feedback
+fn render_pen_preview_direct(
+    tool_state: Res<crate::tools::ToolState>,
+    pen_state: Res<PenToolState>,
+    mut gizmos: Gizmos,
+    windows: Query<&Window>,
+    camera_query: Query<(&Camera, &GlobalTransform), With<bevy::core_pipeline::core_2d::Camera2d>>,
+) {
+    // Only render if pen tool is active
+    if !tool_state.is_active(crate::tools::ToolId::Pen) || pen_state.current_path.is_empty() {
+        return;
+    }
+
+    let color = Color::srgb(0.3, 0.6, 1.0); // Blue for pen preview
+    let point_color = Color::srgb(1.0, 1.0, 1.0); // White for points
+
+    // Draw lines between consecutive points
+    for window in pen_state.current_path.windows(2) {
+        gizmos.line_2d(
+            Vec2::new(window[0].x, window[0].y),
+            Vec2::new(window[1].x, window[1].y),
+            color,
+        );
+    }
+
+    // Draw points
+    for point in &pen_state.current_path {
+        gizmos.circle_2d(Vec2::new(point.x, point.y), POINT_PREVIEW_SIZE, point_color);
+    }
+
+    // Draw line to cursor if we have at least one point and are still drawing
+    if pen_state.is_drawing && !pen_state.current_path.is_empty() {
+        if let Ok(window) = windows.get_single() {
+            if let Some(cursor_pos) = window.cursor_position() {
+                if let Ok((camera, camera_transform)) = camera_query.get_single() {
+                    if let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_pos) {
+                        let last_point = pen_state.current_path.last().unwrap();
+                        gizmos.line_2d(
+                            Vec2::new(last_point.x, last_point.y),
+                            world_pos,
+                            color.with_alpha(0.5),
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Sync pen mode with unified tool state
+fn sync_pen_mode_with_tool_state(
+    tool_state: Res<crate::tools::ToolState>,
+    mut pen_mode: ResMut<PenModeActive>,
+    mut pen_state: ResMut<PenToolState>,
+) {
+    let should_be_active = tool_state.is_active(crate::tools::ToolId::Pen);
+
+    if pen_mode.0 != should_be_active {
+        pen_mode.0 = should_be_active;
+
+        // Clear pen state when deactivating
+        if !should_be_active && pen_state.is_drawing {
+            pen_state.current_path.clear();
+            pen_state.is_drawing = false;
+            pen_state.should_close_path = false;
+            debug!("🖊️ PEN: Cleared path on tool deactivation");
+        }
     }
 }
 

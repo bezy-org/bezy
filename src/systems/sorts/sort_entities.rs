@@ -1,11 +1,9 @@
 //! Sort entity management for text editor sorts
 
 use crate::core::state::text_editor::TextEditorState;
-use crate::core::state::text_editor::{BufferMember, TextBuffer};
+use crate::core::state::text_editor::TextBuffer;
 use crate::core::state::AppState;
 use crate::core::state::FontMetrics;
-use crate::core::state::SortLayoutMode;
-use crate::editing::selection::components::Selected;
 use crate::editing::sort::{ActiveSort, InactiveSort, Sort};
 use bevy::prelude::*;
 use std::collections::HashMap;

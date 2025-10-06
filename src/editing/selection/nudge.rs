@@ -1,12 +1,11 @@
 use crate::core::config::BezySettings;
 use crate::editing::selection::components::{GlyphPointReference, PointType, Selected};
-use crate::editing::selection::enhanced_point_component::EnhancedPointType;
 use crate::editing::selection::point_movement::{
     find_connected_offcurve_points_nudge, sync_to_font_data, PointMovement,
 };
 use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::ActiveSortState;
-use bevy::log::{debug, info, warn};
+use bevy::log::debug;
 use bevy::prelude::*;
 
 /// Resource to track nudge state for preventing selection loss during nudging

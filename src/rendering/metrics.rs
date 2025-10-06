@@ -6,11 +6,9 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::type_complexity)]
 
-use crate::core::state::font_metrics::FontMetrics;
 use crate::core::state::fontir_app_state::FontIRMetrics;
 use crate::rendering::entity_pools::{update_metrics_entity, EntityPools};
 use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
-use crate::ui::themes::CurrentTheme;
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh2d;
 use bevy::sprite::{ColorMaterial, MeshMaterial2d};

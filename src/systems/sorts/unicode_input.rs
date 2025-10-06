@@ -908,7 +908,7 @@ fn insert_character_at_buffer_cursor(
     }
 
     // Create the new sort entry
-    use crate::core::state::text_editor::buffer::{SortData, SortKind, SortLayoutMode};
+    use crate::core::state::text_editor::buffer::{SortData, SortKind};
 
     // Calculate the world position for the new character based on text flow
     let new_position = calculate_character_position(

@@ -8,21 +8,14 @@
 
 use super::EditModeSystem;
 use crate::core::config::BezySettings;
-use crate::core::state::AppState;
-use crate::editing::selection::components::{GlyphPointReference, PointType, Selectable, Selected};
 use crate::editing::selection::systems::AppStateChanged;
-use crate::editing::selection::{DragPointState, DragSelectionState, SelectionState};
-use crate::editing::sort::manager::SortPointEntity;
-use crate::editing::sort::ActiveSortState;
-use crate::geometry::utilities::axis_lock_position;
-use crate::geometry::world_space::DPoint;
-use crate::io::input::{helpers, InputEvent, InputMode, InputState, ModifierState};
+use crate::io::input::{helpers, InputEvent, InputMode, InputState};
 use crate::io::pointer::PointerInfo;
 use crate::systems::ui_interaction::UiHoverState;
 use crate::ui::edit_mode_toolbar::select::SelectModeActive;
-use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
+use crate::ui::edit_mode_toolbar::EditTool;
 use crate::ui::theme::*;
-use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
+use crate::ui::themes::CurrentTheme;
 use crate::utils::embedded_assets::EmbeddedFonts;
 use bevy::input::keyboard::KeyCode;
 use bevy::input::mouse::MouseButton;

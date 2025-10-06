@@ -9,13 +9,9 @@ use crate::editing::selection::point_movement::{
     find_connected_offcurve_points_drag, sync_to_font_data, PointMovement,
 };
 use crate::editing::selection::DragPointState;
-use crate::editing::smooth_curves::{
-    apply_smooth_curve_constraints, find_all_smooth_constraints,
-    update_smooth_constraint_transforms,
-};
 use crate::io::pointer::PointerInfo;
 use bevy::input::ButtonInput;
-use bevy::log::{debug, warn};
+use bevy::log::debug;
 use bevy::prelude::*;
 
 /// System to handle advanced point dragging with constraints and snapping

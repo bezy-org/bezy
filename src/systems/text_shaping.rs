@@ -11,15 +11,14 @@
 //! with Latin text editing.
 
 use crate::core::state::fontir_app_state::FontIRAppState;
-use crate::core::state::text_editor::buffer::{SortData, SortKind};
+use crate::core::state::text_editor::buffer::SortKind;
 use crate::core::state::{SortLayoutMode, TextEditorState};
-use crate::utils::embedded_assets::EmbeddedFonts;
 use bevy::prelude::*;
 use std::collections::HashMap;
 
 // HarfBuzz imports (conditional compilation could be added later)
 use harfrust::{
-    Direction, FontRef, GlyphBuffer, Language, Script, ShaperData, ShaperInstance, UnicodeBuffer,
+    Direction, FontRef, Language, Script, ShaperData, ShaperInstance, UnicodeBuffer,
 };
 use std::path::PathBuf;
 use std::str::FromStr;
