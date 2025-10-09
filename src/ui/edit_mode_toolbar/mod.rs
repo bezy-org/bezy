@@ -79,6 +79,7 @@ pub mod config_loader;
 pub mod toolbar_config;
 
 mod hyper;
+pub mod keyboard_shortcuts;
 pub mod keyboard_utils;
 pub mod knife;
 mod measure;
@@ -382,6 +383,8 @@ impl Plugin for EditModeToolbarPlugin {
             .init_resource::<SpacebarToggleState>()
             // ✅ NEW SYSTEM: Centralized configuration system handles all tool registration
             .add_plugins(config_loader::ConfigBasedToolbarPlugin)
+            // ✅ KEYBOARD SHORTCUTS: Centralized keyboard shortcut handling
+            .add_plugins(keyboard_shortcuts::KeyboardShortcutPlugin)
             // ✅ BEHAVIOR PLUGINS: These provide the actual tool behavior (systems, input handling)
             // These are still needed because they contain the ECS systems that make tools work
             .add_plugins(PanToolPlugin) // Pan tool input handling and behavior

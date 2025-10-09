@@ -51,6 +51,10 @@ pub async fn run_tui(
 
 /// Run the application with TUI enabled (both GUI and TUI simultaneously)
 pub fn run_app_with_tui(cli_args: CliArgs) -> Result<()> {
+    if let Err(e) = crate::logging::setup_file_logging_for_tui() {
+        eprintln!("Warning: Failed to set up file logging: {}", e);
+    }
+
     // Create communication channels
     let (tui_tx, tui_rx) = mpsc::unbounded_channel();
     let (app_tx, app_rx) = mpsc::unbounded_channel();

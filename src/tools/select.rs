@@ -50,17 +50,14 @@ impl Plugin for SelectToolPlugin {
     fn build(&self, app: &mut App) {
         debug!("🔍 Registering SelectToolPlugin systems");
         app.init_resource::<SelectModeActive>()
-            .init_resource::<SelectToolDragState>()
             .add_systems(Startup, select_tool_startup_log)
             .add_systems(
                 Update,
                 (
                     handle_select_tool_activation,
                     sync_select_mode_with_tool_state,
-                    handle_select_tool_input, // Direct input handling
-                    handle_select_tool_drag, // Marquee selection
-                    render_selection_marquee, // Visual feedback
-                    debug_select_tool_state,
+                    // Let the existing selection system handle actual selection
+                    // We just manage the tool state
                 )
                 .chain()
                 .run_if(resource_exists::<crate::tools::ToolState>),
@@ -68,12 +65,14 @@ impl Plugin for SelectToolPlugin {
     }
 }
 
-/// Direct input handling for select tool that bypasses input_consumer.rs for better performance
+// DISABLED: Conflicts with existing selection system in /src/editing/selection/
+// The existing system uses InputEvent events and handles selection properly
+#[allow(dead_code)]
 fn handle_select_tool_input(
     tool_state: Res<crate::tools::ToolState>,
     mouse_input: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window>,
-    camera_query: Query<(&Camera, &GlobalTransform), With<bevy::core_pipeline::core_2d::Camera2d>>,
+    camera_query: Query<(&Camera, &GlobalTransform), With<crate::rendering::cameras::DesignCamera>>,
     mut commands: Commands,
     selectable_query: Query<
         (Entity, &GlobalTransform, Option<&crate::editing::selection::components::Selected>),
@@ -87,21 +86,28 @@ fn handle_select_tool_input(
         return;
     }
 
-    // Handle left mouse button release for selection (not press, to avoid conflict with drag)
+    // Debug: Log mouse events
+    if mouse_input.just_pressed(MouseButton::Left) {
+        debug!("🔍 SELECT DEBUG: Mouse just pressed");
+    }
     if mouse_input.just_released(MouseButton::Left) {
-        // Only handle as click if we weren't dragging
-        let drag_threshold = 5.0;
-        if drag_state.start_position.distance(drag_state.current_position) < drag_threshold {
-            let Ok(window) = windows.get_single() else {
-                return;
-            };
+        debug!("🔍 SELECT DEBUG: Mouse just released, is_dragging={}", drag_state.is_dragging);
+    }
+
+    // Handle left mouse button release for selection (not press, to avoid conflict with drag)
+    if mouse_input.just_released(MouseButton::Left) && !drag_state.is_dragging {
+        debug!("🔍 SELECT: Mouse released, was_dragging={}", drag_state.is_dragging);
+        // This is a click, not a drag
+        let Ok(window) = windows.single() else {
+            return;
+        };
 
         let Some(cursor_position) = window.cursor_position() else {
             return;
         };
 
         // Convert screen coordinates to world coordinates
-        let Ok((camera, camera_transform)) = camera_query.get_single() else {
+        let Ok((camera, camera_transform)) = camera_query.single() else {
             return;
         };
 
@@ -116,8 +122,13 @@ fn handle_select_tool_input(
         // Check if shift is held for multi-selection
         let shift_held = keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
 
+        // Debug: Count selectable entities
+        let selectable_count = selectable_query.iter().count();
+        debug!("🔍 SELECT DEBUG: Found {} selectable entities", selectable_count);
+
         // Find the closest selectable entity within a threshold
-        let selection_threshold = 10.0; // World units
+        // Note: This threshold is in world units - adjust based on typical zoom levels
+        let selection_threshold = 20.0; // Increased for debugging
         let mut closest_entity = None;
         let mut closest_distance = f32::MAX;
 
@@ -132,6 +143,8 @@ fn handle_select_tool_input(
 
         // Handle selection based on what we found
         if let Some((entity, is_already_selected)) = closest_entity {
+            debug!("🔍 SELECT TOOL: Found entity {:?} at distance {:.2}", entity, closest_distance);
+
             if shift_held {
                 // Toggle selection with shift
                 if is_already_selected {
@@ -142,29 +155,36 @@ fn handle_select_tool_input(
                     debug!("🔍 SELECT TOOL: Added entity {:?} to selection (shift-click)", entity);
                 }
             } else {
-                // Clear all selections first (unless clicking on already selected item)
-                if !is_already_selected {
-                    for (entity, _, is_selected) in selectable_query.iter() {
-                        if is_selected.is_some() {
-                            commands.entity(entity).remove::<crate::editing::selection::components::Selected>();
-                        }
+                // Without shift: always clear all selections first, then select the clicked entity
+                // This ensures clicking on empty space (no entity found) will deselect everything
+
+                // Clear all existing selections
+                for (clear_entity, _, is_selected) in selectable_query.iter() {
+                    if is_selected.is_some() {
+                        commands.entity(clear_entity).remove::<crate::editing::selection::components::Selected>();
                     }
                 }
 
                 // Select the clicked entity
                 commands.entity(entity).insert(crate::editing::selection::components::Selected);
-                debug!("🔍 SELECT TOOL: Selected entity {:?}", entity);
+                debug!("🔍 SELECT TOOL: Selected entity {:?} (cleared others first)", entity);
             }
-        } else if !shift_held {
-            // Clicked on empty space - clear selection
-            for (entity, _, is_selected) in selectable_query.iter() {
-                if is_selected.is_some() {
-                    commands.entity(entity).remove::<crate::editing::selection::components::Selected>();
+        } else {
+            // No entity found near click position - this is empty space
+            if !shift_held {
+                // Clear all selections when clicking on empty space (without shift)
+                let mut cleared_count = 0;
+                for (entity, _, is_selected) in selectable_query.iter() {
+                    if is_selected.is_some() {
+                        commands.entity(entity).remove::<crate::editing::selection::components::Selected>();
+                        cleared_count += 1;
+                    }
                 }
+                debug!("🔍 SELECT TOOL: Cleared {} selections (clicked empty space)", cleared_count);
+            } else {
+                debug!("🔍 SELECT TOOL: Clicked empty space with shift - keeping current selection");
             }
-            debug!("🔍 SELECT TOOL: Cleared selection (clicked empty space)");
         }
-        } // End of drag_threshold check
     }
 }
 
@@ -208,12 +228,13 @@ fn sync_select_mode_with_tool_state(
     }
 }
 
-/// Handle drag selection (marquee)
+// DISABLED: Conflicts with existing selection system in /src/editing/selection/
+#[allow(dead_code)]
 fn handle_select_tool_drag(
     tool_state: Res<crate::tools::ToolState>,
     mouse_input: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window>,
-    camera_query: Query<(&Camera, &GlobalTransform), With<bevy::core_pipeline::core_2d::Camera2d>>,
+    camera_query: Query<(&Camera, &GlobalTransform), With<crate::rendering::cameras::DesignCamera>>,
     mut drag_state: ResMut<SelectToolDragState>,
     mut commands: Commands,
     selectable_query: Query<
@@ -227,7 +248,7 @@ fn handle_select_tool_drag(
         return;
     }
 
-    let Ok(window) = windows.get_single() else {
+    let Ok(window) = windows.single() else {
         return;
     };
 
@@ -239,7 +260,7 @@ fn handle_select_tool_drag(
         return;
     };
 
-    let Ok((camera, camera_transform)) = camera_query.get_single() else {
+    let Ok((camera, camera_transform)) = camera_query.single() else {
         return;
     };
 
@@ -249,29 +270,32 @@ fn handle_select_tool_drag(
         return;
     };
 
-    // Start drag on mouse down
+    // Start potential drag on mouse down (but don't mark as dragging yet)
     if mouse_input.just_pressed(MouseButton::Left) && !drag_state.is_dragging {
-        drag_state.start_drag(world_position);
+        // Just record the start position, don't start dragging yet
+        drag_state.start_position = world_position;
+        drag_state.current_position = world_position;
+        debug!("🔍 SELECT: Mouse down at {:?}", world_position);
     }
 
-    // Update drag position
-    if mouse_input.pressed(MouseButton::Left) && drag_state.is_dragging {
-        drag_state.update_drag(world_position);
-
-        // Check if this is actually a drag (not just a click)
-        let drag_threshold = 5.0;
-        if drag_state.start_position.distance(drag_state.current_position) > drag_threshold {
-            // We're dragging - prevent the click selection
-            // This is handled by checking drag_state in handle_select_tool_input
+    // Check if we should start dragging (mouse held and moved beyond threshold)
+    if mouse_input.pressed(MouseButton::Left) {
+        if !drag_state.is_dragging {
+            let drag_threshold = 5.0; // World units
+            if drag_state.start_position.distance(world_position) > drag_threshold {
+                // Now we're actually dragging
+                drag_state.is_dragging = true;
+                debug!("🔍 SELECT: Started marquee selection (exceeded threshold)");
+            }
         }
+
+        // Update current position whether dragging or not
+        drag_state.current_position = world_position;
     }
 
     // End drag and select entities within marquee
-    if mouse_input.just_released(MouseButton::Left) && drag_state.is_dragging {
-        let drag_distance = drag_state.start_position.distance(drag_state.current_position);
-        let drag_threshold = 5.0;
-
-        if drag_distance > drag_threshold {
+    if mouse_input.just_released(MouseButton::Left) {
+        if drag_state.is_dragging {
             // This was a drag - select entities within marquee
             let shift_held = keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
 
@@ -290,40 +314,72 @@ fn handle_select_tool_drag(
                     debug!("🔍 SELECT: Entity {:?} selected by marquee", entity);
                 }
             }
-        }
 
-        drag_state.end_drag();
+            drag_state.end_drag();
+        } else {
+            // Reset positions even if we didn't drag
+            drag_state.start_position = Vec2::ZERO;
+            drag_state.current_position = Vec2::ZERO;
+        }
     }
 }
 
-/// Render the selection marquee
+// DISABLED: The existing selection system already has marquee rendering
+#[allow(dead_code)]
 fn render_selection_marquee(
     tool_state: Res<crate::tools::ToolState>,
     drag_state: Res<SelectToolDragState>,
-    mut gizmos: Gizmos,
+    mut commands: Commands,
+    existing_marquee: Query<Entity, With<crate::editing::selection::components::SelectionRect>>,
 ) {
-    // Only render if select tool is active and dragging
-    if !tool_state.is_active(crate::tools::ToolId::Select) || !drag_state.is_dragging {
+    // Only process if select tool is active
+    if !tool_state.is_active(crate::tools::ToolId::Select) {
+        // Clean up any existing marquee if tool is not active
+        for entity in existing_marquee.iter() {
+            commands.entity(entity).despawn_recursive();
+        }
         return;
     }
 
-    // Don't draw marquee for tiny drags
-    let drag_threshold = 5.0;
-    if drag_state.start_position.distance(drag_state.current_position) < drag_threshold {
-        return;
+    if drag_state.is_dragging {
+        // Don't create marquee for tiny drags
+        let drag_threshold = 5.0;
+        let drag_distance = drag_state.start_position.distance(drag_state.current_position);
+        if drag_distance < drag_threshold {
+            // Remove marquee if drag is too small
+            for entity in existing_marquee.iter() {
+                commands.entity(entity).despawn_recursive();
+            }
+            return;
+        }
+
+        // Update or create the selection rect component
+        if let Some(entity) = existing_marquee.iter().next() {
+            // Update existing marquee
+            commands.entity(entity).insert(
+                crate::editing::selection::components::SelectionRect {
+                    start: drag_state.start_position,
+                    end: drag_state.current_position,
+                }
+            );
+        } else {
+            // Create new marquee entity
+            commands.spawn(
+                crate::editing::selection::components::SelectionRect {
+                    start: drag_state.start_position,
+                    end: drag_state.current_position,
+                }
+            );
+        }
+
+        trace!("🔍 SELECT: Updated marquee from {:?} to {:?} (distance: {})",
+            drag_state.start_position, drag_state.current_position, drag_distance);
+    } else {
+        // Clean up marquee when not dragging
+        for entity in existing_marquee.iter() {
+            commands.entity(entity).despawn_recursive();
+        }
     }
-
-    let (min, max) = drag_state.get_bounds();
-
-    // Draw marquee rectangle
-    let color = Color::srgba(0.3, 0.6, 1.0, 0.3); // Semi-transparent blue
-    let border_color = Color::srgba(0.3, 0.6, 1.0, 0.8);
-
-    // Draw filled rect (as lines for now since Bevy doesn't have filled rect gizmo)
-    gizmos.line_2d(Vec2::new(min.x, min.y), Vec2::new(max.x, min.y), border_color);
-    gizmos.line_2d(Vec2::new(max.x, min.y), Vec2::new(max.x, max.y), border_color);
-    gizmos.line_2d(Vec2::new(max.x, max.y), Vec2::new(min.x, max.y), border_color);
-    gizmos.line_2d(Vec2::new(min.x, max.y), Vec2::new(min.x, min.y), border_color);
 }
 
 /// Debug system to track select tool state

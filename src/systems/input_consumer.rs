@@ -765,10 +765,29 @@ pub fn process_selection_events(
     active_sort_state: Res<crate::editing::sort::ActiveSortState>,
     sort_point_entities: Query<&crate::editing::sort::manager::SortPointEntity>,
     mut selection_state: ResMut<SelectionState>,
+    camera_query: Query<&Projection, With<crate::rendering::cameras::DesignCamera>>,
 ) {
     if selection_consumer.pending_events.is_empty() {
         return;
     }
+
+    // Get camera scale for zoom-aware selection margin
+    // TODO: This zoom-aware margin calculation is overly complex. Consider simpler approaches:
+    // - Use screen-space selection instead of world-space
+    // - Make SELECTION_MARGIN a configurable setting
+    // - Use a fixed screen-pixel threshold with ray casting
+    let camera_scale = camera_query
+        .get_single()
+        .ok()
+        .and_then(|proj| {
+            if let Projection::Orthographic(ortho) = proj {
+                Some(ortho.scale)
+            } else {
+                None
+            }
+        })
+        .unwrap_or(1.0);
+    let zoom_aware_margin = crate::editing::selection::events::SELECTION_MARGIN * camera_scale;
 
     // Process all pending events
     let events = std::mem::take(&mut selection_consumer.pending_events);
@@ -807,6 +826,7 @@ pub fn process_selection_events(
                         &sort_point_entities,
                         &mut double_click_state,
                         &time,
+                        zoom_aware_margin,
                     );
                 }
             }

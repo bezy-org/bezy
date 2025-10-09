@@ -160,16 +160,17 @@ The multi-buffer text editor is a core innovation of Bezy, supporting both LTR a
 **Why this matters:**
 - The TUI takes over the terminal display using Ratatui
 - Any stdout/stderr output corrupts the TUI display
-- All logs go to `~/.config/bezy/logs/bezy-YYYY-MM-DD.log`
+- All logs go to `~/.config/bezy/logs/bezy.log` (daily rotated)
 - The `~/.config/bezy/` directory is created by `--new-config` flag
 
 ### How Logging Works
-1. **By default**: All logs go to `~/.config/bezy/logs/bezy-YYYY-MM-DD.log`
-2. Logging redirection happens automatically in `src/core/runner.rs`
-3. Bevy's logging macros (info!, error!, etc.) write to log files
-4. TUI remains clean and functional
-5. **With `--no-tui` flag**: Logs go to stdout/stderr for debugging (terminal only)
-6. Log files are date-stamped and created automatically
+1. **By default (TUI mode)**: All logs go to `~/.config/bezy/logs/bezy.log` (daily rotation)
+2. Logging is configured in `src/tui/mod.rs` via `setup_file_logging_for_tui()`
+3. Bevy's LogPlugin is disabled in TUI mode (see `src/systems/plugins.rs`)
+4. Custom tracing subscriber writes directly to files using `tracing-appender`
+5. TUI remains clean and functional - NO stdout/stderr output
+6. **With `--no-tui` flag**: Logs go to stdout/stderr for debugging (terminal only)
+7. Log files are date-stamped and rotated daily automatically
 
 ### Viewing Logs
 ```bash
@@ -179,16 +180,31 @@ cargo run -- --new-config
 # Run the app (with TUI)
 cargo run --release -- --edit ~/path/to/font.ufo
 
-# View logs in another terminal
-tail -f ~/.config/bezy/logs/bezy-$(date +%Y-%m-%d).log
+# View logs in another terminal (file name changes daily)
+tail -f ~/.config/bezy/logs/bezy.log
 
 # Or use the TUI's log viewer tab (built-in)
-``` 
+```
+
+### Debugging in TUI Mode
+**IMPORTANT**: When debugging issues, remember that ALL debug!(), info!(), warn!(), error!() output goes to:
+```
+~/.config/bezy/logs/bezy.log
+```
+
+**You will NOT see debug output in the terminal** - it's all in the log files!
+
+To debug issues:
+1. Add debug!() statements to the code
+2. Run the app
+3. Check the log file in another terminal: `tail -f ~/.config/bezy/logs/bezy.log`
+4. Filter for specific components: `grep "SELECT" ~/.config/bezy/logs/bezy.log`
 
 
 Located in `src/logging/mod.rs`:
-- All application output goes to `~/.config/bezy/logs/bezy-YYYY-MM-DD.log`
-- **NEVER use println!, eprintln!, dbg!, print!, or eprint! anywhere except `src/logging/mod.rs`**
+- All application output goes to `~/.config/bezy/logs/bezy.log` (daily rotated)
+- Custom tracing subscriber set up in `src/tui/mod.rs` via `setup_file_logging_for_tui()`
+- **NEVER use println!, eprintln!, dbg!, print!, or eprint! anywhere except startup error handling**
 - **ALWAYS use Bevy logging macros**: `info!()`, `warn!()`, `error!()`, `debug!()`, `trace!()`
 - Even error handling must use `error!()` macro, not `eprintln!()`
 - TUI corruption is a critical bug that wastes significant development time
@@ -268,6 +284,8 @@ Located in `src/qa/`:
 - NO COMMENTS unless explicitly requested, try to make the code readable
 
 ### Working Principles
+- **ALWAYS** check for existing systems before creating new ones - the codebase has many sophisticated systems already
+- **NEVER** use git commands (add, commit, push, etc.) - the user handles all git operations
 - **DO NOT** use println!, eprintln!, or dbg! macros - this breaks the TUI (use Bevy logging instead)
 - **DO NOT** make changes not explicitly requested, if you have a good idea ask first
 - **DO NOT** change defaults without user request
@@ -275,6 +293,30 @@ Located in `src/qa/`:
 - **ALWAYS** ask for clarification if unclear
 - **ALWAYS** use Bevy logging macros (info!, warn!, error!, debug!, trace!) for all output
 - **FOCUS** on the specific issue described
+
+### Before Creating New Systems
+**CRITICAL**: Always search for existing functionality first!
+
+Before implementing any new system, component, or feature:
+1. **Search the codebase** for similar functionality using grep/glob
+2. **Check the module structure** to understand where features live
+3. **Look for existing events, resources, and components** that might already handle the task
+4. **Understand the existing architecture** before adding to it
+
+Common places to check:
+- `/src/editing/` - Selection, text editing, glyph manipulation
+- `/src/systems/` - Input handling, text buffer, sorts management
+- `/src/rendering/` - Visual display, glyph rendering, cameras
+- `/src/io/` - Input events, keyboard/mouse handling
+- `/src/tools/` - Tool implementations (but check if systems exist elsewhere first!)
+
+**Example**: The selection system already exists in `/src/editing/selection/` with sophisticated mouse handling, marquee selection, and rendering. Creating a new selection system in `/src/tools/select.rs` broke the working system.
+
+**Why this matters**:
+- Duplicate systems conflict and break each other
+- Existing systems often handle edge cases you haven't considered
+- The codebase has years of refinement in its existing systems
+- Working WITH existing systems is faster than replacing them
 
 ### Adding New Tools
 1. Create tool file in `src/tools/` implementing `EditTool` trait
