@@ -43,7 +43,7 @@ impl PluginGroup for RenderingPluginGroup {
             cameras::CameraPlugin, checkerboard::CheckerboardPlugin,
             sort_renderer::SortLabelRenderingPlugin, zoom_aware_scaling::CameraResponsivePlugin,
             EntityPoolingPlugin, GlyphRenderingPlugin, MeshCachingPlugin, MetricsRenderingPlugin,
-            PostEditingRenderingPlugin, SortHandleRenderingPlugin,
+            PointRenderingPlugin, PostEditingRenderingPlugin, SortHandleRenderingPlugin,
         };
 
         PluginGroupBuilder::start::<Self>()
@@ -53,6 +53,7 @@ impl PluginGroup for RenderingPluginGroup {
             .add(CheckerboardPlugin)
             .add(EntityPoolingPlugin)
             .add(MeshCachingPlugin)
+            .add(PointRenderingPlugin) // Mesh-based point rendering (no gizmos)
             .add(MetricsRenderingPlugin)
             .add(SortHandleRenderingPlugin)
             .add(SortLabelRenderingPlugin) // Sort label rendering (text labels)

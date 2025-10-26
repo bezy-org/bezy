@@ -211,12 +211,12 @@ pub struct SelectVisualPool {
 - [x] Update spacebar toggle for temporary modes
 - [x] Write and pass unit tests for ToolState
 
-### Phase 2: Fix Core Tools (✅ SELECT, PEN, KNIFE, MEASURE, SHAPES DONE)
+### Phase 2: Fix Core Tools (✅ PEN, KNIFE, MEASURE, SHAPES DONE; SELECT USES EXISTING SYSTEM)
 - [x] Fix select tool completely
-  - [x] Direct input handling (bypasses input_consumer.rs)
-  - [x] Click selection with shift multi-select
-  - [x] Marquee selection (drag to select)
-  - [x] Visual feedback (marquee rectangle)
+  - [x] Uses existing selection system in `/src/editing/selection/`
+  - [x] SelectToolPlugin manages tool state only
+  - [x] Click selection, shift multi-select, marquee all handled by existing system
+  - [x] Removed conflicting direct input handlers
 - [x] Fix pen tool
   - [x] Direct input handling
   - [x] Instant path preview with gizmos
@@ -351,6 +351,39 @@ fn knife_cleanup(tool_state: Res<ToolState>, mut knife_state: ResMut<KnifeState>
 - ⚠️ input_consumer.rs still needed for Text tool (acceptable tradeoff)
 - ⚠️ Legacy resources exist but properly managed via synchronization
 
+## Toolbar Integration Improvements
+
+### Centralized Keyboard Shortcuts
+**File**: `src/ui/edit_mode_toolbar/keyboard_shortcuts.rs` (NEW)
+
+- Single system handles all tool keyboard shortcuts
+- Prevents conflicts between tools
+- Respects text mode (disables shortcuts when typing)
+- Maps config shortcuts to tool switches automatically
+- Sends SwitchToolEvent for proper tool lifecycle
+
+### Toolbar-Tool State Synchronization
+- ToolState syncs with CurrentTool for visual feedback
+- Toolbar buttons send SwitchToolEvent instead of direct resource manipulation
+- Spacebar toggle properly uses temporary tool stack
+- Visual feedback updates based on ToolState changes
+
+### Submenu System (Text Tool Example)
+- Text tool shows LTR/RTL/Insert/Freeform modes
+- Submenu spawns below main toolbar with consistent positioning
+- Visibility toggles based on active tool
+- Reuses button styling from main toolbar
+- Pattern is reusable for other multi-mode tools
+
+### Config-Based Tool Registration
+**File**: `src/ui/edit_mode_toolbar/toolbar_config.rs`
+
+- Single source of truth for tool configuration
+- Easy reordering via order numbers
+- Simple enable/disable via enabled flag
+- Centralized shortcuts in one place
+- Automatic registration via ConfigBasedToolbarPlugin
+
 ## Developer Guide: Adding New Tools
 
 ### Step-by-Step Process for New Tools
@@ -457,12 +490,16 @@ ToolConfig {
 - **Removing legacy resources** - Too deeply integrated, sync approach better
 - **Porting Text tool** - Too complex, reasonable to keep on input_consumer
 - **Using gizmos** - Violated architecture rules, had to be replaced
+- **Creating parallel selection system** - Select tool already had sophisticated system in `/src/editing/selection/`
 
 ### Key Insights
-1. **System ordering matters** - Drag handler must run before click handler
-2. **Architecture rules exist for reasons** - No gizmos rule prevents render inconsistencies
-3. **Complexity requires compromise** - Text tool's sophistication justifies keeping input_consumer
-4. **Synchronization over removal** - Legacy resources safer to sync than remove
+1. **Check for existing systems first** - Selection system already existed in `/src/editing/selection/`
+2. **Don't bypass working systems** - Existing selection had marquee, double-click, proper event handling
+3. **Direct input isn't always better** - Select tool works better using existing InputEvent pipeline
+4. **System ordering matters** - Drag handler must run before click handler (for tools that need it)
+5. **Architecture rules exist for reasons** - No gizmos rule prevents render inconsistencies
+6. **Complexity requires compromise** - Text tool's sophistication justifies keeping input_consumer
+7. **Synchronization over removal** - Legacy resources safer to sync than remove
 
 ## Notes
 

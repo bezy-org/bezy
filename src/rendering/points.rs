@@ -41,6 +41,7 @@ pub fn render_points_with_meshes(
     existing_point_meshes: Query<Entity, With<PointMesh>>,
     theme: Res<CurrentTheme>,
     camera_scale: Res<CameraResponsiveScale>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
 ) {
     let _all_point_count = all_point_entities.iter().count();
     let _existing_mesh_count = existing_point_meshes.iter().count();
@@ -48,9 +49,22 @@ pub fn render_points_with_meshes(
 
     info!("🎨 [render_points_with_meshes] CALLED - active_sorts={}, all_points={}", active_sort_count, _all_point_count);
 
-    // Early return if no active sorts
+    // Hide points in pan/preview mode (standard font editor behavior)
+    if current_tool.get_current() == Some("pan") {
+        info!("🎨 [render_points_with_meshes] Pan mode active - hiding all points");
+
+        // Clean up existing point meshes in pan mode
+        for entity in existing_point_meshes.iter() {
+            if let Ok(mut entity_commands) = commands.get_entity(entity) {
+                entity_commands.despawn();
+            }
+        }
+        return;
+    }
+
+    // Also hide points if no active sort (no glyph being edited)
     if active_sort_count == 0 {
-        info!("🎨 [render_points_with_meshes] No active sorts - early return");
+        info!("🎨 [render_points_with_meshes] No active sorts - hiding points");
 
         // Clean up existing point meshes when no active sorts
         for entity in existing_point_meshes.iter() {

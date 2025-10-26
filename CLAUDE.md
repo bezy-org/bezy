@@ -302,6 +302,7 @@ Before implementing any new system, component, or feature:
 2. **Check the module structure** to understand where features live
 3. **Look for existing events, resources, and components** that might already handle the task
 4. **Understand the existing architecture** before adding to it
+5. **Verify systems are actually registered** - a system can exist but not be loaded!
 
 Common places to check:
 - `/src/editing/` - Selection, text editing, glyph manipulation
@@ -312,11 +313,32 @@ Common places to check:
 
 **Example**: The selection system already exists in `/src/editing/selection/` with sophisticated mouse handling, marquee selection, and rendering. Creating a new selection system in `/src/tools/select.rs` broke the working system.
 
+**How to check for duplicate systems**:
+```bash
+# Search for existing systems by functionality
+grep -r "render.*select" src/ --include="*.rs"
+grep -r "pub fn.*selection" src/ --include="*.rs"
+
+# Find where systems are registered
+grep -r "add_systems.*your_function_name" src/ --include="*.rs"
+
+# Check if plugins are actually loaded
+grep -r "YourPlugin" src/core/app/plugins.rs
+```
+
+**Common duplicate system bugs**:
+1. **System exists but not registered** - Function defined but never added to a plugin
+2. **Plugin exists but not loaded** - Plugin defined but not added to PluginGroup
+3. **Multiple systems doing the same thing** - Both gizmo-based and mesh-based renderers active
+4. **Tool logic duplicated** - Same functionality in `/src/tools/` AND `/src/editing/`
+
 **Why this matters**:
 - Duplicate systems conflict and break each other
+- Unregistered systems waste development time - they exist but never run
 - Existing systems often handle edge cases you haven't considered
 - The codebase has years of refinement in its existing systems
 - Working WITH existing systems is faster than replacing them
+- Always verify a system is both defined AND registered before creating a new one
 
 ### Adding New Tools
 1. Create tool file in `src/tools/` implementing `EditTool` trait
