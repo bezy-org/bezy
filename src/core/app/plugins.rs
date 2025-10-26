@@ -43,7 +43,7 @@ impl PluginGroup for RenderingPluginGroup {
             cameras::CameraPlugin, checkerboard::CheckerboardPlugin,
             sort_renderer::SortLabelRenderingPlugin, zoom_aware_scaling::CameraResponsivePlugin,
             EntityPoolingPlugin, GlyphRenderingPlugin, MeshCachingPlugin, MetricsRenderingPlugin,
-            PointRenderingPlugin, PostEditingRenderingPlugin, SortHandleRenderingPlugin,
+            PostEditingRenderingPlugin, SortHandleRenderingPlugin,
         };
 
         PluginGroupBuilder::start::<Self>()
@@ -53,11 +53,13 @@ impl PluginGroup for RenderingPluginGroup {
             .add(CheckerboardPlugin)
             .add(EntityPoolingPlugin)
             .add(MeshCachingPlugin)
-            .add(PointRenderingPlugin) // Mesh-based point rendering (no gizmos)
+            // REMOVED: PointRenderingPlugin - Duplicate of GlyphRenderingPlugin's point rendering
+            // Caused z-fighting and broken drag behavior
+            // .add(PointRenderingPlugin)
             .add(MetricsRenderingPlugin)
             .add(SortHandleRenderingPlugin)
             .add(SortLabelRenderingPlugin) // Sort label rendering (text labels)
-            .add(GlyphRenderingPlugin)
+            .add(GlyphRenderingPlugin) // Unified renderer: points, outlines, handles
     }
 }
 
