@@ -723,8 +723,8 @@ fn render_glyph_points(
             )
         };
 
-        // All sorts use the same sizing now
-        let root_size_multiplier = 1.0;
+        // Selected points are larger for visual feedback
+        let root_size_multiplier = if *is_selected { 1.3 } else { 1.0 };
 
         // Check if this point is smooth (smooth points should be circles)
         let is_smooth = smooth_points.get(point_entity).unwrap_or(&false);
@@ -1430,18 +1430,22 @@ type InactiveSortChangeQuery<'w, 's> = Query<
     ),
 >;
 
-/// System to detect when sorts change and trigger visual updates
+/// System to detect when sorts or selections change and trigger visual updates
 fn detect_sort_changes(
     mut update_tracker: ResMut<SortVisualUpdateTracker>,
     active_sort_query: ActiveSortChangeQuery,
     inactive_sort_query: InactiveSortChangeQuery,
     removed_active: RemovedComponents<ActiveSort>,
     removed_inactive: RemovedComponents<crate::editing::sort::InactiveSort>,
+    selection_changes: Query<Entity, (With<SortPointEntity>, Changed<Selected>)>,
+    removed_selected: RemovedComponents<Selected>,
 ) {
     let active_changed = !active_sort_query.is_empty();
     let inactive_changed = !inactive_sort_query.is_empty();
     let removed_active_count = removed_active.len();
     let removed_inactive_count = removed_inactive.len();
+    let selection_changed = !selection_changes.is_empty();
+    let removed_selected_count = removed_selected.len();
 
     // REMOVED EXPENSIVE CHECK: The point spawning system already triggers visual updates
     // when points are spawned, so we don't need to check for existing points here.
@@ -1450,12 +1454,14 @@ fn detect_sort_changes(
     let needs_update = active_changed
         || inactive_changed
         || removed_active_count > 0
-        || removed_inactive_count > 0;
+        || removed_inactive_count > 0
+        || selection_changed
+        || removed_selected_count > 0;
 
     if needs_update {
         update_tracker.needs_update = true;
-        debug!("🔄 SORT CHANGES DETECTED: Setting update flag - active_changed: {}, inactive_changed: {}, removed_active: {}, removed_inactive: {}",
-              active_changed, inactive_changed, removed_active_count, removed_inactive_count);
+        debug!("🔄 CHANGES DETECTED: Setting update flag - active_changed: {}, inactive_changed: {}, removed_active: {}, removed_inactive: {}, selection_changed: {}, removed_selected: {}",
+              active_changed, inactive_changed, removed_active_count, removed_inactive_count, selection_changed, removed_selected_count);
     }
 }
 

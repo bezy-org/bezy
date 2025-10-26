@@ -176,7 +176,9 @@ pub fn process_selection_input_events(
             }
         })
         .unwrap_or(1.0);
-    let zoom_aware_margin = crate::editing::selection::events::SELECTION_MARGIN * camera_scale;
+    // Divide by camera_scale to keep selection margin constant in screen-space
+    // When zoomed out (scale > 1), world-space margin needs to be larger
+    let zoom_aware_margin = crate::editing::selection::events::SELECTION_MARGIN / camera_scale;
 
     debug!(
         "[process_selection_input_events] Processing {} collected events",
