@@ -1430,7 +1430,7 @@ type InactiveSortChangeQuery<'w, 's> = Query<
     ),
 >;
 
-/// System to detect when sorts, selections, or point positions change and trigger visual updates
+/// System to detect when sorts, selections, or edits happen and trigger visual updates
 fn detect_sort_changes(
     mut update_tracker: ResMut<SortVisualUpdateTracker>,
     active_sort_query: ActiveSortChangeQuery,
@@ -1439,7 +1439,7 @@ fn detect_sort_changes(
     removed_inactive: RemovedComponents<crate::editing::sort::InactiveSort>,
     selection_changes: Query<Entity, (With<SortPointEntity>, Changed<Selected>)>,
     removed_selected: RemovedComponents<Selected>,
-    transform_changes: Query<Entity, (With<SortPointEntity>, Changed<Transform>)>,
+    mut edit_events: EventReader<crate::editing::selection::nudge::EditEvent>,
 ) {
     let active_changed = !active_sort_query.is_empty();
     let inactive_changed = !inactive_sort_query.is_empty();
@@ -1447,24 +1447,23 @@ fn detect_sort_changes(
     let removed_inactive_count = removed_inactive.len();
     let selection_changed = !selection_changes.is_empty();
     let removed_selected_count = removed_selected.len();
-    let transform_changed = !transform_changes.is_empty();
+    let edit_event_count = edit_events.read().count();
 
-    // REMOVED EXPENSIVE CHECK: The point spawning system already triggers visual updates
-    // when points are spawned, so we don't need to check for existing points here.
-    // This eliminates the O(n*m) nested loop that was causing lag.
-
+    // Use EditEvent instead of Transform change detection
+    // This is more precise: only fires when nudge/drag explicitly signals an edit
+    // Transform changes happen too frequently (every frame during animations, etc.)
     let needs_update = active_changed
         || inactive_changed
         || removed_active_count > 0
         || removed_inactive_count > 0
         || selection_changed
         || removed_selected_count > 0
-        || transform_changed;
+        || edit_event_count > 0;
 
     if needs_update {
         update_tracker.needs_update = true;
-        if transform_changed {
-            debug!("🔄 TRANSFORM CHANGED: {} point(s) moved - triggering visual update", transform_changes.iter().count());
+        if edit_event_count > 0 {
+            debug!("🔄 EDIT EVENT: {} edit(s) - triggering visual update", edit_event_count);
         }
         if selection_changed || removed_selected_count > 0 {
             debug!("🔄 SELECTION CHANGED: {} selected, {} deselected - triggering visual update",
