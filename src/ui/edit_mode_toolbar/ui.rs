@@ -708,7 +708,7 @@ pub fn create_value_text<T: Bundle>(
             font_size: crate::ui::theme_system::layout_constants::WIDGET_TEXT_FONT_SIZE,
             ..default()
         },
-        TextColor(theme.get_ui_text_secondary()),
+        TextColor(theme.active_color()),
         additional_components,
     ));
 }

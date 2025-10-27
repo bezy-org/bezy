@@ -206,7 +206,7 @@ pub fn spawn_coordinate_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.active_color()),
                         YValue,
                     ));
                 });
@@ -248,7 +248,7 @@ pub fn spawn_coordinate_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.active_color()),
                         WidthValue,
                     ));
                 });
@@ -290,7 +290,7 @@ pub fn spawn_coordinate_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.active_color()),
                         HeightValue,
                     ));
                 });

@@ -282,7 +282,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.active_color()),
                         GlyphNameText,
                     ));
                 });
@@ -328,7 +328,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.active_color()),
                         GlyphUnicodeText,
                     ));
                 });
@@ -374,7 +374,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.active_color()),
                         GlyphAdvanceText,
                     ));
                 });
@@ -420,7 +420,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.active_color()),
                         GlyphLeftBearingText,
                     ));
                 });
@@ -466,7 +466,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.active_color()),
                         GlyphRightBearingText,
                     ));
                 });
@@ -512,7 +512,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.active_color()),
                         GlyphLeftGroupText,
                     ));
                 });
@@ -557,7 +557,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.active_color()),
                         GlyphRightGroupText,
                     ));
                 });

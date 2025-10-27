@@ -252,7 +252,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.active_color()),
                         DesignspacePathText,
                     ));
                 });
@@ -294,7 +294,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.active_color()),
                         CurrentUFOText,
                     ));
                 });
@@ -340,7 +340,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.active_color()),
                         LastSavedText,
                     ));
                 });
@@ -385,7 +385,7 @@ pub fn spawn_file_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.active_color()),
                         LastExportedText,
                     ));
                 });
