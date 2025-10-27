@@ -268,6 +268,12 @@ Input is handled in layers:
 - **Tools**: Receive input events and implement tool-specific behavior
 - **Text editor**: Separate input handling for text buffer manipulation
 
+**Input Handling Patterns:**
+- Use `just_pressed()` for discrete actions (nudging, tool switching, single actions)
+- Use `pressed()` for continuous states (pan mode while spacebar held)
+- Don't overcomplicate with rate limiting - Bevy and the OS handle keyboard repeat correctly
+- Example: Point nudging uses `just_pressed()` for accurate, responsive single nudges (see `src/editing/selection/nudge.rs`)
+
 ### 6. Quality Assurance System
 Located in `src/qa/`:
 - **`fontspector.rs`**: Integration with fontbakery/fontspector for validation
