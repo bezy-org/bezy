@@ -906,8 +906,8 @@ fn render_glyph_points(
             let line_size = camera_scale.adjusted_size(base_line_size);
             let line_width = camera_scale.adjusted_line_width();
 
-            // Make crosshair lines slightly shorter to fit within point bounds
-            let crosshair_length = line_size * 1.6;
+            // Crosshair should match the outer circle diameter (root_size_multiplier * 2.0)
+            let crosshair_length = line_size * root_size_multiplier * 2.0;
 
             // Horizontal line - primary color only
             let h_primary_entity = commands
