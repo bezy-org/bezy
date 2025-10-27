@@ -7,11 +7,58 @@ use crate::core::config::CliArgs;
 use crate::core::state::FontIRAppState;
 use bevy::prelude::*;
 use fontir::source::Source;
+use std::path::PathBuf;
 
-/// System to load UFO/designspace font on startup using FontIR
+/// Resource to track deferred font loading state
+#[derive(Resource)]
+pub struct DeferredFontLoading {
+    pub font_path: Option<PathBuf>,
+    pub loading: bool,
+    pub loaded: bool,
+}
+
+impl Default for DeferredFontLoading {
+    fn default() -> Self {
+        Self {
+            font_path: None,
+            loading: false,
+            loaded: false,
+        }
+    }
+}
+
+/// System to initialize deferred font loading on startup (fast)
 pub fn load_fontir_font(mut commands: Commands, cli_args: Res<CliArgs>) {
-    // clap provides the default value, so font_source is guaranteed to be Some
-    if let Some(path) = &cli_args.font_source {
+    // Initialize deferred loading resource
+    let deferred_loading = DeferredFontLoading {
+        font_path: cli_args.font_source.clone(),
+        loading: false,
+        loaded: false,
+    };
+
+    commands.insert_resource(deferred_loading);
+
+    if cli_args.font_source.is_some() {
+        info!("Font loading deferred - window will appear immediately");
+    } else {
+        debug!("No font path specified, starting with empty default state.");
+    }
+}
+
+/// System to actually load the font in the background after window is shown
+pub fn deferred_fontir_font_loading(
+    mut commands: Commands,
+    mut deferred_loading: ResMut<DeferredFontLoading>,
+) {
+    if deferred_loading.loaded || deferred_loading.loading {
+        return;
+    }
+
+    if let Some(path) = deferred_loading.font_path.clone() {
+        deferred_loading.loading = true;
+
+        info!("Starting background font loading from: {}", path.display());
+
         match FontIRAppState::from_path(path.clone()) {
             Ok(mut app_state) => {
                 // Try to load glyphs if possible
@@ -29,19 +76,21 @@ pub fn load_fontir_font(mut commands: Commands, cli_args: Res<CliArgs>) {
                     path.display()
                 );
                 commands.insert_resource(app_state);
+                deferred_loading.loaded = true;
+                deferred_loading.loading = false;
+
+                info!("Font loading completed!");
             }
             Err(e) => {
                 error!("Failed to load font with FontIR: {}", e);
                 error!("Font path: {}", path.display());
                 error!("The application will continue but some features may not work correctly.");
 
-                // Don't insert any FontIR state if loading fails
+                // Mark as completed (even though it failed) so we don't keep trying
+                deferred_loading.loaded = true;
+                deferred_loading.loading = false;
                 warn!("App will run without FontIR state - some features may not work");
             }
         }
-    } else {
-        debug!("No font path specified, starting with empty default state.");
-        // Don't insert any FontIRAppState resource - systems will handle this gracefully
-        // The app will run in an empty state allowing users to start fresh
     }
 }

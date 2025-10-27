@@ -34,7 +34,6 @@ use crate::ui::edit_mode_toolbar::*;
 use crate::ui::theme::TOOLBAR_GRID_SPACING;
 use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
 use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
-use bevy::prelude::*;
 
 // COMPONENTS ------------------------------------------------------------------
 
@@ -312,9 +311,18 @@ pub fn handle_toolbar_mode_selection(
     >,
     mut current_tool: ResMut<CurrentTool>,
     tool_registry: Res<ToolRegistry>,
+    mut switch_events: EventWriter<crate::tools::SwitchToolEvent>,
 ) {
     for (interaction, tool_button) in interaction_query.iter() {
         if *interaction == Interaction::Pressed {
+            // Send event to switch tool through unified system
+            if let Some(tool_id) = crate::tools::ToolId::from_str(tool_button.tool_id) {
+                switch_events.send(crate::tools::SwitchToolEvent {
+                    tool: tool_id,
+                    temporary: false,
+                });
+            }
+            // Still call the old system for compatibility during migration
             switch_to_tool(tool_button.tool_id, &mut current_tool, &tool_registry);
         }
     }

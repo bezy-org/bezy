@@ -11,7 +11,7 @@ use crate::editing::selection::events::AppStateChanged;
 use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
 use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
 use crate::ui::theme::*;
-use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
+use crate::ui::themes::CurrentTheme;
 use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh2d;

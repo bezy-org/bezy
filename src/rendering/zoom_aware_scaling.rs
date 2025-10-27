@@ -23,6 +23,11 @@ pub struct ZoomScaleConfig {
 impl Default for ZoomScaleConfig {
     fn default() -> Self {
         Self {
+            // TODO(human): Adjust these values to tune point and line sizes at different zoom levels
+            // These control how large points and lines appear relative to the glyph at different zooms:
+            // - Lower values = smaller/thinner (more subtle)
+            // - Higher values = larger/thicker (more prominent)
+            // Test by zooming in/out and observing point/line visibility
             zoom_in_max_factor: 1.0,  // size when max zoomed in
             zoom_default_factor: 1.5, // size at default zoom (100%)
             zoom_out_max_factor: 8.0, // size when max zoomed out

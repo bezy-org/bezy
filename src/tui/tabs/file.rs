@@ -1,8 +1,8 @@
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{
-    layout::Rect,
-    style::{Modifier, Style},
+    layout::{Constraint, Direction, Layout, Rect},
+    style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph},
     Frame,
@@ -70,6 +70,35 @@ pub async fn handle_key_event(
 
 /// Draw the File tab UI
 pub fn draw(f: &mut Frame, _state: &mut FileState, area: Rect) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(14), Constraint::Min(0)])
+        .split(area);
+
+    let ascii_lines = [
+        "",
+        "     SSSSS     BBBBBB",
+        "   SS     SS   BB   BB",
+        "  SS  SSS  SS  BB   BB   EEEEE  ZZZZZZ YY    YY",
+        "  SS SS SS SS  BBBBBBb  EE   EE    ZZ  YY   YY",
+        "  SS    SS SS  BB    BB EEEEEEE   ZZ   YY  YY",
+        "    SSSSS  SS  BB    BB EE       ZZ    YY YY",
+        " SS       SS   BBBBBBB   EEEEE  ZZZZZZ  YYY",
+        "   SSSSSSS                             YY",
+        "                                    YYYY",
+        " Version 0.1.0 - bezy.org             ",
+    ];
+
+    let ascii_art: Vec<Line> = ascii_lines
+        .iter()
+        .map(|line| Line::from(vec![Span::styled(*line, Style::default().fg(Color::Green))]))
+        .collect();
+
+    let ascii_paragraph = Paragraph::new(ascii_art)
+        .block(Block::default().borders(Borders::ALL));
+
+    f.render_widget(ascii_paragraph, chunks[0]);
+
     let file_menu = vec![
         Line::from(""),
         Line::from(vec![Span::styled(
@@ -93,5 +122,5 @@ pub fn draw(f: &mut Frame, _state: &mut FileState, area: Rect) {
     let paragraph =
         Paragraph::new(file_menu).block(Block::default().borders(Borders::ALL).title("File"));
 
-    f.render_widget(paragraph, area);
+    f.render_widget(paragraph, chunks[1]);
 }

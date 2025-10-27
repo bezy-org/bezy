@@ -1,35 +1,41 @@
 //! Selection rendering systems
 //!
-//! This module handles all visual rendering for selection-related features:
-//! - Selected point highlighting
-//! - Selection marquee/rectangle
-//! - Hover effects
-//! - Control handle rendering for selected points
+//! This module handles visual rendering for selection-related features:
+//! - Selection marquee/rectangle (drag selection) - mesh-based dashed rectangle
 //!
-//! All actual selection logic (what is selected, hit testing, etc.)
-//! remains in the editing/selection module.
+//! Selected point highlighting is handled by the mesh-based point rendering
+//! system in src/rendering/points.rs which already supports selected state.
 
-use crate::core::state::{AppState, FontIRAppState, TextEditorState};
-use crate::editing::selection::components::{
-    GlyphPointReference, PointType, Selected, SelectionRect,
-};
-use crate::editing::selection::nudge::NudgeState;
-use crate::editing::selection::{DragPointState, DragSelectionState};
-use crate::editing::sort::manager::SortPointEntity;
-use crate::editing::sort::ActiveSort;
-use crate::ui::theme::*;
+use crate::editing::selection::components::SelectionRect;
+use crate::editing::selection::DragSelectionState;
+use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
 use crate::ui::themes::CurrentTheme;
 use bevy::prelude::*;
+use bevy::render::mesh::Mesh2d;
+use bevy::sprite::{ColorMaterial, MeshMaterial2d};
 
-/// Renders the selection marquee rectangle during drag selection
+#[derive(Component)]
+pub struct MarqueeMesh;
+
+/// Renders the selection marquee rectangle during drag selection using mesh-based dashed lines
 pub fn render_selection_marquee(
-    _commands: Commands,
-    mut gizmos: Gizmos,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
     drag_state: Res<DragSelectionState>,
     marquee_query: Query<(Entity, &SelectionRect)>,
+    existing_marquee_meshes: Query<Entity, With<MarqueeMesh>>,
     theme: Res<CurrentTheme>,
     current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
+    camera_scale: Res<CameraResponsiveScale>,
 ) {
+    // Clean up existing marquee meshes
+    for entity in existing_marquee_meshes.iter() {
+        if let Ok(mut entity_commands) = commands.get_entity(entity) {
+            entity_commands.despawn();
+        }
+    }
+
     // Only render marquee when in select mode
     if current_tool.get_current() != Some("select") {
         return;
@@ -37,18 +43,10 @@ pub fn render_selection_marquee(
 
     // Only render marquee when dragging
     if !drag_state.is_dragging {
-        // Debug: Check if there are any lingering SelectionRect entities
-        let rect_count = marquee_query.iter().count();
-        if rect_count > 0 {
-            debug!("[render_selection_marquee] WARNING: Found {} SelectionRect entities but is_dragging=false", rect_count);
-            for (entity, rect) in marquee_query.iter() {
-                debug!("[render_selection_marquee] Lingering SelectionRect entity {:?} with rect: start={:?}, end={:?}", entity, rect.start, rect.end);
-            }
-        }
         return;
     }
 
-    // Try to find the selection rect from the query first
+    // Try to find the selection rect from the query
     if let Some((_, rect)) = marquee_query.iter().next() {
         debug!(
             "[render_selection_marquee] Drawing marquee: start={:?}, end={:?}",
@@ -64,188 +62,106 @@ pub fn render_selection_marquee(
         let p3 = Vec2::new(end.x, end.y);
         let p4 = Vec2::new(start.x, end.y);
 
-        // gizmos, start, end, color, dash_length, gap_length
-        draw_dashed_line(&mut gizmos, p1, p2, color, 8.0, 4.0);
-        draw_dashed_line(&mut gizmos, p2, p3, color, 8.0, 4.0);
-        draw_dashed_line(&mut gizmos, p3, p4, color, 8.0, 4.0);
-        draw_dashed_line(&mut gizmos, p4, p1, color, 8.0, 4.0);
+        let line_width = camera_scale.adjusted_line_width();
+        let dash_length = 8.0;
+        let gap_length = 4.0;
+        let z = 15.0; // Above points
+
+        // Create dashed lines for each edge
+        create_dashed_line_meshes(
+            &mut commands,
+            &mut meshes,
+            &mut materials,
+            p1,
+            p2,
+            line_width,
+            dash_length,
+            gap_length,
+            color,
+            z,
+        );
+        create_dashed_line_meshes(
+            &mut commands,
+            &mut meshes,
+            &mut materials,
+            p2,
+            p3,
+            line_width,
+            dash_length,
+            gap_length,
+            color,
+            z,
+        );
+        create_dashed_line_meshes(
+            &mut commands,
+            &mut meshes,
+            &mut materials,
+            p3,
+            p4,
+            line_width,
+            dash_length,
+            gap_length,
+            color,
+            z,
+        );
+        create_dashed_line_meshes(
+            &mut commands,
+            &mut meshes,
+            &mut materials,
+            p4,
+            p1,
+            line_width,
+            dash_length,
+            gap_length,
+            color,
+            z,
+        );
     }
 }
 
-/// Helper to draw a dashed line between two points
-fn draw_dashed_line(
-    gizmos: &mut Gizmos,
+/// Create mesh-based dashed line segments
+fn create_dashed_line_meshes(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<ColorMaterial>>,
     start: Vec2,
     end: Vec2,
-    color: Color,
+    line_width: f32,
     dash_length: f32,
     gap_length: f32,
+    color: Color,
+    z: f32,
 ) {
-    let total_length = (end - start).length();
-    let direction = (end - start).normalize_or_zero();
-    let mut current_length = 0.0;
-    let mut draw = true;
-    let mut current_position = start;
+    let direction = (end - start).normalize();
+    let total_length = start.distance(end);
+    let segment_length = dash_length + gap_length;
 
-    while current_length < total_length {
-        let segment_length = if draw { dash_length } else { gap_length };
-        let next_length = (current_length + segment_length).min(total_length);
-        let segment_end_position = start + direction * next_length;
+    let mut current_pos = 0.0;
+    while current_pos < total_length {
+        let dash_start_pos = current_pos;
+        let dash_end_pos = (current_pos + dash_length).min(total_length);
 
-        if draw {
-            gizmos.line_2d(current_position, segment_end_position, color);
-        }
+        let dash_start = start + direction * dash_start_pos;
+        let dash_end = start + direction * dash_end_pos;
 
-        current_position = segment_end_position;
-        current_length = next_length;
-        draw = !draw;
-    }
-}
+        let line_mesh =
+            crate::rendering::mesh_utils::create_line_mesh(dash_start, dash_end, line_width);
 
-/// Renders visual feedback for selected entities
-pub fn render_selected_entities(
-    mut gizmos: Gizmos,
-    selected_query: Query<(&GlobalTransform, &PointType), With<Selected>>,
-    drag_point_state: Res<DragPointState>,
-    knife_mode: Option<Res<crate::ui::edit_mode_toolbar::knife::KnifeModeActive>>,
-    _nudge_state: Res<NudgeState>,
-    theme: Res<CurrentTheme>,
-) {
-    // Always render selected points - no dual-mode rendering
+        commands.spawn((
+            MarqueeMesh,
+            Mesh2d(meshes.add(line_mesh)),
+            MeshMaterial2d(materials.add(ColorMaterial::from_color(color))),
+            Transform::from_xyz(
+                (dash_start.x + dash_end.x) * 0.5,
+                (dash_start.y + dash_end.y) * 0.5,
+                z,
+            ),
+            GlobalTransform::default(),
+            Visibility::Visible,
+            InheritedVisibility::default(),
+            ViewVisibility::default(),
+        ));
 
-    let selected_count = selected_query.iter().count();
-    if selected_count > 0 {
-        debug!("Selection: Rendering {} selected entities", selected_count);
-    }
-
-    // Skip rendering if knife mode is active
-    if let Some(knife_mode) = knife_mode {
-        if knife_mode.0 {
-            return;
-        }
-    }
-
-    let selection_color = theme.theme().selected_color();
-    let is_dragging = drag_point_state.is_dragging;
-
-    // Render each selected point with selection styling
-    for (transform, point_type) in &selected_query {
-        let position = transform.translation().truncate();
-        let position_3d = Vec3::new(
-            position.x,
-            position.y,
-            transform.translation().z + SELECTION_Z_DEPTH_OFFSET,
-        );
-        let position_2d = position_3d.truncate();
-
-        // Draw selection indicator with same shape and size as unselected points
-        let point_radius = if point_type.is_on_curve {
-            if theme.theme().use_square_for_on_curve() {
-                let adjusted_radius = theme.theme().on_curve_point_radius()
-                    * theme.theme().on_curve_square_adjustment();
-                gizmos.rect_2d(
-                    position_2d,
-                    Vec2::splat(adjusted_radius * 2.0),
-                    selection_color,
-                );
-                adjusted_radius
-            } else {
-                gizmos.circle_2d(
-                    position_2d,
-                    theme.theme().on_curve_point_radius(),
-                    selection_color,
-                );
-                theme.theme().on_curve_point_radius()
-            }
-        } else {
-            // Off-curve point - always a circle
-            gizmos.circle_2d(
-                position_2d,
-                theme.theme().off_curve_point_radius(),
-                selection_color,
-            );
-            theme.theme().off_curve_point_radius()
-        };
-
-        // Draw cross at the point, sized to match point radius
-        let line_size = point_radius;
-        gizmos.line_2d(
-            Vec2::new(position_2d.x - line_size, position_2d.y),
-            Vec2::new(position_2d.x + line_size, position_2d.y),
-            selection_color,
-        );
-        gizmos.line_2d(
-            Vec2::new(position_2d.x, position_2d.y - line_size),
-            Vec2::new(position_2d.x, position_2d.y + line_size),
-            selection_color,
-        );
-
-        // Make lines thicker when dragging
-        if is_dragging {
-            let offset = 0.5;
-            gizmos.line_2d(
-                Vec2::new(position_2d.x - line_size, position_2d.y + offset),
-                Vec2::new(position_2d.x + line_size, position_2d.y + offset),
-                selection_color,
-            );
-            gizmos.line_2d(
-                Vec2::new(position_2d.x + offset, position_2d.y - line_size),
-                Vec2::new(position_2d.x + offset, position_2d.y + line_size),
-                selection_color,
-            );
-        }
-    }
-}
-
-/// Renders all point entities (not just selected ones)
-/// This is used to visualize all points in the active sort for debugging
-#[allow(clippy::too_many_arguments)]
-#[allow(clippy::type_complexity)]
-pub fn render_all_point_entities(
-    _gizmos: Gizmos,
-    point_entities: Query<
-        (Entity, &GlobalTransform, &PointType),
-        (With<SortPointEntity>, Without<Selected>),
-    >,
-    selected_query: Query<Entity, With<Selected>>,
-    _nudge_state: Res<NudgeState>,
-    camera_query: Query<(&Camera, &GlobalTransform, &Projection), With<Camera2d>>,
-) {
-    // Always render all points - no dual-mode rendering
-
-    let point_count = point_entities.iter().count();
-
-    // Debug camera information only when we have points to render
-    if point_count > 0 {
-        if let Ok((_camera, camera_transform, projection)) = camera_query.single() {
-            let camera_pos = camera_transform.translation();
-            let camera_scale = match projection {
-                Projection::Orthographic(ortho) => ortho.scale,
-                _ => 1.0,
-            };
-            debug!(
-                "[render_all_point_entities] Camera pos: ({:.1}, {:.1}, {:.1}), scale: {:.3}",
-                camera_pos.x, camera_pos.y, camera_pos.z, camera_scale
-            );
-        }
-    }
-
-    for (i, (entity, transform, point_type)) in point_entities.iter().enumerate() {
-        // Skip if selected (already rendered by render_selected_entities)
-        if selected_query.get(entity).is_ok() {
-            continue;
-        }
-
-        let position = transform.translation().truncate();
-
-        if i < 5 {
-            debug!(
-                "[render_all_point_entities] Rendering point {} at ({:.1}, {:.1}), is_on_curve={}",
-                i, position.x, position.y, point_type.is_on_curve
-            );
-        }
-
-        // Point rendering is now handled by mesh-based system in point_backgrounds.rs
-        // This includes point backgrounds, center dots, and properly-sized outlines
+        current_pos += segment_length;
     }
 }

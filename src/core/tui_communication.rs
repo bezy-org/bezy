@@ -1,13 +1,17 @@
+#[cfg(feature = "tui")]
 use crate::tui::communication::{AppMessage, FontInfo, GlyphInfo, TuiMessage};
 use bevy::prelude::*;
+#[cfg(feature = "tui")]
 use tokio::sync::mpsc;
 
+#[cfg(feature = "tui")]
 #[derive(Resource)]
 pub struct TuiCommunication {
     pub tui_rx: mpsc::UnboundedReceiver<TuiMessage>,
     pub app_tx: mpsc::UnboundedSender<AppMessage>,
 }
 
+#[cfg(feature = "tui")]
 impl TuiCommunication {
     pub fn new(
         tui_rx: mpsc::UnboundedReceiver<TuiMessage>,

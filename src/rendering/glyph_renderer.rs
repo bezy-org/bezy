@@ -723,8 +723,8 @@ fn render_glyph_points(
             )
         };
 
-        // All sorts use the same sizing now
-        let root_size_multiplier = 1.0;
+        // Selected points are larger for visual feedback
+        let root_size_multiplier = if *is_selected { 1.3 } else { 1.0 };
 
         // Check if this point is smooth (smooth points should be circles)
         let is_smooth = smooth_points.get(point_entity).unwrap_or(&false);
@@ -906,8 +906,8 @@ fn render_glyph_points(
             let line_size = camera_scale.adjusted_size(base_line_size);
             let line_width = camera_scale.adjusted_line_width();
 
-            // Make crosshair lines slightly shorter to fit within point bounds
-            let crosshair_length = line_size * 1.6;
+            // Crosshair should match the outer circle diameter (root_size_multiplier * 2.0)
+            let crosshair_length = line_size * root_size_multiplier * 2.0;
 
             // Horizontal line - primary color only
             let h_primary_entity = commands
@@ -995,7 +995,7 @@ fn render_static_outline(
                                     materials,
                                     start,
                                     end,
-                                    1.0,
+                                    theme.theme().path_line_width(),
                                     theme.theme().path_stroke_color(),
                                     OUTLINE_Z,
                                     sort_entity,
@@ -1042,7 +1042,7 @@ fn render_static_outline(
                                         materials,
                                         last_pos,
                                         curve_pos,
-                                        1.0,
+                                        theme.theme().path_line_width(),
                                         theme.theme().path_stroke_color(),
                                         OUTLINE_Z,
                                         sort_entity,
@@ -1079,7 +1079,7 @@ fn render_static_outline(
                                         materials,
                                         last_pos,
                                         curve_pos,
-                                        1.0,
+                                        theme.theme().path_line_width(),
                                         theme.theme().path_stroke_color(),
                                         OUTLINE_Z,
                                         sort_entity,
@@ -1190,7 +1190,7 @@ fn render_fontir_outline(
                             materials,
                             start,
                             end,
-                            1.0,
+                            theme.theme().path_line_width(),
                             theme.theme().path_stroke_color(),
                             OUTLINE_Z,
                             sort_entity,
@@ -1264,7 +1264,7 @@ fn render_fontir_outline(
                                 materials,
                                 last_pos,
                                 curve_pos,
-                                1.0,
+                                theme.theme().path_line_width(),
                                 theme.theme().path_stroke_color(),
                                 OUTLINE_Z,
                                 sort_entity,
@@ -1319,7 +1319,7 @@ fn render_fontir_outline(
                                 materials,
                                 last_pos,
                                 curve_pos,
-                                1.0,
+                                theme.theme().path_line_width(),
                                 theme.theme().path_stroke_color(),
                                 OUTLINE_Z,
                                 sort_entity,
@@ -1355,7 +1355,7 @@ fn render_fontir_outline(
                                     materials,
                                     end,
                                     start,
-                                    1.0,
+                                    theme.theme().path_line_width(),
                                     theme.theme().path_stroke_color(),
                                     OUTLINE_Z,
                                     sort_entity,
@@ -1430,32 +1430,49 @@ type InactiveSortChangeQuery<'w, 's> = Query<
     ),
 >;
 
-/// System to detect when sorts change and trigger visual updates
+/// System to detect when sorts, selections, or edits happen and trigger visual updates
 fn detect_sort_changes(
     mut update_tracker: ResMut<SortVisualUpdateTracker>,
     active_sort_query: ActiveSortChangeQuery,
     inactive_sort_query: InactiveSortChangeQuery,
     removed_active: RemovedComponents<ActiveSort>,
     removed_inactive: RemovedComponents<crate::editing::sort::InactiveSort>,
+    selection_changes: Query<Entity, (With<SortPointEntity>, Changed<Selected>)>,
+    removed_selected: RemovedComponents<Selected>,
+    mut edit_events: EventReader<crate::editing::selection::nudge::EditEvent>,
 ) {
     let active_changed = !active_sort_query.is_empty();
     let inactive_changed = !inactive_sort_query.is_empty();
     let removed_active_count = removed_active.len();
     let removed_inactive_count = removed_inactive.len();
+    let selection_changed = !selection_changes.is_empty();
+    let removed_selected_count = removed_selected.len();
+    let edit_event_count = edit_events.read().count();
 
-    // REMOVED EXPENSIVE CHECK: The point spawning system already triggers visual updates
-    // when points are spawned, so we don't need to check for existing points here.
-    // This eliminates the O(n*m) nested loop that was causing lag.
-
+    // Use EditEvent instead of Transform change detection
+    // This is more precise: only fires when nudge/drag explicitly signals an edit
+    // Transform changes happen too frequently (every frame during animations, etc.)
     let needs_update = active_changed
         || inactive_changed
         || removed_active_count > 0
-        || removed_inactive_count > 0;
+        || removed_inactive_count > 0
+        || selection_changed
+        || removed_selected_count > 0
+        || edit_event_count > 0;
 
     if needs_update {
         update_tracker.needs_update = true;
-        debug!("🔄 SORT CHANGES DETECTED: Setting update flag - active_changed: {}, inactive_changed: {}, removed_active: {}, removed_inactive: {}",
-              active_changed, inactive_changed, removed_active_count, removed_inactive_count);
+        if edit_event_count > 0 {
+            debug!("🔄 EDIT EVENT: {} edit(s) - triggering visual update", edit_event_count);
+        }
+        if selection_changed || removed_selected_count > 0 {
+            debug!("🔄 SELECTION CHANGED: {} selected, {} deselected - triggering visual update",
+                   selection_changes.iter().count(), removed_selected_count);
+        }
+        if active_changed || inactive_changed || removed_active_count > 0 || removed_inactive_count > 0 {
+            debug!("🔄 SORT CHANGED: active={}, inactive={}, removed_active={}, removed_inactive={}",
+                   active_changed, inactive_changed, removed_active_count, removed_inactive_count);
+        }
     }
 }
 

@@ -46,14 +46,14 @@ impl EditTool for ConfigurableTool {
     fn update(&self, commands: &mut Commands) {
         use crate::io::input::InputMode;
 
-        // Delegate to the appropriate behavior based on config
+        // Activate the appropriate tool based on config
         match self.config.behavior {
             ToolBehavior::Select => {
-                // Select tool behavior is handled by SelectToolPlugin
-                // The actual tool activation happens through the tool system
-                debug!(
-                    "Config system: Select tool selected, activation handled by SelectToolPlugin"
-                );
+                // Set input mode for select tool
+                commands.insert_resource(InputMode::Select);
+                // Activate select mode
+                commands.insert_resource(crate::tools::select::SelectModeActive(true));
+                debug!("Config system: Activated Select tool");
             }
             ToolBehavior::Pan => {
                 // Set input mode for pan tool

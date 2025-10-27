@@ -116,8 +116,7 @@ impl Plugin for SelectionPlugin {
             .add_systems(
                 Update,
                 (
-                    // TEMP DISABLED: Causing performance lag during text input
-                    // sync_selected_components,
+                    sync_selected_components,
                     // DISABLED: Uses old AppState instead of FontIRAppState
                     // entity_management::update_glyph_data_from_selection,
                     entity_management::sync_enhanced_point_attributes,

@@ -8,7 +8,6 @@
 
 use crate::core::state::FontIRAppState;
 use crate::editing::selection::components::Selected;
-use crate::editing::sort::manager::SortPointEntity;
 use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
 use crate::ui::themes::CurrentTheme;
 use bevy::prelude::*;

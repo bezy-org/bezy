@@ -70,3 +70,39 @@ pub fn setup_log_redirection() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+pub fn setup_file_logging_for_tui() -> anyhow::Result<()> {
+    use tracing_appender::rolling;
+    use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+
+    initialize_logs_directory()?;
+
+    let logs_dir = logs_dir();
+    let file_appender = rolling::daily(logs_dir, "bezy.log");
+
+    let file_layer = fmt::layer()
+        .with_writer(file_appender)
+        .with_ansi(false)
+        .with_target(true)
+        .with_thread_ids(false)
+        .with_line_number(true);
+
+    let filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| {
+            #[cfg(debug_assertions)]
+            {
+                EnvFilter::new("bezy=debug,bevy_render=warn,bevy_winit=warn,wgpu=warn,winit=warn,bevy_ecs::error::handler=error")
+            }
+            #[cfg(not(debug_assertions))]
+            {
+                EnvFilter::new("bezy=info,bevy=warn,wgpu=error,winit=error,bevy_ecs::error::handler=error")
+            }
+        });
+
+    tracing_subscriber::registry()
+        .with(filter)
+        .with(file_layer)
+        .init();
+
+    Ok(())
+}

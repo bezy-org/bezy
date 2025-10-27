@@ -17,7 +17,7 @@
 use crate::rendering::cameras::DesignCamera;
 use crate::ui::themes::CurrentTheme;
 use bevy::prelude::*;
-use bevy::window::{PrimaryWindow, WindowResized};
+use bevy::window::PrimaryWindow;
 use bevy_pancam::PanCam;
 use std::collections::HashSet;
 

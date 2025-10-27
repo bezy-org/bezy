@@ -3,7 +3,7 @@
 use crate::core::state::font_data::PointTypeData;
 use crate::core::state::AppState;
 use crate::editing::selection::components::{
-    FontIRPointReference, GlyphPointReference, PointType, Selectable, Selected, SelectionState,
+    FontIRPointReference, GlyphPointReference, PointType, Selectable, SelectionState,
 };
 use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::{ActiveSortState, Sort};

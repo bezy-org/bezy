@@ -49,6 +49,10 @@ pub mod pen;
 pub mod select;
 pub mod shapes;
 pub mod text;
+pub mod tool_state;
+
+#[cfg(test)]
+mod tests;
 
 // Explicit re-exports for each tool
 // Each tool provides its main struct and plugin
@@ -62,6 +66,7 @@ pub use pen::{PenTool, PenToolPlugin, PenToolState};
 pub use select::{SelectTool, SelectToolPlugin};
 pub use shapes::{ShapesTool, ShapesToolPlugin};
 pub use text::{TextTool, TextToolPlugin};
+pub use tool_state::{ToolState, ToolId, SwitchToolEvent, ToolStatePlugin, tool_is_active};
 
 use bevy::prelude::*;
 

@@ -3,15 +3,10 @@
 //! Bevy plugin that registers all sort-related systems, resources, and events.
 
 use super::manager::{
-    handle_sort_events, respawn_sort_points_on_glyph_change, spawn_current_glyph_sort,
+    handle_sort_events, respawn_sort_points_on_glyph_change,
 };
-use crate::core::state::{AppState, GlyphNavigation};
-use crate::editing::selection::components::{
-    GlyphPointReference, PointType, Selectable, Selected, SelectionState,
-};
-use crate::editing::selection::nudge::PointCoordinates;
 use crate::editing::sort::components::{
-    ActiveSort, ActiveSortState, InactiveSort, Sort, SortEvent,
+    ActiveSortState, SortEvent,
 };
 use bevy::prelude::*;
 

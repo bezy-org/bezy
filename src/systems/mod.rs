@@ -20,7 +20,7 @@ pub mod ui_interaction;
 
 // Re-export commonly used items
 pub use commands::CommandsPlugin;
-pub use fontir_lifecycle::load_fontir_font;
+pub use fontir_lifecycle::{load_fontir_font, deferred_fontir_font_loading, DeferredFontLoading};
 pub use input_consumer::InputConsumerPlugin;
 pub use lifecycle::{exit_on_esc, load_ufo_font};
 pub use plugins::{configure_default_plugins, BezySystems};

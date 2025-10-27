@@ -3,8 +3,6 @@
 //! This tool allows users to cut paths by drawing a line across them.
 //! The tool shows a preview of the cutting line and intersection points.
 
-use crate::core::state::AppState;
-use crate::editing::selection::events::AppStateChanged;
 use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
 use crate::ui::theme::*;
 use bevy::prelude::*;

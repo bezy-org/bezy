@@ -41,13 +41,31 @@ pub fn render_points_with_meshes(
     existing_point_meshes: Query<Entity, With<PointMesh>>,
     theme: Res<CurrentTheme>,
     camera_scale: Res<CameraResponsiveScale>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
 ) {
     let _all_point_count = all_point_entities.iter().count();
     let _existing_mesh_count = existing_point_meshes.iter().count();
     let active_sort_count = active_sorts.iter().count();
 
-    // Early return if no active sorts
+    info!("🎨 [render_points_with_meshes] CALLED - active_sorts={}, all_points={}", active_sort_count, _all_point_count);
+
+    // Hide points in pan/preview mode (standard font editor behavior)
+    if current_tool.get_current() == Some("pan") {
+        info!("🎨 [render_points_with_meshes] Pan mode active - hiding all points");
+
+        // Clean up existing point meshes in pan mode
+        for entity in existing_point_meshes.iter() {
+            if let Ok(mut entity_commands) = commands.get_entity(entity) {
+                entity_commands.despawn();
+            }
+        }
+        return;
+    }
+
+    // Also hide points if no active sort (no glyph being edited)
     if active_sort_count == 0 {
+        info!("🎨 [render_points_with_meshes] No active sorts - hiding points");
+
         // Clean up existing point meshes when no active sorts
         for entity in existing_point_meshes.iter() {
             if let Ok(mut entity_commands) = commands.get_entity(entity) {
@@ -64,9 +82,19 @@ pub fn render_points_with_meshes(
         }
     }
 
+    // Count selected vs unselected for debugging
+    let mut selected_count = 0;
+    let mut unselected_count = 0;
+
     // Render all points using meshes
     for (point_entity, transform, point_type, selected) in all_point_entities.iter() {
         let position = transform.translation().truncate();
+
+        if selected.is_some() {
+            selected_count += 1;
+        } else {
+            unselected_count += 1;
+        }
 
         // Determine colors for two-layer system
         // Swap primary and secondary to make secondary the outline/center (darker) and primary the middle (lighter)
@@ -264,6 +292,11 @@ pub fn render_points_with_meshes(
                 ViewVisibility::default(),
             ));
         }
+    }
+
+    // Log the counts
+    if selected_count > 0 || unselected_count > 0 {
+        info!("🎨 [render_points_with_meshes] Rendered {} selected points, {} unselected points", selected_count, unselected_count);
     }
 }
 

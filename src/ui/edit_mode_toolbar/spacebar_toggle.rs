@@ -36,6 +36,8 @@ pub fn handle_spacebar_toggle(
     mut toggle_state: ResMut<SpacebarToggleState>,
     tool_registry: Res<ToolRegistry>,
     current_text_placement_mode: Option<Res<TextPlacementMode>>,
+    mut switch_events: EventWriter<crate::tools::SwitchToolEvent>,
+    tool_state: Option<Res<crate::tools::ToolState>>,
 ) {
     // Check if text tool is active and in insert mode
     let is_text_insert_mode = current_tool.get_current() == Some("text")
@@ -55,6 +57,7 @@ pub fn handle_spacebar_toggle(
         &mut current_tool,
         &mut toggle_state,
         &tool_registry,
+        &mut switch_events,
     );
 
     handle_spacebar_release(
@@ -62,6 +65,8 @@ pub fn handle_spacebar_toggle(
         &mut current_tool,
         &mut toggle_state,
         &tool_registry,
+        &mut switch_events,
+        tool_state.as_deref(),
     );
 }
 
@@ -71,6 +76,7 @@ fn handle_spacebar_press(
     current_tool: &mut ResMut<CurrentTool>,
     toggle_state: &mut ResMut<SpacebarToggleState>,
     tool_registry: &Res<ToolRegistry>,
+    switch_events: &mut EventWriter<crate::tools::SwitchToolEvent>,
 ) {
     if !keyboard.just_pressed(KeyCode::Space) || toggle_state.in_temporary_mode {
         return;
@@ -86,10 +92,16 @@ fn handle_spacebar_press(
     toggle_state.previous_tool = current_tool.get_current();
     toggle_state.in_temporary_mode = true;
 
+    // Send event to switch to pan tool temporarily
+    switch_events.send(crate::tools::SwitchToolEvent {
+        tool: crate::tools::ToolId::Pan,
+        temporary: true,
+    });
+
     // Exit the current tool if any
     exit_current_tool(current_tool, tool_registry);
 
-    // Switch to Pan tool
+    // Switch to Pan tool (keep old system for compatibility)
     current_tool.switch_to("pan");
     pan_tool.on_enter();
 
@@ -102,9 +114,17 @@ fn handle_spacebar_release(
     current_tool: &mut ResMut<CurrentTool>,
     toggle_state: &mut ResMut<SpacebarToggleState>,
     tool_registry: &Res<ToolRegistry>,
+    switch_events: &mut EventWriter<crate::tools::SwitchToolEvent>,
+    tool_state: Option<&crate::tools::ToolState>,
 ) {
     if !keyboard.just_released(KeyCode::Space) || !toggle_state.in_temporary_mode {
         return;
+    }
+
+    // If we have the new ToolState, use it to pop the temporary tool
+    if let Some(tool_state) = tool_state {
+        // The ToolState should handle popping the temporary tool
+        // For now, we'll still use the old system
     }
 
     // Exit Pan tool
@@ -113,7 +133,7 @@ fn handle_spacebar_release(
     }
 
     // Switch back to the previous tool
-    switch_to_previous_tool(current_tool, toggle_state, tool_registry);
+    switch_to_previous_tool(current_tool, toggle_state, tool_registry, switch_events);
 
     // Reset temporary mode state
     toggle_state.previous_tool = None;
@@ -134,6 +154,7 @@ fn switch_to_previous_tool(
     current_tool: &mut ResMut<CurrentTool>,
     toggle_state: &SpacebarToggleState,
     tool_registry: &Res<ToolRegistry>,
+    switch_events: &mut EventWriter<crate::tools::SwitchToolEvent>,
 ) {
     if let Some(previous_tool_id) = toggle_state.previous_tool {
         if let Some(previous_tool) = tool_registry.get_tool(previous_tool_id) {

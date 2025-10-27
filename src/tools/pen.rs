@@ -133,15 +133,39 @@ impl Plugin for PenToolPlugin {
             .add_systems(
                 Update,
                 (
-                    handle_pen_mouse_events, // Re-enabled to fix pen tool functionality
+                    sync_pen_mode_with_tool_state,
+                    // Keep existing working systems
+                    handle_pen_mouse_events,
                     handle_pen_keyboard_events,
-                    render_pen_preview,
+                    render_pen_preview, // This already uses meshes, not gizmos
                     reset_pen_mode_when_inactive,
                     debug_pen_tool_state,
                     crate::ui::edit_mode_toolbar::pen::toggle_pen_submenu_visibility,
                     crate::ui::edit_mode_toolbar::pen::handle_pen_submenu_selection,
                 ),
             );
+    }
+}
+
+
+/// Sync pen mode with unified tool state
+fn sync_pen_mode_with_tool_state(
+    tool_state: Res<crate::tools::ToolState>,
+    mut pen_mode: ResMut<PenModeActive>,
+    mut pen_state: ResMut<PenToolState>,
+) {
+    let should_be_active = tool_state.is_active(crate::tools::ToolId::Pen);
+
+    if pen_mode.0 != should_be_active {
+        pen_mode.0 = should_be_active;
+
+        // Clear pen state when deactivating
+        if !should_be_active && pen_state.is_drawing {
+            pen_state.current_path.clear();
+            pen_state.is_drawing = false;
+            pen_state.should_close_path = false;
+            debug!("🖊️ PEN: Cleared path on tool deactivation");
+        }
     }
 }
 

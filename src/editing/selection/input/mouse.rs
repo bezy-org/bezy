@@ -14,7 +14,6 @@ use crate::geometry::world_space::DPoint;
 use crate::io::input::{InputEvent, InputState, ModifierState};
 use bevy::input::mouse::MouseButton;
 use bevy::prelude::*;
-use std::time::Duration;
 
 /// Threshold for detecting double-clicks in seconds
 pub const DOUBLE_CLICK_THRESHOLD_SECS: f32 = 0.5;
@@ -158,11 +157,28 @@ pub fn process_selection_input_events(
     buffer_entities: Res<crate::systems::sorts::sort_entities::BufferSortEntities>,
     mut double_click_state: ResMut<DoubleClickState>,
     time: Res<Time>,
+    camera_query: Query<&Projection, With<crate::rendering::cameras::DesignCamera>>,
 ) {
     // Early exit if no events to process
     if selection_events.events.is_empty() {
         return;
     }
+
+    // Get camera scale for zoom-aware selection margin
+    let camera_scale = camera_query
+        .get_single()
+        .ok()
+        .and_then(|proj| {
+            if let Projection::Orthographic(ortho) = proj {
+                Some(ortho.scale)
+            } else {
+                None
+            }
+        })
+        .unwrap_or(1.0);
+    // Divide by camera_scale to keep selection margin constant in screen-space
+    // When zoomed out (scale > 1), world-space margin needs to be larger
+    let zoom_aware_margin = crate::editing::selection::events::SELECTION_MARGIN / camera_scale;
 
     debug!(
         "[process_selection_input_events] Processing {} collected events",
@@ -311,6 +327,7 @@ pub fn process_selection_input_events(
                             &sort_point_entities,
                             &mut double_click_state,
                             &time,
+                            zoom_aware_margin,
                             // Note: enhanced_points_query handled by separate handle_smooth_point_toggle system
                         );
                     }
@@ -566,6 +583,27 @@ pub fn handle_smooth_point_toggle(
 }
 
 /// Handle mouse click for selection
+///
+/// EXPECTED BEHAVIOR:
+///
+/// **Single Click (no Shift):**
+/// - Click on point: Clear all other selections, select clicked point
+/// - Click on empty space: Clear all selections (deselect everything)
+///
+/// **Shift + Click (additive selection):**
+/// - Shift+click on point: Add point to existing selection (keep others selected)
+/// - Shift+click on already-selected point: Toggle it off (remove from selection)
+/// - Shift+click on empty space: Keep existing selection (don't clear)
+///
+/// **Marquee Selection (drag to select):**
+/// - Drag without Shift: Clear existing selection, select all points in rectangle
+/// - Drag with Shift: Keep existing selection, add all points in rectangle
+/// - Clicking empty space (failed marquee): Clear selection if no Shift
+///
+/// **Important Implementation Details:**
+/// - Selection margin scales with camera zoom (zoom_aware_margin)
+/// - Only points within active sort are selectable
+/// - Empty space = no point within selection_margin distance
 #[allow(clippy::type_complexity)]
 #[allow(clippy::too_many_arguments)]
 pub fn handle_selection_click(
@@ -590,6 +628,7 @@ pub fn handle_selection_click(
     sort_point_entities: &Query<&crate::editing::sort::manager::SortPointEntity>,
     double_click_state: &mut ResMut<DoubleClickState>,
     time: &Res<Time>,
+    selection_margin: f32, // Zoom-aware selection margin
     // enhanced_points_query handled by separate handle_smooth_point_toggle system
 ) {
     debug!(
@@ -627,8 +666,8 @@ pub fn handle_selection_click(
     );
 
     let mut best_hit = None;
-    let mut min_dist_sq = SELECTION_MARGIN * SELECTION_MARGIN;
-    debug!("Using selection margin: {}", SELECTION_MARGIN);
+    let mut min_dist_sq = selection_margin * selection_margin;
+    info!("Using selection margin: {} (zoom-aware)", selection_margin);
 
     // Find the closest selectable entity that belongs to the active sort
     let mut checked_points = 0;
@@ -675,6 +714,9 @@ pub fn handle_selection_click(
 
     if let Some((entity, pos, glyph_ref, point_type)) = best_hit {
         // Clicked on a selectable entity in the active sort
+        // EXPECTED: Select this point (clear others unless Shift held)
+        info!("🟢 POINT CLICKED - Entity: {:?} at {:?}", entity, pos);
+        info!("🟢 Shift held: {}, Currently selected: {}", modifiers.shift, selection_state.selected.contains(&entity));
         commands.insert_resource(ClickWorldPosition);
 
         let shift_held = modifiers.shift;
@@ -771,22 +813,36 @@ pub fn handle_selection_click(
             selection_state.selected.len()
         );
     } else {
-        // Clicked on empty space
-        debug!("Clicked on empty space - clearing selection");
+        // Clicked on empty space (no point within selection_margin)
+        // EXPECTED: Clear all selections unless Shift is held
+        info!("🔵 EMPTY SPACE CLICK - No point within selection margin");
+        info!("🔵 Shift held: {}, Will clear: {}", modifiers.shift, !modifiers.shift);
         commands.insert_resource(ClickWorldPosition);
 
-        // Clear selection if not multi-selecting
+        // Clear selection if not multi-selecting (shift not held)
         if !modifiers.shift {
+            let count_before = selection_state.selected.len();
+            info!("🔵 About to remove Selected component from {} entities", count_before);
             for (entity, _) in selected_query.iter() {
+                info!("🔵   Removing Selected from entity: {:?}", entity);
                 commands.entity(entity).remove::<Selected>();
             }
             selection_state.selected.clear();
-            debug!("Cleared all selections");
+            info!("🔵 CLEARED {} selections (empty space click without shift)", count_before);
+            info!("🔵 Selection state now contains {} entities", selection_state.selected.len());
+        } else {
+            info!("🔵 Shift held - keeping existing {} selections", selection_state.selected.len());
         }
     }
 }
 
-/// Handle mouse drag for selection
+/// Handle mouse drag for selection (marquee selection)
+///
+/// EXPECTED BEHAVIOR:
+/// - Drag creates a selection rectangle
+/// - Without Shift: Clear existing selection, select all points inside rectangle
+/// - With Shift: Keep existing selection, ADD all points inside rectangle
+/// - Rectangle uses min/max of start and current position
 #[allow(clippy::type_complexity)]
 #[allow(clippy::too_many_arguments)]
 pub fn handle_selection_drag(

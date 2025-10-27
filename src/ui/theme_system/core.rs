@@ -363,11 +363,13 @@ pub trait BezyTheme: Send + Sync + 'static {
     // =================================================================
 
     /// Point rendering
+    // These values are multiplied by zoom-aware scaling factors (see zoom_aware_scaling.rs)
+    // Larger values = bigger points at all zoom levels
     fn on_curve_point_radius(&self) -> f32 {
-        4.0
+        3.0
     }
     fn off_curve_point_radius(&self) -> f32 {
-        4.0
+        3.0
     }
 
     /// On-curve point colors (two-layer system)
@@ -394,8 +396,9 @@ pub trait BezyTheme: Send + Sync + 'static {
 
     /// Path rendering
     fn path_line_color(&self) -> Color;
+    // Larger values = thicker lines at all zoom levels
     fn path_line_width(&self) -> f32 {
-        2.0
+        1.0
     }
     fn path_stroke_color(&self) -> Color;
     fn point_stroke_color(&self) -> Color;

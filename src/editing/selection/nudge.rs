@@ -1,12 +1,11 @@
 use crate::core::config::BezySettings;
 use crate::editing::selection::components::{GlyphPointReference, PointType, Selected};
-use crate::editing::selection::enhanced_point_component::EnhancedPointType;
 use crate::editing::selection::point_movement::{
     find_connected_offcurve_points_nudge, sync_to_font_data, PointMovement,
 };
 use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::ActiveSortState;
-use bevy::log::{debug, info, warn};
+use bevy::log::debug;
 use bevy::prelude::*;
 
 /// Resource to track nudge state for preventing selection loss during nudging
@@ -15,8 +14,14 @@ use bevy::prelude::*;
 pub struct NudgeState {
     /// Whether we're currently nudging (to prevent selection loss)
     pub is_nudging: bool,
-    /// Timestamp of the last nudge operation
-    pub last_nudge_time: f32,
+}
+
+impl NudgeState {
+    pub fn new() -> Self {
+        Self {
+            is_nudging: false,
+        }
+    }
 }
 
 /// System to handle keyboard input for nudging selected points
@@ -46,7 +51,6 @@ pub fn handle_nudge_input(
     _fontir_app_state: Option<ResMut<crate::core::state::FontIRAppState>>,
     mut event_writer: EventWriter<EditEvent>,
     mut nudge_state: ResMut<NudgeState>,
-    time: Res<Time>,
     _active_sort_state: Res<ActiveSortState>, // Keep for potential future use
     settings: Res<BezySettings>,
 ) {
@@ -95,15 +99,19 @@ pub fn handle_nudge_input(
 
     let mut nudge_direction = Vec2::ZERO;
 
-    // Check each arrow key
+    // Use just_pressed() for discrete, accurate nudges
+    // This is the standard game engine input pattern
     if keyboard_input.just_pressed(KeyCode::ArrowLeft) {
         nudge_direction.x = -nudge_amount;
-    } else if keyboard_input.just_pressed(KeyCode::ArrowRight) {
-        nudge_direction.x = nudge_amount;
-    } else if keyboard_input.just_pressed(KeyCode::ArrowUp) {
-        nudge_direction.y = nudge_amount;
-    } else if keyboard_input.just_pressed(KeyCode::ArrowDown) {
-        nudge_direction.y = -nudge_amount;
+    }
+    if keyboard_input.just_pressed(KeyCode::ArrowRight) {
+        nudge_direction.x += nudge_amount;
+    }
+    if keyboard_input.just_pressed(KeyCode::ArrowUp) {
+        nudge_direction.y += nudge_amount;
+    }
+    if keyboard_input.just_pressed(KeyCode::ArrowDown) {
+        nudge_direction.y -= nudge_amount;
     }
 
     // If we have a nudge direction, apply it to all selected points
@@ -117,7 +125,6 @@ pub fn handle_nudge_input(
 
             debug!("[NUDGE] Setting is_nudging = true");
             nudge_state.is_nudging = true;
-            nudge_state.last_nudge_time = time.elapsed_secs();
 
             // ATOMIC UPDATE: Update FontIR working copies FIRST, then update Transforms
             // This ensures perfect sync between outline and points rendering
@@ -224,9 +231,9 @@ pub fn handle_nudge_input(
 }
 
 /// System to reset nudge state after a short delay
-pub fn reset_nudge_state(mut nudge_state: ResMut<NudgeState>, time: Res<Time>) {
-    if nudge_state.is_nudging && time.elapsed_secs() - nudge_state.last_nudge_time > 0.5 {
-        debug!("[NUDGE] Resetting nudge state after timeout");
+pub fn reset_nudge_state(mut nudge_state: ResMut<NudgeState>) {
+    if nudge_state.is_nudging {
+        debug!("[NUDGE] Resetting nudge state");
         nudge_state.is_nudging = false;
     }
 }
@@ -319,7 +326,7 @@ pub struct NudgePlugin;
 
 impl Plugin for NudgePlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<NudgeState>().add_systems(
+        app.insert_resource(NudgeState::new()).add_systems(
             Update,
             (
                 handle_nudge_input,

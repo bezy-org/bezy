@@ -4,7 +4,6 @@
 //! across all toolbar tools, particularly for disabling single-character
 //! hotkeys when text input is active.
 
-use bevy::prelude::*;
 
 /// Check if single-character hotkeys should be disabled
 ///

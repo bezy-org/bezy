@@ -3,11 +3,10 @@
 //! This module implements the logic for maintaining smooth curve tangents
 //! when editing points with the smooth=true flag.
 
-use crate::core::state::ufo_point::{UfoPoint, UfoPointType};
 use crate::editing::selection::components::{GlyphPointReference, PointType};
 use crate::editing::selection::enhanced_point_component::EnhancedPointType;
 use bevy::ecs::system::ParamSet;
-use bevy::log::{debug, info};
+use bevy::log::debug;
 use bevy::prelude::*;
 
 // Type aliases for return values and complex query types
@@ -109,7 +108,6 @@ pub fn find_direct_neighbor_handles(
         (None, None)
     }
 }
-use kurbo::Point;
 
 /// Information about a smooth curve constraint
 #[derive(Debug, Clone)]

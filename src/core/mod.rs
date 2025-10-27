@@ -13,10 +13,13 @@ pub mod errors;
 pub mod platform;
 pub mod runner;
 pub mod state;
+#[cfg(feature = "tui")]
 pub mod tui_communication;
 
 // Re-export commonly used items
-pub use app::{create_app, create_app_with_tui};
+pub use app::create_app;
+#[cfg(feature = "tui")]
+pub use app::create_app_with_tui;
 pub use config::{BezySettings, CliArgs, ConfigFile};
 pub use runner::run_app;
 pub use state::{AppState, GlyphNavigation};

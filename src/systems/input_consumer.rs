@@ -9,12 +9,8 @@ use crate::editing::selection::components::{
     GlyphPointReference, PointType, Selectable, Selected, SelectionRect,
 };
 use crate::editing::selection::{DragPointState, DragSelectionState, SelectionState};
-use crate::editing::sort::manager::SortPointEntity;
-use crate::editing::sort::ActiveSortState;
 use crate::geometry::world_space::DPoint;
 use crate::io::input::{helpers, InputEvent, InputMode, InputState};
-use crate::io::pointer::PointerInfo;
-use crate::systems::ui_interaction::UiHoverState;
 use bevy::prelude::*;
 
 // Type alias for complex query type
@@ -56,12 +52,20 @@ impl InputConsumer for SelectionInputConsumer {
         );
         let is_select_mode = helpers::is_input_mode(input_state, InputMode::Select);
 
+        if is_mouse_event {
+            debug!(
+                "[SelectionInputConsumer] Mouse event, InputMode: {:?}, is_select_mode: {}",
+                input_state.mode, is_select_mode
+            );
+        }
+
         is_mouse_event && is_select_mode
     }
 
     fn handle_input(&mut self, event: &InputEvent, _input_state: &InputState) {
         // Store the event for processing by the ECS system
         self.pending_events.push(event.clone());
+        debug!("[SelectionInputConsumer] Stored event for processing: {:?}", event);
     }
 }
 
@@ -729,6 +733,7 @@ pub fn process_input_events(
 
         // Normal mode consumers
         if selection_consumer.should_handle_input(event, &input_state) {
+            debug!("[INPUT_CONSUMER] Routing event to selection consumer: {:?}", event);
             selection_consumer.handle_input(event, &input_state);
             continue;
         }
@@ -760,10 +765,29 @@ pub fn process_selection_events(
     active_sort_state: Res<crate::editing::sort::ActiveSortState>,
     sort_point_entities: Query<&crate::editing::sort::manager::SortPointEntity>,
     mut selection_state: ResMut<SelectionState>,
+    camera_query: Query<&Projection, With<crate::rendering::cameras::DesignCamera>>,
 ) {
     if selection_consumer.pending_events.is_empty() {
         return;
     }
+
+    // Get camera scale for zoom-aware selection margin
+    // TODO: This zoom-aware margin calculation is overly complex. Consider simpler approaches:
+    // - Use screen-space selection instead of world-space
+    // - Make SELECTION_MARGIN a configurable setting
+    // - Use a fixed screen-pixel threshold with ray casting
+    let camera_scale = camera_query
+        .get_single()
+        .ok()
+        .and_then(|proj| {
+            if let Projection::Orthographic(ortho) = proj {
+                Some(ortho.scale)
+            } else {
+                None
+            }
+        })
+        .unwrap_or(1.0);
+    let zoom_aware_margin = crate::editing::selection::events::SELECTION_MARGIN * camera_scale;
 
     // Process all pending events
     let events = std::mem::take(&mut selection_consumer.pending_events);
@@ -802,6 +826,7 @@ pub fn process_selection_events(
                         &sort_point_entities,
                         &mut double_click_state,
                         &time,
+                        zoom_aware_margin,
                     );
                 }
             }

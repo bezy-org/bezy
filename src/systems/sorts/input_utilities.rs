@@ -6,7 +6,6 @@
 //! - Unicode character to glyph name mapping
 
 use crate::core::state::{AppState, FontIRAppState};
-use crate::systems::text_shaping::needs_complex_shaping;
 use bevy::prelude::*;
 
 /// Check if a key is used as a tool shortcut

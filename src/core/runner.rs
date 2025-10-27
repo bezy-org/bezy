@@ -3,7 +3,7 @@
 //! Handles the different ways to run the Bezy application
 
 use crate::core::config::{CliArgs, ConfigFile};
-use crate::logging;
+// use crate::logging;  // Not currently used
 use anyhow::Result;
 
 /// Create and run the application with the given CLI arguments.
@@ -24,15 +24,20 @@ pub fn run_app(cli_args: CliArgs) -> Result<()> {
 
     // Run the main application
     if cli_args.no_tui {
-        // Set up log redirection when TUI is disabled
-        if let Err(e) = logging::setup_log_redirection() {
-            eprintln!("Failed to setup log redirection: {}", e);
-        }
+        // Only redirect logs when NOT using TUI (for debugging)
+        // When TUI is enabled, redirection happens AFTER TUI captures terminal
         let mut app = crate::core::app::create_app(cli_args)?;
         app.run();
         Ok(())
     } else {
-        // When TUI is enabled, also redirect logs to prevent terminal corruption
-        crate::tui::run_app_with_tui(cli_args)
+        #[cfg(feature = "tui")]
+        {
+            crate::tui::run_app_with_tui(cli_args)
+        }
+        #[cfg(not(feature = "tui"))]
+        {
+            eprintln!("TUI feature not compiled. Use --no-tui flag to run without TUI.");
+            std::process::exit(1);
+        }
     }
 }

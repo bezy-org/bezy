@@ -33,9 +33,7 @@ pub use metrics::MetricsRenderingPlugin;
 pub use outline_elements::OutlineElementsPlugin;
 pub use points::PointRenderingPlugin;
 pub use post_editing_systems::{PostEditingRenderingPlugin, PostEditingRenderingSet};
-pub use selection::{
-    render_all_point_entities, render_selected_entities, render_selection_marquee,
-};
+pub use selection::render_selection_marquee;
 pub use sort_visuals::SortHandleRenderingPlugin;
 pub use text_cursor::{CursorRenderingState, TextEditorCursor};
 pub use zoom_aware_scaling::{CameraResponsivePlugin, CameraResponsiveScale};

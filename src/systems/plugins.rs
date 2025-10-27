@@ -36,17 +36,6 @@ pub fn configure_logging() -> LogPlugin {
     }
 }
 
-/// Configure logging for TUI mode - disables console output to prevent terminal corruption
-pub fn configure_logging_for_tui() -> LogPlugin {
-    // When TUI is active, we need to disable all console output
-    // This prevents logs from corrupting the TUI display
-    LogPlugin {
-        level: Level::ERROR,           // Only show critical errors (minimizes output)
-        filter: "all=off".to_string(), // Disable all logs via filter
-        ..default()
-    }
-}
-
 /// Configure default Bevy plugins for the application
 #[allow(dead_code)]
 pub fn configure_default_plugins() -> bevy::app::PluginGroupBuilder {
@@ -79,7 +68,7 @@ pub fn configure_default_plugins_for_tui() -> bevy::app::PluginGroupBuilder {
             }),
             ..default()
         })
-        .set(configure_logging_for_tui()) // Use TUI-specific logging that disables console output
+        .disable::<LogPlugin>()
 }
 
 /// System to configure gizmo appearance

@@ -31,6 +31,10 @@ pub async fn run_tui(
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
+    // NOTE: We cannot redirect stdout/stderr when TUI is active
+    // The TUI needs stdout for terminal control
+    // Bevy logging must be configured to write directly to files (not via stdout)
+
     let mut app = app::App::new(app_tx.clone());
     let result = app.run(&mut terminal, &mut app_rx).await;
 
@@ -47,6 +51,10 @@ pub async fn run_tui(
 
 /// Run the application with TUI enabled (both GUI and TUI simultaneously)
 pub fn run_app_with_tui(cli_args: CliArgs) -> Result<()> {
+    if let Err(e) = crate::logging::setup_file_logging_for_tui() {
+        eprintln!("Warning: Failed to set up file logging: {}", e);
+    }
+
     // Create communication channels
     let (tui_tx, tui_rx) = mpsc::unbounded_channel();
     let (app_tx, app_rx) = mpsc::unbounded_channel();
@@ -71,18 +79,22 @@ pub fn run_app_with_tui(cli_args: CliArgs) -> Result<()> {
 
     // Run Bevy app in the main thread (needed for proper window initialization on Linux)
     // The TUI-specific configuration will disable console logging to prevent terminal corruption
-    match crate::core::app::create_app_with_tui((*cli_args_arc).clone(), tui_rx, app_tx) {
+    let app_result = match crate::core::app::create_app_with_tui((*cli_args_arc).clone(), tui_rx, app_tx) {
         Ok(mut app) => {
             app.run();
+            Ok(())
         }
-        Err(e) => {
-            eprintln!("Failed to create Bevy app: {}", e);
-            return Err(e);
-        }
-    }
+        Err(e) => Err(e),
+    };
 
-    // Wait for TUI thread to finish
+    // Wait for TUI thread to finish cleanup before any error output
     let _ = tui_handle.join();
+
+    // Now safe to output errors after TUI has cleaned up
+    if let Err(e) = app_result {
+        eprintln!("Failed to create Bevy app: {}", e);
+        return Err(e);
+    }
 
     Ok(())
 }
