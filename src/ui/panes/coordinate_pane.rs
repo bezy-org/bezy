@@ -19,7 +19,7 @@ use bevy::reflect::Reflect;
 use bevy::ui::UiRect;
 
 // ============================================================================
-// DESIGN CONSTANTS - Easy to tweak for designers
+// UI DESIGN CONSTANTS
 // ============================================================================
 
 /// Size of the quadrant selector widget
