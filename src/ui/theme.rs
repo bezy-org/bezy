@@ -9,8 +9,7 @@
 // Re-export the main theme system components
 pub use crate::ui::theme_system::{
     get_theme_registry, BezyTheme, CurrentTheme, ThemeRegistry, ThemeVariant,
-    JsonThemeManager, ToolbarBorderRadius, UiBorderRadius, WidgetBorderRadius,
-    RuntimeThemePlugin,
+    ToolbarBorderRadius, UiBorderRadius, WidgetBorderRadius,
     // Re-export all 22+ layout constants used throughout the UI
     CHECKERBOARD_Z_LEVEL, DEBUG_SHOW_ORIGIN_CROSS, FILLED_GLYPH_Z, GIZMO_LINE_WIDTH,
     GRID_SIZE_CHANGE_THRESHOLD, INITIAL_ZOOM_SCALE, LINE_LEADING, MAX_ALLOWED_ZOOM_SCALE,

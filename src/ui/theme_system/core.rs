@@ -11,79 +11,27 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::OnceLock;
 
-use super::{embedded_themes, json_theme};
-
 // =================================================================
 // THEME REGISTRY - AUTOMATIC THEME DISCOVERY
 // =================================================================
 
-/// Theme registry that loads themes from JSON files
+/// Simple theme registry with Rust-based themes
 pub struct ThemeRegistry {
     themes: HashMap<String, Box<dyn BezyTheme>>,
 }
 
 impl ThemeRegistry {
-    /// Create a new registry and load all JSON themes
+    /// Create a new registry with built-in themes
     pub fn new() -> Self {
-        let mut registry = Self {
-            themes: HashMap::new(),
-        };
+        use crate::ui::themes::*;
 
-        // Load themes from JSON files
-        registry.load_json_themes();
+        let mut themes: HashMap<String, Box<dyn BezyTheme>> = HashMap::new();
+        themes.insert("dark".to_string(), Box::new(DarkTheme));
+        themes.insert("light".to_string(), Box::new(LightTheme));
+        themes.insert("strawberry".to_string(), Box::new(StrawberryTheme));
+        themes.insert("campfire".to_string(), Box::new(CampfireTheme));
 
-        // If no themes loaded, panic with helpful error message
-        if registry.themes.is_empty() {
-            panic!("No themes could be loaded! Check that JSON theme files are available.");
-        }
-
-        registry
-    }
-
-    /// Load themes from JSON files
-    fn load_json_themes(&mut self) {
-        // Check if user themes directory exists
-        let user_themes_dir = embedded_themes::get_user_themes_dir();
-
-        if user_themes_dir.exists() {
-            // User has custom themes directory, load from there
-            debug!("Loading themes from user directory: {:?}", user_themes_dir);
-
-            if let Ok(entries) = std::fs::read_dir(&user_themes_dir) {
-                for entry in entries.flatten() {
-                    let path = entry.path();
-
-                    if path.extension().and_then(|s| s.to_str()) == Some("json") {
-                        if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
-                            match json_theme::JsonTheme::load_from_file(&path) {
-                                Ok(theme) => {
-                                    debug!("Loaded user theme: {}", theme.name);
-                                    self.themes.insert(stem.to_string(), Box::new(theme));
-                                }
-                                Err(e) => {
-                                    error!("Failed to load user theme from {:?}: {}", path, e);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } else {
-            // No user directory, load embedded themes
-            debug!("No user themes directory found, loading embedded themes");
-
-            for (name, content) in embedded_themes::get_embedded_themes() {
-                match embedded_themes::load_theme_from_string(content) {
-                    Ok(theme) => {
-                        debug!("Loaded embedded theme: {}", theme.name);
-                        self.themes.insert(name, Box::new(theme));
-                    }
-                    Err(e) => {
-                        error!("Failed to load embedded theme {}: {}", name, e);
-                    }
-                }
-            }
-        }
+        Self { themes }
     }
 
     /// Get all available theme names
@@ -98,31 +46,16 @@ impl ThemeRegistry {
         self.themes.get(name).map(|theme| theme.as_ref())
     }
 
-    /// Create a theme instance by name (clones the theme)
+    /// Create a theme instance by name
     pub fn create_theme(&self, name: &str) -> Option<Box<dyn BezyTheme>> {
-        // For JSON themes, we need to reload them to get fresh data
-        if let Some(_theme) = self.themes.get(name) {
-            // Check if user themes directory exists and has this theme
-            let user_themes_dir = embedded_themes::get_user_themes_dir();
-            let user_json_path = user_themes_dir.join(format!("{}.json", name));
+        use crate::ui::themes::*;
 
-            if user_json_path.exists() {
-                if let Ok(json_theme) = json_theme::JsonTheme::load_from_file(&user_json_path) {
-                    return Some(Box::new(json_theme));
-                }
-            }
-
-            // Fallback to embedded theme
-            if let Some(content) = embedded_themes::get_embedded_themes().get(name) {
-                if let Ok(json_theme) = embedded_themes::load_theme_from_string(content) {
-                    return Some(Box::new(json_theme));
-                }
-            }
-
-            // If all else fails, return None
-            None
-        } else {
-            None
+        match name {
+            "dark" => Some(Box::new(DarkTheme)),
+            "light" => Some(Box::new(LightTheme)),
+            "strawberry" => Some(Box::new(StrawberryTheme)),
+            "campfire" => Some(Box::new(CampfireTheme)),
+            _ => None,
         }
     }
 
@@ -626,18 +559,12 @@ impl CurrentTheme {
     pub fn new(variant: ThemeVariant) -> Self {
         let registry = get_theme_registry();
 
-        // Try to load theme through the registry (which handles user dir and embedded themes)
+        // Load theme through the registry
         let theme = registry.create_theme(variant.name()).unwrap_or_else(|| {
-            // Fallback to creating dark theme from embedded JSON
-            if let Some(content) = embedded_themes::get_embedded_themes().get("dark") {
-                if let Ok(json_theme) = embedded_themes::load_theme_from_string(content) {
-                    Box::new(json_theme)
-                } else {
-                    panic!("Failed to load fallback dark theme!")
-                }
-            } else {
-                panic!("No fallback theme available!")
-            }
+            // Fallback to dark theme
+            use crate::ui::themes::DarkTheme;
+            warn!("Theme '{}' not found, falling back to dark theme", variant.name());
+            Box::new(DarkTheme)
         });
 
         Self { variant, theme }

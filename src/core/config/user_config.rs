@@ -111,22 +111,11 @@ impl ConfigFile {
             println!("Settings file already exists: {:?}", settings_path);
         }
 
-        // Create themes directory and copy embedded themes
+        // Create themes directory (for future custom themes if needed)
         let themes_dir = config_dir.join("themes");
         fs::create_dir_all(&themes_dir)?;
         println!("Created themes directory: {:?}", themes_dir);
-
-        // Copy all embedded themes to the user directory
-        use crate::ui::theme_system::embedded_themes;
-        for (name, content) in embedded_themes::get_embedded_themes() {
-            let theme_path = themes_dir.join(format!("{}.json", name));
-            if !theme_path.exists() {
-                fs::write(&theme_path, content)?;
-                println!("  - Copied theme: {}.json", name);
-            } else {
-                println!("  - Theme already exists: {}.json", name);
-            }
-        }
+        println!("Note: Themes are now defined in Rust code at src/ui/themes/");
 
         println!("\nConfiguration initialized successfully!");
         println!("You can now:");

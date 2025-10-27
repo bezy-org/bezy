@@ -7,7 +7,8 @@
 use crate::core::state::fontir_app_state::FontIRAppState;
 use crate::systems::sorts::sort_entities::BufferSortEntities;
 use crate::ui::theme::*;
-use crate::ui::themes::{CurrentTheme, UiBorderRadius};
+use crate::ui::theme_system::UiBorderRadius;
+use crate::ui::themes::CurrentTheme;
 use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use bevy::prelude::*;
 use bevy::ui::Display;
@@ -186,7 +187,7 @@ pub fn spawn_file_pane(
             BackgroundColor(theme.theme().widget_background_color()),
             BorderColor(theme.theme().widget_border_color()),
             BorderRadius::all(Val::Px(theme.theme().widget_border_radius())),
-            crate::ui::themes::WidgetBorderRadius,
+            crate::ui::theme_system::WidgetBorderRadius,
             FilePane,
             Name::new("FilePane"),
         ))
@@ -614,8 +615,7 @@ fn update_master_buttons(
                 } else {
                     theme.theme().button_regular_outline()
                 }),
-                BorderRadius::all(Val::Px(theme.theme().ui_border_radius())),
-                UiBorderRadius,
+                BorderRadius::all(Val::Px(MASTER_BUTTON_SIZE / 2.0)), // Perfect circle
                 MasterButton { master_index: i },
             ))
             .id();

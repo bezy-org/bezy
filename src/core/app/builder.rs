@@ -14,8 +14,6 @@ use crate::systems::{
 use crate::tui::communication::{AppMessage, TuiMessage};
 use crate::ui::theme::CurrentTheme;
 use crate::utils::embedded_assets::EmbeddedAssetsPlugin;
-#[cfg(debug_assertions)]
-use crate::ui::theme_system::RuntimeThemePlugin;
 use anyhow::Result;
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
@@ -139,10 +137,6 @@ fn add_plugin_groups(app: &mut App) {
     app.add_plugins(EmbeddedAssetsPlugin);
 
     app.add_plugins((RenderingPluginGroup, EditorPluginGroup, CorePluginGroup));
-
-    // Add runtime theme reload plugin for development
-    #[cfg(debug_assertions)]
-    app.add_plugins(RuntimeThemePlugin);
 
     debug!("All plugin groups added successfully");
 }

@@ -10,7 +10,8 @@ use crate::editing::selection::components::Selected;
 use crate::geometry::quadrant::Quadrant;
 use crate::ui::edit_mode_toolbar::ui::{create_label_text, create_value_text};
 use crate::ui::theme::*;
-use crate::ui::themes::{CurrentTheme, UiBorderRadius};
+use crate::ui::theme_system::UiBorderRadius;
+use crate::ui::themes::CurrentTheme;
 use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 use bevy::ecs::system::ParamSet;
 use bevy::prelude::*;
@@ -391,8 +392,7 @@ pub fn spawn_coordinate_pane(
                             } else {
                                 theme.theme().button_regular_outline()
                             }),
-                            BorderRadius::all(Val::Px(theme.theme().ui_border_radius())),
-                            UiBorderRadius,
+                            BorderRadius::all(Val::Px(QUADRANT_BUTTON_SIZE / 2.0)), // Perfect circle
                             QuadrantButton(*quadrant),
                         ));
                     }

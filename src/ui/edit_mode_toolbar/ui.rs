@@ -32,7 +32,8 @@
 
 use crate::ui::edit_mode_toolbar::*;
 use crate::ui::theme::TOOLBAR_GRID_SPACING;
-use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
+use crate::ui::theme_system::ToolbarBorderRadius;
+use crate::ui::themes::CurrentTheme;
 use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 
 // COMPONENTS ------------------------------------------------------------------
