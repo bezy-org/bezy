@@ -129,19 +129,29 @@ fn handle_open_file(
 fn handle_save_file(
     mut events: EventReader<SaveFileEvent>,
     mut app_state: Option<ResMut<AppState>>,
+    mut fontir_app_state: Option<ResMut<FontIRAppState>>,
 ) {
     for _ in events.read() {
-        if let Some(mut state) = app_state.as_mut() {
+        if let Some(fontir_state) = fontir_app_state.as_mut() {
+            match fontir_state.save_font() {
+                Ok(_) => {
+                    info!("Font saved successfully");
+                }
+                Err(e) => {
+                    error!("FontIR save failed: {}", e);
+                }
+            }
+        } else if let Some(mut state) = app_state.as_mut() {
             match state.save_font() {
                 Ok(_) => {
-                    debug!("Font saved successfully");
+                    debug!("Font saved successfully (legacy AppState)");
                 }
                 Err(e) => {
                     error!("Saving failed: {}", e);
                 }
             }
         } else {
-            warn!("Save file requested but AppState not available (using FontIR)");
+            warn!("Save file requested but no state available");
         }
     }
 }

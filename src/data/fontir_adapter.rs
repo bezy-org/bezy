@@ -46,9 +46,7 @@ impl FontIRData {
     }
 
     /// Convert kurbo::BezPath to our outline format
-    /// This is a utility function for future implementation
-    #[allow(dead_code)]
-    fn convert_bezpath_to_outline(bez_path: &BezPath) -> OutlineData {
+    pub fn convert_bezpath_to_outline(bez_path: &BezPath) -> OutlineData {
         let mut contours = Vec::new();
         let mut current_contour = Vec::new();
 

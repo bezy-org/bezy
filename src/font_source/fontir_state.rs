@@ -327,9 +327,9 @@ impl FontIRAppState {
                     new_y,
                 ) {
                     working_copy.is_dirty = true;
-                    debug!(
-                        "FontIR: Successfully updated point {} in working copy",
-                        point_idx
+                    info!(
+                        "🔴 FONTIR UPDATE: Set dirty flag for glyph '{}', point {} at ({:.1}, {:.1})",
+                        glyph_name, point_idx, new_x, new_y
                     );
                     return Ok(true);
                 }
@@ -460,8 +460,8 @@ impl FontIRAppState {
 
         // Fast path: return working copy if it exists
         if let Some(working_copy) = self.working_copies.get(&key) {
-            debug!(
-                "*** FontIR: Using WORKING COPY for glyph '{}' (dirty: {}, {} contours)",
+            info!(
+                "🟢 FONTIR GET: Returning WORKING COPY for glyph '{}' (dirty: {}, {} contours)",
                 glyph_name,
                 working_copy.is_dirty,
                 working_copy.contours.len()
@@ -470,8 +470,8 @@ impl FontIRAppState {
         }
 
         // Fallback to original FontIR data
-        debug!(
-            "*** FontIR: Using ORIGINAL DATA for glyph '{}' (no working copy found)",
+        warn!(
+            "🟡 FONTIR GET: NO WORKING COPY for glyph '{}' - returning ORIGINAL data!",
             glyph_name
         );
         self.get_glyph_paths(glyph_name)
@@ -1441,6 +1441,115 @@ impl FontIRAppState {
         }
 
         codepoints
+    }
+
+    /// Save edited glyphs back to UFO format
+    pub fn save_font(&self) -> Result<()> {
+        match &self.source_type {
+            SourceType::SingleUfo => self.save_single_ufo(),
+            SourceType::Designspace { .. } => self.save_designspace(),
+        }
+    }
+
+    /// Save a single UFO file
+    fn save_single_ufo(&self) -> Result<()> {
+        let mut font = norad::Font::load(&self.source_path)?;
+        let layer = font.default_layer_mut();
+
+        for ((glyph_name, location), editable_instance) in &self.working_copies {
+            if !editable_instance.is_dirty {
+                continue;
+            }
+
+            if *location != self.current_location {
+                continue;
+            }
+
+            let outline_data = self.convert_instance_to_outline(editable_instance);
+            let mut glyph = layer
+                .get_glyph(glyph_name)
+                .cloned()
+                .unwrap_or_else(|| norad::Glyph::new(glyph_name));
+
+            glyph.width = editable_instance.width;
+            if let Some(height) = editable_instance.height {
+                glyph.height = height;
+            }
+
+            glyph.contours = outline_data.to_norad_contours();
+            layer.insert_glyph(glyph);
+
+            debug!(
+                "Saved edited glyph '{}' to UFO with {} contours",
+                glyph_name,
+                editable_instance.contours.len()
+            );
+        }
+
+        font.save(&self.source_path)?;
+        debug!("Saved UFO font to {:?}", self.source_path);
+        Ok(())
+    }
+
+    /// Save a designspace with multiple masters
+    fn save_designspace(&self) -> Result<()> {
+        let ds = DesignSpaceDocument::load(&self.source_path)?;
+        let designspace_dir = self
+            .source_path
+            .parent()
+            .ok_or_else(|| anyhow::anyhow!("Invalid designspace path"))?;
+
+        let first_source = ds
+            .sources
+            .first()
+            .ok_or_else(|| anyhow::anyhow!("No sources in designspace"))?;
+        let ufo_path = designspace_dir.join(&first_source.filename);
+        let mut font = norad::Font::load(&ufo_path)?;
+        let layer = font.default_layer_mut();
+
+        for ((glyph_name, _location), editable_instance) in &self.working_copies {
+            if !editable_instance.is_dirty {
+                continue;
+            }
+
+            let outline_data = self.convert_instance_to_outline(editable_instance);
+            let mut glyph = layer
+                .get_glyph(glyph_name)
+                .cloned()
+                .unwrap_or_else(|| norad::Glyph::new(glyph_name));
+
+            glyph.width = editable_instance.width;
+            if let Some(height) = editable_instance.height {
+                glyph.height = height;
+            }
+
+            glyph.contours = outline_data.to_norad_contours();
+            layer.insert_glyph(glyph);
+
+            debug!(
+                "Saved edited glyph '{}' to first master UFO: {:?}",
+                glyph_name, ufo_path
+            );
+        }
+
+        font.save(&ufo_path)?;
+        debug!("Saved designspace font to first master");
+        Ok(())
+    }
+
+    /// Convert EditableGlyphInstance to OutlineData
+    fn convert_instance_to_outline(&self, instance: &EditableGlyphInstance) -> crate::core::state::OutlineData {
+        use crate::data::fontir_adapter::FontIRData;
+
+        let mut all_contours = Vec::new();
+        for bez_path in &instance.contours {
+            let outline_data = FontIRData::convert_bezpath_to_outline(bez_path);
+            all_contours.extend(outline_data.contours);
+        }
+
+        crate::core::state::OutlineData {
+            contours: all_contours,
+        }
     }
 }
 

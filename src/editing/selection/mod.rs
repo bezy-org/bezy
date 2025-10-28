@@ -23,7 +23,7 @@ pub use enhanced_point_component::{EnhancedPointType, EnhancedPointTypePlugin, m
 // Entity management
 pub use entity_management::{
     EnhancedPointAttributes, cleanup_click_resource, despawn_inactive_sort_points,
-    spawn_active_sort_points, sync_enhanced_point_attributes, sync_point_positions_to_sort,
+    spawn_active_sort_points, sync_enhanced_point_attributes,
     update_glyph_data_from_selection,
 };
 // Events

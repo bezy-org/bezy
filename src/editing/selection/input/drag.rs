@@ -1,7 +1,7 @@
 //! Point drag handling for selection
 
 use crate::core::config::BezySettings;
-use crate::core::state::{AppState, FontIRAppState};
+use crate::core::state::FontIRAppState;
 use crate::editing::selection::components::{GlyphPointReference, PointType, Selected};
 use crate::editing::selection::enhanced_point_component::EnhancedPointType;
 use crate::editing::selection::nudge::{EditEvent, PointCoordinates};
@@ -42,17 +42,21 @@ pub fn handle_point_drag(
         Without<Selected>,
     >,
     enhanced_points_query: Query<(Entity, &EnhancedPointType, &GlyphPointReference)>,
-    mut app_state: Option<ResMut<AppState>>,
     mut fontir_app_state: Option<ResMut<FontIRAppState>>,
     mut event_writer: EventWriter<EditEvent>,
     settings: Res<BezySettings>,
 ) {
+    // Log every time this system runs
+    if drag_point_state.is_dragging {
+        info!("🟣 DRAG HANDLER: System running, is_dragging=TRUE");
+    }
+
     // Only drag if the resource says we are
     if !drag_point_state.is_dragging {
         return;
     }
 
-    debug!("DRAG HANDLER: handle_point_drag called - drag is active");
+    info!("🟣 DRAG HANDLER: Processing drag");
 
     let cursor_pos = pointer_info.design.to_raw();
     drag_point_state.current_position = Some(cursor_pos);
@@ -234,7 +238,7 @@ pub fn handle_point_drag(
             // Apply smooth constraint adjustments
             if !smooth_adjustments.is_empty() {
                 for (entity, new_position) in &smooth_adjustments {
-                    if let Ok((_, mut transform, mut coordinates, _, _)) =
+                    if let Ok((_, mut transform, mut coordinates, point_ref, _)) =
                         all_points_query.get_mut(*entity)
                     {
                         transform.translation.x = new_position.x;
@@ -248,6 +252,14 @@ pub fn handle_point_drag(
                             .original_positions
                             .entry(*entity)
                             .or_insert(*new_position);
+
+                        // CRITICAL: Add smooth adjustments to point_movements for font data sync
+                        point_movements.push(PointMovement {
+                            entity: *entity,
+                            point_ref: point_ref.clone(),
+                            new_position: *new_position,
+                            is_connected_offcurve: true,
+                        });
                     }
                 }
 
@@ -259,7 +271,7 @@ pub fn handle_point_drag(
         }
 
         // Sync all movements to font data using shared utility
-        let result = sync_to_font_data(&point_movements, &mut fontir_app_state, &mut app_state);
+        let result = sync_to_font_data(&point_movements, &mut fontir_app_state);
         _updated_count = result.points_moved + result.connected_offcurves_moved;
 
         if _updated_count > 0 {

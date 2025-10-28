@@ -47,8 +47,7 @@ pub fn handle_nudge_input(
             (With<SortPointEntity>, Without<Selected>),
         >,
     )>,
-    _app_state: Option<ResMut<crate::core::state::AppState>>,
-    _fontir_app_state: Option<ResMut<crate::core::state::FontIRAppState>>,
+    mut fontir_app_state: Option<ResMut<crate::core::state::FontIRAppState>>,
     mut event_writer: EventWriter<EditEvent>,
     mut nudge_state: ResMut<NudgeState>,
     _active_sort_state: Res<ActiveSortState>, // Keep for potential future use
@@ -116,7 +115,9 @@ pub fn handle_nudge_input(
 
     // If we have a nudge direction, apply it to all selected points
     if nudge_direction != Vec2::ZERO {
+        info!("🟠 NUDGE: Arrow key pressed, nudge direction {:?}, amount {}", nudge_direction, nudge_amount);
         let selected_count = queries.p0().iter().count();
+        info!("🟠 NUDGE: Found {} selected points", selected_count);
         if selected_count > 0 {
             debug!(
                 "[NUDGE] Nudging {} selected points by {:?}",
@@ -210,10 +211,10 @@ pub fn handle_nudge_input(
             // Smooth constraints will be handled uniformly by update_glyph_data_from_selection
             // when it detects the Transform changes from nudging
 
-            // STEP 2: Skip FontIR working copy updates during active nudging
-            // Working copy will be updated when nudging completes to avoid timing issues
+            // STEP 2: Skip immediate sync for performance (batched on key release)
+            // Note: Tool switching will force a sync via tool change handler
             debug!(
-                "[NUDGE] Skipping FontIR updates during active nudging - will sync on completion"
+                "[NUDGE] Skipping immediate sync - will batch on key release or tool change"
             );
 
             // Create an edit event for undo/redo
@@ -262,6 +263,7 @@ pub fn sync_nudged_points_on_completion(
 ) {
     // Only sync when transitioning from nudging to not nudging
     if *last_nudge_state && !nudge_state.is_nudging {
+        info!("🟠 NUDGE COMPLETION: Detected transition, syncing to FontIR");
         debug!("[NUDGE] Nudging completed, syncing points to font data");
 
         let mut all_sync_movements = Vec::new();
@@ -307,8 +309,10 @@ pub fn sync_nudged_points_on_completion(
         }
 
         // Use shared utility to sync all movements
-        let result = sync_to_font_data(&all_sync_movements, &mut fontir_app_state, &mut app_state);
+        info!("🟠 NUDGE: About to sync {} movements to FontIR", all_sync_movements.len());
+        let result = sync_to_font_data(&all_sync_movements, &mut fontir_app_state);
         let total_synced = result.points_moved + result.connected_offcurves_moved;
+        info!("🟠 NUDGE: Synced {} total points", total_synced);
 
         if total_synced > 0 {
             debug!(
@@ -321,6 +325,44 @@ pub fn sync_nudged_points_on_completion(
     *last_nudge_state = nudge_state.is_nudging;
 }
 
+/// System to force sync nudged points before tool switches
+pub fn sync_before_tool_switch(
+    mut tool_switch_events: EventReader<crate::tools::SwitchToolEvent>,
+    nudge_state: Res<NudgeState>,
+    mut fontir_app_state: Option<ResMut<crate::core::state::FontIRAppState>>,
+    selected_query: Query<
+        (&Transform, &GlyphPointReference),
+        With<Selected>,
+    >,
+) {
+    // Only sync if we have pending tool switches AND active nudging
+    if tool_switch_events.is_empty() || !nudge_state.is_nudging {
+        return;
+    }
+
+    // Drain events (we don't need the data, just the signal)
+    for _ in tool_switch_events.read() {}
+
+    info!("🟠 TOOL SWITCH: Forcing nudge sync before tool change");
+
+    let mut movements = Vec::new();
+    for (transform, point_ref) in selected_query.iter() {
+        let pos = transform.translation.truncate();
+        movements.push(PointMovement {
+            entity: Entity::PLACEHOLDER,
+            point_ref: point_ref.clone(),
+            new_position: pos,
+            is_connected_offcurve: false,
+        });
+    }
+
+    if !movements.is_empty() {
+        info!("🟠 TOOL SWITCH: Syncing {} movements", movements.len());
+        let result = sync_to_font_data(&movements, &mut fontir_app_state);
+        info!("🟠 TOOL SWITCH: Synced {} points", result.points_moved + result.connected_offcurves_moved);
+    }
+}
+
 /// Plugin for the nudge system
 pub struct NudgePlugin;
 
@@ -329,6 +371,7 @@ impl Plugin for NudgePlugin {
         app.insert_resource(NudgeState::new()).add_systems(
             Update,
             (
+                sync_before_tool_switch.before(crate::tools::tool_state::handle_tool_switch),
                 handle_nudge_input,
                 reset_nudge_state,
                 sync_nudged_points_on_completion,
