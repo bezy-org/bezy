@@ -1,7 +1,7 @@
 //! Point drag handling for selection
 
 use crate::core::config::BezySettings;
-use crate::core::state::FontIRAppState;
+use crate::core::state::AppState;
 use crate::editing::selection::components::{GlyphPointReference, PointType, Selected};
 use crate::editing::selection::enhanced_point_component::EnhancedPointType;
 use crate::editing::selection::nudge::{EditEvent, PointCoordinates};
@@ -42,7 +42,7 @@ pub fn handle_point_drag(
         Without<Selected>,
     >,
     enhanced_points_query: Query<(Entity, &EnhancedPointType, &GlyphPointReference)>,
-    mut fontir_app_state: Option<ResMut<FontIRAppState>>,
+    mut app_state: Option<ResMut<AppState>>,
     mut event_writer: EventWriter<EditEvent>,
     settings: Res<BezySettings>,
 ) {
@@ -271,7 +271,7 @@ pub fn handle_point_drag(
         }
 
         // Sync all movements to font data using shared utility
-        let result = sync_to_font_data(&point_movements, &mut fontir_app_state);
+        let result = sync_to_font_data(&point_movements, &mut app_state);
         _updated_count = result.points_moved + result.connected_offcurves_moved;
 
         if _updated_count > 0 {

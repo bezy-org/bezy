@@ -148,15 +148,65 @@ These systems directly cause the point reversion bug:
 
 ## Status Tracking
 
-- [ ] Phase 1: Update Point Movement Systems
-- [ ] Phase 2: Update Rendering Systems
+- [x] **Phase 1: Update Point Movement Systems** - COMPLETED
+  - [x] `src/editing/selection/point_movement.rs` - Updated `sync_to_font_data()` to use AppState
+  - [x] `src/editing/selection/input/drag.rs` - Updated `handle_point_drag()` to use AppState
+  - [x] `src/editing/selection/nudge.rs` - Updated all nudge systems to use AppState
+  - [x] Removed delayed sync complexity - now syncs immediately with AppState
+  - [x] **CRITICAL FIX**: Updated `src/systems/fontir_lifecycle.rs` - now loads AppState on startup
+  - [x] Updated `src/systems/commands.rs` - save and commands now use AppState only
+  - [x] Compilation verified - no errors
+
+**Root Cause Identified and Fixed:**
+The point reversion bug occurred because:
+1. FontIRAppState was loaded on startup, but AppState was never initialized
+2. Point movement systems wrote to AppState (which was empty/missing)
+3. Rendering systems read from FontIRAppState (which had stale data)
+4. Result: edits appeared to work but immediately reverted
+
+**Solution:**
+- Font loading (`deferred_fontir_font_loading`) now loads AppState instead of FontIRAppState
+- All point editing systems now read/write the same AppState
+- Single source of truth eliminates sync issues
+
+- [ ] **Phase 2: Update Rendering Systems** - IN PROGRESS
+  - Remaining files to update:
+    - `src/rendering/glyph_renderer.rs` (5 usages)
+    - `src/rendering/outline_elements.rs`
+    - `src/rendering/metrics.rs`
+    - `src/rendering/sort_visuals.rs`
+
 - [ ] Phase 3: Update Entity Management
-- [ ] Phase 4: Remove FontIR Lifecycle
-- [ ] Phase 5: Update Save/Load Operations
+  - `src/editing/selection/entity_management/spawning.rs`
+  - `src/editing/sort/manager.rs`
+
+- [ ] Phase 4: Update Text Editor
+  - `src/core/state/text_editor/editor.rs`
+  - `src/systems/sorts/keyboard_input.rs`
+
+- [ ] Phase 5: Remove FontIR Lifecycle
+  - `src/systems/fontir_lifecycle.rs` (entire file)
+  - `src/core/app/builder.rs` (FontIR initialization)
+  - `src/core/app/plugins.rs` (FontIRLifecyclePlugin)
+
 - [ ] Phase 6: Remove FontIR Infrastructure
+  - `src/font_source/fontir_state.rs` (entire file - ~2000 lines)
+  - `src/font_source/mod.rs` (exports)
+  - `src/core/state/mod.rs` (re-exports)
+
 - [ ] Phase 7: Update Dependencies
+  - `Cargo.toml` - Remove `fontir` and `ufo2fontir` dependencies
+
 - [ ] Phase 8: Global Cleanup
-- [ ] Phase 9: Testing
+  - Search and verify all FontIRAppState references removed
+
+- [ ] **Phase 9: Testing** - READY TO TEST
+  - **CRITICAL: Test point editing immediately to verify bug fix**
+  - Test point selection
+  - Test point dragging
+  - Test point nudging with arrow keys
+  - **Test tool switching after nudging** (this was the original bug)
+  - Test save/load operations
 
 ## Notes
 

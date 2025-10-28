@@ -4,10 +4,10 @@
 //! connected off-curve handles, ensuring consistent behavior across all
 //! point movement operations.
 
-use crate::core::state::{AppState, FontIRAppState};
+use crate::core::state::AppState;
 use crate::editing::selection::components::{GlyphPointReference, PointType, Selected};
 use crate::editing::sort::manager::SortPointEntity;
-use bevy::log::{debug, warn};
+use bevy::log::debug;
 use bevy::prelude::*;
 
 // Type alias for mutable query (used in nudge.rs)
@@ -176,65 +176,43 @@ where
     updated_count
 }
 
-/// Sync point movements to FontIR data
+/// Sync point movements to font data
 pub fn sync_to_font_data(
     point_movements: &[PointMovement],
-    fontir_app_state: &mut Option<ResMut<FontIRAppState>>,
+    app_state: &mut Option<ResMut<AppState>>,
 ) -> MovementResult {
     let mut points_moved = 0;
     let mut connected_offcurves_moved = 0;
 
-    info!("🔵 SYNC_TO_FONT_DATA: Called with {} point movements, fontir_app_state is_some={}",
-          point_movements.len(), fontir_app_state.is_some());
-
-    for movement in point_movements {
-        let mut handled = false;
-
-        // Update FontIR with point position
-        if let Some(ref mut fontir_state) = fontir_app_state {
-            match fontir_state.update_point_position(
+    if let Some(state) = app_state {
+        for movement in point_movements {
+            let was_updated = state.set_point_position(
                 &movement.point_ref.glyph_name,
                 movement.point_ref.contour_index,
                 movement.point_ref.point_index,
                 movement.new_position.x as f64,
                 movement.new_position.y as f64,
-            ) {
-                Ok(was_updated) => {
-                    if was_updated {
-                        if movement.is_connected_offcurve {
-                            connected_offcurves_moved += 1;
-                        } else {
-                            points_moved += 1;
-                        }
-                        handled = true;
-                        debug!(
-                            "[POINT_MOVEMENT] FontIR: Updated {} point {} in glyph '{}'",
-                            if movement.is_connected_offcurve {
-                                "connected off-curve"
-                            } else {
-                                "selected"
-                            },
-                            movement.point_ref.point_index,
-                            movement.point_ref.glyph_name
-                        );
-                    }
-                }
-                Err(e) => {
-                    warn!("[POINT_MOVEMENT] Failed to update FontIR point: {}", e);
-                }
-            }
-        }
-
-        // If FontIR didn't handle it, just track the Transform update
-        if !handled {
-            if movement.is_connected_offcurve {
-                connected_offcurves_moved += 1;
-            } else {
-                points_moved += 1;
-            }
-            debug!(
-                "[POINT_MOVEMENT] Point update handled via Transform only (no source data update)"
             );
+
+            if was_updated {
+                if movement.is_connected_offcurve {
+                    connected_offcurves_moved += 1;
+                } else {
+                    points_moved += 1;
+                }
+                debug!(
+                    "[POINT_MOVEMENT] Updated {} point {} in glyph '{}' to ({:.1}, {:.1})",
+                    if movement.is_connected_offcurve {
+                        "connected off-curve"
+                    } else {
+                        "selected"
+                    },
+                    movement.point_ref.point_index,
+                    movement.point_ref.glyph_name,
+                    movement.new_position.x,
+                    movement.new_position.y
+                );
+            }
         }
     }
 

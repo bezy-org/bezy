@@ -8,6 +8,7 @@ use crate::core::state::{
     ComponentData, ContourData, FontData, FontInfo, GlyphData, OutlineData, PointData,
     PointTypeData,
 };
+use kurbo::{BezPath, Point};
 use norad::Font;
 use std::path::PathBuf;
 

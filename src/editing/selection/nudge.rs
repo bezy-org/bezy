@@ -1,4 +1,5 @@
 use crate::core::config::BezySettings;
+use crate::core::state::AppState;
 use crate::editing::selection::components::{GlyphPointReference, PointType, Selected};
 use crate::editing::selection::point_movement::{
     find_connected_offcurve_points_nudge, sync_to_font_data, PointMovement,
@@ -47,7 +48,7 @@ pub fn handle_nudge_input(
             (With<SortPointEntity>, Without<Selected>),
         >,
     )>,
-    mut fontir_app_state: Option<ResMut<crate::core::state::FontIRAppState>>,
+    mut app_state: Option<ResMut<AppState>>,
     mut event_writer: EventWriter<EditEvent>,
     mut nudge_state: ResMut<NudgeState>,
     _active_sort_state: Res<ActiveSortState>, // Keep for potential future use
@@ -211,11 +212,17 @@ pub fn handle_nudge_input(
             // Smooth constraints will be handled uniformly by update_glyph_data_from_selection
             // when it detects the Transform changes from nudging
 
-            // STEP 2: Skip immediate sync for performance (batched on key release)
-            // Note: Tool switching will force a sync via tool change handler
-            debug!(
-                "[NUDGE] Skipping immediate sync - will batch on key release or tool change"
-            );
+            // STEP 2: Sync immediately to font data
+            // AppState is simple and fast enough to sync on every nudge
+            let result = sync_to_font_data(&all_movements, &mut app_state);
+            let total_synced = result.points_moved + result.connected_offcurves_moved;
+
+            if total_synced > 0 {
+                debug!(
+                    "[NUDGE] Synced {} points ({} selected, {} connected off-curves) to font data",
+                    total_synced, result.points_moved, result.connected_offcurves_moved
+                );
+            }
 
             // Create an edit event for undo/redo
             event_writer.write(EditEvent {});
@@ -240,6 +247,7 @@ pub fn reset_nudge_state(mut nudge_state: ResMut<NudgeState>) {
 }
 
 /// System to sync nudged points back to font data when nudging completes
+/// NOTE: This system is now obsolete since we sync immediately with AppState
 #[allow(clippy::type_complexity)]
 pub fn sync_nudged_points_on_completion(
     nudge_state: Res<NudgeState>,
@@ -257,8 +265,7 @@ pub fn sync_nudged_points_on_completion(
         (With<SortPointEntity>, Without<Selected>),
     >,
     _sort_query: Query<(&crate::editing::sort::Sort, &Transform)>,
-    mut app_state: Option<ResMut<crate::core::state::AppState>>,
-    mut fontir_app_state: Option<ResMut<crate::core::state::FontIRAppState>>,
+    mut app_state: Option<ResMut<AppState>>,
     mut last_nudge_state: Local<bool>,
 ) {
     // Only sync when transitioning from nudging to not nudging
@@ -309,8 +316,8 @@ pub fn sync_nudged_points_on_completion(
         }
 
         // Use shared utility to sync all movements
-        info!("🟠 NUDGE: About to sync {} movements to FontIR", all_sync_movements.len());
-        let result = sync_to_font_data(&all_sync_movements, &mut fontir_app_state);
+        info!("🟠 NUDGE: About to sync {} movements to AppState", all_sync_movements.len());
+        let result = sync_to_font_data(&all_sync_movements, &mut app_state);
         let total_synced = result.points_moved + result.connected_offcurves_moved;
         info!("🟠 NUDGE: Synced {} total points", total_synced);
 
@@ -326,10 +333,11 @@ pub fn sync_nudged_points_on_completion(
 }
 
 /// System to force sync nudged points before tool switches
+/// NOTE: This system is now obsolete since we sync immediately with AppState
 pub fn sync_before_tool_switch(
     mut tool_switch_events: EventReader<crate::tools::SwitchToolEvent>,
     nudge_state: Res<NudgeState>,
-    mut fontir_app_state: Option<ResMut<crate::core::state::FontIRAppState>>,
+    mut app_state: Option<ResMut<AppState>>,
     selected_query: Query<
         (&Transform, &GlyphPointReference),
         With<Selected>,
@@ -358,7 +366,7 @@ pub fn sync_before_tool_switch(
 
     if !movements.is_empty() {
         info!("🟠 TOOL SWITCH: Syncing {} movements", movements.len());
-        let result = sync_to_font_data(&movements, &mut fontir_app_state);
+        let result = sync_to_font_data(&movements, &mut app_state);
         info!("🟠 TOOL SWITCH: Synced {} points", result.points_moved + result.connected_offcurves_moved);
     }
 }

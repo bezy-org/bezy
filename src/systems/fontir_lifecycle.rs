@@ -1,12 +1,10 @@
-//! FontIR-based application lifecycle systems
+//! Application lifecycle systems for font loading
 //!
-//! This module contains systems that handle font loading and management
-//! using FontIR instead of the old custom data structures.
+//! This module contains systems that handle font loading and management.
 
 use crate::core::config::CliArgs;
-use crate::core::state::FontIRAppState;
+use crate::core::state::AppState;
 use bevy::prelude::*;
-use fontir::source::Source;
 use std::path::PathBuf;
 
 /// Resource to track deferred font loading state
@@ -59,20 +57,11 @@ pub fn deferred_fontir_font_loading(
 
         info!("Starting background font loading from: {}", path.display());
 
-        match FontIRAppState::from_path(path.clone()) {
-            Ok(mut app_state) => {
-                // Try to load glyphs if possible
-                if let Err(e) = app_state.load_glyphs() {
-                    warn!("Could not load glyphs: {}", e);
-                }
-
-                // Try to load kerning groups
-                if let Err(e) = app_state.load_kerning_groups() {
-                    warn!("Could not load kerning groups: {}", e);
-                }
-
+        let mut app_state = AppState::default();
+        match app_state.load_font_from_path(path.clone()) {
+            Ok(_) => {
                 debug!(
-                    "Successfully loaded font with FontIR from: {}",
+                    "Successfully loaded font from: {}",
                     path.display()
                 );
                 commands.insert_resource(app_state);
@@ -82,14 +71,14 @@ pub fn deferred_fontir_font_loading(
                 info!("Font loading completed!");
             }
             Err(e) => {
-                error!("Failed to load font with FontIR: {}", e);
+                error!("Failed to load font: {}", e);
                 error!("Font path: {}", path.display());
                 error!("The application will continue but some features may not work correctly.");
 
                 // Mark as completed (even though it failed) so we don't keep trying
                 deferred_loading.loaded = true;
                 deferred_loading.loading = false;
-                warn!("App will run without FontIR state - some features may not work");
+                warn!("App will run without font state - some features may not work");
             }
         }
     }
