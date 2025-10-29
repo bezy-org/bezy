@@ -280,15 +280,15 @@ impl TextEditorState {
 
     /// Create a new text root at the specified world position
     pub fn create_text_root(&mut self, world_position: Vec2, layout_mode: SortLayoutMode) {
-        self.create_text_root_with_fontir(world_position, layout_mode, None);
+        self.create_text_root_with_app_state(world_position, layout_mode, None);
     }
 
-    /// Create a new text root with FontIR access for proper advance width calculation
-    pub fn create_text_root_with_fontir(
+    /// Create a new text root with AppState access for proper advance width calculation
+    pub fn create_text_root_with_app_state(
         &mut self,
         world_position: Vec2,
         layout_mode: SortLayoutMode,
-        fontir_app_state: Option<&crate::core::state::FontIRAppState>,
+        app_state: Option<&crate::core::state::AppState>,
     ) {
         // Only clear states if buffer is empty (first text root)
         if self.buffer.is_empty() {
@@ -307,10 +307,16 @@ impl TextEditorState {
             _ => ("a".to_string(), 'a'), // Latin lowercase a for LTR and Freeform
         };
 
-        let advance_width = if let Some(fontir_state) = fontir_app_state {
-            fontir_state.get_glyph_advance_width(&placeholder_glyph)
+        let advance_width = if let Some(app_state) = app_state {
+            app_state
+                .workspace
+                .font
+                .glyphs
+                .get(&placeholder_glyph)
+                .map(|glyph_data| glyph_data.advance_width as f32)
+                .unwrap_or(500.0)
         } else {
-            // Fallback to reasonable default if FontIR not available
+            // Fallback to reasonable default if AppState not available
             500.0
         };
 

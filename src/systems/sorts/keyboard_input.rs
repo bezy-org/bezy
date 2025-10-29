@@ -1,7 +1,6 @@
 //! Keyboard input handling for text editor sorts
 
 use super::rtl_shaping::ShapedTextCache;
-use crate::core::state::fontir_app_state::FontIRAppState;
 use crate::core::state::text_editor::TextEditorState;
 use crate::core::state::AppState;
 use crate::ui::edit_mode_toolbar::text::TextPlacementMode;
@@ -19,7 +18,6 @@ pub fn handle_arabic_text_input(
     mut key_evr: EventReader<KeyboardInput>,
     mut text_editor_state: ResMut<TextEditorState>,
     current_placement_mode: Res<TextPlacementMode>,
-    _fontir_app_state: Option<Res<FontIRAppState>>,
     _app_state: Option<Res<AppState>>,
     _shaped_cache: ResMut<ShapedTextCache>,
 ) {
@@ -95,7 +93,6 @@ pub fn handle_arabic_text_input(
                 &mut text_editor_state,
                 &glyph_name,
                 &_app_state,
-                &_fontir_app_state,
             );
 
             debug!("Inserted Arabic glyph: {}", glyph_name);
@@ -151,13 +148,12 @@ fn insert_arabic_glyph(
     text_editor_state: &mut TextEditorState,
     glyph_name: &str,
     app_state: &Option<Res<AppState>>,
-    fontir_app_state: &Option<Res<FontIRAppState>>,
 ) {
     use crate::core::state::text_editor::buffer::{SortData, SortKind};
     use crate::core::state::SortLayoutMode;
 
     // Get proper advance width from font metrics (same as LTR mode)
-    let advance_width = get_glyph_advance_width(glyph_name, app_state, fontir_app_state);
+    let advance_width = get_glyph_advance_width(glyph_name, app_state);
 
     debug!(
         "🔍 ARABIC INSERT: glyph '{}' with advance_width: {:.1}",
@@ -190,7 +186,6 @@ fn insert_arabic_glyph(
 fn get_glyph_advance_width(
     glyph_name: &str,
     app_state: &Option<Res<AppState>>,
-    fontir_app_state: &Option<Res<FontIRAppState>>,
 ) -> f32 {
     if let Some(app_state) = app_state.as_ref() {
         if let Some(glyph_data) = app_state.workspace.font.glyphs.get(glyph_name) {
@@ -205,13 +200,6 @@ fn get_glyph_advance_width(
             "⚠️ ADVANCE WIDTH: Glyph '{}' not found in AppState",
             glyph_name
         );
-    } else if let Some(fontir_state) = fontir_app_state.as_ref() {
-        let width = fontir_state.get_glyph_advance_width(glyph_name);
-        debug!(
-            "📏 ADVANCE WIDTH: Glyph '{}' from FontIR = {}",
-            glyph_name, width
-        );
-        return width;
     }
 
     // Fallback default width

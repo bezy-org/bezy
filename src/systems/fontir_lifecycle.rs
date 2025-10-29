@@ -1,6 +1,6 @@
 //! Application lifecycle systems for font loading
 //!
-//! This module contains systems that handle font loading and management.
+//! This module contains systems that handle AppState font loading and management.
 
 use crate::core::config::CliArgs;
 use crate::core::state::AppState;
@@ -26,7 +26,7 @@ impl Default for DeferredFontLoading {
 }
 
 /// System to initialize deferred font loading on startup (fast)
-pub fn load_fontir_font(mut commands: Commands, cli_args: Res<CliArgs>) {
+pub fn initialize_font_loading(mut commands: Commands, cli_args: Res<CliArgs>) {
     // Initialize deferred loading resource
     let deferred_loading = DeferredFontLoading {
         font_path: cli_args.font_source.clone(),
@@ -44,7 +44,7 @@ pub fn load_fontir_font(mut commands: Commands, cli_args: Res<CliArgs>) {
 }
 
 /// System to actually load the font in the background after window is shown
-pub fn deferred_fontir_font_loading(
+pub fn load_font_deferred(
     mut commands: Commands,
     mut deferred_loading: ResMut<DeferredFontLoading>,
 ) {

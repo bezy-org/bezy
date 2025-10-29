@@ -193,14 +193,24 @@ The point reversion bug occurred because:
   - [x] `src/editing/selection/entity_management/spawning.rs` - Updated in Phase 1
   - [ ] `src/editing/sort/manager.rs` - May need AppState updates
 
-- [ ] Phase 4: Update Text Editor
-  - `src/core/state/text_editor/editor.rs`
-  - `src/systems/sorts/keyboard_input.rs`
+- [x] **Phase 4: Update Text Editor** - COMPLETED
+  - [x] `src/core/state/text_editor/editor.rs` - Renamed `create_text_root_with_fontir()` to `create_text_root_with_app_state()`, updated to read advance widths from AppState
+  - [x] `src/systems/sorts/keyboard_input.rs` - Removed all FontIRAppState parameters, updated `get_glyph_advance_width()` to use only AppState
+  - [x] `src/systems/sorts/unicode_input.rs` - Updated all helper functions to remove FontIR fallback logic
+  - [x] Removed FontIR-specific function `get_contextual_arabic_glyph_name()`
+  - [x] Updated arrow key navigation to use AppState
+  - [x] Compilation verified - no errors
 
-- [ ] Phase 5: Remove FontIR Lifecycle
-  - `src/systems/fontir_lifecycle.rs` (entire file)
-  - `src/core/app/builder.rs` (FontIR initialization)
-  - `src/core/app/plugins.rs` (FontIRLifecyclePlugin)
+- [x] **Phase 5: Remove FontIR Lifecycle** - COMPLETED
+  - [x] `src/systems/fontir_lifecycle.rs` - Functions renamed to accurately reflect AppState loading (not FontIR)
+    - `load_fontir_font` → `initialize_font_loading`
+    - `deferred_fontir_font_loading` → `load_font_deferred`
+  - [x] `src/systems/mod.rs` - Updated exports with new function names
+  - [x] `src/core/app/builder.rs` - Updated all function calls to use new names
+  - [x] No FontIRLifecyclePlugin found (never existed or already removed)
+  - [x] Compilation verified - no errors
+
+  **Note**: The lifecycle system was already updated to use AppState in Phase 1. Phase 5 focused on removing misleading "fontir" naming.
 
 - [ ] Phase 6: Remove FontIR Infrastructure
   - `src/font_source/fontir_state.rs` (entire file - ~2000 lines)

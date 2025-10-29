@@ -4,10 +4,8 @@
 //! enabling input of any Unicode character including Latin, Arabic, Hebrew,
 //! Chinese, Japanese, Korean, and other global scripts.
 
-use crate::core::state::fontir_app_state::FontIRAppState;
 use crate::core::state::{AppState, TextEditorState};
-use crate::systems::sorts::input_utilities::{unicode_to_glyph_name, unicode_to_glyph_name_fontir};
-use crate::systems::text_shaping::{get_arabic_position, ArabicPosition};
+use crate::systems::sorts::input_utilities::unicode_to_glyph_name;
 use crate::ui::edit_mode_toolbar::text::TextPlacementMode;
 use crate::ui::edit_mode_toolbar::CurrentTool;
 use bevy::input::keyboard::{Key, KeyboardInput};
@@ -23,7 +21,6 @@ pub fn handle_unicode_text_input(
     mut key_evr: EventReader<KeyboardInput>,
     mut text_editor_state: ResMut<TextEditorState>,
     app_state: Option<Res<AppState>>,
-    fontir_app_state: Option<Res<FontIRAppState>>,
     current_tool: Res<CurrentTool>,
     current_placement_mode: Res<TextPlacementMode>,
     active_buffer: Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
@@ -119,7 +116,6 @@ pub fn handle_unicode_text_input(
                             &mut commands,
                             &mut text_editor_state,
                             &app_state,
-                            &fontir_app_state,
                             &current_placement_mode,
                             &active_buffer,
                             &mut buffer_query,
@@ -142,7 +138,6 @@ pub fn handle_unicode_text_input(
                         &mut commands,
                         &mut text_editor_state,
                         &app_state,
-                        &fontir_app_state,
                         &current_placement_mode,
                         &active_buffer,
                         &mut buffer_query,
@@ -184,7 +179,6 @@ pub fn handle_unicode_text_input(
                     &mut commands,
                     &mut text_editor_state,
                     &app_state,
-                    &fontir_app_state,
                     &current_placement_mode,
                     &active_buffer,
                     &mut buffer_query,
@@ -202,7 +196,7 @@ pub fn handle_unicode_text_input(
                     &mut text_editor_state,
                     &active_buffer,
                     &mut buffer_query,
-                    &fontir_app_state,
+                    &app_state,
                 );
             }
             Key::ArrowDown => {
@@ -210,7 +204,7 @@ pub fn handle_unicode_text_input(
                     &mut text_editor_state,
                     &active_buffer,
                     &mut buffer_query,
-                    &fontir_app_state,
+                    &app_state,
                 );
             }
             _ => {
@@ -227,7 +221,6 @@ fn handle_unicode_character(
     commands: &mut Commands,
     text_editor_state: &mut ResMut<TextEditorState>,
     app_state: &Option<Res<AppState>>,
-    fontir_app_state: &Option<Res<FontIRAppState>>,
     current_placement_mode: &TextPlacementMode,
     active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
     buffer_query: &mut Query<(
@@ -239,9 +232,6 @@ fn handle_unicode_character(
     // Find glyph name for this Unicode character
     let glyph_name = if let Some(app_state) = app_state.as_ref() {
         unicode_to_glyph_name(character, app_state)
-    } else if let Some(fontir_state) = fontir_app_state.as_ref() {
-        // For FontIR, use enhanced Arabic-aware glyph lookup with contextual shaping
-        get_contextual_arabic_glyph_name(character, text_editor_state, fontir_state)
     } else {
         None
     };
@@ -259,7 +249,7 @@ fn handle_unicode_character(
         );
 
         // Get advance width
-        let advance_width = get_glyph_advance_width(&glyph_name, app_state, fontir_app_state);
+        let advance_width = get_glyph_advance_width(&glyph_name, app_state);
 
         // Insert the character using new buffer entity system
         match *current_placement_mode {
@@ -382,7 +372,6 @@ fn handle_space_character(
     commands: &mut Commands,
     text_editor_state: &mut ResMut<TextEditorState>,
     app_state: &Option<Res<AppState>>,
-    fontir_app_state: &Option<Res<FontIRAppState>>,
     _current_placement_mode: &TextPlacementMode,
     active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
     buffer_query: &mut Query<(
@@ -396,14 +385,12 @@ fn handle_space_character(
     // Check if space glyph exists
     let glyph_exists = if let Some(app_state) = app_state.as_ref() {
         app_state.workspace.font.glyphs.contains_key(&glyph_name)
-    } else if let Some(fontir_state) = fontir_app_state.as_ref() {
-        fontir_state.get_glyph(&glyph_name).is_some()
     } else {
         false
     };
 
     if glyph_exists {
-        let advance_width = get_glyph_advance_width(&glyph_name, app_state, fontir_app_state);
+        let advance_width = get_glyph_advance_width(&glyph_name, app_state);
 
         // NEW BUFFER ENTITY SYSTEM: Use buffer entities instead of legacy cursor
         insert_character_at_buffer_cursor(
@@ -749,101 +736,19 @@ fn delete_character_at_buffer_cursor(
     true
 }
 
-/// Get advance width for a glyph from either AppState or FontIR
+/// Get advance width for a glyph from AppState
 fn get_glyph_advance_width(
     glyph_name: &str,
     app_state: &Option<Res<AppState>>,
-    fontir_app_state: &Option<Res<FontIRAppState>>,
 ) -> f32 {
     if let Some(app_state) = app_state.as_ref() {
         if let Some(glyph_data) = app_state.workspace.font.glyphs.get(glyph_name) {
             return glyph_data.advance_width as f32;
         }
-    } else if let Some(fontir_state) = fontir_app_state.as_ref() {
-        return fontir_state.get_glyph_advance_width(glyph_name);
     }
 
     // Fallback default width
     500.0
-}
-
-/// Get contextual Arabic glyph name by analyzing position in text buffer
-fn get_contextual_arabic_glyph_name(
-    character: char,
-    text_editor_state: &TextEditorState,
-    fontir_state: &FontIRAppState,
-) -> Option<String> {
-    // First get the base glyph name
-    let base_name = unicode_to_glyph_name_fontir(character, fontir_state)?;
-
-    // Check if this is an Arabic character that needs contextual shaping
-    if (character as u32) < 0x0600 || (character as u32) > 0x06FF {
-        return Some(base_name);
-    }
-
-    debug!(
-        "🔤 Direct shaping: Analyzing Arabic character '{}' ({})",
-        character, base_name
-    );
-
-    // Build text context from current buffer for position analysis
-    let mut text_chars = Vec::new();
-    for entry in text_editor_state.buffer.iter() {
-        if let crate::core::state::text_editor::buffer::SortKind::Glyph {
-            codepoint: Some(ch),
-            ..
-        } = &entry.kind
-        {
-            text_chars.push(*ch);
-        }
-    }
-
-    // Add the current character at cursor position
-    let cursor_pos = text_editor_state.cursor_position;
-    if cursor_pos <= text_chars.len() {
-        text_chars.insert(cursor_pos, character);
-    } else {
-        text_chars.push(character);
-    }
-
-    // Determine Arabic position
-    let position = get_arabic_position(&text_chars, cursor_pos);
-
-    // Apply contextual form
-    let contextual_name = match position {
-        ArabicPosition::Isolated => base_name.clone(),
-        ArabicPosition::Initial => {
-            let contextual = format!("{base_name}.init");
-            // Check if this form exists in the font
-            if fontir_state.get_glyph_names().contains(&contextual) {
-                contextual
-            } else {
-                base_name.clone()
-            }
-        }
-        ArabicPosition::Medial => {
-            let contextual = format!("{base_name}.medi");
-            if fontir_state.get_glyph_names().contains(&contextual) {
-                contextual
-            } else {
-                base_name.clone()
-            }
-        }
-        ArabicPosition::Final => {
-            let contextual = format!("{base_name}.fina");
-            if fontir_state.get_glyph_names().contains(&contextual) {
-                contextual
-            } else {
-                base_name.clone()
-            }
-        }
-    };
-
-    debug!(
-        "🔤 Direct shaping: '{}' at position {:?} → '{}'",
-        base_name, position, contextual_name
-    );
-    Some(contextual_name)
 }
 
 /// Insert a character at the current buffer cursor position using the new buffer entity system
@@ -1176,7 +1081,7 @@ fn handle_arrow_up(
         &crate::core::state::text_editor::text_buffer::TextBuffer,
         &mut crate::core::state::text_editor::text_buffer::BufferCursor,
     )>,
-    fontir_app_state: &Option<Res<crate::core::state::fontir_app_state::FontIRAppState>>,
+    app_state: &Option<Res<AppState>>,
 ) {
     let Some(active_buffer) = active_buffer.as_ref() else {
         debug!("No active buffer for arrow up");
@@ -1201,7 +1106,7 @@ fn handle_arrow_up(
         text_buffer.id,
         current_position,
         LineNavigation::Up,
-        fontir_app_state,
+        app_state,
     ) {
         buffer_cursor.position = new_position;
         debug!(
@@ -1225,7 +1130,7 @@ fn handle_arrow_down(
         &crate::core::state::text_editor::text_buffer::TextBuffer,
         &mut crate::core::state::text_editor::text_buffer::BufferCursor,
     )>,
-    fontir_app_state: &Option<Res<crate::core::state::fontir_app_state::FontIRAppState>>,
+    app_state: &Option<Res<AppState>>,
 ) {
     let Some(active_buffer) = active_buffer.as_ref() else {
         debug!("No active buffer for arrow down");
@@ -1250,7 +1155,7 @@ fn handle_arrow_down(
         text_buffer.id,
         current_position,
         LineNavigation::Down,
-        fontir_app_state,
+        app_state,
     ) {
         buffer_cursor.position = new_position;
         debug!(
@@ -1280,7 +1185,7 @@ fn calculate_line_navigation_position(
     buffer_id: crate::core::state::text_editor::buffer::BufferId,
     current_position: usize,
     direction: LineNavigation,
-    fontir_app_state: &Option<Res<crate::core::state::fontir_app_state::FontIRAppState>>,
+    app_state: &Option<Res<AppState>>,
 ) -> Option<usize> {
     use crate::core::state::text_editor::buffer::{SortKind, SortLayoutMode};
 
@@ -1315,8 +1220,14 @@ fn calculate_line_navigation_position(
                 ..
             } => {
                 // Get advance width for this glyph
-                let width = if let Some(fontir_state) = fontir_app_state.as_ref() {
-                    fontir_state.get_glyph_advance_width(glyph_name)
+                let width = if let Some(app_state) = app_state.as_ref() {
+                    app_state
+                        .workspace
+                        .font
+                        .glyphs
+                        .get(glyph_name)
+                        .map(|glyph_data| glyph_data.advance_width as f32)
+                        .unwrap_or(*advance_width)
                 } else {
                     *advance_width
                 };
