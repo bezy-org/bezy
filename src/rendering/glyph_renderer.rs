@@ -445,143 +445,141 @@ fn render_filled_outline(
     sort_entity: Entity,
     glyph_name: &str,
     position: Vec2,
-    fontir_state: Option<&crate::core::state::FontIRAppState>,
-    _app_state: Option<&crate::core::state::AppState>,
+    _fontir_state: Option<&crate::core::state::FontIRAppState>,
+    app_state: Option<&crate::core::state::AppState>,
     _camera_scale: &CameraResponsiveScale,
     theme: &CurrentTheme,
 ) {
-    if let Some(fontir_state) = fontir_state {
-        if let Some(paths) = fontir_state.get_glyph_paths_with_components(glyph_name) {
-            debug!(
-                "🎨 Rendering filled outline for '{}' with {} paths (includes components)",
-                glyph_name,
-                paths.len()
-            );
+    if let Some(app_state) = app_state {
+        if let Some(glyph) = app_state.workspace.font.get_glyph(glyph_name) {
+            if let Some(outline) = &glyph.outline {
+                let paths = outline.to_bezpaths();
 
-            // Check if we actually have path data
-            let total_elements: usize = paths.iter().map(|p| p.elements().len()).sum();
-            if total_elements == 0 {
-                warn!(
-                    "⚠️ Glyph '{}' has {} paths but 0 total elements - skipping fill",
+                debug!(
+                    "🎨 Rendering filled outline for '{}' with {} paths",
                     glyph_name,
                     paths.len()
                 );
-                return;
-            }
 
-            // Combine all contours into a single Lyon path for proper winding rule handling
-            let mut lyon_path_builder = Path::builder();
+                let total_elements: usize = paths.iter().map(|p| p.elements().len()).sum();
+                if total_elements == 0 {
+                    warn!(
+                        "⚠️ Glyph '{}' has {} paths but 0 total elements - skipping fill",
+                        glyph_name,
+                        paths.len()
+                    );
+                    return;
+                }
 
-            // Convert all kurbo paths (contours) to a single Lyon path
-            for (path_idx, kurbo_path) in paths.iter().enumerate() {
-                let elements_count = kurbo_path.elements().len();
-                debug!(
-                    "🎨 Processing path {}/{}: {} elements",
-                    path_idx + 1,
-                    paths.len(),
-                    elements_count
-                );
+                let mut lyon_path_builder = Path::builder();
 
-                for element in kurbo_path.elements().iter() {
-                    match element {
-                        kurbo::PathEl::MoveTo(pt) => {
-                            lyon_path_builder.begin(point(pt.x as f32, pt.y as f32));
-                        }
-                        kurbo::PathEl::LineTo(pt) => {
-                            lyon_path_builder.line_to(point(pt.x as f32, pt.y as f32));
-                        }
-                        kurbo::PathEl::CurveTo(c1, c2, pt) => {
-                            lyon_path_builder.cubic_bezier_to(
-                                point(c1.x as f32, c1.y as f32),
-                                point(c2.x as f32, c2.y as f32),
-                                point(pt.x as f32, pt.y as f32),
-                            );
-                        }
-                        kurbo::PathEl::QuadTo(c, pt) => {
-                            lyon_path_builder.quadratic_bezier_to(
-                                point(c.x as f32, c.y as f32),
-                                point(pt.x as f32, pt.y as f32),
-                            );
-                        }
-                        kurbo::PathEl::ClosePath => {
-                            lyon_path_builder.close();
+                for (path_idx, kurbo_path) in paths.iter().enumerate() {
+                    let elements_count = kurbo_path.elements().len();
+                    debug!(
+                        "🎨 Processing path {}/{}: {} elements",
+                        path_idx + 1,
+                        paths.len(),
+                        elements_count
+                    );
+
+                    for element in kurbo_path.elements().iter() {
+                        match element {
+                            kurbo::PathEl::MoveTo(pt) => {
+                                lyon_path_builder.begin(point(pt.x as f32, pt.y as f32));
+                            }
+                            kurbo::PathEl::LineTo(pt) => {
+                                lyon_path_builder.line_to(point(pt.x as f32, pt.y as f32));
+                            }
+                            kurbo::PathEl::CurveTo(c1, c2, pt) => {
+                                lyon_path_builder.cubic_bezier_to(
+                                    point(c1.x as f32, c1.y as f32),
+                                    point(c2.x as f32, c2.y as f32),
+                                    point(pt.x as f32, pt.y as f32),
+                                );
+                            }
+                            kurbo::PathEl::QuadTo(c, pt) => {
+                                lyon_path_builder.quadratic_bezier_to(
+                                    point(c.x as f32, c.y as f32),
+                                    point(pt.x as f32, pt.y as f32),
+                                );
+                            }
+                            kurbo::PathEl::ClosePath => {
+                                lyon_path_builder.close();
+                            }
                         }
                     }
                 }
-            }
 
-            let lyon_path = lyon_path_builder.build();
+                let lyon_path = lyon_path_builder.build();
 
-            // Tessellate the combined path for filled rendering with proper winding rules
-            let mut tessellator = FillTessellator::new();
-            let mut geometry: VertexBuffers<[f32; 2], u32> = VertexBuffers::new();
+                let mut tessellator = FillTessellator::new();
+                let mut geometry: VertexBuffers<[f32; 2], u32> = VertexBuffers::new();
 
-            let tessellation_result = tessellator.tessellate_path(
-                &lyon_path,
-                &FillOptions::default().with_fill_rule(FillRule::EvenOdd),
-                &mut BuffersBuilder::new(&mut geometry, |vertex: FillVertex| {
-                    [vertex.position().x, vertex.position().y]
-                }),
-            );
-
-            if tessellation_result.is_ok() && !geometry.vertices.is_empty() {
-                debug!(
-                    "🎨 Tessellation successful: {} vertices, {} indices for '{}'",
-                    geometry.vertices.len(),
-                    geometry.indices.len(),
-                    glyph_name
+                let tessellation_result = tessellator.tessellate_path(
+                    &lyon_path,
+                    &FillOptions::default().with_fill_rule(FillRule::EvenOdd),
+                    &mut BuffersBuilder::new(&mut geometry, |vertex: FillVertex| {
+                        [vertex.position().x, vertex.position().y]
+                    }),
                 );
 
-                // Convert tessellated geometry to Bevy mesh
-                let vertices: Vec<[f32; 3]> = geometry
-                    .vertices
-                    .iter()
-                    .map(|&[x, y]| [x + position.x, y + position.y, 0.0])
-                    .collect();
+                if tessellation_result.is_ok() && !geometry.vertices.is_empty() {
+                    debug!(
+                        "🎨 Tessellation successful: {} vertices, {} indices for '{}'",
+                        geometry.vertices.len(),
+                        geometry.indices.len(),
+                        glyph_name
+                    );
 
-                let normals = vec![[0.0, 0.0, 1.0]; vertices.len()];
-                let uvs = vec![[0.0, 0.0]; vertices.len()]; // Simple UV mapping
+                    let vertices: Vec<[f32; 3]> = geometry
+                        .vertices
+                        .iter()
+                        .map(|&[x, y]| [x + position.x, y + position.y, 0.0])
+                        .collect();
 
-                let mut mesh = Mesh::new(
-                    bevy::render::mesh::PrimitiveTopology::TriangleList,
-                    default(),
-                );
-                mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
-                mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-                mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
-                mesh.insert_indices(bevy::render::mesh::Indices::U32(geometry.indices));
+                    let normals = vec![[0.0, 0.0, 1.0]; vertices.len()];
+                    let uvs = vec![[0.0, 0.0]; vertices.len()];
 
-                // Create filled mesh entity
-                let entity = commands
-                    .spawn((
-                        GlyphRenderElement {
-                            element_type: GlyphElementType::OutlineSegment,
-                            sort_entity,
-                        },
-                        Mesh2d(meshes.add(mesh)),
-                        MeshMaterial2d(materials.add(ColorMaterial::from_color(
-                            theme.theme().filled_glyph_color(),
-                        ))),
-                        Transform::from_translation(Vec3::new(0.0, 0.0, OUTLINE_Z)),
-                        GlobalTransform::default(),
-                        Visibility::Visible,
-                        InheritedVisibility::default(),
-                        ViewVisibility::default(),
-                    ))
-                    .id();
+                    let mut mesh = Mesh::new(
+                        bevy::render::mesh::PrimitiveTopology::TriangleList,
+                        default(),
+                    );
+                    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
+                    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+                    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
+                    mesh.insert_indices(bevy::render::mesh::Indices::U32(geometry.indices));
 
-                element_entities.push(entity);
-            } else if tessellation_result.is_err() {
-                warn!(
-                    "🎨 Tessellation FAILED for glyph '{}': {:?}",
-                    glyph_name,
-                    tessellation_result.err()
-                );
-            } else {
-                warn!(
-                    "🎨 Tessellation produced EMPTY geometry for glyph '{}'",
-                    glyph_name
-                );
+                    let entity = commands
+                        .spawn((
+                            GlyphRenderElement {
+                                element_type: GlyphElementType::OutlineSegment,
+                                sort_entity,
+                            },
+                            Mesh2d(meshes.add(mesh)),
+                            MeshMaterial2d(materials.add(ColorMaterial::from_color(
+                                theme.theme().filled_glyph_color(),
+                            ))),
+                            Transform::from_translation(Vec3::new(0.0, 0.0, OUTLINE_Z)),
+                            GlobalTransform::default(),
+                            Visibility::Visible,
+                            InheritedVisibility::default(),
+                            ViewVisibility::default(),
+                        ))
+                        .id();
+
+                    element_entities.push(entity);
+                } else if tessellation_result.is_err() {
+                    warn!(
+                        "🎨 Tessellation FAILED for glyph '{}': {:?}",
+                        glyph_name,
+                        tessellation_result.err()
+                    );
+                } else {
+                    warn!(
+                        "🎨 Tessellation produced EMPTY geometry for glyph '{}'",
+                        glyph_name
+                    );
+                }
             }
         }
     }
@@ -596,8 +594,8 @@ fn render_glyph_outline(
     sort_entity: Entity,
     sort_points: &[(Entity, Vec2, &GlyphPointReference, &PointType, bool)],
     sort_position: Vec2,
-    fontir_state: Option<&crate::core::state::FontIRAppState>,
-    _app_state: Option<&crate::core::state::AppState>,
+    _fontir_state: Option<&crate::core::state::FontIRAppState>,
+    app_state: Option<&crate::core::state::AppState>,
     camera_scale: &CameraResponsiveScale,
     theme: &CurrentTheme,
 ) {
@@ -612,23 +610,34 @@ fn render_glyph_outline(
     }
 
     // Get original path structure and render with live positions
-    if let Some(fontir_state) = fontir_state {
-        if let Some(original_paths) =
-            fontir_state.get_glyph_paths_with_components(&sort_points[0].2.glyph_name)
-        {
-            render_fontir_outline(
-                commands,
-                meshes,
-                materials,
-                element_entities,
-                sort_entity,
-                &original_paths,
-                &live_positions,
-                sort_position,
-                camera_scale,
-                theme,
-            );
+    if let Some(app_state) = app_state {
+        let glyph_name = &sort_points[0].2.glyph_name;
+        warn!("🎨 render_glyph_outline: Attempting to render outline for '{}'", glyph_name);
+        if let Some(glyph) = app_state.workspace.font.get_glyph(glyph_name) {
+            warn!("🎨 render_glyph_outline: Found glyph '{}'", glyph_name);
+            if let Some(outline) = &glyph.outline {
+                let original_paths = outline.to_bezpaths();
+                warn!("🎨 render_glyph_outline: Generated {} BezPaths for '{}'", original_paths.len(), glyph_name);
+                render_fontir_outline(
+                    commands,
+                    meshes,
+                    materials,
+                    element_entities,
+                    sort_entity,
+                    &original_paths,
+                    &live_positions,
+                    sort_position,
+                    camera_scale,
+                    theme,
+                );
+            } else {
+                warn!("⚠️ render_glyph_outline: No outline found for '{}'", glyph_name);
+            }
+        } else {
+            warn!("⚠️ render_glyph_outline: Glyph '{}' not found in AppState", glyph_name);
         }
+    } else {
+        warn!("⚠️ render_glyph_outline: AppState is None");
     }
 }
 
@@ -969,13 +978,15 @@ fn render_static_outline(
     sort_entity: Entity,
     glyph_name: &str,
     position: Vec2,
-    fontir_state: Option<&crate::core::state::FontIRAppState>,
-    _app_state: Option<&crate::core::state::AppState>,
+    _fontir_state: Option<&crate::core::state::FontIRAppState>,
+    app_state: Option<&crate::core::state::AppState>,
     camera_scale: &CameraResponsiveScale,
     theme: &CurrentTheme,
 ) {
-    if let Some(fontir_state) = fontir_state {
-        if let Some(paths) = fontir_state.get_glyph_paths_with_components(glyph_name) {
+    if let Some(app_state) = app_state {
+        if let Some(glyph) = app_state.workspace.font.get_glyph(glyph_name) {
+            if let Some(outline) = &glyph.outline {
+                let paths = outline.to_bezpaths();
             // Render static outline from FontIR working copy
             for path in paths {
                 let elements: Vec<_> = path.elements().iter().collect();
@@ -1098,6 +1109,7 @@ fn render_static_outline(
                     }
                 }
             }
+            }
         }
     }
 }
@@ -1115,13 +1127,25 @@ fn render_fontir_outline(
     camera_scale: &CameraResponsiveScale,
     theme: &CurrentTheme,
 ) {
+    warn!("🎨 render_fontir_outline: Called with {} paths, {} live positions", original_paths.len(), live_positions.len());
+    let initial_entity_count = element_entities.len();
     // Process each contour with live positions
     for (contour_idx, original_path) in original_paths.iter().enumerate() {
+        let element_count = original_path.elements().len();
+        warn!("🎨 render_fontir_outline: Processing contour {} with {} elements", contour_idx, element_count);
         let elements: Vec<_> = original_path.elements().iter().collect();
         let mut element_point_index = 0;
         let mut current_pos = None;
 
         for (element_idx, element) in elements.iter().enumerate() {
+            let element_name = match element {
+                kurbo::PathEl::MoveTo(_) => "MoveTo",
+                kurbo::PathEl::LineTo(_) => "LineTo",
+                kurbo::PathEl::CurveTo(_, _, _) => "CurveTo",
+                kurbo::PathEl::QuadTo(_, _) => "QuadTo",
+                kurbo::PathEl::ClosePath => "ClosePath",
+            };
+            warn!("🎨 Element {}: {} (current_pos = {})", element_idx, element_name, current_pos.is_some());
             match element {
                 kurbo::PathEl::MoveTo(_) => {
                     // Get the start position
@@ -1370,6 +1394,8 @@ fn render_fontir_outline(
             }
         }
     }
+    let spawned_count = element_entities.len() - initial_entity_count;
+    warn!("🎨 render_fontir_outline: Spawned {} outline entities", spawned_count);
 }
 
 /// Helper to spawn a line mesh entity for unified rendering

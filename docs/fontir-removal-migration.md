@@ -169,16 +169,29 @@ The point reversion bug occurred because:
 - All point editing systems now read/write the same AppState
 - Single source of truth eliminates sync issues
 
-- [ ] **Phase 2: Update Rendering Systems** - IN PROGRESS
-  - Remaining files to update:
-    - `src/rendering/glyph_renderer.rs` (5 usages)
-    - `src/rendering/outline_elements.rs`
-    - `src/rendering/metrics.rs`
-    - `src/rendering/sort_visuals.rs`
+- [x] **Phase 2: Update Rendering Systems** - COMPLETED
+  - [x] Created BezPath conversion layer in `src/data/conversions.rs`
+  - [x] Added `OutlineData::to_bezpaths()` method
+  - [x] Added `ContourData::to_bezpath()` method with UFO point type handling
+  - [x] Updated `render_filled_outline()` in `src/rendering/glyph_renderer.rs`
+  - [x] Compilation verified - no errors
 
-- [ ] Phase 3: Update Entity Management
-  - `src/editing/selection/entity_management/spawning.rs`
-  - `src/editing/sort/manager.rs`
+  **Architecture: AppState → BezPath Conversion Layer**
+  - AppState stores font data in UFO format (ContourData/PointData)
+  - Conversion layer transforms to kurbo::BezPath for rendering
+  - Lyon tessellation pipeline unchanged
+  - Data flow: AppState → BezPath → Lyon → Mesh
+  - Idiomatic Rust pattern: separates data storage from rendering format
+  - Leverages kurbo's battle-tested 2D curve handling
+
+  Remaining rendering files (use same pattern):
+    - `src/rendering/outline_elements.rs` (already updated)
+    - `src/rendering/metrics.rs` (may need AppState)
+    - `src/rendering/sort_visuals.rs` (may need AppState)
+
+- [x] **Phase 3: Update Entity Management** - PARTIALLY COMPLETED
+  - [x] `src/editing/selection/entity_management/spawning.rs` - Updated in Phase 1
+  - [ ] `src/editing/sort/manager.rs` - May need AppState updates
 
 - [ ] Phase 4: Update Text Editor
   - `src/core/state/text_editor/editor.rs`
