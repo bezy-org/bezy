@@ -30,6 +30,7 @@ impl ThemeRegistry {
         themes.insert("light".to_string(), Box::new(LightTheme));
         themes.insert("strawberry".to_string(), Box::new(StrawberryTheme));
         themes.insert("campfire".to_string(), Box::new(CampfireTheme));
+        themes.insert("forest".to_string(), Box::new(ForestTheme));
 
         Self { themes }
     }
@@ -55,6 +56,7 @@ impl ThemeRegistry {
             "light" => Some(Box::new(LightTheme)),
             "strawberry" => Some(Box::new(StrawberryTheme)),
             "campfire" => Some(Box::new(CampfireTheme)),
+            "forest" => Some(Box::new(ForestTheme)),
             _ => None,
         }
     }
@@ -125,7 +127,7 @@ impl ThemeVariant {
 
 impl Default for ThemeVariant {
     fn default() -> Self {
-        Self::new("dark".to_string())
+        Self::new("forest".to_string())
     }
 }
 

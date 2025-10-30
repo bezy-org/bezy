@@ -103,7 +103,7 @@ impl ConfigFile {
         let settings_path = config_dir.join("settings.json");
         if !settings_path.exists() {
             let example = ConfigFile {
-                default_theme: Some("dark".to_string()),
+                default_theme: Some("forest".to_string()),
             };
             example.save()?;
             println!("Created settings file: {:?}", settings_path);

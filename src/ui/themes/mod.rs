@@ -7,11 +7,13 @@ pub mod dark;
 pub mod light;
 pub mod strawberry;
 pub mod campfire;
+pub mod forest;
 
 pub use dark::DarkTheme;
 pub use light::LightTheme;
 pub use strawberry::StrawberryTheme;
 pub use campfire::CampfireTheme;
+pub use forest::ForestTheme;
 
 pub use crate::ui::theme_system::{
     get_theme_registry, BezyTheme, CurrentTheme, ThemeRegistry, ThemeVariant,
