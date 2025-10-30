@@ -1,3 +1,4 @@
+#![allow(unreachable_code, dead_code)]
 //! Shapes Tool - Geometric shape drawing tool
 //!
 //! This tool allows users to draw basic geometric shapes like rectangles,
@@ -198,7 +199,6 @@ pub fn handle_shape_mouse_events(
     camera_query: Query<(&Camera, &GlobalTransform)>,
     mut app_state_changed: EventWriter<AppStateChanged>,
     mut app_state: Option<ResMut<AppState>>,
-    mut fontir_app_state: Option<ResMut<crate::core::state::FontIRAppState>>,
     glyph_navigation: Res<GlyphNavigation>,
     corner_radius: Res<CurrentCornerRadius>,
     shapes_mode: Option<Res<ShapesModeActive>>,
@@ -304,16 +304,9 @@ pub fn handle_shape_mouse_events(
                 debug!("SHAPES TOOL: Completing {:?} shape with rect: ({:.1}, {:.1}) to ({:.1}, {:.1})", 
                        active_drawing.shape_type, rect.min.x, rect.min.y, rect.max.x, rect.max.y);
 
-                // Create the shape in the current glyph - try FontIR first, then legacy AppState
-                if let Some(fontir_state) = fontir_app_state.as_mut() {
-                    create_shape_fontir(
-                        rect,
-                        active_drawing.shape_type,
-                        corner_radius.0,
-                        fontir_state,
-                        &mut app_state_changed,
-                    );
-                } else if let Some(state) = app_state.as_mut() {
+                // Create the shape in the current glyph
+                // TODO: Re-enable after FontIR removal - create shape in FontIR
+                if let Some(state) = app_state.as_mut() {
                     create_shape(
                         rect,
                         active_drawing.shape_type,
@@ -552,49 +545,8 @@ fn create_shape(
     }
 }
 
-/// Create shape using FontIR (preferred method)
-fn create_shape_fontir(
-    rect: Rect,
-    shape_type: ShapeType,
-    corner_radius: f32,
-    fontir_app_state: &mut crate::core::state::FontIRAppState,
-    app_state_changed: &mut EventWriter<AppStateChanged>,
-) {
-    let Some(current_glyph_name) = fontir_app_state.current_glyph.clone() else {
-        warn!("No current glyph selected for FontIR shape creation");
-        return;
-    };
-
-    // Create BezPath from shape type using Kurbo primitives
-    let bez_path = match shape_type {
-        ShapeType::Rectangle => create_rectangle_bezpath(rect),
-        ShapeType::Oval => create_ellipse_bezpath(rect),
-        ShapeType::RoundedRectangle => create_rounded_rectangle_bezpath(rect, corner_radius),
-    };
-
-    // Get or create a working copy using the proper method (like pen tool)
-    if let Some(working_copy) = fontir_app_state.get_or_create_working_copy(&current_glyph_name) {
-        working_copy.contours.push(bez_path.clone());
-        working_copy.is_dirty = true;
-        app_state_changed.write(AppStateChanged);
-
-        debug!(
-            "Created {} shape with FontIR in glyph '{}'. Total contours: {}",
-            match shape_type {
-                ShapeType::Rectangle => "rectangle",
-                ShapeType::Oval => "oval",
-                ShapeType::RoundedRectangle => "rounded rectangle",
-            },
-            current_glyph_name,
-            working_copy.contours.len()
-        );
-    } else {
-        warn!(
-            "Could not create working copy for FontIR shape in glyph '{}'",
-            current_glyph_name
-        );
-    }
-}
+// TODO: Re-enable after FontIR removal - create shape using FontIR
+// FontIR removed - create_shape_fontir function disabled
 
 /// Create points for a rectangle
 fn create_rectangle_points(rect: Rect) -> Vec<crate::core::state::PointData> {

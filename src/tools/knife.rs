@@ -1,3 +1,4 @@
+#![allow(unreachable_code, dead_code)]
 //! Knife tool for cutting contours
 //!
 //! The knife tool allows users to cut existing contours at specific points.

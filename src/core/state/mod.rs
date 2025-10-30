@@ -16,7 +16,7 @@ pub use text_editor::*;
 // TEMPORARY: Re-export font_source items for backward compatibility
 // TODO: Update all imports to use font_source directly, then remove these
 pub use crate::font_source::{
-    ComponentData, ContourData, EditableGlyphInstance, FontData, FontIRAppState, FontIRMetrics,
+    ComponentData, ContourData, FontData,
     FontInfo, FontMetrics, GlyphData, OutlineData, PointData, PointTypeData, UfoPoint,
     UfoPointComponent, UfoPointType,
 };
@@ -29,9 +29,6 @@ pub mod font_data {
 }
 pub mod font_metrics {
     pub use crate::font_source::{FontInfo, FontMetrics};
-}
-pub mod fontir_app_state {
-    pub use crate::font_source::{EditableGlyphInstance, FontIRAppState, FontIRMetrics};
 }
 pub mod ufo_point {
     pub use crate::font_source::{UfoPoint, UfoPointComponent, UfoPointType};

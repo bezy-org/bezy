@@ -141,7 +141,6 @@ pub(crate) fn render_glyphs(
         With<SortPointEntity>,
     >,
     app_state: Option<Res<crate::core::state::AppState>>,
-    fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
     text_editor_state: Option<Res<crate::core::state::TextEditorState>>,
     existing_elements: Query<(Entity, &GlyphRenderElement)>,
     rendering_data: Res<GlyphRenderingData>,
@@ -270,7 +269,7 @@ pub(crate) fn render_glyphs(
         let mut element_entities = Vec::new();
 
         // Check if this glyph has components - if so, render as filled even when active
-        let has_components = glyph_has_components(&sort.glyph_name, fontir_app_state.as_deref());
+        let has_components = glyph_has_components(&sort.glyph_name);
 
         // In presentation mode OR for component glyphs, skip all editing helpers and render as filled
         if presentation_active || has_components {
@@ -291,7 +290,6 @@ pub(crate) fn render_glyphs(
                 sort_entity,
                 &sort.glyph_name,
                 sort_position,
-                fontir_app_state.as_deref(),
                 app_state.as_deref(),
                 &camera_scale,
                 &theme,
@@ -348,7 +346,6 @@ pub(crate) fn render_glyphs(
                 sort_entity,
                 &sort_points,
                 sort_position,
-                fontir_app_state.as_deref(),
                 app_state.as_deref(),
                 &camera_scale,
                 &theme,
@@ -384,7 +381,7 @@ pub(crate) fn render_glyphs(
                 "🚫 NO POINTS: Rendering static outline for sort '{}' (no points found)",
                 sort.glyph_name
             );
-            // No points visible, render static outline from FontIR/UFO data
+            // No points visible, render static outline from AppState data
             render_static_outline(
                 &mut commands,
                 &mut meshes,
@@ -393,7 +390,6 @@ pub(crate) fn render_glyphs(
                 sort_entity,
                 &sort.glyph_name,
                 sort_position,
-                fontir_app_state.as_deref(),
                 app_state.as_deref(),
                 &camera_scale,
                 &theme,
@@ -424,7 +420,6 @@ pub(crate) fn render_glyphs(
             sort_entity,
             &sort.glyph_name,
             sort_position,
-            fontir_app_state.as_deref(),
             app_state.as_deref(),
             &camera_scale,
             &theme,
@@ -445,7 +440,6 @@ fn render_filled_outline(
     sort_entity: Entity,
     glyph_name: &str,
     position: Vec2,
-    _fontir_state: Option<&crate::core::state::FontIRAppState>,
     app_state: Option<&crate::core::state::AppState>,
     _camera_scale: &CameraResponsiveScale,
     theme: &CurrentTheme,
@@ -594,7 +588,6 @@ fn render_glyph_outline(
     sort_entity: Entity,
     sort_points: &[(Entity, Vec2, &GlyphPointReference, &PointType, bool)],
     sort_position: Vec2,
-    _fontir_state: Option<&crate::core::state::FontIRAppState>,
     app_state: Option<&crate::core::state::AppState>,
     camera_scale: &CameraResponsiveScale,
     theme: &CurrentTheme,
@@ -978,7 +971,6 @@ fn render_static_outline(
     sort_entity: Entity,
     glyph_name: &str,
     position: Vec2,
-    _fontir_state: Option<&crate::core::state::FontIRAppState>,
     app_state: Option<&crate::core::state::AppState>,
     camera_scale: &CameraResponsiveScale,
     theme: &CurrentTheme,
@@ -1591,23 +1583,10 @@ impl Plugin for GlyphRenderingPlugin {
     }
 }
 
-/// Check if a glyph has components by loading the UFO data directly
+/// Check if a glyph has components
 fn glyph_has_components(
-    glyph_name: &str,
-    fontir_state: Option<&crate::core::state::FontIRAppState>,
+    _glyph_name: &str,
 ) -> bool {
-    if let Some(fontir_state) = fontir_state {
-        // Check if the source is a UFO file
-        let source_path = &fontir_state.source_path;
-        if source_path.extension().is_some_and(|ext| ext == "ufo") {
-            // Load UFO directly to check for components
-            if let Ok(font) = norad::Font::load(source_path) {
-                let layer = font.default_layer();
-                if let Some(glyph) = layer.get_glyph(glyph_name) {
-                    return !glyph.components.is_empty();
-                }
-            }
-        }
-    }
+    // Temporarily disabled during FontIR removal
     false
 }

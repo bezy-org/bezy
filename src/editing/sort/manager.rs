@@ -385,13 +385,10 @@ pub fn spawn_sort_point_entities(
 pub fn spawn_current_glyph_sort(
     mut commands: Commands,
     sorts_query: Query<&Sort>,
-    fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
     glyph_navigation: Option<Res<crate::core::state::navigation::GlyphNavigation>>,
 ) {
-    // Determine current glyph name from FontIR or GlyphNavigation
-    let current_glyph_name = if let Some(fontir_state) = &fontir_app_state {
-        fontir_state.current_glyph.clone()
-    } else if let Some(nav) = &glyph_navigation {
+    // Determine current glyph name from GlyphNavigation
+    let current_glyph_name = if let Some(nav) = &glyph_navigation {
         nav.current_glyph.clone()
     } else {
         None

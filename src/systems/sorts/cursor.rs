@@ -52,15 +52,9 @@ fn get_active_buffer_info(
 
 /// Get line height from font metrics
 fn get_line_height(
-    fontir_app_state: &Option<Res<crate::core::state::FontIRAppState>>,
     app_state: &Option<Res<AppState>>,
 ) -> f32 {
-    if let Some(fontir_state) = fontir_app_state.as_ref() {
-        let metrics = fontir_state.get_font_metrics();
-        let upm = metrics.units_per_em;
-        let descender = metrics.descender.unwrap_or(-256.0);
-        upm - descender
-    } else if let Some(app_state) = app_state.as_ref() {
+    if let Some(app_state) = app_state.as_ref() {
         let font_metrics = &app_state.workspace.info.metrics;
         let upm = font_metrics.units_per_em as f32;
         let descender = font_metrics.descender.unwrap_or(-256.0) as f32;
@@ -252,7 +246,6 @@ fn calculate_ltr_cursor_offset(
 pub fn calculate_cursor_position(
     text_editor_state: &TextEditorState,
     app_state: &Option<Res<AppState>>,
-    fontir_app_state: &Option<Res<crate::core::state::FontIRAppState>>,
     buffer_query: &Query<(
         &crate::core::state::text_editor::text_buffer::TextBuffer,
         &crate::core::state::text_editor::text_buffer::BufferCursor,
@@ -260,7 +253,7 @@ pub fn calculate_cursor_position(
     active_buffer: &Option<Res<crate::core::state::text_editor::text_buffer::ActiveTextBuffer>>,
 ) -> Option<Vec2> {
     let buffer_info = get_active_buffer_info(active_buffer, buffer_query)?;
-    let line_height = get_line_height(fontir_app_state, app_state);
+    let line_height = get_line_height(app_state);
     let buffer_sorts = collect_buffer_sorts(text_editor_state, buffer_info.buffer_id);
 
     let offset = calculate_cursor_offset(
@@ -285,7 +278,6 @@ pub(crate) fn render_text_editor_cursor(
     text_editor_state: Option<Res<CoreTextEditorState>>,
     current_placement_mode: Res<TextPlacementMode>,
     app_state: Option<Res<AppState>>,
-    fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
     current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     camera_scale: Res<crate::rendering::zoom_aware_scaling::CameraResponsiveScale>,
     mut cursor_state: ResMut<CursorRenderingState>,
@@ -326,7 +318,6 @@ pub(crate) fn render_text_editor_cursor(
         calculate_cursor_position(
             state,
             &app_state,
-            &fontir_app_state,
             &buffer_query,
             &active_buffer,
         )
@@ -364,10 +355,7 @@ pub(crate) fn render_text_editor_cursor(
     if let Some(cursor_world_pos) = current_cursor_position {
         if text_editor_state.is_some() {
             // Get font metrics for proper cursor height
-            let (upm, descender) = if let Some(fontir_state) = fontir_app_state.as_ref() {
-                let metrics = fontir_state.get_font_metrics();
-                (metrics.units_per_em, metrics.descender.unwrap_or(-256.0))
-            } else if let Some(app_state) = app_state.as_ref() {
+            let (upm, descender) = if let Some(app_state) = app_state.as_ref() {
                 let font_metrics = &app_state.workspace.info.metrics;
                 (
                     font_metrics.units_per_em as f32,

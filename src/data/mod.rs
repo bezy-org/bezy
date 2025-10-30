@@ -5,5 +5,4 @@
 //! - UFO format conversions and serialization
 
 pub mod conversions;
-pub mod fontir_adapter;
 pub mod ufo;

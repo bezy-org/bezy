@@ -15,7 +15,7 @@ pub mod utils;
 // Explicit re-exports for public API
 // Components
 pub use components::{
-    FontIRPointReference, GlyphPointReference, PointType, Selectable, Selected, SelectionRect,
+    GlyphPointReference, PointType, Selectable, Selected, SelectionRect,
     SelectionState,
 };
 // Enhanced point types

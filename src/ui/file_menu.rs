@@ -1,9 +1,10 @@
+#![allow(unreachable_code, dead_code)]
 //! Cross-platform file menu implementation
 //!
 //! Provides keyboard-based file menu functionality that works reliably across
 //! all platforms without threading complexity.
 
-use crate::core::state::fontir_app_state::FontIRAppState;
+
 use crate::ui::panes::file_pane::FileInfo;
 use bevy::prelude::*;
 use bevy::window::{PrimaryWindow, Window};
@@ -11,6 +12,19 @@ use bevy::window::{PrimaryWindow, Window};
 use kurbo::PathEl;
 use norad::{designspace::DesignSpaceDocument, Font as NoradFont};
 use std::path::PathBuf;
+
+// ============================================================================
+// DUMMY TYPES FOR DEAD CODE (FontIR Removal)
+// ============================================================================
+
+// Placeholder struct for unreachable code that references working_copy fields
+#[allow(dead_code)]
+struct DummyWorkingCopy {
+    is_dirty: bool,
+    width: f64,
+    height: Option<f64>,
+    contours: Vec<kurbo::BezPath>,
+}
 
 // ============================================================================
 // EVENTS
@@ -120,29 +134,13 @@ fn handle_keyboard_shortcuts(
 /// Handles save file events
 fn handle_save_file_events(
     mut save_events: EventReader<SaveFileEvent>,
-    fontir_state: Option<Res<FontIRAppState>>,
     enhanced_attributes: Res<crate::editing::selection::entity_management::EnhancedPointAttributes>,
     mut file_info: ResMut<FileInfo>,
 ) {
     for _event in save_events.read() {
-        if let Some(state) = fontir_state.as_ref() {
-            match save_font_files(&state.source_path, state, &enhanced_attributes) {
-                Ok(saved_paths) => {
-                    debug!("Successfully saved {} files", saved_paths.len());
-                    for path in &saved_paths {
-                        debug!("  Saved: {}", path.display());
-                    }
-
-                    // Update the last saved time in file info
-                    file_info.last_saved = Some(std::time::SystemTime::now());
-                }
-                Err(e) => {
-                    error!("Failed to save files: {}", e);
-                }
-            }
-        } else {
-            warn!("No font data to save");
-        }
+        // TODO: Re-enable after FontIR removal - save font files
+        // FontIR removed - save logic needs to be reimplemented
+        warn!("Font saving disabled during FontIR removal migration");
     }
 }
 
@@ -164,7 +162,6 @@ fn update_save_state(file_info: Res<FileInfo>) {
 /// Saves the font files back to disk
 fn save_font_files(
     source_path: &PathBuf,
-    fontir_state: &FontIRAppState,
     enhanced_attributes: &crate::editing::selection::entity_management::EnhancedPointAttributes,
 ) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
     let mut saved_paths = Vec::new();
@@ -182,19 +179,11 @@ fn save_font_files(
             designspace.sources.len()
         );
 
-        // Check for modified glyphs in working copies
-        let modified_glyphs: Vec<_> = fontir_state
-            .working_copies
-            .iter()
-            .filter(|((_glyph_name, _location), working_copy)| working_copy.is_dirty)
-            .collect();
-
-        if modified_glyphs.is_empty() {
-            debug!("No modified glyphs found - nothing to save");
-            return Ok(saved_paths);
-        }
-
-        debug!("Found {} modified glyphs to save", modified_glyphs.len());
+        // TODO: Re-enable after FontIR removal - check for modified glyphs
+        // FontIR removed - working copies no longer available
+        let modified_glyphs: Vec<((String, ()), &DummyWorkingCopy)> = vec![]; // Empty placeholder for dead code below
+        debug!("FontIR removed - skipping modified glyph check");
+        return Ok(saved_paths);
 
         // Process each UFO source
         for source in &designspace.sources {
@@ -259,17 +248,11 @@ fn save_font_files(
         // Handle single UFO file
         debug!("💾 Saving changes to UFO file: {}", source_path.display());
 
-        // Check for modified glyphs
-        let modified_glyphs: Vec<_> = fontir_state
-            .working_copies
-            .iter()
-            .filter(|((_glyph_name, _location), working_copy)| working_copy.is_dirty)
-            .collect();
-
-        if modified_glyphs.is_empty() {
-            debug!("No modified glyphs found - nothing to save");
-            return Ok(saved_paths);
-        }
+        // TODO: Re-enable after FontIR removal - check for modified glyphs
+        // FontIR removed - working copies no longer available
+        let modified_glyphs: Vec<((String, ()), &DummyWorkingCopy)> = vec![]; // Empty placeholder for dead code below
+        debug!("FontIR removed - skipping modified glyph check for UFO");
+        return Ok(saved_paths);
 
         // Load the UFO
         let mut ufo_font = NoradFont::load(source_path)?;

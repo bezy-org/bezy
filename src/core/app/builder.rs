@@ -200,7 +200,6 @@ pub fn create_app_with_tui(
 fn handle_tui_messages(
     mut tui_comm: ResMut<crate::core::tui_communication::TuiCommunication>,
     mut glyph_nav: ResMut<GlyphNavigation>,
-    mut fontir_state: Option<ResMut<crate::core::state::FontIRAppState>>,
     mut text_editor_state: Option<ResMut<crate::core::state::TextEditorState>>,
     mut respawn_queue: ResMut<crate::systems::sorts::sort_entities::BufferSortRespawnQueue>,
     current_tool: Option<Res<crate::ui::edit_mode_toolbar::CurrentTool>>,
@@ -214,7 +213,6 @@ fn handle_tui_messages(
                 match crate::tui::message_handler::handle_glyph_selection(
                     unicode_codepoint,
                     &mut glyph_nav,
-                    &mut fontir_state,
                     &mut text_editor_state,
                     &mut respawn_queue,
                     &current_tool,
@@ -243,22 +241,12 @@ fn handle_tui_messages(
                 }
             }
             TuiMessage::RequestGlyphList => {
-                info!("TUI requested glyph list");
-                if let Some(ref fontir_state) = fontir_state {
-                    send_glyph_list_to_tui(&mut tui_comm, fontir_state, app_state.as_deref());
-                } else {
-                    tui_comm
-                        .send_log("No font loaded - please use --edit to load a font".to_string());
-                }
+                info!("TUI requested glyph list - feature temporarily disabled during FontIR removal");
+                tui_comm.send_log("Glyph list feature temporarily disabled".to_string());
             }
             TuiMessage::RequestFontInfo => {
-                info!("TUI requested font info");
-                if let Some(ref fontir_state) = fontir_state {
-                    send_font_info_to_tui(&mut tui_comm, fontir_state);
-                } else {
-                    tui_comm
-                        .send_log("No font loaded - please use --edit to load a font".to_string());
-                }
+                info!("TUI requested font info - feature temporarily disabled during FontIR removal");
+                tui_comm.send_log("Font info feature temporarily disabled".to_string());
             }
             TuiMessage::ChangeZoom(zoom) => {
                 info!("TUI requested zoom change: {}", zoom);
@@ -302,44 +290,8 @@ fn handle_tui_messages(
 #[cfg(feature = "tui")]
 /// System to send initial font data to TUI on startup
 fn send_initial_font_data_to_tui(
-    mut tui_comm: ResMut<crate::core::tui_communication::TuiCommunication>,
-    fontir_state: Option<Res<crate::core::state::FontIRAppState>>,
-    app_state: Option<Res<AppState>>,
+    _tui_comm: ResMut<crate::core::tui_communication::TuiCommunication>,
+    _app_state: Option<Res<AppState>>,
 ) {
-    if let Some(fontir_state) = fontir_state {
-        if fontir_state.is_changed() {
-            send_font_info_to_tui(&mut tui_comm, &fontir_state);
-            send_glyph_list_to_tui(&mut tui_comm, &fontir_state, app_state.as_deref());
-        }
-    }
-}
-
-#[cfg(feature = "tui")]
-fn send_glyph_list_to_tui(
-    tui_comm: &mut crate::core::tui_communication::TuiCommunication,
-    fontir_state: &crate::core::state::FontIRAppState,
-    app_state: Option<&AppState>,
-) {
-    // Use the proper function that extracts Unicode values from FontIR
-    let glyphs = crate::tui::communication::generate_glyph_list(fontir_state, app_state);
-    tui_comm.send_glyph_list(glyphs);
-}
-
-#[cfg(feature = "tui")]
-fn send_font_info_to_tui(
-    tui_comm: &mut crate::core::tui_communication::TuiCommunication,
-    _fontir_state: &crate::core::state::FontIRAppState,
-) {
-    let font_info = crate::tui::communication::FontInfo {
-        family_name: Some("Unknown".to_string()), // TODO: Get from fontir_state
-        style_name: Some("Regular".to_string()),  // TODO: Get from fontir_state
-        version: None,
-        ascender: None,
-        descender: None,
-        cap_height: None,
-        x_height: None,
-        units_per_em: Some(1000.0),              // TODO: Get from fontir_state
-    };
-
-    tui_comm.send_font_info(font_info);
+    // Temporarily disabled during FontIR removal
 }

@@ -1,10 +1,11 @@
+#![allow(unreachable_code, dead_code)]
 //! File Pane Module
 //!
 //! This module implements a floating panel in the upper left corner that displays
 //! information about the currently loaded font files and allows switching between
 //! UFO masters in a designspace.
 
-use crate::core::state::fontir_app_state::FontIRAppState;
+
 use crate::systems::sorts::sort_entities::BufferSortEntities;
 use crate::ui::theme::*;
 use crate::ui::theme_system::UiBorderRadius;
@@ -399,110 +400,11 @@ pub fn spawn_file_pane(
 
 /// Updates file information from FontIR state
 fn update_file_info(
-    fontir_state: Option<Res<FontIRAppState>>,
     mut file_info: ResMut<FileInfo>,
     windows: Query<&Window, With<bevy::window::PrimaryWindow>>,
 ) {
-    if let Some(state) = fontir_state {
-        // Check if we should show full path (fullscreen or large window)
-        let show_full_path = windows
-            .single()
-            .ok()
-            .map(|window| {
-                let is_fullscreen = window.mode != bevy::window::WindowMode::Windowed;
-                let is_wide = window.width() > 1200.0;
-
-                // Debug logging
-                if file_info.is_changed() {
-                    debug!(
-                        "Window mode: {:?}, Width: {}, Show full path: {}",
-                        window.mode,
-                        window.width(),
-                        is_fullscreen || is_wide
-                    );
-                }
-
-                // Show full path if:
-                // 1. Window is in fullscreen mode, OR
-                // 2. Window width is greater than 1200 pixels (large enough to show full path)
-                is_fullscreen || is_wide
-            })
-            .unwrap_or(false);
-
-        // Update designspace path (only for actual designspaces, not single UFOs)
-        if !state.is_single_ufo() {
-            if let Some(path_str) = state.source_path.to_str() {
-                if show_full_path {
-                    // In fullscreen: show full path with ~/ notation
-                    let home_dir = std::env::var("HOME").unwrap_or_else(|_| "/".to_string());
-                    let full_path = if path_str.starts_with(&home_dir) {
-                        format!("~{}", &path_str[home_dir.len()..])
-                    } else {
-                        path_str.to_string()
-                    };
-                    file_info.designspace_path = full_path;
-                } else {
-                    // In windowed mode: show just the filename
-                    let filename = state
-                        .source_path
-                        .file_name()
-                        .and_then(|n| n.to_str())
-                        .unwrap_or("Unknown");
-                    file_info.designspace_path = filename.to_string();
-                }
-            }
-        }
-
-        // Load UFO masters from designspace file
-        if file_info.masters.is_empty() {
-            if let Ok(masters) = load_masters_from_designspace(&state.source_path) {
-                file_info.masters = masters;
-            } else {
-                // Fallback for single UFO files or when designspace loading fails
-                file_info.masters = vec![UFOMaster {
-                    name: "Regular".to_string(),
-                    style_name: "Regular".to_string(),
-                    filename: state
-                        .source_path
-                        .file_name()
-                        .and_then(|n| n.to_str())
-                        .unwrap_or("Unknown")
-                        .to_string(),
-                    file_path: state.source_path.clone(),
-                }];
-            }
-        }
-
-        // Update current UFO
-        if state.is_single_ufo() {
-            // For single UFOs, show the path with same logic as designspace would have
-            if let Some(path_str) = state.source_path.to_str() {
-                if show_full_path {
-                    // In fullscreen: show full path with ~/ notation
-                    let home_dir = std::env::var("HOME").unwrap_or_else(|_| "/".to_string());
-                    let full_path = if path_str.starts_with(&home_dir) {
-                        format!("~{}", &path_str[home_dir.len()..])
-                    } else {
-                        path_str.to_string()
-                    };
-                    file_info.current_ufo = full_path;
-                } else {
-                    // In windowed mode: show just the filename
-                    let filename = state
-                        .source_path
-                        .file_name()
-                        .and_then(|n| n.to_str())
-                        .unwrap_or("Unknown");
-                    file_info.current_ufo = filename.to_string();
-                }
-            }
-        } else {
-            // For designspaces, show the current master's filename
-            if let Some(current_master) = file_info.masters.get(file_info.current_master_index) {
-                file_info.current_ufo = current_master.filename.clone();
-            }
-        }
-    }
+    // TODO: Re-enable after FontIR removal - update file info from FontIR state
+    // FontIR removed - file info update logic needs to be reimplemented
 }
 
 /// Load UFO masters from a designspace file
@@ -550,7 +452,6 @@ fn update_master_buttons(
     _embedded_fonts: Res<EmbeddedFonts>,
     theme: Res<CurrentTheme>,
     file_info: Res<FileInfo>,
-    fontir_state: Option<Res<FontIRAppState>>,
     mut container_query: Query<(Entity, &mut Node), With<MasterButtonContainer>>,
     existing_buttons: Query<Entity, With<MasterButton>>,
     children_query: Query<&Children>,
@@ -575,11 +476,9 @@ fn update_master_buttons(
         }
     }
 
-    // Only show master buttons for designspace sources (not single UFOs)
-    let should_show_masters = fontir_state
-        .as_ref()
-        .map(|state| !state.is_single_ufo())
-        .unwrap_or(true); // Default to showing if no fontir state
+    // TODO: Re-enable after FontIR removal - check if single UFO or designspace
+    // FontIR removed - always show master buttons for now
+    let should_show_masters = true;
 
     if !should_show_masters {
         // Hide the container for single UFOs
@@ -708,7 +607,6 @@ type ExportedRowQuery<'w, 's> = Query<
 #[allow(clippy::too_many_arguments)]
 fn update_file_display(
     file_info: Res<FileInfo>,
-    fontir_state: Option<Res<FontIRAppState>>,
     mut designspace_query: DesignspaceTextQuery,
     mut ufo_query: CurrentUFOTextQuery,
     mut saved_query: LastSavedTextQuery,
@@ -718,10 +616,8 @@ fn update_file_display(
     mut exported_row_query: ExportedRowQuery,
 ) {
     // Check if this is a single UFO or designspace
-    let is_single_ufo = fontir_state
-        .as_ref()
-        .map(|state| state.is_single_ufo())
-        .unwrap_or(false);
+    // TODO: Re-enable after FontIR removal - check if single UFO
+    let is_single_ufo = false; // Default to designspace for now
 
     // Show/hide designspace row based on source type
     if let Ok(mut node) = designspace_row_query.single_mut() {
@@ -821,7 +717,6 @@ fn handle_master_buttons(
 fn handle_switch_master_events(
     mut switch_events: EventReader<SwitchMasterEvent>,
     mut commands: Commands,
-    mut fontir_state: Option<ResMut<FontIRAppState>>,
     buffer_entities: Res<BufferSortEntities>,
     sort_query: Query<Entity, With<crate::editing::sort::Sort>>,
 ) {
@@ -832,54 +727,9 @@ fn handle_switch_master_events(
             event.master_path.display()
         );
 
-        // Step 1: Try to load the new FontIR state from the master UFO file
-        match FontIRAppState::from_path(event.master_path.clone()) {
-            Ok(new_fontir_state) => {
-                debug!(
-                    "✅ Successfully loaded new FontIR state from: {}",
-                    event.master_path.display()
-                );
-
-                // Step 2: Replace the existing FontIR state
-                if let Some(ref mut current_fontir) = fontir_state {
-                    **current_fontir = new_fontir_state;
-                    debug!("✅ Replaced FontIR state with new master");
-                } else {
-                    // Insert new FontIR state if none exists
-                    commands.insert_resource(new_fontir_state);
-                    debug!("✅ Inserted new FontIR state");
-                }
-
-                // Step 3: Clear all existing buffer sort entities to force refresh
-                // This will trigger the spawn_missing_sort_entities system to recreate them
-                // with the new glyph data and advance widths from the new master
-                for (&_buffer_index, &entity) in buffer_entities.entities.iter() {
-                    if sort_query.get(entity).is_ok() {
-                        if let Ok(mut entity_commands) = commands.get_entity(entity) {
-                            entity_commands.despawn();
-                        }
-                        debug!(
-                            "🗑️ Despawned sort entity {:?} to force refresh with new master",
-                            entity
-                        );
-                    }
-                }
-
-                // The buffer entities will be cleared by despawn_missing_buffer_sort_entities system
-                // and then recreated by spawn_missing_sort_entities system with the new FontIR data
-
-                debug!(
-                    "🔄 Master switch complete - sorts will be recreated with new advance widths"
-                );
-            }
-            Err(e) => {
-                error!(
-                    "❌ Failed to load FontIR state from {}: {}",
-                    event.master_path.display(),
-                    e
-                );
-            }
-        }
+        // FontIR removed - master switching temporarily disabled
+        debug!("Master switch temporarily disabled due to FontIR removal");
+        let _ = event;
     }
 }
 

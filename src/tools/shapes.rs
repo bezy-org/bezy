@@ -1,3 +1,4 @@
+#![allow(unreachable_code, dead_code)]
 //! Shapes tool for creating geometric primitives
 //!
 //! The shapes tool allows users to create common geometric shapes

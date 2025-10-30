@@ -1,3 +1,4 @@
+#![allow(unreachable_code, dead_code)]
 //! Text Tool - Sort placement and text editing
 //!
 //! The text tool allows users to place sorts by clicking in world-space.
@@ -11,7 +12,7 @@
 #![allow(clippy::manual_map)]
 
 use crate::core::state::{
-    AppState, FontIRAppState, GlyphNavigation, SortLayoutMode, TextEditorState, TextModeConfig,
+    AppState, GlyphNavigation, SortLayoutMode, TextEditorState, TextModeConfig,
 };
 use crate::utils::embedded_assets::EmbeddedFonts;
 use bevy::prelude::*;
@@ -351,17 +352,13 @@ pub fn handle_text_mode_mouse_clicks(
     mut current_placement_mode: ResMut<TextPlacementMode>,
     mut text_editor_state: ResMut<TextEditorState>,
     app_state: Option<Res<AppState>>,
-    fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
     glyph_navigation: Res<GlyphNavigation>,
     mut camera_query: Query<&mut Projection, With<DesignCamera>>,
 ) {
     // Check which state is available
+    // TODO: Re-enable after FontIR removal - check FontIR state first
     let (using_fontir, glyph_names, advance_width) =
-        if let Some(fontir_state) = fontir_app_state.as_ref() {
-            let names = fontir_state.get_glyph_names();
-            let advance = fontir_state.get_glyph_advance_width("a"); // Default glyph for advance
-            (true, names, advance)
-        } else if let Some(app_state) = app_state.as_ref() {
+        if let Some(app_state) = app_state.as_ref() {
             let names: Vec<String> = app_state.workspace.font.glyphs.keys().cloned().collect();
             let advance = app_state
                 .workspace
@@ -405,22 +402,8 @@ pub fn handle_text_mode_mouse_clicks(
         let handle_tolerance = 50.0;
 
         // Get font metrics from appropriate source
-        let font_metrics = if using_fontir {
-            if let Some(fontir_state) = fontir_app_state.as_ref() {
-                let metrics = fontir_state.get_font_metrics();
-                Some(crate::core::state::FontMetrics {
-                    units_per_em: metrics.units_per_em as f64,
-                    ascender: metrics.ascender.map(|a| a as f64),
-                    descender: metrics.descender.map(|d| d as f64),
-                    line_height: metrics.line_gap.unwrap_or(0.0) as f64,
-                    x_height: None,
-                    cap_height: None,
-                    italic_angle: None,
-                })
-            } else {
-                None
-            }
-        } else if let Some(app_state) = app_state.as_ref() {
+        // TODO: Re-enable after FontIR removal - get metrics from FontIR
+        let font_metrics = if let Some(app_state) = app_state.as_ref() {
             Some(app_state.workspace.info.metrics.clone())
         } else {
             None
@@ -489,7 +472,6 @@ pub fn render_sort_preview(
     current_placement_mode: Res<TextPlacementMode>,
     glyph_navigation: Res<GlyphNavigation>,
     app_state: Option<Res<AppState>>,
-    fontir_app_state: Option<Res<FontIRAppState>>,
     pointer_info: Res<crate::io::pointer::PointerInfo>,
     camera_query: Query<&Projection, With<DesignCamera>>,
     mut preview_metrics_state: ResMut<crate::rendering::metrics::PreviewMetricsState>,
@@ -543,38 +525,8 @@ pub fn render_sort_preview(
         preview_glyph_name, *current_placement_mode
     );
 
-    // Try FontIR first, then fall back to AppState
-    if let Some(fontir_state) = &fontir_app_state {
-        debug!("[PREVIEW] Using FontIR for preview");
-        if let Some(_glyph_paths) = fontir_state.get_glyph_paths_with_edits(&preview_glyph_name) {
-            debug!(
-                "[PREVIEW] Drawing FontIR preview for glyph '{}' at ({:.1}, {:.1})",
-                preview_glyph_name, snapped_position.x, snapped_position.y
-            );
-
-            // TODO: Implement mesh-based glyph preview
-            // For now, just show metrics without glyph outline
-
-            // Update mesh-based preview metrics state for FontIR
-            let advance_width = fontir_state.get_glyph_advance_width(&preview_glyph_name);
-            preview_metrics_state.active = true;
-            preview_metrics_state.position = snapped_position;
-            preview_metrics_state.glyph_name = preview_glyph_name.clone();
-            preview_metrics_state.advance_width = advance_width;
-            preview_metrics_state.color = theme.theme().button_pressed().with_alpha(0.8);
-            debug!(
-                "[PREVIEW] Updated mesh-based preview metrics for '{}' at ({:.1}, {:.1})",
-                preview_glyph_name, snapped_position.x, snapped_position.y
-            );
-        } else {
-            // No glyph paths found - disable preview metrics
-            preview_metrics_state.active = false;
-            debug!(
-                "[PREVIEW] No FontIR glyph_paths found for '{}', cannot draw preview - disabled metrics",
-                preview_glyph_name
-            );
-        }
-    } else if let Some(app_state) = &app_state {
+    // TODO: Re-enable after FontIR removal - try FontIR first
+    if let Some(app_state) = &app_state {
         debug!("[PREVIEW] Using AppState for preview");
         if let Some(glyph_data) = app_state.workspace.font.glyphs.get(&preview_glyph_name) {
             debug!(
@@ -707,7 +659,6 @@ pub fn handle_text_mode_keyboard(
     mut text_editor_state: ResMut<TextEditorState>,
     mut keyboard_input: ResMut<ButtonInput<KeyCode>>,
     app_state: Option<Res<AppState>>,
-    fontir_app_state: Option<Res<FontIRAppState>>,
     mut glyph_navigation: ResMut<GlyphNavigation>,
     _text_mode_state: Res<TextModeState>,
     current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
@@ -718,15 +669,14 @@ pub fn handle_text_mode_keyboard(
         return;
     }
 
-    // Get font data from either AppState or FontIR
+    // Get font data from AppState
+    // TODO: Re-enable after FontIR removal - check FontIR too
     let font_has_glyph: Box<dyn Fn(&str) -> bool> = if let Some(app_state) = app_state.as_ref() {
         Box::new(move |glyph_name: &str| -> bool {
             app_state.workspace.font.glyphs.contains_key(glyph_name)
         })
-    } else if let Some(fontir_state) = fontir_app_state.as_ref() {
-        Box::new(move |glyph_name: &str| -> bool { fontir_state.get_glyph(glyph_name).is_some() })
     } else {
-        warn!("Text mode keyboard disabled - neither AppState nor FontIR available");
+        warn!("Text mode keyboard disabled - AppState not available");
         return;
     };
 
@@ -900,11 +850,10 @@ pub fn handle_text_mode_keyboard(
     .enumerate()
     {
         if keyboard_input.just_pressed(*key) {
-            // Get available glyphs from either source
+            // Get available glyphs from AppState
+            // TODO: Re-enable after FontIR removal - check FontIR too
             let glyph_names: Vec<String> = if let Some(app_state) = app_state.as_ref() {
                 app_state.workspace.font.glyphs.keys().cloned().collect()
-            } else if let Some(fontir_state) = fontir_app_state.as_ref() {
-                fontir_state.get_glyph_names()
             } else {
                 vec![]
             };
@@ -933,10 +882,9 @@ pub fn handle_text_mode_keyboard(
                 "a".to_string()
             } else {
                 // Get first available glyph
+                // TODO: Re-enable after FontIR removal - check FontIR too
                 let glyph_names: Vec<String> = if let Some(app_state) = app_state.as_ref() {
                     app_state.workspace.font.glyphs.keys().cloned().collect()
-                } else if let Some(fontir_state) = fontir_app_state.as_ref() {
-                    fontir_state.get_glyph_names()
                 } else {
                     vec![]
                 };
@@ -958,9 +906,8 @@ pub fn handle_text_mode_keyboard(
             .get(&default_glyph_name)
             .map(|g| g.advance_width as f32)
             .unwrap_or(600.0)
-    } else if let Some(fontir_state) = fontir_app_state.as_ref() {
-        fontir_state.get_glyph_advance_width(&default_glyph_name)
     } else {
+        // TODO: Re-enable after FontIR removal - get advance from FontIR
         600.0
     };
 }
