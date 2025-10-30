@@ -291,7 +291,6 @@ pub trait BezyTheme: Send + Sync + 'static {
 
     /// Focus and special states
     fn focus_background_color(&self) -> Color;
-    fn text_editor_background_color(&self) -> Color;
 
     // =================================================================
     // GLYPH RENDERING

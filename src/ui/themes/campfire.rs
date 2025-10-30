@@ -22,7 +22,6 @@ impl BezyTheme for CampfireTheme {
     fn button_hovered_icon(&self) -> Color { Color::srgb(0.9, 0.7, 0.4) }
     fn button_pressed_icon(&self) -> Color { Color::srgb(1.0, 1.0, 1.0) }
     fn focus_background_color(&self) -> Color { Color::srgb(1.0, 0.5, 0.1) }
-    fn text_editor_background_color(&self) -> Color { Color::srgb(0.95, 0.85, 0.7) }
     fn on_curve_primary_color(&self) -> Color { Color::srgb(0.3, 0.8, 0.2) }
     fn on_curve_secondary_color(&self) -> Color { Color::srgb(0.15, 0.4, 0.1) }
     fn off_curve_primary_color(&self) -> Color { Color::srgb(1.0, 0.6, 0.2) }

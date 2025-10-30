@@ -76,10 +76,6 @@ impl BezyTheme for DarkTheme {
         Color::srgb(1.0, 0.5, 0.0)
     }
 
-    fn text_editor_background_color(&self) -> Color {
-        Color::srgb(0.9, 0.9, 0.9)
-    }
-
     fn on_curve_primary_color(&self) -> Color {
         Color::srgb(0.3, 1.0, 0.5)
     }

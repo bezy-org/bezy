@@ -76,10 +76,6 @@ impl BezyTheme for ForestTheme {
         Color::srgb(1.0, 0.42, 0.0)
     }
 
-    fn text_editor_background_color(&self) -> Color {
-        Color::srgb(0.827, 0.776, 0.667)
-    }
-
     fn on_curve_primary_color(&self) -> Color {
         Color::srgb(0.65, 0.75, 0.5)
     }

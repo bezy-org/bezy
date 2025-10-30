@@ -76,10 +76,6 @@ impl BezyTheme for LightTheme {
         Color::srgb(0.0, 0.4, 1.0)
     }
 
-    fn text_editor_background_color(&self) -> Color {
-        Color::srgb(0.1, 0.1, 0.1)
-    }
-
     fn on_curve_primary_color(&self) -> Color {
         Color::srgb(0.1, 0.7, 0.3)
     }

@@ -22,7 +22,6 @@ impl BezyTheme for StrawberryTheme {
     fn button_hovered_icon(&self) -> Color { Color::srgb(0.6, 0.2, 0.3) }
     fn button_pressed_icon(&self) -> Color { Color::srgb(1.0, 0.9, 1.0) }
     fn focus_background_color(&self) -> Color { Color::srgb(0.8, 0.2, 0.4) }
-    fn text_editor_background_color(&self) -> Color { Color::srgb(0.2, 0.1, 0.1) }
     fn on_curve_primary_color(&self) -> Color { Color::srgb(0.2, 0.7, 0.3) }
     fn on_curve_secondary_color(&self) -> Color { Color::srgb(0.1, 0.35, 0.15) }
     fn off_curve_primary_color(&self) -> Color { Color::srgb(0.8, 0.3, 0.5) }
