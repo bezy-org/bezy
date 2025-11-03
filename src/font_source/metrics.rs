@@ -117,6 +117,70 @@ impl FontInfo {
         info.cap_height = self.cap_height;
         info
     }
+
+    /// Get ascender value with sensible default based on UPM
+    pub fn ascender_or_default(&self) -> f32 {
+        self.ascender
+            .unwrap_or(self.units_per_em * 0.8)
+            .as_f32()
+    }
+
+    /// Get descender value with sensible default based on UPM
+    pub fn descender_or_default(&self) -> f32 {
+        self.descender
+            .unwrap_or(-(self.units_per_em * 0.2))
+            .as_f32()
+    }
+
+    /// Get x-height value with sensible default based on UPM
+    pub fn x_height_or_default(&self) -> f32 {
+        self.x_height
+            .unwrap_or(self.units_per_em * 0.5)
+            .as_f32()
+    }
+
+    /// Get cap-height value with sensible default based on UPM
+    pub fn cap_height_or_default(&self) -> f32 {
+        self.cap_height
+            .unwrap_or(self.units_per_em * 0.7)
+            .as_f32()
+    }
+
+    /// Calculate the UPM top position for a sort at the given position
+    pub fn upm_top(&self, sort_position: Vec2) -> f32 {
+        sort_position.y + self.ascender_or_default()
+    }
+
+    /// Calculate the UPM bottom position for a sort at the given position
+    pub fn upm_bottom(&self, sort_position: Vec2) -> f32 {
+        sort_position.y + self.descender_or_default()
+    }
+
+    /// Calculate the baseline position for a sort at the given position
+    pub fn baseline(&self, sort_position: Vec2) -> f32 {
+        sort_position.y
+    }
+
+    /// Calculate the x-height position for a sort at the given position
+    pub fn x_height_position(&self, sort_position: Vec2) -> f32 {
+        sort_position.y + self.x_height_or_default()
+    }
+
+    /// Calculate the cap-height position for a sort at the given position
+    pub fn cap_height_position(&self, sort_position: Vec2) -> f32 {
+        sort_position.y + self.cap_height_or_default()
+    }
+}
+
+/// Extension trait for converting f64 to f32
+trait AsF32 {
+    fn as_f32(self) -> f32;
+}
+
+impl AsF32 for f64 {
+    fn as_f32(self) -> f32 {
+        self as f32
+    }
 }
 
 impl FontMetrics {

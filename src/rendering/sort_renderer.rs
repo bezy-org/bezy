@@ -46,9 +46,13 @@ pub fn manage_sort_labels(
 ) {
     // Early return if AppState not available
     let Some(app_state) = app_state else {
-        debug!("Sort labels skipped - AppState not available (using FontIR)");
         return;
     };
+
+    let changed_count = sorts_query.iter().count();
+    if changed_count > 0 {
+        info!("🏷️ manage_sort_labels running: {} changed sorts", changed_count);
+    }
 
     // Remove text for sorts that no longer exist
     let existing_sort_entities: HashSet<Entity> = all_sorts_query.iter().collect();
@@ -86,7 +90,7 @@ pub fn manage_sort_labels(
         let position = transform.translation.truncate();
 
         // Calculate position for glyph name text
-        let name_transform = calculate_glyph_name_transform(position, &app_state, &sort.glyph_name);
+        let name_transform = calculate_sort_info_transform(position, &app_state, &sort.glyph_name);
 
         // Check if name text already exists
         let mut _name_text_exists = false;
@@ -107,11 +111,11 @@ pub fn manage_sort_labels(
             TextFont {
                 font: asset_server
                     .load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
-                font_size: 12.0,
+                font_size: 48.0,
                 ..default()
             },
             TextColor(text_color),
-            Anchor::Center,
+            Anchor::TopLeft,
             TextBounds::UNBOUNDED,
             name_transform,
             SortGlyphNameText { sort_entity },
@@ -134,7 +138,7 @@ pub fn manage_sort_labels(
 
             // Calculate position for unicode text (below glyph name)
             let mut unicode_transform = name_transform;
-            unicode_transform.translation.y -= 20.0;
+            unicode_transform.translation.y -= 60.0;
 
             // Create unicode text
             commands.spawn((
@@ -142,11 +146,11 @@ pub fn manage_sort_labels(
                 TextFont {
                     font: asset_server
                         .load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
-                    font_size: 10.0,
+                    font_size: 48.0,
                     ..default()
                 },
                 TextColor(text_color.with_alpha(0.7)),
-                Anchor::Center,
+                Anchor::TopLeft,
                 TextBounds::UNBOUNDED,
                 unicode_transform,
                 SortUnicodeText { sort_entity },
@@ -157,7 +161,7 @@ pub fn manage_sort_labels(
 
 /// System to update text label positions when sorts move
 pub fn update_sort_label_positions(
-    sorts_query: Query<(Entity, &Transform), (With<Sort>, Changed<Transform>)>,
+    sorts_query: Query<(Entity, &Transform, &Sort), Changed<Transform>>,
     mut name_text_query: Query<(&mut Transform, &SortGlyphNameText), Without<Sort>>,
     mut unicode_text_query: Query<
         (&mut Transform, &SortUnicodeText),
@@ -169,25 +173,23 @@ pub fn update_sort_label_positions(
         return;
     };
 
-    for (sort_entity, sort_transform) in sorts_query.iter() {
+    for (sort_entity, sort_transform, sort) in sorts_query.iter() {
         let position = sort_transform.translation.truncate();
+
+        // Margins for positioning (reduced to half)
+        let left_margin = 10.0;
+
+        // Position at the top-left of the sort, just below the top UPM line
+        let upm = app_state.workspace.info.units_per_em as f32;
+        let top_upm_y = position.y + upm;
+        let label_top_y = top_upm_y - 2.5; // Small offset just below top UPM line
 
         // Update glyph name text position
         for (mut text_transform, sort_name_text) in name_text_query.iter_mut() {
             if sort_name_text.sort_entity == sort_entity {
-                // Get glyph advance width for proper positioning
-                if let Some(selected_glyph) = &app_state.workspace.selected {
-                    if let Some(glyph_data) = app_state.workspace.font.glyphs.get(selected_glyph) {
-                        let advance_width = glyph_data.advance_width as f32;
-                        let descender =
-                            app_state.workspace.info.metrics.descender.unwrap_or(-200.0) as f32;
-
-                        // Position text to the right of the glyph, at descender height
-                        text_transform.translation.x = position.x + advance_width + 20.0;
-                        text_transform.translation.y = position.y + descender;
-                        text_transform.translation.z = 10.0; // Above glyph
-                    }
-                }
+                text_transform.translation.x = position.x + left_margin;
+                text_transform.translation.y = label_top_y;
+                text_transform.translation.z = 10.0; // Above glyph
             }
         }
 
@@ -198,7 +200,7 @@ pub fn update_sort_label_positions(
                 for (name_transform, sort_name_text) in name_text_query.iter() {
                     if sort_name_text.sort_entity == sort_entity {
                         text_transform.translation =
-                            name_transform.translation + Vec3::new(0.0, -20.0, 0.0);
+                            name_transform.translation + Vec3::new(0.0, -60.0, 0.0);
                         break;
                     }
                 }
@@ -244,26 +246,25 @@ pub fn update_sort_label_colors(
     }
 }
 
-/// Calculate transform for glyph name text positioning
-fn calculate_glyph_name_transform(
+/// Calculate transform for sort info text positioning
+fn calculate_sort_info_transform(
     sort_position: Vec2,
     app_state: &AppState,
     glyph_name: &str,
 ) -> Transform {
-    // Get glyph advance width for proper positioning
-    let advance_width = if let Some(glyph_data) = app_state.workspace.font.glyphs.get(glyph_name) {
-        glyph_data.advance_width as f32
-    } else {
-        500.0 // Default if glyph not found
-    };
+    // Margins for positioning (reduced to half)
+    let left_margin = 10.0;
 
-    let descender = app_state.workspace.info.metrics.descender.unwrap_or(-200.0) as f32;
+    // Position at the top-left of the sort, just below the top UPM line
+    let upm = app_state.workspace.info.units_per_em as f32;
+    let top_upm_y = sort_position.y + upm;
+    let label_top_y = top_upm_y - 2.5; // Small offset just below top UPM line
 
-    // Position text to the right of the glyph, at descender height
+    // Position text with offset
     Transform::from_xyz(
-        sort_position.x + advance_width + 20.0,
-        sort_position.y + descender,
-        10.0, // Above glyph
+        sort_position.x + left_margin,
+        label_top_y,
+        200.0, // Above glyph
     )
 }
 
