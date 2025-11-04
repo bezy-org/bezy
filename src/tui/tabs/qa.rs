@@ -408,12 +408,29 @@ fn draw_issue_list(f: &mut Frame, state: &mut QAState, area: Rect) {
         .collect();
 
     let list = List::new(items)
-        .block(Block::default().borders(Borders::ALL).title(format!(
-            "Issues ({} Errors, {} Warnings, {} Info)",
-            state.issues.iter().filter(|i| matches!(i.severity, Severity::Error)).count(),
-            state.issues.iter().filter(|i| matches!(i.severity, Severity::Warning)).count(),
-            state.issues.iter().filter(|i| matches!(i.severity, Severity::Info)).count(),
-        )))
+        .block(
+            Block::default().borders(Borders::ALL).title(Span::styled(
+                format!(
+                    "Issues ({} Errors, {} Warnings, {} Info)",
+                    state
+                        .issues
+                        .iter()
+                        .filter(|i| matches!(i.severity, Severity::Error))
+                        .count(),
+                    state
+                        .issues
+                        .iter()
+                        .filter(|i| matches!(i.severity, Severity::Warning))
+                        .count(),
+                    state
+                        .issues
+                        .iter()
+                        .filter(|i| matches!(i.severity, Severity::Info))
+                        .count(),
+                ),
+                Style::default().fg(Color::Green),
+            )),
+        )
         .highlight_style(
             Style::default()
                 .bg(Color::Yellow)
@@ -451,8 +468,11 @@ fn draw_filters(f: &mut Frame, state: &QAState, area: Rect) {
         "Severity: [{}]  Category: [{}]",
         severity_filter, category_filter
     );
-    let paragraph =
-        Paragraph::new(text).block(Block::default().borders(Borders::ALL).title("Filters"));
+    let paragraph = Paragraph::new(text).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(Span::styled("Filters", Style::default().fg(Color::Green))),
+    );
 
     f.render_widget(paragraph, area);
 }
@@ -460,8 +480,11 @@ fn draw_filters(f: &mut Frame, state: &QAState, area: Rect) {
 fn draw_controls(f: &mut Frame, area: Rect) {
     let text =
         "↑↓/j/k: Navigate | Enter: Details | S: Summary | F: Filter | R: Refresh | Esc: Back";
-    let paragraph =
-        Paragraph::new(text).block(Block::default().borders(Borders::ALL).title("Controls"));
+    let paragraph = Paragraph::new(text).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(Span::styled("Controls", Style::default().fg(Color::Green))),
+    );
 
     f.render_widget(paragraph, area);
 }
@@ -520,14 +543,20 @@ fn draw_issue_detail(f: &mut Frame, state: &QAState, area: Rect) {
             .block(
                 Block::default()
                     .borders(Borders::ALL)
-                    .title("Issue Details"),
+                    .title(Span::styled(
+                        "Issue Details",
+                        Style::default().fg(Color::Green),
+                    )),
             )
             .wrap(Wrap { trim: true });
 
         f.render_widget(paragraph, chunks[0]);
 
-        let controls = Paragraph::new("Enter: Back to list | Esc: Back")
-            .block(Block::default().borders(Borders::ALL).title("Controls"));
+        let controls = Paragraph::new("Enter: Back to list | Esc: Back").block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(Span::styled("Controls", Style::default().fg(Color::Green))),
+        );
 
         f.render_widget(controls, chunks[1]);
     } else {
@@ -643,13 +672,20 @@ fn draw_summary(f: &mut Frame, state: &QAState, area: Rect) {
             ));
 
             let paragraph = Paragraph::new(lines)
-                .block(Block::default().borders(Borders::ALL).title("QA Summary"))
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .title(Span::styled("QA Summary", Style::default().fg(Color::Green))),
+                )
                 .wrap(Wrap { trim: true });
 
             f.render_widget(paragraph, chunks[0]);
 
-            let controls = Paragraph::new("Esc: Back to issues")
-                .block(Block::default().borders(Borders::ALL).title("Controls"));
+            let controls = Paragraph::new("Esc: Back to issues").block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title(Span::styled("Controls", Style::default().fg(Color::Green))),
+            );
 
             f.render_widget(controls, chunks[1]);
         }
@@ -665,8 +701,11 @@ fn draw_settings(f: &mut Frame, _state: &QAState, area: Rect) {
         Line::from("(Settings panel not yet implemented)"),
     ];
 
-    let paragraph =
-        Paragraph::new(lines).block(Block::default().borders(Borders::ALL).title("Settings"));
+    let paragraph = Paragraph::new(lines).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(Span::styled("Settings", Style::default().fg(Color::Green))),
+    );
 
     f.render_widget(paragraph, area);
 }
@@ -675,7 +714,11 @@ fn draw_progress(f: &mut Frame, state: &QAState, area: Rect) {
     let progress_text = format!("Running QA Analysis... {:.0}%", state.progress * 100.0);
 
     let paragraph = Paragraph::new(progress_text)
-        .block(Block::default().borders(Borders::ALL).title("QA"))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(Span::styled("QA", Style::default().fg(Color::Green))),
+        )
         .wrap(Wrap { trim: true });
 
     f.render_widget(paragraph, area);
@@ -698,7 +741,10 @@ fn draw_no_report(f: &mut Frame, area: Rect) {
     let paragraph = Paragraph::new(lines).block(
         Block::default()
             .borders(Borders::ALL)
-            .title("QA - Demo Ready"),
+            .title(Span::styled(
+                "QA - Demo Ready",
+                Style::default().fg(Color::Green),
+            )),
     );
 
     f.render_widget(paragraph, area);

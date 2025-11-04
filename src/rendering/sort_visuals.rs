@@ -6,7 +6,6 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::uninlined_format_args)]
 
-use crate::core::state::FontIRAppState;
 use crate::editing::selection::components::Selected;
 use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
 use crate::ui::themes::CurrentTheme;
@@ -164,7 +163,7 @@ pub fn render_mesh_sort_handles(
     )>,
     existing_handles: Query<Entity, With<SortHandle>>,
     selected_query: Query<Entity, With<Selected>>,
-    fontir_app_state: Option<Res<FontIRAppState>>,
+    app_state: Option<Res<crate::core::state::AppState>>,
     camera_scale: Res<CameraResponsiveScale>,
     presentation_mode: Option<Res<crate::ui::edit_mode_toolbar::PresentationMode>>,
     theme: Res<CurrentTheme>,
@@ -184,9 +183,9 @@ pub fn render_mesh_sort_handles(
         return;
     }
 
-    if let Some(fontir_state) = fontir_app_state {
-        let fontir_metrics = fontir_state.get_font_metrics();
-        let descender = fontir_metrics.descender.unwrap_or(-200.0);
+    if let Some(app_state_res) = app_state {
+        let info = &app_state_res.workspace.info;
+        let descender = info.descender.map(|v| v as f32).unwrap_or(-200.0);
 
         for (sort_entity, sort_transform, _sort, active, _inactive) in sort_query.iter() {
             let position = sort_transform.translation.truncate();

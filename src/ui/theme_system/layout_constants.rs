@@ -6,6 +6,22 @@
 use bevy::prelude::*;
 
 // =================================================================
+// MARKER COMPONENTS FOR THEME-AWARE UI ELEMENTS
+// =================================================================
+
+/// Marker component for widgets that should use widget border radius
+#[derive(Component)]
+pub struct WidgetBorderRadius;
+
+/// Marker component for toolbars that should use toolbar border radius
+#[derive(Component)]
+pub struct ToolbarBorderRadius;
+
+/// Marker component for UI elements that should use UI border radius
+#[derive(Component)]
+pub struct UiBorderRadius;
+
+// =================================================================
 // RENDERING AND VISUAL CONSTANTS
 // =================================================================
 
@@ -97,7 +113,7 @@ pub fn create_widget_style<T: Component + Default>(
     marker: T,
     name: &str,
 ) -> impl Bundle {
-    use crate::ui::themes::WidgetBorderRadius;
+    use crate::ui::theme_system::WidgetBorderRadius;
 
     (
         Node {

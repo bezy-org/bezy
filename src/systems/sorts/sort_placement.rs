@@ -21,7 +21,6 @@ pub fn handle_sort_placement_input(
     mut current_placement_mode: ResMut<crate::ui::edit_mode_toolbar::text::TextPlacementMode>,
     mut text_editor_state: ResMut<crate::core::state::TextEditorState>,
     ui_hover_state: Res<crate::systems::ui_interaction::UiHoverState>,
-    fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
     theme: Res<CurrentTheme>,
 ) {
     use crate::ui::edit_mode_toolbar::text::TextPlacementMode;
@@ -130,7 +129,6 @@ pub fn handle_sort_placement_input(
         &mut text_editor_state,
         snapped_position,
         current_placement_mode.to_sort_layout_mode(),
-        fontir_app_state.as_deref(),
     );
 
     // CRITICAL: Update the ActiveTextBuffer resource to point to the new buffer entity
@@ -184,7 +182,6 @@ fn create_independent_sort_with_fontir(
     text_editor_state: &mut crate::core::state::TextEditorState,
     world_position: bevy::math::Vec2,
     layout_mode: crate::core::state::text_editor::SortLayoutMode,
-    fontir_app_state: Option<&crate::core::state::FontIRAppState>,
 ) -> bevy::prelude::Entity {
     use crate::core::state::text_editor::buffer::BufferId;
     use crate::core::state::text_editor::{SortData, SortKind, SortLayoutMode};
@@ -196,12 +193,9 @@ fn create_independent_sort_with_fontir(
     let (placeholder_glyph, placeholder_codepoint) =
         crate::core::state::text_editor::editor::get_default_glyph_for_direction(&layout_mode);
 
-    let advance_width = if let Some(fontir_state) = fontir_app_state {
-        fontir_state.get_glyph_advance_width(&placeholder_glyph)
-    } else {
-        // Fallback to reasonable default if FontIR not available
-        500.0
-    };
+    // Use default advance width (FontIR removed)
+    let advance_width = 500.0;
+    let _ = placeholder_glyph; // Suppress unused warning
 
     // BUFFER SEPARATION POLICY:
     // Each click with the text tool creates a NEW independent text flow

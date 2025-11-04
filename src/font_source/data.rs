@@ -86,6 +86,36 @@ pub enum PointTypeData {
     QCurve,
 }
 
+impl GlyphData {
+    /// Calculate the visual bounding box of the glyph
+    /// Returns (min_x, min_y, max_x, max_y) or None if there are no points
+    pub fn calculate_bounds(&self) -> Option<(f32, f32, f32, f32)> {
+        let outline = self.outline.as_ref()?;
+
+        let mut min_x = f64::INFINITY;
+        let mut min_y = f64::INFINITY;
+        let mut max_x = f64::NEG_INFINITY;
+        let mut max_y = f64::NEG_INFINITY;
+        let mut has_points = false;
+
+        for contour in &outline.contours {
+            for point in &contour.points {
+                min_x = min_x.min(point.x);
+                min_y = min_y.min(point.y);
+                max_x = max_x.max(point.x);
+                max_y = max_y.max(point.y);
+                has_points = true;
+            }
+        }
+
+        if has_points {
+            Some((min_x as f32, min_y as f32, max_x as f32, max_y as f32))
+        } else {
+            None
+        }
+    }
+}
+
 impl FontData {
     /// Get a glyph by name
     pub fn get_glyph(&self, name: &str) -> Option<&GlyphData> {

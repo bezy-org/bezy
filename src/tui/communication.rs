@@ -1,25 +1,22 @@
 use serde::{Deserialize, Serialize};
 
-/// Generate glyph list from FontIR data using Norad for Unicode mappings
+/// Generate glyph list from AppState
 pub fn generate_glyph_list(
-    fontir_state: &crate::core::state::FontIRAppState,
-    _app_state: Option<&crate::core::AppState>, // Keep for API compatibility but use FontIR for Unicode
+    app_state: Option<&crate::core::AppState>,
 ) -> Vec<GlyphInfo> {
     let mut glyphs = Vec::new();
 
-    // Extract glyph data from FontIR
-    for (glyph_name, glyph) in &fontir_state.glyph_cache {
-        // Get the first available instance for this glyph
-        if let Some((_location, glyph_instance)) = glyph.sources().iter().next() {
-            // Get Unicode codepoints directly from UFO via FontIR
-            let unicode_codepoints = fontir_state.get_unicode_for_glyph_name(glyph_name);
-            let unicode_value = unicode_codepoints.first().copied();
+    // Extract glyph data from AppState
+    if let Some(app_state) = app_state {
+        for (glyph_name, glyph) in &app_state.workspace.font.glyphs {
+            let unicode_value = glyph.unicode_values.first().map(|c| *c as u32);
+            let width = Some(glyph.advance_width as f32);
 
             let glyph_info = GlyphInfo {
                 codepoint: glyph_name.clone(),
                 name: Some(glyph_name.clone()),
                 unicode: unicode_value,
-                width: Some(glyph_instance.width as f32),
+                width,
             };
 
             glyphs.push(glyph_info);
@@ -70,6 +67,13 @@ pub enum TuiMessage {
 }
 
 #[derive(Debug, Clone)]
+pub struct FileAction {
+    pub action: String,
+    pub timestamp: String,
+    pub path: Option<String>,
+}
+
+#[derive(Debug, Clone)]
 pub enum AppMessage {
     CurrentGlyph(String),
     GlyphList(Vec<GlyphInfo>),
@@ -77,4 +81,5 @@ pub enum AppMessage {
     FontLoaded(String),
     LogLine(String),
     Error(String),
+    FileAction(FileAction),
 }

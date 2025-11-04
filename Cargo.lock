@@ -1383,7 +1383,6 @@ dependencies = [
  "dirs",
  "fontc",
  "fontdrasil",
- "fontir",
  "harfrust",
  "kurbo 0.12.0",
  "libc",
@@ -1399,7 +1398,6 @@ dependencies = [
  "tracing-appender",
  "tracing-subscriber",
  "tracing-wasm",
- "ufo2fontir",
  "wasm-bindgen",
  "web-sys",
 ]

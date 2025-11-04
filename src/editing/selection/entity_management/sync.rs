@@ -271,43 +271,20 @@ pub fn update_glyph_data_from_selection(
 }
 
 /// System to update point positions when sort position changes
+/// DISABLED: This system was causing points to snap back after editing
+/// because it read from stale data. Point positions are now managed
+/// directly through FontIR and don't need to be synced when sorts move.
+#[allow(dead_code)]
 #[allow(clippy::type_complexity)]
-pub fn sync_point_positions_to_sort(
+pub fn sync_point_positions_to_sort_DISABLED(
     mut param_set: ParamSet<(
         Query<(Entity, &Sort, &Transform), Changed<Sort>>,
         Query<(&mut Transform, &SortPointEntity, &GlyphPointReference)>,
     )>,
     app_state: Res<AppState>,
 ) {
-    // First, collect all the sort positions that have changed
-    let mut sort_positions = HashMap::new();
-
-    for (sort_entity, sort, sort_transform) in param_set.p0().iter() {
-        let position = sort_transform.translation.truncate();
-        sort_positions.insert(sort_entity, (sort.glyph_name.clone(), position));
-    }
-
-    // Then update all point transforms based on the collected positions
-    for (mut point_transform, sort_point, glyph_ref) in param_set.p1().iter_mut() {
-        if let Some((glyph_name, position)) = sort_positions.get(&sort_point.sort_entity) {
-            // Get the original point data from the glyph
-            if let Some(glyph_data) = app_state.workspace.font.get_glyph(glyph_name) {
-                if let Some(outline) = &glyph_data.outline {
-                    if let Some(contour) = outline.contours.get(glyph_ref.contour_index) {
-                        if let Some(point) = contour.points.get(glyph_ref.point_index) {
-                            // Calculate new world position: sort position + original point offset
-                            let point_world_pos =
-                                *position + Vec2::new(point.x as f32, point.y as f32);
-                            point_transform.translation = point_world_pos.extend(0.0);
-
-                            debug!("[sync_point_positions_to_sort] Updated point {} in contour {} to position {:?}", 
-                                   glyph_ref.point_index, glyph_ref.contour_index, point_world_pos);
-                        }
-                    }
-                }
-            }
-        }
-    }
+    // This system is disabled - see comment above
+    let _ = (param_set, app_state);
 }
 
 /// System to sync enhanced point attributes (like smooth) to a resource for UFO saving

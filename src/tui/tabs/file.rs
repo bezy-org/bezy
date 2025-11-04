@@ -14,6 +14,8 @@ use crate::tui::communication::TuiMessage;
 #[derive(Debug, Clone)]
 pub struct FileState {
     pub selected_index: usize,
+    pub file_actions: Vec<crate::tui::communication::FileAction>,
+    pub current_file_path: Option<String>,
 }
 
 impl Default for FileState {
@@ -24,7 +26,22 @@ impl Default for FileState {
 
 impl FileState {
     pub fn new() -> Self {
-        Self { selected_index: 0 }
+        Self {
+            selected_index: 0,
+            file_actions: Vec::new(),
+            current_file_path: None,
+        }
+    }
+
+    pub fn add_file_action(&mut self, action: crate::tui::communication::FileAction) {
+        self.file_actions.push(action);
+        if self.file_actions.len() > 10 {
+            self.file_actions.remove(0);
+        }
+    }
+
+    pub fn set_file_path(&mut self, path: Option<String>) {
+        self.current_file_path = path;
     }
 }
 
@@ -69,58 +86,126 @@ pub async fn handle_key_event(
 }
 
 /// Draw the File tab UI
-pub fn draw(f: &mut Frame, _state: &mut FileState, area: Rect) {
+pub fn draw(f: &mut Frame, state: &mut FileState, area: Rect) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(14), Constraint::Min(0)])
+        .constraints([
+            Constraint::Min(10),
+            Constraint::Length(5),
+            Constraint::Length(5),
+        ])
         .split(area);
 
-    let ascii_lines = [
-        "",
-        "     SSSSS     BBBBBB",
-        "   SS     SS   BB   BB",
-        "  SS  SSS  SS  BB   BB   EEEEE  ZZZZZZ YY    YY",
-        "  SS SS SS SS  BBBBBBb  EE   EE    ZZ  YY   YY",
-        "  SS    SS SS  BB    BB EEEEEEE   ZZ   YY  YY",
-        "    SSSSS  SS  BB    BB EE       ZZ    YY YY",
-        " SS       SS   BBBBBBB   EEEEE  ZZZZZZ  YYY",
-        "   SSSSSSS                             YY",
-        "                                    YYYY",
-        " Version 0.1.0 - bezy.org             ",
-    ];
+    let mut action_lines = vec![Line::from("")];
 
-    let ascii_art: Vec<Line> = ascii_lines
-        .iter()
-        .map(|line| Line::from(vec![Span::styled(*line, Style::default().fg(Color::Green))]))
-        .collect();
+    if state.file_actions.is_empty() {
+        action_lines.push(Line::from(vec![Span::styled(
+            "  No file actions yet",
+            Style::default().fg(Color::DarkGray),
+        )]));
+        action_lines.push(Line::from(""));
+        action_lines.push(Line::from(vec![Span::styled(
+            "  (Save to see actions here)",
+            Style::default().fg(Color::DarkGray),
+        )]));
+    } else {
+        for action in state.file_actions.iter().rev().take(8) {
+            action_lines.push(Line::from(vec![Span::styled(
+                format!("  {}", action.action),
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            )]));
 
-    let ascii_paragraph = Paragraph::new(ascii_art)
-        .block(Block::default().borders(Borders::ALL));
+            action_lines.push(Line::from(vec![Span::styled(
+                format!("    {}", action.timestamp),
+                Style::default().fg(Color::Yellow),
+            )]));
 
-    f.render_widget(ascii_paragraph, chunks[0]);
+            if let Some(path) = &action.path {
+                let filename = std::path::Path::new(path)
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or(path);
+                action_lines.push(Line::from(vec![Span::styled(
+                    format!("    {}", filename),
+                    Style::default().fg(Color::Yellow),
+                )]));
+            }
+
+            action_lines.push(Line::from(""));
+        }
+    }
+
+    let action_log = Paragraph::new(action_lines).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(Span::styled(
+                "File Actions",
+                Style::default().fg(Color::Green),
+            )),
+    );
+
+    f.render_widget(action_log, chunks[0]);
 
     let file_menu = vec![
         Line::from(""),
-        Line::from(vec![Span::styled(
-            "  File Operations",
-            Style::default().add_modifier(Modifier::BOLD),
-        )]),
+        Line::from(vec![
+            Span::styled(
+                "  ctrl+s",
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(" - ", Style::default().fg(Color::White)),
+            Span::styled(
+                "Save current font",
+                Style::default().fg(Color::Yellow),
+            ),
+        ]),
         Line::from(""),
-        Line::from("  Ctrl+S         - Save current font"),
-        Line::from("  Ctrl+Shift+S   - Save As..."),
-        Line::from("  Ctrl+O         - Open font file"),
-        Line::from("  Ctrl+E         - Export as TTF"),
-        Line::from(""),
-        Line::from(vec![Span::styled(
-            "  Recent Files",
-            Style::default().add_modifier(Modifier::BOLD),
-        )]),
-        Line::from(""),
-        Line::from("  No recent files"),
     ];
 
-    let paragraph =
-        Paragraph::new(file_menu).block(Block::default().borders(Borders::ALL).title("File"));
+    let paragraph = Paragraph::new(file_menu).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(Span::styled(
+                "File Operations",
+                Style::default().fg(Color::Green),
+            )),
+    );
 
     f.render_widget(paragraph, chunks[1]);
+
+    let file_location_lines = vec![
+        Line::from(""),
+        if let Some(path) = &state.current_file_path {
+            let display_path = if let Ok(stripped) = std::path::Path::new(path).strip_prefix(std::env::var("HOME").unwrap_or_default()) {
+                format!("~/{}", stripped.display())
+            } else {
+                path.clone()
+            };
+            Line::from(vec![Span::styled(
+                format!("  {}", display_path),
+                Style::default().fg(Color::White),
+            )])
+        } else {
+            Line::from(vec![Span::styled(
+                "  No file loaded",
+                Style::default().fg(Color::DarkGray),
+            )])
+        },
+        Line::from(""),
+    ];
+
+    let file_location = Paragraph::new(file_location_lines).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(Span::styled(
+                "File Location",
+                Style::default().fg(Color::Green),
+            )),
+    );
+
+    f.render_widget(file_location, chunks[2]);
 }

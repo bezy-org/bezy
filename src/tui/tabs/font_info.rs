@@ -2,7 +2,7 @@ use anyhow::Result;
 use crossterm::event::KeyEvent;
 use ratatui::{
     layout::Rect,
-    style::{Modifier, Style},
+    style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph},
     Frame,
@@ -95,8 +95,11 @@ pub fn draw(f: &mut Frame, state: &FontInfoState, area: Rect) {
         vec![Line::from("No font loaded")]
     };
 
-    let paragraph =
-        Paragraph::new(info_text).block(Block::default().borders(Borders::ALL).title("Font Info"));
+    let paragraph = Paragraph::new(info_text).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(Span::styled("Font Info", Style::default().fg(Color::Green))),
+    );
 
     f.render_widget(paragraph, area);
 }

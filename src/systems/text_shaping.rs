@@ -10,7 +10,7 @@
 //! proper Arabic text rendering support while maintaining compatibility
 //! with Latin text editing.
 
-use crate::core::state::fontir_app_state::FontIRAppState;
+
 use crate::core::state::text_editor::buffer::SortKind;
 use crate::core::state::{SortLayoutMode, TextEditorState};
 use bevy::prelude::*;
@@ -200,45 +200,11 @@ pub fn get_arabic_position(text: &[char], index: usize) -> ArabicPosition {
 fn get_contextual_glyph_name(
     ch: char,
     position: ArabicPosition,
-    fontir_state: &FontIRAppState,
 ) -> Result<String, String> {
-    // First, get the base glyph name
-    let base_name = get_arabic_base_name(ch);
-
-    // Try different naming conventions for contextual forms
-    // Bezy Grotesk uses: {letter}-ar.{form}
-    let suffix = match position {
-        ArabicPosition::Isolated => "", // Isolated form has no suffix in this font
-        ArabicPosition::Initial => ".init",
-        ArabicPosition::Medial => ".medi",
-        ArabicPosition::Final => ".fina",
-    };
-
-    // For isolated position, just use the base name
-    if position == ArabicPosition::Isolated {
-        if fontir_state.get_glyph_names().contains(&base_name) {
-            return Ok(base_name);
-        }
-    } else {
-        // Try with suffix for other positions
-        let contextual_name = format!("{base_name}{suffix}");
-        if fontir_state.get_glyph_names().contains(&contextual_name) {
-            return Ok(contextual_name);
-        }
-    }
-
-    // Fallback to base name without suffix
-    if fontir_state.get_glyph_names().contains(&base_name) {
-        return Ok(base_name);
-    }
-
-    // Last resort: try the base name or uni code
-    if fontir_state.get_glyph_names().contains(&base_name) {
-        Ok(base_name)
-    } else {
-        // Use Unicode naming as ultimate fallback
-        Ok(format!("uni{:04X}", ch as u32))
-    }
+    // TEMPORARILY DISABLED: FontIR removed
+    // Use Unicode naming as fallback
+    let _ = position;
+    Ok(format!("uni{:04X}", ch as u32))
 }
 
 /// Get the base glyph name for an Arabic character
@@ -286,73 +252,43 @@ fn get_arabic_base_name(ch: char) -> String {
 }
 
 /// Shape Arabic text using contextual form mapping
+/// TEMPORARILY DISABLED: FontIR removed
 pub fn shape_arabic_text(
     text: &str,
     direction: TextDirection,
-    fontir_state: &FontIRAppState,
 ) -> Result<ShapedText, String> {
     let input_codepoints: Vec<char> = text.chars().collect();
-    let mut shaped_glyphs = Vec::new();
-
-    // Analyze each character's position for contextual forms
-    for (i, &ch) in input_codepoints.iter().enumerate() {
-        if is_arabic_letter(ch) {
-            let position = get_arabic_position(&input_codepoints, i);
-            let glyph_name = get_contextual_glyph_name(ch, position, fontir_state)?;
-
-            // Get advance width from FontIR
-            let advance_width = fontir_state.get_glyph_advance_width(&glyph_name);
-
-            shaped_glyphs.push(ShapedGlyph {
-                glyph_id: 0, // We don't need actual glyph ID for contextual mapping
-                codepoint: ch,
-                glyph_name,
-                advance_width,
-                x_offset: 0.0,
-                y_offset: 0.0,
-                cluster: i as u32,
-            });
-        } else {
-            // Non-Arabic characters pass through unchanged
-            let glyph_name = if let Some(name) = unicode_to_glyph_name(ch, fontir_state) {
-                name
-            } else {
-                format!("uni{:04X}", ch as u32)
-            };
-
-            let advance_width = fontir_state.get_glyph_advance_width(&glyph_name);
-
-            shaped_glyphs.push(ShapedGlyph {
-                glyph_id: 0,
-                codepoint: ch,
-                glyph_name,
-                advance_width,
-                x_offset: 0.0,
-                y_offset: 0.0,
-                cluster: i as u32,
-            });
+    let shaped_glyphs: Vec<ShapedGlyph> = input_codepoints.iter().enumerate().map(|(i, &ch)| {
+        let glyph_name = format!("uni{:04X}", ch as u32);
+        ShapedGlyph {
+            glyph_id: 0,
+            codepoint: ch,
+            glyph_name,
+            advance_width: 500.0, // Default width
+            x_offset: 0.0,
+            y_offset: 0.0,
+            cluster: i as u32,
         }
-    }
+    }).collect();
 
     Ok(ShapedText {
         input_codepoints,
         shaped_glyphs,
         direction,
-        is_complex_shaped: true,
+        is_complex_shaped: false,
     })
 }
 
 /// Helper function to map Unicode to glyph name
-fn unicode_to_glyph_name(ch: char, fontir_state: &FontIRAppState) -> Option<String> {
+fn unicode_to_glyph_name(ch: char) -> Option<String> {
     use crate::systems::sorts::input_utilities::unicode_to_glyph_name_fontir;
-    unicode_to_glyph_name_fontir(ch, fontir_state)
+    unicode_to_glyph_name_fontir(ch)
 }
 
 // ===== HARFBUZZ INTEGRATION =====
 
 /// Get font bytes for HarfBuzz shaping (using existing TTF file for now)
 pub fn compile_font_for_shaping(
-    _fontir_state: &FontIRAppState,
     _cache: &mut HarfBuzzShapingCache,
 ) -> Result<Vec<u8>, String> {
     // HACK: For proof of concept, use the existing TTF file directly
@@ -378,28 +314,33 @@ pub fn compile_font_for_shaping(
 }
 
 /// Shape text using HarfBuzz with compiled font
+/// TEMPORARILY DISABLED: FontIR removed
+#[allow(dead_code)]
 pub fn shape_text_with_harfbuzz(
     text: &str,
     direction: TextDirection,
-    cache: &mut HarfBuzzShapingCache,
-    fontir_state: &FontIRAppState,
+    _cache: &mut HarfBuzzShapingCache,
 ) -> Result<ShapedText, String> {
-    // Check cache first
-    let cache_key = format!("{text}_{direction:?}");
-    if let Some(cached) = cache.shaped_cache.get(&cache_key) {
-        return Ok(cached.clone());
-    }
+    // Fallback to simple mapping
+    let input_codepoints: Vec<char> = text.chars().collect();
+    let shaped_glyphs: Vec<ShapedGlyph> = input_codepoints.iter().enumerate().map(|(i, &ch)| {
+        ShapedGlyph {
+            glyph_id: 0,
+            codepoint: ch,
+            glyph_name: format!("uni{:04X}", ch as u32),
+            advance_width: 500.0,
+            x_offset: 0.0,
+            y_offset: 0.0,
+            cluster: i as u32,
+        }
+    }).collect();
 
-    // Compile font with fontc for HarfBuzz shaping
-    let font_bytes = compile_font_for_shaping(fontir_state, cache)?;
-    debug!("Font compiled for HarfBuzz ({} bytes)", font_bytes.len());
-
-    // Shape text with HarfBuzz
-    let result = perform_harfbuzz_shaping(text, direction, &font_bytes, fontir_state)?;
-
-    // Cache the result
-    cache.shaped_cache.insert(cache_key, result.clone());
-    Ok(result)
+    Ok(ShapedText {
+        input_codepoints,
+        shaped_glyphs,
+        direction,
+        is_complex_shaped: false,
+    })
 }
 
 /// Perform actual HarfBuzz text shaping using harfrust
@@ -407,7 +348,6 @@ fn perform_harfbuzz_shaping(
     text: &str,
     direction: TextDirection,
     font_bytes: &[u8],
-    fontir_state: &FontIRAppState,
 ) -> Result<ShapedText, String> {
     // Create harfrust font from compiled font bytes
     let font_ref = FontRef::from_index(font_bytes, 0)
@@ -456,7 +396,7 @@ fn perform_harfbuzz_shaping(
             i, glyph_info.glyph_id, glyph_info.cluster
         );
         // Get glyph name from glyph ID
-        let glyph_name = get_glyph_name_from_id(glyph_info.glyph_id, fontir_state);
+        let glyph_name = get_glyph_name_from_id(glyph_info.glyph_id);
 
         // Get original codepoint from cluster index
         let codepoint = if (glyph_info.cluster as usize) < input_codepoints.len() {
@@ -497,7 +437,7 @@ fn perform_harfbuzz_shaping(
 }
 
 /// Get glyph name from glyph ID using FontIR
-fn get_glyph_name_from_id(glyph_id: u32, _fontir_state: &FontIRAppState) -> String {
+fn get_glyph_name_from_id(glyph_id: u32) -> String {
     // HACK: For proof of concept with "اشهد", let's create a manual mapping
     // based on what we see in the debug output
     // TODO: This needs proper font table parsing to get actual glyph names
@@ -545,385 +485,36 @@ fn get_script_for_text(text: &str) -> Script {
 // ===== SYSTEM IMPLEMENTATIONS =====
 
 /// System to perform basic text shaping for Arabic and complex scripts
+/// TEMPORARILY DISABLED: FontIR removed
+#[allow(dead_code)]
 pub fn shape_arabic_text_system(
     _shaping_cache: ResMut<TextShapingCache>,
-    text_editor_state: Res<TextEditorState>,
-    fontir_app_state: Option<Res<FontIRAppState>>,
+    _text_editor_state: Res<TextEditorState>,
 ) {
-    // Only process if we have FontIR state for accessing font data
-    let Some(_fontir_state) = fontir_app_state.as_ref() else {
-        return;
-    };
-
-    // Check if we have any RTL text sorts that need shaping
-    let mut needs_shaping = false;
-    for entry in text_editor_state.buffer.iter() {
-        if entry.layout_mode == SortLayoutMode::RTLText {
-            needs_shaping = true;
-            break;
-        }
-    }
-
-    if !needs_shaping {
-        return;
-    }
-
-    debug!("Arabic text shaping system: detected RTL text that would benefit from shaping");
-    debug!("Buffer contains {} sorts", text_editor_state.buffer.len());
-
-    // Count RTL sorts for debugging
-    let rtl_count = text_editor_state
-        .buffer
-        .iter()
-        .filter(|entry| entry.layout_mode == SortLayoutMode::RTLText)
-        .count();
-
-    if rtl_count > 0 {
-        debug!(
-            "Found {} RTL text sorts for potential Arabic shaping",
-            rtl_count
-        );
-    }
+    // FontIR removal: Shaping system temporarily disabled
 }
 
 /// System to shape Arabic text in the text buffer using contextual forms
 /// Only processes Arabic text - exits early for non-Arabic text
+/// TEMPORARILY DISABLED: FontIR removed
+#[allow(dead_code)]
 pub fn shape_arabic_buffer_system(
-    mut text_editor_state: ResMut<TextEditorState>,
-    fontir_state: Option<Res<FontIRAppState>>,
+    mut _text_editor_state: ResMut<TextEditorState>,
 ) {
-    let Some(fontir_state) = fontir_state else {
-        return;
-    };
-
-    // Early exit: Only process if we have RTL layout mode
-    let has_rtl_text = text_editor_state
-        .buffer
-        .iter()
-        .any(|entry| matches!(entry.layout_mode, SortLayoutMode::RTLText));
-
-    if !has_rtl_text {
-        return;
-    }
-
-    // Check if we have any Arabic text that needs shaping
-    let mut needs_shaping = false;
-    let mut arabic_chars = Vec::new();
-    for entry in text_editor_state.buffer.iter() {
-        if let SortKind::Glyph {
-            codepoint: Some(ch),
-            ..
-        } = &entry.kind
-        {
-            if is_arabic_letter(*ch) {
-                needs_shaping = true;
-                arabic_chars.push(*ch);
-            }
-        }
-    }
-
-    if !needs_shaping {
-        return;
-    }
-
-    debug!(
-        "🔤 Arabic shaping: Found {} Arabic characters, reshaping buffer",
-        arabic_chars.len()
-    );
-
-    // Collect text runs that need shaping
-    let mut text_runs = Vec::new();
-    let mut current_run = String::new();
-    let mut run_start = 0;
-    let mut run_indices = Vec::new();
-
-    for (i, entry) in text_editor_state.buffer.iter().enumerate() {
-        match &entry.kind {
-            SortKind::Glyph {
-                codepoint: Some(ch),
-                ..
-            } => {
-                if current_run.is_empty() {
-                    run_start = i;
-                }
-                current_run.push(*ch);
-                run_indices.push(i);
-            }
-            SortKind::LineBreak => {
-                if !current_run.is_empty() {
-                    text_runs.push((run_start, current_run.clone(), run_indices.clone()));
-                    current_run.clear();
-                    run_indices.clear();
-                }
-            }
-            _ => {}
-        }
-    }
-
-    // Don't forget the last run
-    if !current_run.is_empty() {
-        text_runs.push((run_start, current_run, run_indices));
-    }
-
-    // Shape each text run and update the buffer
-    for (_start_idx, text, indices) in text_runs {
-        // Check if this run contains Arabic
-        if !text.chars().any(is_arabic_letter) {
-            continue;
-        }
-
-        // Determine direction (simplified for MVP)
-        let direction = if text.chars().any(is_arabic_letter) {
-            TextDirection::RightToLeft
-        } else {
-            TextDirection::LeftToRight
-        };
-
-        // Shape the text
-        if let Ok(shaped) = shape_arabic_text(&text, direction, &fontir_state) {
-            debug!(
-                "🔤 Arabic shaping: Shaped text '{}' into {} glyphs",
-                text,
-                shaped.shaped_glyphs.len()
-            );
-            // Update buffer entries with shaped glyph names
-            for (buffer_idx, shaped_glyph) in indices.iter().zip(shaped.shaped_glyphs.iter()) {
-                if let Some(entry) = text_editor_state.buffer.get_mut(*buffer_idx) {
-                    if let SortKind::Glyph {
-                        glyph_name,
-                        advance_width,
-                        ..
-                    } = &mut entry.kind
-                    {
-                        let old_name = glyph_name.clone();
-                        *glyph_name = shaped_glyph.glyph_name.clone();
-                        *advance_width = shaped_glyph.advance_width;
-                        debug!(
-                            "🔤 Arabic shaping: Updated '{}' (U+{:04X}) from '{}' to '{}'",
-                            shaped_glyph.codepoint,
-                            shaped_glyph.codepoint as u32,
-                            old_name,
-                            shaped_glyph.glyph_name
-                        );
-                    }
-                }
-            }
-        } else {
-            warn!("🔤 Arabic shaping: Failed to shape text '{}'", text);
-        }
-    }
+    // FontIR removal: Shaping system temporarily disabled
 }
+
 
 /// System for HarfBuzz text shaping with font compilation
+/// System for HarfBuzz text shaping with font compilation
+/// TEMPORARILY DISABLED: FontIR removed
+#[allow(dead_code)]
 pub fn harfbuzz_shaping_system(
-    mut text_editor_state: ResMut<TextEditorState>,
-    fontir_state: Option<Res<FontIRAppState>>,
-    mut shaping_cache: ResMut<TextShapingCache>,
+    mut _text_editor_state: ResMut<TextEditorState>,
+    mut _shaping_cache: ResMut<TextShapingCache>,
 ) {
-    let Some(fontir_state) = fontir_state else {
-        warn!("🔤 HarfBuzz: No FontIR state available");
-        return;
-    };
-
-    // Check if we have any text that would benefit from HarfBuzz shaping
-    let has_text = text_editor_state.buffer.iter().any(|entry| {
-        matches!(
-            &entry.kind,
-            crate::core::state::text_editor::buffer::SortKind::Glyph { .. }
-        )
-    });
-
-    if !has_text {
-        return;
-    }
-
-    // Check for Arabic text specifically
-    let mut has_arabic = false;
-    for (i, entry) in text_editor_state.buffer.iter().enumerate() {
-        if let crate::core::state::text_editor::buffer::SortKind::Glyph {
-            glyph_name,
-            codepoint: Some(ch),
-            ..
-        } = &entry.kind
-        {
-            let code = *ch as u32;
-            if (0x0600..=0x06FF).contains(&code) {
-                has_arabic = true;
-                debug!(
-                    "🔤 HarfBuzz: Found Arabic character at buffer[{}]: U+{:04X} '{}' glyph='{}'",
-                    i, code, ch, glyph_name
-                );
-            }
-        }
-    }
-
-    // Only run HarfBuzz for Arabic text to avoid breaking other text
-    if !has_arabic {
-        return;
-    }
-
-    debug!("🔤 HarfBuzz: Processing Arabic text with HarfBuzz shaping!");
-
-    // Collect text runs for shaping
-    let mut text_runs = Vec::new();
-    let mut current_run = String::new();
-    let mut run_indices = Vec::new();
-    let mut run_direction = TextDirection::LeftToRight;
-
-    for (i, entry) in text_editor_state.buffer.iter().enumerate() {
-        match &entry.kind {
-            crate::core::state::text_editor::buffer::SortKind::Glyph {
-                codepoint: Some(ch),
-                ..
-            } => {
-                if current_run.is_empty() {
-                    run_direction = match entry.layout_mode {
-                        SortLayoutMode::RTLText => TextDirection::RightToLeft,
-                        _ => TextDirection::LeftToRight,
-                    };
-                }
-                current_run.push(*ch);
-                run_indices.push(i);
-            }
-            crate::core::state::text_editor::buffer::SortKind::LineBreak => {
-                if !current_run.is_empty() {
-                    text_runs.push((current_run.clone(), run_indices.clone(), run_direction));
-                    current_run.clear();
-                    run_indices.clear();
-                }
-            }
-            _ => {}
-        }
-    }
-
-    // Process the last run
-    if !current_run.is_empty() {
-        text_runs.push((current_run, run_indices, run_direction));
-    }
-
-    // Shape each text run
-    for (text, indices, direction) in text_runs {
-        debug!(
-            "🔤 HarfBuzz: Attempting to shape text '{}' with direction {:?}",
-            text, direction
-        );
-
-        // HACK: Hardcode the exact word "اشهد" for proof of concept
-        let arabic_only = text
-            .chars()
-            .filter(|ch| {
-                let code = *ch as u32;
-                (0x0600..=0x06FF).contains(&code)
-            })
-            .collect::<String>();
-
-        debug!(
-            "🔤 HarfBuzz: Full text='{}', Arabic only='{}'",
-            text, arabic_only
-        );
-
-        if text == "اشهد" || arabic_only == "اشهد" {
-            debug!(
-                "🔤 HarfBuzz: HARDCODED HACK - Detected exact word 'اشهد', applying known shapes"
-            );
-
-            // Known correct shapes for "اشهد" from our test:
-            // Visual order (RTL): dal.fina + heh.medi + sheen.init + alef
-            // Buffer order: [alef, sheen, heh, dal] (logical order)
-            let hardcoded_shapes = [
-                "alef-ar",       // ا (alef) - isolated, doesn't connect
-                "sheen-ar.init", // ش (sheen) - initial form
-                "heh-ar.medi",   // ه (heh) - medial form
-                "dal-ar.fina",   // د (dal) - final form
-            ];
-
-            // Update buffer with hardcoded results - only for Arabic characters
-            let mut arabic_index = 0;
-            for buffer_idx in indices.iter() {
-                if let Some(entry) = text_editor_state.buffer.get_mut(*buffer_idx) {
-                    if let crate::core::state::text_editor::buffer::SortKind::Glyph {
-                        glyph_name,
-                        advance_width,
-                        codepoint: Some(ch),
-                        ..
-                    } = &mut entry.kind
-                    {
-                        // Check if this is an Arabic character
-                        let code = *ch as u32;
-                        if (0x0600..=0x06FF).contains(&code)
-                            && arabic_index < hardcoded_shapes.len()
-                        {
-                            let old_name = glyph_name.clone();
-                            *glyph_name = hardcoded_shapes[arabic_index].to_string();
-                            // Use reasonable advance widths
-                            *advance_width = match hardcoded_shapes[arabic_index] {
-                                "alef-ar" => 224.0,
-                                "sheen-ar.init" => 864.0,
-                                "heh-ar.medi" => 482.0,
-                                "dal-ar.fina" => 528.0,
-                                _ => 500.0,
-                            };
-                            debug!("🔤 HarfBuzz: HARDCODED - Updated Arabic buffer[{}] from '{}' to '{}'", 
-                                  arabic_index, old_name, hardcoded_shapes[arabic_index]);
-                            arabic_index += 1;
-                        }
-                    }
-                }
-            }
-
-            debug!("🔤 HarfBuzz: HARDCODED - Successfully applied shapes for 'اشهد'");
-            continue; // Skip the normal HarfBuzz processing
-        }
-
-        // Normal HarfBuzz processing for other text
-        match shape_text_with_harfbuzz(
-            &text,
-            direction,
-            &mut shaping_cache.harfbuzz_cache,
-            &fontir_state,
-        ) {
-            Ok(shaped) => {
-                debug!(
-                    "🔤 HarfBuzz: Successfully shaped '{}' into {} glyphs",
-                    text,
-                    shaped.shaped_glyphs.len()
-                );
-                // Update buffer with shaped results
-                for (buffer_idx, shaped_glyph) in indices.iter().zip(shaped.shaped_glyphs.iter()) {
-                    if let Some(entry) = text_editor_state.buffer.get_mut(*buffer_idx) {
-                        if let crate::core::state::text_editor::buffer::SortKind::Glyph {
-                            glyph_name,
-                            advance_width,
-                            ..
-                        } = &mut entry.kind
-                        {
-                            let old_name = glyph_name.clone();
-                            *glyph_name = shaped_glyph.glyph_name.clone();
-                            *advance_width = shaped_glyph.advance_width;
-                            debug!(
-                                "🔤 HarfBuzz: Updated glyph U+{:04X} from '{}' to '{}'",
-                                shaped_glyph.codepoint as u32, old_name, shaped_glyph.glyph_name
-                            );
-                        }
-                    }
-                }
-
-                debug!(
-                    "🔤 HarfBuzz: Professionally shaped text: '{}' → {} glyphs",
-                    text,
-                    shaped.shaped_glyphs.len()
-                );
-            }
-            Err(e) => {
-                error!(
-                    "🔤 HarfBuzz: Professional shaping failed for '{}': {}",
-                    text, e
-                );
-            }
-        }
-    }
+    // FontIR removal: Shaping system temporarily disabled
 }
-
 /// Unified plugin to register all text shaping systems
 pub struct TextShapingPlugin;
 

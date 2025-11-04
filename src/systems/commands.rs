@@ -11,7 +11,7 @@
 #![allow(deprecated)]
 #![allow(unused_mut)]
 
-use crate::core::state::{AppState, FontIRAppState, GlyphNavigation};
+use crate::core::state::{AppState, GlyphNavigation};
 use crate::editing::sort::{ActiveSort, Sort};
 use crate::rendering::checkerboard::CheckerboardEnabled;
 // BezyResult not used in current implementation
@@ -131,17 +131,17 @@ fn handle_save_file(
     mut app_state: Option<ResMut<AppState>>,
 ) {
     for _ in events.read() {
-        if let Some(mut state) = app_state.as_mut() {
+        if let Some(state) = app_state.as_mut() {
             match state.save_font() {
                 Ok(_) => {
-                    debug!("Font saved successfully");
+                    info!("Font saved successfully");
                 }
                 Err(e) => {
                     error!("Saving failed: {}", e);
                 }
             }
         } else {
-            warn!("Save file requested but AppState not available (using FontIR)");
+            warn!("Save file requested but AppState not available");
         }
     }
 }
@@ -213,20 +213,16 @@ fn handle_cycle_codepoint(
     mut event_reader: EventReader<CycleCodepointEvent>,
     mut glyph_navigation: ResMut<GlyphNavigation>,
     app_state: Option<Res<AppState>>,
-    fontir_state: Option<Res<FontIRAppState>>,
     mut active_sorts: Query<&mut Sort, With<ActiveSort>>,
 ) {
     for event in event_reader.read() {
         debug!("Received codepoint cycling event: {:?}", event.direction);
 
-        // Get available codepoints from either UFO or FontIR
+        // Get available codepoints from AppState
         let available_codepoints = if let Some(state) = app_state.as_ref() {
             crate::core::state::get_all_codepoints(state)
-        } else if let Some(fontir) = fontir_state.as_ref() {
-            // For FontIR, get all glyph names (they are the codepoints in this system)
-            fontir.get_glyph_names()
         } else {
-            warn!("Codepoint cycling requested but neither AppState nor FontIRAppState available");
+            warn!("Codepoint cycling requested but AppState not available");
             return;
         };
 

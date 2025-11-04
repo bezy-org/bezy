@@ -143,7 +143,6 @@ impl PenInputConsumer {
     #[allow(dead_code)]
     fn finalize_path(
         &mut self,
-        fontir_app_state: &mut Option<&mut crate::core::state::FontIRAppState>,
         app_state_changed: &mut bevy::ecs::event::EventWriter<
             crate::editing::selection::events::AppStateChanged,
         >,
@@ -200,58 +199,10 @@ impl PenInputConsumer {
             }
         }
 
-        // Add the BezPath to the FontIR glyph data if available
-        if let Some(ref mut fontir_state) = fontir_app_state {
-            let current_glyph_name = fontir_state.current_glyph.clone();
-            if let Some(current_glyph_name) = current_glyph_name {
-                // Get the current location
-                let location = fontir_state.current_location.clone();
-                let key = (current_glyph_name.clone(), location);
-
-                // Get or create a working copy
-                let working_copy_exists = fontir_state.working_copies.contains_key(&key);
-
-                if !working_copy_exists {
-                    // Create working copy from original FontIR data
-                    if let Some(fontir_glyph) = fontir_state.glyph_cache.get(&current_glyph_name) {
-                        if let Some((_location, instance)) = fontir_glyph.sources().iter().next() {
-                            let working_copy =
-                                crate::core::state::fontir_app_state::EditableGlyphInstance::from(
-                                    instance,
-                                );
-                            fontir_state
-                                .working_copies
-                                .insert(key.clone(), working_copy);
-                        }
-                    }
-                }
-
-                // Add the new contour to the working copy
-                if let Some(working_copy) = fontir_state.working_copies.get_mut(&key) {
-                    working_copy.contours.push(bez_path.clone());
-                    working_copy.is_dirty = true;
-                    app_state_changed.write(crate::editing::selection::events::AppStateChanged);
-
-                    debug!(
-                        "🖊️ [PEN] Added contour with {} elements to glyph '{}'. Total contours: {}",
-                        bez_path.elements().len(),
-                        current_glyph_name,
-                        working_copy.contours.len()
-                    );
-                } else {
-                    warn!(
-                        "🖊️ [PEN] Could not create working copy for glyph '{}'",
-                        current_glyph_name
-                    );
-                }
-            } else {
-                warn!("🖊️ [PEN] No current glyph selected");
-            }
-        } else {
-            warn!("🖊️ [PEN] FontIR app state not available");
-        }
-
-        debug!("🖊️ [PEN] Path finalized successfully - added to FontIR data");
+        // Pen tool contour saving temporarily disabled during FontIR removal
+        let _ = bez_path;
+        let _ = app_state_changed;
+        warn!("🖊️ [PEN] Path saving temporarily disabled during FontIR removal");
 
         // Reset state
         self.current_path.clear();
@@ -685,7 +636,6 @@ pub fn process_input_events(
     mut camera_consumer: ResMut<CameraInputConsumer>,
     mut measure_consumer: ResMut<MeasureInputConsumer>,
     _pen_tool_state: Option<ResMut<crate::tools::pen::PenToolState>>,
-    _fontir_app_state: Option<ResMut<crate::core::state::FontIRAppState>>,
     _app_state_changed: bevy::ecs::event::EventWriter<
         crate::editing::selection::events::AppStateChanged,
     >,

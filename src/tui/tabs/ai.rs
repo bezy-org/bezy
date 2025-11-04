@@ -2,7 +2,8 @@ use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
-    text::Line,
+    style::{Color, Style},
+    text::{Line, Span},
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
@@ -76,12 +77,16 @@ pub fn draw(f: &mut Frame, state: &mut AIState, area: Rect) {
         grid_lines.push(Line::from(line));
     }
 
-    let game_widget =
-        Paragraph::new(grid_lines).block(Block::default().borders(Borders::ALL).title(format!(
-            "Conway's Game of Life - Generation: {} {}",
-            state.game.generation,
-            if state.game.paused { "(PAUSED)" } else { "" }
-        )));
+    let game_widget = Paragraph::new(grid_lines).block(
+        Block::default().borders(Borders::ALL).title(Span::styled(
+            format!(
+                "Conway's Game of Life - Generation: {} {}",
+                state.game.generation,
+                if state.game.paused { "(PAUSED)" } else { "" }
+            ),
+            Style::default().fg(Color::Green),
+        )),
+    );
 
     f.render_widget(game_widget, chunks[0]);
 
@@ -89,7 +94,11 @@ pub fn draw(f: &mut Frame, state: &mut AIState, area: Rect) {
     let controls = Paragraph::new(vec![Line::from(
         "Space: Pause/Resume | R: Reset | Game auto-updates 8 times per second",
     )])
-    .block(Block::default().borders(Borders::ALL).title("Controls"));
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(Span::styled("Controls", Style::default().fg(Color::Green))),
+    );
 
     f.render_widget(controls, chunks[1]);
 }

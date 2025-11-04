@@ -2,6 +2,8 @@ use anyhow::Result;
 use crossterm::event::KeyEvent;
 use ratatui::{
     layout::{Alignment, Rect},
+    style::{Color, Style},
+    text::Span,
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
@@ -42,7 +44,11 @@ pub async fn handle_key_event(
 /// Draw the Path tab UI
 pub fn draw(f: &mut Frame, _state: &mut PathState, area: Rect) {
     let paragraph = Paragraph::new("Path editing tools coming soon...")
-        .block(Block::default().borders(Borders::ALL).title("Path"))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(Span::styled("Path", Style::default().fg(Color::Green))),
+        )
         .alignment(Alignment::Center);
 
     f.render_widget(paragraph, area);

@@ -3,7 +3,7 @@
 //! Shows glyph name, Unicode codepoint, advance width, side bearings,
 //! and side bearings in the lower left corner of the window.
 
-use crate::core::state::fontir_app_state::FontIRAppState;
+
 use crate::core::state::AppState;
 use crate::ui::theme::*;
 use crate::ui::themes::CurrentTheme;
@@ -282,7 +282,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.active_color()),
                         GlyphNameText,
                     ));
                 });
@@ -328,7 +328,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.active_color()),
                         GlyphUnicodeText,
                     ));
                 });
@@ -374,7 +374,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.active_color()),
                         GlyphAdvanceText,
                     ));
                 });
@@ -420,7 +420,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.active_color()),
                         GlyphLeftBearingText,
                     ));
                 });
@@ -466,7 +466,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.active_color()),
                         GlyphRightBearingText,
                     ));
                 });
@@ -512,7 +512,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.active_color()),
                         GlyphLeftGroupText,
                     ));
                 });
@@ -557,7 +557,7 @@ pub fn spawn_glyph_pane(
                             font_size: WIDGET_TEXT_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(theme.get_ui_text_secondary()),
+                        TextColor(theme.active_color()),
                         GlyphRightGroupText,
                     ));
                 });
@@ -567,7 +567,6 @@ pub fn spawn_glyph_pane(
 /// Updates the glyph metrics for the current glyph
 pub fn update_glyph_metrics(
     app_state: Option<Res<AppState>>,
-    fontir_app_state: Option<Res<FontIRAppState>>,
     text_editor_state: Res<crate::core::state::text_editor::TextEditorState>,
     mut metrics: ResMut<CurrentGlyphMetrics>,
 ) {
@@ -590,83 +589,8 @@ pub fn update_glyph_metrics(
         // Found an active sort, get its details
         metrics.glyph_name = glyph_name.clone();
 
-        // Try FontIR first, then fall back to AppState
-        if let Some(fontir_state) = fontir_app_state.as_ref() {
-            // Extract metrics from FontIR
-
-            // TODO: Get Unicode from FontIR glyph data when available
-            // For now, try to get it from glyph name
-            metrics.unicode = if glyph_name == "a" {
-                "0061".to_string() // Unicode for 'a'
-            } else if glyph_name.len() == 1 {
-                if let Some(ch) = glyph_name.chars().next() {
-                    if ch.is_ascii_lowercase() {
-                        format!("{:04X}", ch as u32)
-                    } else {
-                        String::new()
-                    }
-                } else {
-                    String::new()
-                }
-            } else {
-                String::new()
-            };
-
-            // Get advance width from FontIR
-            let advance_width = fontir_state.get_glyph_advance_width(&glyph_name);
-            debug!(
-                "Glyph pane: advance_width for '{}' = {}",
-                glyph_name, advance_width
-            );
-            metrics.advance = format!("{}", advance_width as i32);
-
-            // Calculate sidebearings using FontIR paths
-            if let Some(paths) = fontir_state.get_glyph_paths(&glyph_name) {
-                debug!(
-                    "Glyph pane: Found {} paths for glyph '{}'",
-                    paths.len(),
-                    glyph_name
-                );
-                let outline_bounds = calculate_fontir_bounds(&paths);
-
-                if let Some((min_x, max_x)) = outline_bounds {
-                    // Left side bearing is the distance from origin to the leftmost point
-                    let lsb = min_x;
-
-                    // Right side bearing is the distance from the rightmost point to the advance width
-                    let rsb = advance_width - max_x;
-
-                    debug!("Glyph pane: bounds for '{}': min_x={}, max_x={}, advance={}, lsb={}, rsb={}", 
-                          glyph_name, min_x, max_x, advance_width, lsb, rsb);
-
-                    metrics.left_bearing = format!("{}", lsb as i32);
-                    metrics.right_bearing = format!("{}", rsb as i32);
-                } else {
-                    debug!(
-                        "Glyph pane: Could not calculate bounds for '{}'",
-                        glyph_name
-                    );
-                    // If we couldn't calculate bounds, use placeholder values
-                    metrics.left_bearing = "0".to_string();
-                    metrics.right_bearing = "0".to_string();
-                }
-            } else {
-                debug!("Glyph pane: No paths found for glyph '{}'", glyph_name);
-                // No paths found
-                metrics.left_bearing = "0".to_string();
-                metrics.right_bearing = "0".to_string();
-            }
-
-            // Get kerning groups from FontIR if available
-            if let Some(fontir_state) = fontir_app_state.as_ref() {
-                let (left_group, right_group) = fontir_state.get_glyph_kerning_groups(&glyph_name);
-                metrics.left_group = left_group.unwrap_or_else(String::new);
-                metrics.right_group = right_group.unwrap_or_else(String::new);
-            } else {
-                metrics.left_group = String::new();
-                metrics.right_group = String::new();
-            }
-        } else if let Some(state) = app_state.as_ref() {
+        // TODO: Re-enable after FontIR removal - try FontIR first
+        if let Some(state) = app_state.as_ref() {
             // Fallback to AppState (UFO data)
             debug!(
                 "Glyph pane: FALLBACK BRANCH - Using AppState for glyph '{}'",
@@ -733,21 +657,8 @@ pub fn update_glyph_metrics(
                     metrics.right_bearing = "0".to_string();
                 }
 
-                // Get kerning groups from FontIR
-                if let Some(fontir_state) = fontir_app_state.as_ref() {
-                    debug!(
-                        "Glyph pane: Using FontIR to get groups for '{}'",
-                        glyph_name
-                    );
-                    let (left_group, right_group) =
-                        fontir_state.get_glyph_kerning_groups(&glyph_name);
-                    metrics.left_group = left_group.unwrap_or_else(String::new);
-                    metrics.right_group = right_group.unwrap_or_else(String::new);
-                    debug!(
-                        "Glyph pane: Set groups - left: '{}', right: '{}'",
-                        metrics.left_group, metrics.right_group
-                    );
-                } else {
+                // TODO: Re-enable after FontIR removal - get kerning groups
+                {
                     debug!("Glyph pane: No FontIR state available for groups");
                     metrics.left_group = String::new();
                     metrics.right_group = String::new();
@@ -776,53 +687,8 @@ pub fn update_glyph_metrics(
         let glyph_name = "a".to_string();
         metrics.glyph_name = glyph_name.clone();
 
-        // Try FontIR first
-        if let Some(fontir_state) = fontir_app_state.as_ref() {
-            debug!("DEBUG TEST: Using FontIR for glyph 'a'");
-
-            // Get Unicode
-            metrics.unicode = "0061".to_string();
-
-            // Get advance width from FontIR
-            let advance_width = fontir_state.get_glyph_advance_width(&glyph_name);
-            debug!(
-                "DEBUG TEST: advance_width for '{}' = {}",
-                glyph_name, advance_width
-            );
-            metrics.advance = format!("{}", advance_width as i32);
-
-            // Calculate sidebearings using FontIR paths
-            if let Some(paths) = fontir_state.get_glyph_paths(&glyph_name) {
-                debug!(
-                    "DEBUG TEST: Found {} paths for glyph '{}'",
-                    paths.len(),
-                    glyph_name
-                );
-                let outline_bounds = calculate_fontir_bounds(&paths);
-
-                if let Some((min_x, max_x)) = outline_bounds {
-                    let lsb = min_x;
-                    let rsb = advance_width - max_x;
-
-                    debug!("DEBUG TEST: bounds for '{}': min_x={}, max_x={}, advance={}, lsb={}, rsb={}", 
-                          glyph_name, min_x, max_x, advance_width, lsb, rsb);
-
-                    metrics.left_bearing = format!("{}", lsb as i32);
-                    metrics.right_bearing = format!("{}", rsb as i32);
-                } else {
-                    debug!("DEBUG TEST: Could not calculate bounds");
-                    metrics.left_bearing = "0".to_string();
-                    metrics.right_bearing = "0".to_string();
-                }
-            } else {
-                debug!("DEBUG TEST: No paths found");
-                metrics.left_bearing = "0".to_string();
-                metrics.right_bearing = "0".to_string();
-            }
-
-            metrics.left_group = String::new();
-            metrics.right_group = String::new();
-        } else {
+        // TODO: Re-enable after FontIR removal - try FontIR first
+        {
             debug!("DEBUG TEST: FontIR not available");
             metrics.unicode = String::new();
             metrics.advance = "-".to_string();

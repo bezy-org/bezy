@@ -22,6 +22,21 @@ pub fn handle_tool_keyboard_shortcuts(
         return;
     }
 
+    // Skip if any modifier keys are held (Ctrl, Cmd, Alt, Shift)
+    // This prevents tool shortcuts from triggering when using Ctrl+S to save, etc.
+    let modifier_held = keyboard.pressed(KeyCode::ControlLeft)
+        || keyboard.pressed(KeyCode::ControlRight)
+        || keyboard.pressed(KeyCode::SuperLeft)
+        || keyboard.pressed(KeyCode::SuperRight)
+        || keyboard.pressed(KeyCode::AltLeft)
+        || keyboard.pressed(KeyCode::AltRight)
+        || keyboard.pressed(KeyCode::ShiftLeft)
+        || keyboard.pressed(KeyCode::ShiftRight);
+
+    if modifier_held {
+        return;
+    }
+
     // Check each tool's shortcut from the config
     for tool_config in TOOLBAR_TOOLS {
         if let Some(shortcut_char) = tool_config.shortcut {

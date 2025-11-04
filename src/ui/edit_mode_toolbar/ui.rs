@@ -32,7 +32,8 @@
 
 use crate::ui::edit_mode_toolbar::*;
 use crate::ui::theme::TOOLBAR_GRID_SPACING;
-use crate::ui::themes::{CurrentTheme, ToolbarBorderRadius};
+use crate::ui::theme_system::ToolbarBorderRadius;
+use crate::ui::themes::CurrentTheme;
 use crate::utils::embedded_assets::{AssetServerFontExt, EmbeddedFonts};
 
 // COMPONENTS ------------------------------------------------------------------
@@ -708,7 +709,7 @@ pub fn create_value_text<T: Bundle>(
             font_size: crate::ui::theme_system::layout_constants::WIDGET_TEXT_FONT_SIZE,
             ..default()
         },
-        TextColor(theme.get_ui_text_secondary()),
+        TextColor(theme.active_color()),
         additional_components,
     ));
 }

@@ -7,7 +7,7 @@
 //! Future: This will be expanded to create a grid of glyph sorts instead
 //! of just a single default sort.
 
-use crate::core::state::{FontIRAppState, TextEditorState};
+use crate::core::state::TextEditorState;
 use bevy::prelude::*;
 
 /// Resource to trigger camera centering on the default sort
@@ -22,7 +22,6 @@ pub struct CenterCameraOnDefaultSort {
 /// This creates a single default sort for now, but will be expanded
 /// to create a grid of sorts in the future
 pub fn create_startup_layout(
-    fontir_state: Option<Res<FontIRAppState>>,
     mut text_editor_state: ResMut<TextEditorState>,
     mut commands: Commands,
     cli_args: Res<crate::core::config::CliArgs>,
@@ -39,27 +38,16 @@ pub fn create_startup_layout(
         return;
     }
 
-    // Get the current glyph from FontIR state or use 'a' as fallback
-    let glyph_name = if let Some(state) = &fontir_state {
-        state
-            .current_glyph
-            .clone()
-            .unwrap_or_else(|| "a".to_string())
-    } else {
-        "a".to_string()
-    };
+    // Default to 'a' glyph
+    let glyph_name = "a".to_string();
 
     debug!(
         "Creating startup layout with default LTR text sort for glyph '{}'",
         glyph_name
     );
 
-    // Get advance width from FontIR if available
-    let advance_width = if let Some(state) = &fontir_state {
-        state.get_glyph_advance_width(&glyph_name)
-    } else {
-        500.0 // Default fallback
-    };
+    // Default advance width
+    let advance_width = 500.0;
 
     // Create a default LTR text sort at the origin with cursor ready for typing
     // Future: This will be replaced with a grid of sorts

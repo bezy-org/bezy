@@ -5,7 +5,7 @@
 //! - Key code to character conversion with shift state handling
 //! - Unicode character to glyph name mapping
 
-use crate::core::state::{AppState, FontIRAppState};
+use crate::core::state::{AppState};
 use bevy::prelude::*;
 
 /// Check if a key is used as a tool shortcut
@@ -129,54 +129,13 @@ pub fn unicode_to_glyph_name(unicode_char: char, app_state: &AppState) -> Option
 }
 
 /// Convert Unicode character to glyph name using FontIR font data
+/// TEMPORARILY DISABLED: FontIR removed
+#[allow(dead_code)]
 pub fn unicode_to_glyph_name_fontir(
     unicode_char: char,
-    fontir_state: &FontIRAppState,
 ) -> Option<String> {
-    // PROPER APPROACH: Use Unicode mappings from the font (like AppState does)
-    if let Some(glyph_name) = fontir_state.get_glyph_name_for_unicode(unicode_char) {
-        return Some(glyph_name);
-    }
-
-    // Fallback to name-based lookup for characters without Unicode mappings
-    let glyph_names = fontir_state.get_glyph_names();
-
-    // Try standard Unicode-based naming for special characters
-    if let Some(standard_name) = unicode_char_to_standard_glyph_name(unicode_char) {
-        if glyph_names.contains(&standard_name) {
-            return Some(standard_name);
-        }
-    }
-
-    // For Arabic characters, try multiple naming conventions
-    if is_arabic_character(unicode_char) {
-        if let Some(arabic_name) = try_arabic_glyph_naming(unicode_char, &glyph_names) {
-            return Some(arabic_name);
-        }
-    }
-
-    // Try the character itself as glyph name
-    let char_name = unicode_char.to_string();
-    if glyph_names.contains(&char_name) {
-        return Some(char_name);
-    }
-
-    // Log when we can't find an Arabic character
-    if is_arabic_character(unicode_char) {
-        debug!(
-            "Arabic character '{}' (U+{:04X}) not found in font",
-            unicode_char, unicode_char as u32
-        );
-        debug!(
-            "Available glyph names: {:?}",
-            glyph_names
-                .iter()
-                .filter(|name| name.contains("uni") || name.contains("arab"))
-                .collect::<Vec<_>>()
-        );
-    }
-
-    None
+    // Fallback to Unicode-based naming
+    unicode_char_to_standard_glyph_name(unicode_char)
 }
 
 /// Check if a character is Arabic

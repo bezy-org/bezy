@@ -1,4 +1,4 @@
-use crate::core::state::FontIRAppState;
+use crate::core::state::AppState;
 use crate::editing::selection::components::{GlyphPointReference, PointType};
 use crate::editing::sort::manager::SortPointEntity;
 use crate::editing::sort::{ActiveSort, Sort};
@@ -32,7 +32,7 @@ fn update_handle_lines(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    fontir_app_state: Option<Res<FontIRAppState>>,
+    _app_state: Option<Res<AppState>>,
     _active_sort_query: Query<&Sort, With<ActiveSort>>,
     point_query: Query<
         (Entity, &Transform, &GlyphPointReference, &PointType),
@@ -66,32 +66,21 @@ fn update_handle_lines(
     };
     let glyph_name = &first_point.2.glyph_name;
 
-    // Use FontIR as the primary runtime data structure
-    let Some(fontir_state) = fontir_app_state else {
-        return;
-    };
-
-    let Some(paths) = fontir_state.get_glyph_paths(glyph_name) else {
-        return;
-    };
-
-    create_handles_from_fontir_paths(
+    create_handles_from_point_entities(
         &mut commands,
         &mut meshes,
         &mut materials,
-        &paths,
         &point_query,
         glyph_name,
         &theme,
     );
 }
 
-/// Create handles from FontIR BezPath data (matches actual point creation)
-fn create_handles_from_fontir_paths(
+/// Create handles from point entities
+fn create_handles_from_point_entities(
     commands: &mut Commands,
     meshes: &mut ResMut<Assets<Mesh>>,
     materials: &mut ResMut<Assets<ColorMaterial>>,
-    _paths: &[kurbo::BezPath],
     point_query: &Query<
         (Entity, &Transform, &GlyphPointReference, &PointType),
         With<SortPointEntity>,

@@ -1,3 +1,4 @@
+#![allow(unreachable_code, dead_code)]
 //! Measure tool for measuring distances and angles
 //!
 //! The measure tool allows users to measure distances between points

@@ -16,12 +16,19 @@ pub fn exit_on_esc(keyboard: Res<ButtonInput<KeyCode>>, mut app_exit_events: Eve
 pub fn load_ufo_font(
     cli_args: Res<crate::core::config::CliArgs>,
     mut app_state: ResMut<crate::core::state::AppState>,
+    #[cfg(feature = "tui")] tui_comm: Option<Res<crate::core::tui_communication::TuiCommunication>>,
 ) {
     // clap provides the default value, so font_source is guaranteed to be Some
     if let Some(path) = &cli_args.font_source {
         match app_state.load_font_from_path(path.clone()) {
             Ok(_) => {
                 debug!("Successfully loaded UFO font from: {}", path.display());
+
+                #[cfg(feature = "tui")]
+                if let Some(tui) = &tui_comm {
+                    use crate::tui::communication::AppMessage;
+                    let _ = tui.send(AppMessage::FontLoaded(path.display().to_string()));
+                }
             }
             Err(e) => {
                 error!("Failed to load UFO font: {}", e);

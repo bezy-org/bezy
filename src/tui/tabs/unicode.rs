@@ -4,7 +4,7 @@ use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    text::Line,
+    text::{Line, Span},
     widgets::{Block, Borders, List, ListItem, Paragraph},
     Frame,
 };
@@ -237,7 +237,11 @@ pub fn draw(f: &mut Frame, glyphs: &[GlyphInfo], state: &mut GlyphsState, area: 
 
     // Create the list widget
     let _list = List::new(items)
-        .block(Block::default().borders(Borders::ALL).title("Unicode"))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(Span::styled("Unicode", Style::default().fg(Color::Green))),
+        )
         .highlight_style(
             Style::default()
                 .bg(Color::Yellow)
@@ -267,7 +271,11 @@ pub fn draw(f: &mut Frame, glyphs: &[GlyphInfo], state: &mut GlyphsState, area: 
         .collect();
 
     let visible_list = List::new(visible_items)
-        .block(Block::default().borders(Borders::ALL).title("Unicode"))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(Span::styled("Unicode", Style::default().fg(Color::Green))),
+        )
         .highlight_style(
             Style::default()
                 .bg(Color::Yellow)
@@ -295,8 +303,11 @@ pub fn draw(f: &mut Frame, glyphs: &[GlyphInfo], state: &mut GlyphsState, area: 
         )
     };
 
-    let controls = Paragraph::new(controls_text)
-        .block(Block::default().borders(Borders::ALL).title("Controls"));
+    let controls = Paragraph::new(controls_text).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(Span::styled("Controls", Style::default().fg(Color::Green))),
+    );
 
     f.render_widget(controls, chunks[1]);
 }

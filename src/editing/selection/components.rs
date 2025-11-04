@@ -66,17 +66,6 @@ pub struct GlyphPointReference {
     pub point_index: usize,
 }
 
-/// Component that links an entity to a specific point in a FontIR BezPath
-#[derive(Component, Debug, Clone, Reflect)]
-#[reflect(Component)]
-pub struct FontIRPointReference {
-    /// Name of the glyph this point belongs to
-    pub glyph_name: String,
-    /// Which path (contour) this point belongs to
-    pub path_index: usize,
-    /// Reference to the specific point in the BezPath
-    pub point_ref: crate::geometry::bezpath_editing::PathPointRef,
-}
 
 impl Default for PointType {
     fn default() -> Self {

@@ -240,7 +240,6 @@ pub fn spawn_missing_sort_entities(
     mut buffer_entities: ResMut<BufferSortEntities>,
     mut respawn_queue: ResMut<BufferSortRespawnQueue>,
     app_state: Option<Res<AppState>>,
-    fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
     _existing_active_sorts: Query<Entity, With<crate::editing::sort::ActiveSort>>,
     buffer_entity_query: Query<(
         Entity,
@@ -309,19 +308,8 @@ pub fn spawn_missing_sort_entities(
                 continue;
             }
 
-            // Get font metrics from either FontIR or AppState
-            let font_metrics = if let Some(fontir_state) = fontir_app_state.as_ref() {
-                let fontir_metrics = fontir_state.get_font_metrics();
-                crate::core::state::FontMetrics {
-                    units_per_em: fontir_metrics.units_per_em as f64,
-                    ascender: fontir_metrics.ascender.map(|a| a as f64),
-                    descender: fontir_metrics.descender.map(|d| d as f64),
-                    line_height: fontir_metrics.line_gap.unwrap_or(0.0) as f64,
-                    x_height: None,
-                    cap_height: None,
-                    italic_angle: None,
-                }
-            } else if let Some(state) = app_state.as_ref() {
+            // Get font metrics from AppState (FontIR removed)
+            let font_metrics = if let Some(state) = app_state.as_ref() {
                 state.workspace.info.metrics.clone()
             } else {
                 // Fallback metrics
@@ -446,7 +434,6 @@ pub fn spawn_missing_sort_entities(
 pub fn update_buffer_sort_positions(
     text_editor_state: Res<TextEditorState>,
     app_state: Option<Res<AppState>>,
-    fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
     buffer_entities: Res<BufferSortEntities>,
     mut sort_query: Query<&mut Transform, With<BufferSortIndex>>,
     buffer_entity_query: Query<(
@@ -468,19 +455,8 @@ pub fn update_buffer_sort_positions(
         buffer_id_to_entity.insert(text_buffer.id, buffer_entity);
     }
 
-    // Get font metrics from either AppState or FontIR
-    let font_metrics = if let Some(fontir_state) = fontir_app_state.as_ref() {
-        let fontir_metrics = fontir_state.get_font_metrics();
-        crate::core::state::FontMetrics {
-            units_per_em: fontir_metrics.units_per_em as f64,
-            ascender: fontir_metrics.ascender.map(|a| a as f64),
-            descender: fontir_metrics.descender.map(|d| d as f64),
-            line_height: fontir_metrics.line_gap.unwrap_or(0.0) as f64,
-            x_height: None,
-            cap_height: None,
-            italic_angle: None,
-        }
-    } else if let Some(app_state) = app_state.as_ref() {
+    // Get font metrics from AppState (FontIR removed)
+    let font_metrics = if let Some(app_state) = app_state.as_ref() {
         app_state.workspace.info.metrics.clone()
     } else {
         debug!("Buffer sort position updates skipped - no font data available");

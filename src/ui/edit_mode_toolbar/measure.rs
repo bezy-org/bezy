@@ -1,3 +1,4 @@
+#![allow(unreachable_code, dead_code)]
 use crate::ui::edit_mode_toolbar::{EditTool, ToolRegistry};
 use bevy::prelude::*;
 use kurbo::ParamCurve;
@@ -126,7 +127,6 @@ pub fn render_measure_preview(
     theme: Res<crate::ui::themes::CurrentTheme>,
     current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     mut update_tracker: Local<Option<crate::systems::input_consumer::MeasureGestureState>>,
-    fontir_state: Option<Res<crate::core::state::FontIRAppState>>,
 ) {
     // Check if tool is active
     let is_measure_active = current_tool.get_current() == Some("measure")
@@ -248,26 +248,10 @@ pub fn render_measure_preview(
         }
     }
 
-    // Calculate and draw intersection points from actual glyph data
+    // TODO: Re-enable after FontIR removal - calculate and draw intersection points
+    // FontIR removed - intersection calculation needs to be reimplemented
     if let Some((start, end)) = measure_consumer.get_measuring_line() {
-        let intersections = calculate_measure_intersections(start, end, &fontir_state);
-
-        let intersection_color = theme.theme().selected_color(); // Use yellow selection color for intersection points
-
-        for &intersection in &intersections {
-            // Create yellow filled circles for intersection points (doubled size)
-            let intersection_size = camera_scale.adjusted_size(6.0); // Doubled from 3.0 to 6.0
-            let intersection_entity = spawn_measure_point_mesh(
-                &mut commands,
-                &mut meshes,
-                &mut materials,
-                intersection,
-                intersection_size,
-                intersection_color,
-                20.0, // z-order above everything else
-            );
-            measure_entities.push(intersection_entity);
-        }
+        let intersections: Vec<Vec2> = Vec::new(); // Empty until reimplemented
 
         // Calculate and display distance measurements for ALL consecutive pairs
         if intersections.len() >= 2 {
@@ -339,7 +323,6 @@ pub fn render_measure_preview(
 fn calculate_measure_intersections(
     start: Vec2,
     end: Vec2,
-    fontir_state: &Option<Res<crate::core::state::FontIRAppState>>,
 ) -> Vec<Vec2> {
     let mut intersections = Vec::new();
 
@@ -349,38 +332,9 @@ fn calculate_measure_intersections(
         kurbo::Point::new(end.x as f64, end.y as f64),
     );
 
-    // Try FontIR state first (preferred)
-    if let Some(fontir_state) = fontir_state {
-        if let Some(ref current_glyph) = fontir_state.current_glyph {
-            if let Some(paths) = fontir_state.get_glyph_paths_with_edits(current_glyph) {
-                debug!(
-                    "📏 CALCULATE_MEASURE_INTERSECTIONS: Found {} paths for glyph '{}'",
-                    paths.len(),
-                    current_glyph
-                );
-                for path in &paths {
-                    let path_intersections = find_measure_path_intersections(path, &measuring_line);
-                    for intersection in path_intersections {
-                        intersections.push(Vec2::new(intersection.x as f32, intersection.y as f32));
-                    }
-                }
-                debug!(
-                    "📏 CALCULATE_MEASURE_INTERSECTIONS: Total intersections found: {}",
-                    intersections.len()
-                );
-                return intersections;
-            } else {
-                debug!(
-                    "📏 CALCULATE_MEASURE_INTERSECTIONS: No paths found for glyph '{}'",
-                    current_glyph
-                );
-            }
-        } else {
-            debug!("📏 CALCULATE_MEASURE_INTERSECTIONS: No current glyph selected");
-        }
-    } else {
-        debug!("📏 CALCULATE_MEASURE_INTERSECTIONS: No FontIR state available");
-    }
+    // TODO: Re-enable after FontIR removal - try FontIR state first
+    // FontIR removed - needs reimplementation
+    debug!("📏 CALCULATE_MEASURE_INTERSECTIONS: FontIR removed - no intersection calculation available");
 
     intersections
 }

@@ -6,7 +6,7 @@
 use bevy::prelude::*;
 use kurbo::{Line, Point};
 use crate::editing::selection::events::AppStateChanged;
-use crate::core::state::FontIRAppState;
+
 use crate::rendering::glyph_renderer::SortVisualUpdateTracker;
 
 /// Resource to track hover state over line segments
@@ -31,7 +31,6 @@ pub fn detect_line_segment_hover(
     mut hover_state: ResMut<LineSegmentHoverState>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
     pointer_info: Res<crate::io::pointer::PointerInfo>,
-    fontir_app_state: Option<Res<FontIRAppState>>,
     active_sort_query: Query<
         (Entity, &crate::editing::sort::Sort, &Transform),
         With<crate::editing::sort::ActiveSort>,
@@ -57,51 +56,15 @@ pub fn detect_line_segment_hover(
         return;
     };
 
-    let sort_position = sort_transform.translation.truncate();
+    // Temporarily disabled during FontIR removal
+    hover_state.hovered_segment = None;
+    hover_state.segment_indices = None;
+    hover_state.glyph_name = None;
 
-    // Get FontIR data
-    let Some(fontir_state) = fontir_app_state.as_ref() else {
-        return;
-    };
-
-    // Get the paths for the current glyph
-    let Some(paths) = fontir_state.get_glyph_paths_with_edits(&sort.glyph_name) else {
-        return;
-    };
-
-    let mouse_world = pointer_info.design.to_raw();
-    let mouse_relative = mouse_world - sort_position;
-    let mouse_point = Point::new(mouse_relative.x as f64, mouse_relative.y as f64);
-
-    // Find the closest line segment
-    let mut closest_segment = None;
-    let mut closest_distance = 20.0; // Threshold in pixels
-
-    for (contour_index, path) in paths.iter().enumerate() {
-        let elements: Vec<_> = path.elements().iter().cloned().collect();
-
-        for (i, window) in elements.windows(2).enumerate() {
-            // Check if this is a line segment
-            if let (kurbo::PathEl::MoveTo(p1) | kurbo::PathEl::LineTo(p1),
-                    kurbo::PathEl::LineTo(p2)) = (window[0], window[1]) {
-
-                let line = Line::new(p1, p2);
-                let distance = distance_to_line_segment(mouse_point, line);
-
-                if distance < closest_distance {
-                    closest_distance = distance;
-                    // Convert to world coordinates
-                    let world_p1 = Vec2::new(p1.x as f32, p1.y as f32) + sort_position;
-                    let world_p2 = Vec2::new(p2.x as f32, p2.y as f32) + sort_position;
-                    closest_segment = Some((world_p1, world_p2));
-                    hover_state.segment_indices = Some((contour_index, i));
-                    hover_state.glyph_name = Some(sort.glyph_name.clone());
-                }
-            }
-        }
-    }
-
-    hover_state.hovered_segment = closest_segment;
+    // Suppress unused warnings
+    let _ = sort_transform;
+    let _ = sort;
+    let _ = pointer_info;
 }
 
 /// Calculate distance from a point to a line segment
@@ -246,7 +209,6 @@ fn spawn_dashed_line(
 pub fn handle_offcurve_insertion(
     mouse_button_input: Res<ButtonInput<MouseButton>>,
     hover_state: Res<LineSegmentHoverState>,
-    mut fontir_app_state: Option<ResMut<FontIRAppState>>,
     mut app_state_changed: EventWriter<AppStateChanged>,
     mut visual_update_tracker: ResMut<SortVisualUpdateTracker>,
 ) {
@@ -267,77 +229,18 @@ pub fn handle_offcurve_insertion(
         return;
     };
 
-    let Some(glyph_name) = hover_state.glyph_name.as_ref() else {
-        return;
-    };
+    let _glyph_name = hover_state.glyph_name.as_ref();
+    let _contour_index = contour_index;
+    let _segment_index = segment_index;
+    let _p1 = p1;
+    let _p2 = p2;
 
-    let Some(fontir_state) = fontir_app_state.as_mut() else {
-        return;
-    };
+    // Temporarily disabled during FontIR removal
+    debug!("Off-curve insertion temporarily disabled during FontIR removal");
 
-    // Get or create working copy
-    let Some(working_copy) = fontir_state.get_or_create_working_copy(glyph_name) else {
-        return;
-    };
-
-    // Get the contour
-    if contour_index >= working_copy.contours.len() {
-        return;
-    }
-
-    // Convert the line segment to a cubic curve
-    let contour = &mut working_copy.contours[contour_index];
-    let mut new_elements = Vec::new();
-
-    for (i, element) in contour.elements().iter().enumerate() {
-        new_elements.push(element.clone());
-
-        // If this is the line segment we're converting
-        if i == segment_index + 1 {
-            if let kurbo::PathEl::LineTo(end_point) = element {
-                // Get the start point
-                let start_point = if i > 0 {
-                    match new_elements[i - 1] {
-                        kurbo::PathEl::MoveTo(p) | kurbo::PathEl::LineTo(p) | kurbo::PathEl::CurveTo(_, _, p) => p,
-                        _ => continue,
-                    }
-                } else {
-                    continue;
-                };
-
-                // Calculate off-curve control points
-                let ctrl1 = start_point + (*end_point - start_point) * 0.333;
-                let ctrl2 = start_point + (*end_point - start_point) * 0.667;
-
-                // Replace the LineTo with CurveTo
-                new_elements.pop(); // Remove the LineTo we just added
-                new_elements.push(kurbo::PathEl::CurveTo(ctrl1, ctrl2, *end_point));
-
-                debug!("Converted line segment to curve with control points at {:?} and {:?}", ctrl1, ctrl2);
-            }
-        }
-    }
-
-    // Create new path with converted elements
-    let mut new_path = kurbo::BezPath::new();
-    for element in new_elements {
-        match element {
-            kurbo::PathEl::MoveTo(p) => new_path.move_to(p),
-            kurbo::PathEl::LineTo(p) => new_path.line_to(p),
-            kurbo::PathEl::CurveTo(p1, p2, p3) => new_path.curve_to(p1, p2, p3),
-            kurbo::PathEl::QuadTo(p1, p2) => new_path.quad_to(p1, p2),
-            kurbo::PathEl::ClosePath => new_path.close_path(),
-        }
-    }
-
-    working_copy.contours[contour_index] = new_path;
-    working_copy.is_dirty = true;
-
-    // Trigger updates
-    app_state_changed.write(AppStateChanged);
-    visual_update_tracker.needs_update = true;
-
-    info!("Inserted off-curve points on line segment in glyph '{}'", glyph_name);
+    // Suppress unused warnings
+    let _ = app_state_changed;
+    let _ = visual_update_tracker;
 }
 
 /// Plugin to add off-curve insertion functionality

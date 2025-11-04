@@ -1,3 +1,4 @@
+#![allow(unreachable_code, dead_code)]
 //! Knife Tool - Path cutting and slicing tool
 //!
 //! This tool allows users to cut paths by drawing a line across them.
@@ -319,7 +320,6 @@ pub fn render_knife_preview(
     theme: Res<crate::ui::themes::CurrentTheme>,
     current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
     mut update_tracker: Local<Option<KnifeGestureState>>,
-    fontir_state: Option<Res<crate::core::state::FontIRAppState>>,
     mut calc_cache: Local<KnifeCalculationCache>,
     // Query for active sort to get its position for preview rendering
     active_sort_query: Query<
@@ -459,51 +459,14 @@ pub fn render_knife_preview(
         }
     }
 
-    // Calculate and draw intersection points from actual glyph data
-    if let Some((start, end)) = knife_state.get_cutting_line() {
-        // Check if we need to recalculate intersections
-        let current_glyph = fontir_state
-            .as_ref()
-            .and_then(|fs| fs.current_glyph.clone());
-
-        let needs_recalc = calc_cache.last_cutting_line != Some((start, end))
-            || calc_cache.last_glyph != current_glyph;
-
-        if needs_recalc {
-            // Update cache with new intersections
-            calc_cache.cached_intersections =
-                calculate_real_intersections(start, end, &fontir_state);
-            calc_cache.last_cutting_line = Some((start, end));
-            calc_cache.last_glyph = current_glyph;
-        }
-
-        let intersection_color = theme.theme().selected_color(); // Use yellow selection color
-
-        for &intersection in &calc_cache.cached_intersections {
-            // Convert intersection from sort-relative to world coordinates
-            let world_intersection = intersection + sort_position;
-
-            // Create yellow filled circles for intersection points (like measure tool)
-            let intersection_size = camera_scale.adjusted_size(6.0); // Same size as measure tool
-            let circle_entity = spawn_knife_point_mesh(
-                &mut commands,
-                &mut meshes,
-                &mut materials,
-                world_intersection,
-                intersection_size,
-                intersection_color,
-                20.0, // z-order above everything else
-            );
-            knife_entities.push(circle_entity);
-        }
-    }
+    // TODO: Re-enable after FontIR removal - calculate and draw intersection points
+    // FontIR removed - intersection calculation needs to be reimplemented
 }
 
 /// Calculate real intersections between knife line and current glyph contours
 fn calculate_real_intersections(
     start: Vec2,
     end: Vec2,
-    fontir_state: &Option<Res<crate::core::state::FontIRAppState>>,
 ) -> Vec<Vec2> {
     let mut intersections = Vec::new();
 
@@ -513,38 +476,9 @@ fn calculate_real_intersections(
         kurbo::Point::new(end.x as f64, end.y as f64),
     );
 
-    // Try FontIR state first (preferred)
-    if let Some(fontir_state) = fontir_state {
-        if let Some(ref current_glyph) = fontir_state.current_glyph {
-            if let Some(paths) = fontir_state.get_glyph_paths_with_edits(current_glyph) {
-                debug!(
-                    "🔪 CALCULATE_REAL_INTERSECTIONS: Found {} paths for glyph '{}'",
-                    paths.len(),
-                    current_glyph
-                );
-                for path in &paths {
-                    let path_intersections = find_path_intersections_simple(path, &cutting_line);
-                    for intersection in path_intersections {
-                        intersections.push(Vec2::new(intersection.x as f32, intersection.y as f32));
-                    }
-                }
-                debug!(
-                    "🔪 CALCULATE_REAL_INTERSECTIONS: Total intersections found: {}",
-                    intersections.len()
-                );
-                return intersections;
-            } else {
-                debug!(
-                    "🔪 CALCULATE_REAL_INTERSECTIONS: No paths found for glyph '{}'",
-                    current_glyph
-                );
-            }
-        } else {
-            debug!("🔪 CALCULATE_REAL_INTERSECTIONS: No current glyph selected");
-        }
-    } else {
-        debug!("🔪 CALCULATE_REAL_INTERSECTIONS: No FontIR state available");
-    }
+    // TODO: Re-enable after FontIR removal - try FontIR state first
+    // FontIR removed - needs reimplementation
+    debug!("🔪 CALCULATE_REAL_INTERSECTIONS: FontIR removed - no intersection calculation available");
 
     intersections
 }
@@ -552,65 +486,25 @@ fn calculate_real_intersections(
 /// System to handle actual path cutting with FontIR integration
 #[allow(clippy::too_many_arguments)]
 pub fn handle_fontir_knife_cutting(
-    mut fontir_state: Option<ResMut<crate::core::state::FontIRAppState>>,
     mut knife_state: ResMut<KnifeToolState>, // Use main knife state instead of consumer
     mut app_state_changed: EventWriter<crate::editing::selection::events::AppStateChanged>,
     _keyboard: Res<ButtonInput<KeyCode>>,
     mouse_input: Res<ButtonInput<MouseButton>>,
 ) {
-    // Check if we just finished a cutting gesture
+    // TODO: Re-enable after FontIR removal - handle cutting gesture
+    // FontIR removed - cutting logic needs to be reimplemented
     if mouse_input.just_released(MouseButton::Left) {
-        if let Some(ref mut fontir_state) = fontir_state {
-            if let Some((start, end)) = knife_state.get_cutting_line() {
-                perform_fontir_cut(start, end, fontir_state, &mut app_state_changed);
-
-                // Reset the knife gesture state after successful cut
-                knife_state.gesture = KnifeGestureState::Ready;
-                knife_state.intersections.clear();
-                debug!("🔪 KNIFE CUTTING: Gesture state reset after successful cut");
-            }
+        if let Some((_start, _end)) = knife_state.get_cutting_line() {
+            // Reset the knife gesture state
+            knife_state.gesture = KnifeGestureState::Ready;
+            knife_state.intersections.clear();
+            debug!("🔪 KNIFE CUTTING: Gesture state reset (cutting disabled during FontIR removal)");
         }
     }
 }
 
-/// Perform cutting with FontIR working copies using glyph-level multi-contour approach
-fn perform_fontir_cut(
-    start: Vec2,
-    end: Vec2,
-    fontir_state: &mut crate::core::state::FontIRAppState,
-    app_state_changed: &mut EventWriter<crate::editing::selection::events::AppStateChanged>,
-) {
-    debug!("Performing FontIR knife cut from {:?} to {:?}", start, end);
-
-    // Convert cutting line to kurbo Line
-    let cutting_line = kurbo::Line::new(
-        kurbo::Point::new(start.x as f64, start.y as f64),
-        kurbo::Point::new(end.x as f64, end.y as f64),
-    );
-
-    if let Some(ref current_glyph) = fontir_state.current_glyph.clone() {
-        // Get or create a working copy using the proper method (like pen and shapes tools)
-        if let Some(working_copy) = fontir_state.get_or_create_working_copy(current_glyph) {
-            // NEW APPROACH: Glyph-level multi-contour cutting
-            match perform_multi_contour_cut(&working_copy.contours, &cutting_line) {
-                Ok(new_contours) => {
-                    working_copy.contours = new_contours;
-                    working_copy.is_dirty = true;
-                    app_state_changed.write(crate::editing::selection::events::AppStateChanged);
-                    debug!(
-                        "FontIR knife cut completed - glyph now has {} contours",
-                        working_copy.contours.len()
-                    );
-                }
-                Err(reason) => {
-                    debug!("FontIR knife cut failed: {}", reason);
-                }
-            }
-        }
-    } else {
-        debug!("FontIR knife cut completed - no current glyph selected");
-    }
-}
+// TODO: Re-enable after FontIR removal - perform cutting with FontIR
+// FontIR removed - perform_fontir_cut function disabled
 
 /// Perform multi-contour cutting using Runebender's unified approach
 /// Treats all segments from all contours as one unified sequence

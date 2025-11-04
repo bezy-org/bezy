@@ -1,5 +1,4 @@
-use crate::core::state::{FontIRAppState, GlyphNavigation, TextEditorState};
-use crate::systems::sorts::input_utilities::unicode_to_glyph_name_fontir;
+use crate::core::state::{GlyphNavigation, TextEditorState};
 use crate::systems::sorts::sort_entities::BufferSortRespawnQueue;
 use crate::ui::edit_mode_toolbar::text::TextPlacementMode;
 use crate::ui::edit_mode_toolbar::CurrentTool;
@@ -9,7 +8,6 @@ use bevy::prelude::*;
 pub fn handle_glyph_selection(
     unicode_codepoint: u32,
     glyph_nav: &mut ResMut<GlyphNavigation>,
-    fontir_state: &mut Option<ResMut<FontIRAppState>>,
     text_editor_state: &mut Option<ResMut<TextEditorState>>,
     respawn_queue: &mut ResMut<BufferSortRespawnQueue>,
     current_tool: &Option<Res<CurrentTool>>,
@@ -20,28 +18,15 @@ pub fn handle_glyph_selection(
     // Convert Unicode to char for processing
     let target_char = char::from_u32(unicode_codepoint);
 
-    // Get proper glyph name using the same logic as regular typing
-    let glyph_name = if let Some(target_char) = target_char {
-        if let Some(ref fontir_state) = fontir_state {
-            // Use FontIR's glyph lookup (same as typing)
-            unicode_to_glyph_name_fontir(target_char, fontir_state)
-                .unwrap_or_else(|| format!("U+{:04X}", unicode_codepoint))
-        } else {
-            // Fallback to Unicode format
-            format!("U+{:04X}", unicode_codepoint)
-        }
+    // Use Unicode format for glyph name
+    let glyph_name = if let Some(_target_char) = target_char {
+        format!("U+{:04X}", unicode_codepoint)
     } else {
         return Err("Invalid Unicode codepoint".to_string());
     };
 
-    // Update both glyph tracking systems
+    // Update glyph tracking
     glyph_nav.set_current_glyph(glyph_name.clone());
-
-    // Also update FontIR state if available
-    if let Some(ref mut fontir_state) = fontir_state {
-        fontir_state.set_current_glyph(Some(glyph_name.clone()));
-        info!("Updated FontIR current glyph to: {}", glyph_name);
-    }
 
     // Check if we're in Text tool's Insert mode
     let is_text_tool = current_tool
@@ -58,12 +43,8 @@ pub fn handle_glyph_selection(
         if is_text_tool && is_insert_mode {
             // In Insert mode: insert a new sort at cursor position (like typing)
             if let Some(target_char) = target_char {
-                // Get advance width for the glyph
-                let advance_width = if let Some(ref fontir_state) = fontir_state {
-                    fontir_state.get_glyph_advance_width(&glyph_name)
-                } else {
-                    500.0 // Default fallback
-                };
+                // Default advance width
+                let advance_width = 500.0;
 
                 // Insert the sort at the cursor position (like typing would)
                 text_state.insert_sort_at_cursor_with_respawn(
@@ -97,7 +78,6 @@ pub fn handle_glyph_selection(
                 &target_char,
                 &glyph_name,
                 text_state,
-                fontir_state,
                 respawn_queue,
             ) {
                 Ok(_) => Ok(glyph_name),
@@ -115,7 +95,6 @@ fn change_active_sort_glyph(
     target_char: &Option<char>,
     glyph_name: &str,
     text_state: &mut ResMut<TextEditorState>,
-    fontir_state: &Option<ResMut<FontIRAppState>>,
     respawn_queue: &mut ResMut<BufferSortRespawnQueue>,
 ) -> Result<(), String> {
     // Find the active sort
@@ -132,12 +111,8 @@ fn change_active_sort_glyph(
     if let Some(index) = active_sort_index {
         // Change what glyph the active sort displays
         if let Some(target_char) = target_char {
-            // Get advance width for the new glyph
-            let advance_width = if let Some(ref fontir_state) = fontir_state {
-                fontir_state.get_glyph_advance_width(glyph_name)
-            } else {
-                500.0 // Default fallback
-            };
+            // Default advance width
+            let advance_width = 500.0;
 
             // Update the sort's displayed glyph
             if let Some(sort) = text_state.buffer.get_mut(index) {

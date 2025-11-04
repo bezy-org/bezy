@@ -2,7 +2,7 @@ use anyhow::Result;
 use crossterm::event::KeyEvent;
 use ratatui::{
     layout::Rect,
-    style::{Modifier, Style},
+    style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph, Wrap},
     Frame,
@@ -80,7 +80,11 @@ pub fn draw(f: &mut Frame, _state: &mut HelpState, area: Rect) {
     ];
 
     let paragraph = Paragraph::new(help_text)
-        .block(Block::default().borders(Borders::ALL).title("Help"))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(Span::styled("Help", Style::default().fg(Color::Green))),
+        )
         .wrap(Wrap { trim: true });
 
     f.render_widget(paragraph, area);

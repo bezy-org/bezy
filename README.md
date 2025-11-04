@@ -1,10 +1,10 @@
 # Bezy
 
-Bezy is an in-development cross-platform font editor with a built-in bidirectional text editor.
+Bezy is an in-development cross-platform font editor with a built-in bidirectional text editor and TUI/CLI-first workflow designed for AI collaboration and automation.
 
 ![Bezy Font Editor Screenshot](https://bezy.org/images/bezy-screenshot-001.jpg)
 
-Drawing inspiration from customizable editors like RoboFont and MFEK, Bezy reimagines font editing for contemporary Unix-like AI and CLI heavy workflows. The core dependencies are: [Bevy](https://bevy.org), [HarfRust](https://github.com/harfbuzz/harfrust), [Norad](https://github.com/linebender/norad), [Kurbo](https://github.com/linebender/kurbo), [Fontc](https://github.com/googlefonts/fontc), [FontIR](https://github.com/googlefonts/fontc).
+Drawing inspiration from customizable editors like RoboFont and MFEK, Bezy reimagines font editing for contemporary Unix-like AI and CLI heavy workflows. It features two core innovations: a multi-buffer text editor supporting both LTR and RTL scripts, and a Terminal User Interface (TUI) that runs alongside the GUI for command-line automation. The core dependencies are: [Bevy](https://bevy.org), [HarfRust](https://github.com/harfbuzz/harfrust), [Norad](https://github.com/linebender/norad), [Kurbo](https://github.com/linebender/kurbo), and [Fontc](https://github.com/googlefonts/fontc).
 
 Bezy is written in the Rust programming language using a [game engine](https://bevy.org) to create a performant and fun experience that keeps users in a flow state. It is designed to be a visually pleasing environment where design work is done, not just a non-aesthetic production tool.
 
@@ -49,6 +49,41 @@ cargo run --release
 # Build and run with a specific font source (UFO or designspace)
 cargo run -- --edit path/to/your/font.ufo
 ```
+
+## Build Options
+
+Bezy supports several build configurations for different use cases:
+
+### Standard Build
+```bash
+# Default build with TUI enabled
+cargo build
+
+# Optimized release build
+cargo build --release
+```
+
+### Development Build
+For faster compile times during development, use the `dev` feature which enables dynamic linking:
+```bash
+# Development build with fast recompilation
+cargo build --features dev
+cargo run --features dev
+```
+
+This significantly speeds up incremental builds when making frequent changes to the code.
+
+### GUI-Only Build
+To build without TUI support:
+```bash
+# Build without Terminal User Interface
+cargo build --no-default-features
+
+# Run GUI-only version
+cargo run --no-default-features -- --edit MyFont.ufo
+```
+
+**Note:** The `tui` feature is enabled by default. Disabling it removes the Ratatui and Crossterm dependencies.
 
 ## Installing as a Command Line Tool
 
@@ -117,6 +152,7 @@ Bezy is designed to be used as a command line tool in Unix-style workflows.
 | `--theme <NAME>` | `-t` | Set the color theme | `bezy --theme lightmode` |
 | `--new-config` | | Initialize user configuration directory | `bezy --new-config` |
 | `--no-default-buffer` | | Start without default text buffer | `bezy --no-default-buffer` |
+| `--no-tui` | | Disable Terminal User Interface mode | `bezy --no-tui` |
 | `--help` | `-h` | Show help information | `bezy --help` |
 | `--version` | `-V` | Show version information | `bezy --version` |
 
@@ -171,8 +207,97 @@ The edit-mode toolbar provides access to various editing tools. Each tool has sp
 - **Selection Tool**: Select and manipulate points
 - **Pen Tool**: Add new points and contours
 - **Knife Tool**: Cut contours at specific points
-- **Text Tool**: A text editor built with editable type sorts 
+- **Text Tool**: A text editor built with editable type sorts
 - **Measure Tool**: Measure distances between contours
+
+# Terminal User Interface (TUI)
+
+Bezy runs with a **Terminal User Interface (TUI) by default**, providing a powerful command-line workflow alongside the GUI. The TUI appears in your terminal window and gives you access to multiple specialized tabs for different aspects of font editing.
+
+## TUI Tabs
+
+The TUI provides 9 tabs:
+
+- **File** - File operations, save actions, and current file path
+- **Edit** - Edit mode controls and commands
+- **Unicode** - Browse Unicode codepoints and glyphs
+- **Font Info** - Font metadata and information
+- **QA** - Quality assurance and validation tools
+- **Glyph** - Glyph-specific information and editing
+- **Path** - Path and contour information
+- **AI** - AI-powered editing features
+- **Help** - Keyboard shortcuts and help information
+
+Navigate between tabs using the number keys or Tab/Shift+Tab.
+
+## Disabling the TUI
+
+If you prefer to run only the GUI without the TUI:
+
+```bash
+bezy --no-tui --edit MyFont.ufo
+```
+
+## Why TUI-First?
+
+The TUI-first design makes Bezy ideal for:
+- **AI collaboration** - Tools like Claude Code can interact with the TUI
+- **Automation** - Script font editing workflows
+- **Remote work** - SSH-friendly interface
+- **Log monitoring** - Real-time log viewing without leaving the terminal
+- **Power users** - Keyboard-driven workflows
+
+# Logging & Debugging
+
+Bezy uses a sophisticated logging system that keeps the TUI clean while providing detailed debugging information.
+
+## Log Files
+
+All application logs are automatically written to:
+```
+~/.config/bezy/logs/bezy-YYYY-MM-DD.log
+```
+
+Log files are rotated daily with the date in the filename.
+
+## Viewing Logs
+
+**Option 1: View in another terminal**
+```bash
+# View logs in real-time
+tail -f ~/.config/bezy/logs/bezy-$(date +%Y-%m-%d).log
+
+# Or view today's log
+tail -f ~/.config/bezy/logs/bezy-$(date +%Y-%m-%d).log
+
+# Search for specific messages
+grep "ERROR" ~/.config/bezy/logs/bezy-$(date +%Y-%m-%d).log
+```
+
+**Option 2: Use the built-in TUI log viewer**
+- The TUI has a dedicated Logs tab for viewing application output
+- Navigate to the Logs tab while the app is running
+
+## Debugging Without TUI
+
+For development and debugging, you can disable the TUI to see logs directly in the terminal:
+
+```bash
+# Run with logs output to terminal
+cargo run -- --no-tui --edit MyFont.ufo
+```
+
+## Setting Up Log Directory
+
+The log directory is created automatically when you run:
+```bash
+bezy --new-config
+```
+
+This creates:
+- `~/.config/bezy/logs/` - Directory for daily log files
+- `~/.config/bezy/settings.json` - User preferences
+- `~/.config/bezy/themes/` - Editable theme files
 
 # Themes & Configuration
 

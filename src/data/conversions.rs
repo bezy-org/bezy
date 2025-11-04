@@ -8,6 +8,7 @@ use crate::core::state::{
     ComponentData, ContourData, FontData, FontInfo, GlyphData, OutlineData, PointData,
     PointTypeData,
 };
+use kurbo::{BezPath, Point};
 use norad::Font;
 use std::path::PathBuf;
 
@@ -115,6 +116,13 @@ impl OutlineData {
             .map(ContourData::to_norad_contour)
             .collect()
     }
+
+    pub fn to_bezpaths(&self) -> Vec<BezPath> {
+        self.contours
+            .iter()
+            .map(|contour| contour.to_bezpath())
+            .collect()
+    }
 }
 
 impl ContourData {
@@ -133,6 +141,131 @@ impl ContourData {
 
         // Use constructor with required arguments
         norad::Contour::new(points, None)
+    }
+
+    pub fn to_bezpath(&self) -> BezPath {
+        let mut path = BezPath::new();
+        let mut pending_offcurves: Vec<Point> = Vec::new();
+        let mut first_point: Option<(Point, PointTypeData)> = None;
+
+        for (idx, point) in self.points.iter().enumerate() {
+            let pt = Point::new(point.x, point.y);
+
+            // UFO contours: first point defines start position
+            if idx == 0 {
+                path.move_to(pt);
+                first_point = Some((pt, point.point_type));
+                continue;
+            }
+
+            match point.point_type {
+                PointTypeData::Move => {
+                    path.move_to(pt);
+                }
+                PointTypeData::Line => {
+                    path.line_to(pt);
+                }
+                PointTypeData::OffCurve => {
+                    pending_offcurves.push(pt);
+                }
+                PointTypeData::Curve => {
+                    if pending_offcurves.len() >= 2 {
+                        let cp1 = pending_offcurves[pending_offcurves.len() - 2];
+                        let cp2 = pending_offcurves[pending_offcurves.len() - 1];
+                        path.curve_to(cp1, cp2, pt);
+                        pending_offcurves.clear();
+                    } else if pending_offcurves.len() == 1 {
+                        let cp = pending_offcurves[0];
+                        path.quad_to(cp, pt);
+                        pending_offcurves.clear();
+                    } else {
+                        path.line_to(pt);
+                    }
+                }
+                PointTypeData::QCurve => {
+                    if !pending_offcurves.is_empty() {
+                        if pending_offcurves.len() == 1 {
+                            path.quad_to(pending_offcurves[0], pt);
+                        } else {
+                            for i in 0..pending_offcurves.len() {
+                                let cp = pending_offcurves[i];
+                                let end = if i == pending_offcurves.len() - 1 {
+                                    pt
+                                } else {
+                                    let next_cp = pending_offcurves[i + 1];
+                                    Point::new(
+                                        (cp.x + next_cp.x) / 2.0,
+                                        (cp.y + next_cp.y) / 2.0,
+                                    )
+                                };
+                                path.quad_to(cp, end);
+                            }
+                        }
+                        pending_offcurves.clear();
+                    } else {
+                        path.line_to(pt);
+                    }
+                }
+            }
+        }
+
+        // Handle wrap-around segment back to first point
+        // The first point's type defines how to reach it from the last point
+        if let Some((first_pt, first_type)) = first_point {
+            match first_type {
+                PointTypeData::Curve => {
+                    if pending_offcurves.len() >= 2 {
+                        let cp1 = pending_offcurves[pending_offcurves.len() - 2];
+                        let cp2 = pending_offcurves[pending_offcurves.len() - 1];
+                        path.curve_to(cp1, cp2, first_pt);
+                        pending_offcurves.clear();
+                    } else if pending_offcurves.len() == 1 {
+                        let cp = pending_offcurves[0];
+                        path.quad_to(cp, first_pt);
+                        pending_offcurves.clear();
+                    } else {
+                        path.line_to(first_pt);
+                    }
+                }
+                PointTypeData::QCurve => {
+                    if !pending_offcurves.is_empty() {
+                        if pending_offcurves.len() == 1 {
+                            path.quad_to(pending_offcurves[0], first_pt);
+                        } else {
+                            for i in 0..pending_offcurves.len() {
+                                let cp = pending_offcurves[i];
+                                let end = if i == pending_offcurves.len() - 1 {
+                                    first_pt
+                                } else {
+                                    let next_cp = pending_offcurves[i + 1];
+                                    Point::new(
+                                        (cp.x + next_cp.x) / 2.0,
+                                        (cp.y + next_cp.y) / 2.0,
+                                    )
+                                };
+                                path.quad_to(cp, end);
+                            }
+                        }
+                        pending_offcurves.clear();
+                    } else {
+                        path.line_to(first_pt);
+                    }
+                }
+                PointTypeData::Line => {
+                    path.line_to(first_pt);
+                }
+                PointTypeData::Move => {
+                    // Move doesn't draw, just repositions
+                }
+                PointTypeData::OffCurve => {
+                    // First point shouldn't be off-curve, but if it is, draw line
+                    path.line_to(first_pt);
+                }
+            }
+        }
+
+        path.close_path();
+        path
     }
 }
 

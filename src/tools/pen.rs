@@ -1,3 +1,4 @@
+#![allow(unreachable_code, dead_code)]
 //! # Pen Tool
 //!
 //! The pen tool allows users to draw vector paths by clicking points in sequence.
@@ -206,7 +207,6 @@ pub fn handle_pen_mouse_events(
     pen_mode_active: Option<Res<PenModeActive>>,
     current_tool: Option<Res<crate::ui::edit_mode_toolbar::CurrentTool>>,
     mut app_state: Option<ResMut<AppState>>,
-    mut fontir_app_state: Option<ResMut<crate::core::state::FontIRAppState>>,
     mut app_state_changed: EventWriter<AppStateChanged>,
     mouse_button_input: Res<ButtonInput<MouseButton>>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
@@ -288,7 +288,6 @@ pub fn handle_pen_mouse_events(
                     finalize_pen_path(
                         &mut pen_state,
                         &mut app_state,
-                        &mut fontir_app_state,
                         &mut app_state_changed,
                     );
                     return;
@@ -319,7 +318,6 @@ pub fn handle_pen_mouse_events(
             finalize_pen_path(
                 &mut pen_state,
                 &mut app_state,
-                &mut fontir_app_state,
                 &mut app_state_changed,
             );
         }
@@ -521,17 +519,14 @@ pub fn reset_pen_mode_when_inactive(
 fn finalize_pen_path(
     pen_state: &mut ResMut<PenToolState>,
     _app_state: &mut Option<ResMut<AppState>>,
-    fontir_app_state: &mut Option<ResMut<crate::core::state::FontIRAppState>>,
     app_state_changed: &mut EventWriter<AppStateChanged>,
 ) {
     if pen_state.current_path.len() < 2 {
         return;
     }
 
-    // Try FontIR first, then fallback to AppState
-    if fontir_app_state.is_some() {
-        finalize_fontir_path(pen_state, fontir_app_state, app_state_changed);
-    } else if let Some(_app_state) = _app_state.as_mut() {
+    // FontIR removed - use AppState
+    if let Some(_app_state) = _app_state.as_mut() {
         finalize_appstate_path(pen_state);
     } else {
         warn!("Pen tool: No AppState or FontIR available for path finalization");
@@ -548,7 +543,6 @@ fn finalize_pen_path(
 /// Helper function to finalize path using FontIR BezPath operations
 fn finalize_fontir_path(
     pen_state: &mut ResMut<PenToolState>,
-    fontir_app_state: &mut Option<ResMut<crate::core::state::FontIRAppState>>,
     app_state_changed: &mut EventWriter<AppStateChanged>,
 ) {
     // Create a BezPath from the current path
@@ -569,31 +563,8 @@ fn finalize_fontir_path(
         }
     }
 
-    // Add the BezPath to the FontIR glyph data if available
-    if let Some(ref mut fontir_state) = fontir_app_state.as_mut() {
-        let current_glyph_name = fontir_state.current_glyph.clone();
-        if let Some(current_glyph_name) = current_glyph_name {
-            // Get or create a working copy using the proper method
-            if let Some(working_copy) = fontir_state.get_or_create_working_copy(&current_glyph_name)
-            {
-                working_copy.contours.push(bez_path.clone());
-                working_copy.is_dirty = true;
-                app_state_changed.write(AppStateChanged);
-
-                debug!("Pen tool (FontIR): Added contour with {} elements to glyph '{}'. Total contours: {}", 
-                      bez_path.elements().len(), current_glyph_name, working_copy.contours.len());
-            } else {
-                warn!(
-                    "Pen tool (FontIR): Could not create working copy for glyph '{}'",
-                    current_glyph_name
-                );
-            }
-        } else {
-            warn!("Pen tool (FontIR): No current glyph selected");
-        }
-    } else {
-        warn!("Pen tool (FontIR): FontIR app state not available");
-    }
+    // TODO: Re-enable after FontIR removal - finalize path in FontIR
+    // FontIR removed - path finalization logic needs to be reimplemented
 
     let path_info = format!("BezPath with {} elements", bez_path.elements().len());
     debug!("Pen tool (FontIR): Created {} for current glyph", path_info);

@@ -6,7 +6,6 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::type_complexity)]
 
-use crate::core::state::fontir_app_state::FontIRMetrics;
 use crate::rendering::entity_pools::{update_metrics_entity, EntityPools};
 use crate::rendering::zoom_aware_scaling::CameraResponsiveScale;
 use bevy::prelude::*;
@@ -43,13 +42,23 @@ pub struct MetricsLineEntities {
     pub lines: std::collections::HashMap<Entity, Vec<Entity>>, // sort_entity -> line entities
 }
 
+/// Simple font metrics for rendering
+#[derive(Clone, Debug)]
+pub struct SimpleFontMetrics {
+    pub units_per_em: f32,
+    pub ascender: Option<f32>,
+    pub descender: Option<f32>,
+    pub x_height: Option<f32>,
+    pub cap_height: Option<f32>,
+}
+
 /// Cache for expensive glyph metrics calculations
 #[derive(Resource, Default)]
 pub struct GlyphMetricsCache {
-    /// Cache glyph advance widths to avoid repeated FontIR lookups
+    /// Cache glyph advance widths to avoid repeated lookups
     pub advance_widths: std::collections::HashMap<String, f32>,
     /// Cache font metrics to avoid repeated extraction
-    pub font_metrics: Option<FontIRMetrics>,
+    pub font_metrics: Option<SimpleFontMetrics>,
     /// Track when font changed to invalidate cache
     pub last_font_generation: u64,
 }
@@ -59,13 +68,18 @@ impl GlyphMetricsCache {
     pub fn get_advance_width(
         &mut self,
         glyph_name: &str,
-        fontir_state: &crate::core::state::FontIRAppState,
+        app_state: &crate::core::state::AppState,
     ) -> f32 {
         if let Some(&width) = self.advance_widths.get(glyph_name) {
             return width;
         }
 
-        let width = fontir_state.get_glyph_advance_width(glyph_name);
+        let width = app_state
+            .workspace
+            .font
+            .get_glyph(glyph_name)
+            .map(|g| g.advance_width as f32)
+            .unwrap_or(0.0);
         self.advance_widths.insert(glyph_name.to_string(), width);
         debug!("Cached advance width for glyph '{}': {}", glyph_name, width);
         width
@@ -74,18 +88,21 @@ impl GlyphMetricsCache {
     /// Get cached font metrics or extract and cache them
     pub fn get_font_metrics(
         &mut self,
-        fontir_state: &crate::core::state::FontIRAppState,
-    ) -> &FontIRMetrics {
-        // For now, skip generation tracking since FontIRAppState doesn't expose it
-        // TODO: Add generation tracking when FontIRAppState API supports it
-
+        app_state: &crate::core::state::AppState,
+    ) -> &SimpleFontMetrics {
         if self.font_metrics.is_none() {
-            let metrics = fontir_state.get_font_metrics();
+            let info = &app_state.workspace.info;
+            let metrics = SimpleFontMetrics {
+                units_per_em: info.units_per_em as f32,
+                ascender: info.ascender.map(|v| v as f32),
+                descender: info.descender.map(|v| v as f32),
+                x_height: info.x_height.map(|v| v as f32),
+                cap_height: info.cap_height.map(|v| v as f32),
+            };
             debug!("Cached font metrics: UPM={}", metrics.units_per_em);
             self.font_metrics = Some(metrics);
         }
 
-        // Safe unwrap: font_metrics is guaranteed to be Some after the above block
         self.font_metrics.as_ref().expect("font_metrics should be initialized")
     }
 
@@ -249,7 +266,7 @@ pub(crate) fn render_mesh_metrics_lines(
         ),
     >,
     _existing_metrics: Query<Entity, With<MetricsLine>>,
-    fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
+    app_state: Option<Res<crate::core::state::AppState>>,
     camera_scale: Res<CameraResponsiveScale>,
     presentation_mode: Option<Res<crate::ui::edit_mode_toolbar::PresentationMode>>,
     theme: Res<crate::ui::themes::CurrentTheme>,
@@ -423,18 +440,18 @@ pub(crate) fn render_mesh_metrics_lines(
         );
     }
 
-    if let Some(fontir_state) = fontir_app_state {
+    if let Some(app_state_res) = app_state {
         // Cache font metrics once for the entire frame
-        let fontir_metrics = {
-            let cached_metrics = metrics_cache.get_font_metrics(&fontir_state);
+        let font_metrics = {
+            let cached_metrics = metrics_cache.get_font_metrics(&app_state_res);
             cached_metrics.clone() // Clone the metrics to avoid borrow conflicts
         };
 
         // SELECTIVE RENDERING: Only process changed active sorts
         for (sort_entity, sort_transform, sort) in changed_active_sorts {
             let position = sort_transform.translation.truncate();
-            // Use cached advance width lookup instead of expensive FontIR call
-            let advance_width = metrics_cache.get_advance_width(&sort.glyph_name, &fontir_state);
+            // Use cached advance width lookup
+            let advance_width = metrics_cache.get_advance_width(&sort.glyph_name, &app_state_res);
             // Since query filters for ActiveSort, all sorts here are active - use active color
             // Theme is now available as a parameter
             let color = theme.theme().sort_active_metrics_color();
@@ -442,11 +459,11 @@ pub(crate) fn render_mesh_metrics_lines(
             let mut line_entities = Vec::new();
 
             // Extract metrics values
-            let upm = fontir_metrics.units_per_em;
-            let ascender = fontir_metrics.ascender.unwrap_or(upm * 0.8);
-            let descender = fontir_metrics.descender.unwrap_or(upm * -0.2);
-            let x_height = fontir_metrics.x_height.unwrap_or(upm * 0.5);
-            let cap_height = fontir_metrics.cap_height.unwrap_or(upm * 0.7);
+            let upm = font_metrics.units_per_em;
+            let ascender = font_metrics.ascender.unwrap_or(upm * 0.8);
+            let descender = font_metrics.descender.unwrap_or(upm * -0.2);
+            let x_height = font_metrics.x_height.unwrap_or(upm * 0.5);
+            let cap_height = font_metrics.cap_height.unwrap_or(upm * 0.7);
 
             // Baseline (most important)
             let baseline_entity = spawn_metrics_line(
@@ -603,7 +620,7 @@ pub(crate) fn render_mesh_metrics_lines(
         for (sort_entity, sort_transform, sort) in changed_active_buffer_sorts {
             let position = sort_transform.translation.truncate();
             // Use cached advance width lookup for active buffer sorts
-            let advance_width = metrics_cache.get_advance_width(&sort.glyph_name, &fontir_state);
+            let advance_width = metrics_cache.get_advance_width(&sort.glyph_name, &app_state_res);
             // Theme is now available as a parameter
             let color = theme.theme().sort_active_metrics_color(); // Green for active buffer sorts (text roots)
 
@@ -615,11 +632,11 @@ pub(crate) fn render_mesh_metrics_lines(
             let mut line_entities = Vec::new();
 
             // Extract metrics values
-            let upm = fontir_metrics.units_per_em;
-            let ascender = fontir_metrics.ascender.unwrap_or(upm * 0.8);
-            let descender = fontir_metrics.descender.unwrap_or(upm * -0.2);
-            let x_height = fontir_metrics.x_height.unwrap_or(upm * 0.5);
-            let cap_height = fontir_metrics.cap_height.unwrap_or(upm * 0.7);
+            let upm = font_metrics.units_per_em;
+            let ascender = font_metrics.ascender.unwrap_or(upm * 0.8);
+            let descender = font_metrics.descender.unwrap_or(upm * -0.2);
+            let x_height = font_metrics.x_height.unwrap_or(upm * 0.5);
+            let cap_height = font_metrics.cap_height.unwrap_or(upm * 0.7);
 
             // Baseline (most important)
             let baseline_entity = spawn_metrics_line(
@@ -781,7 +798,7 @@ pub(crate) fn render_mesh_metrics_lines(
         for (sort_entity, sort_transform, sort) in changed_inactive_buffer_sorts {
             let position = sort_transform.translation.truncate();
             // Use cached advance width lookup for inactive buffer sorts
-            let advance_width = metrics_cache.get_advance_width(&sort.glyph_name, &fontir_state);
+            let advance_width = metrics_cache.get_advance_width(&sort.glyph_name, &app_state_res);
             // Theme is now available as a parameter
             let color = theme.theme().sort_inactive_metrics_color(); // Gray for inactive buffer sorts (typed characters)
 
@@ -793,11 +810,11 @@ pub(crate) fn render_mesh_metrics_lines(
             let mut line_entities = Vec::new();
 
             // Extract metrics values
-            let upm = fontir_metrics.units_per_em;
-            let ascender = fontir_metrics.ascender.unwrap_or(upm * 0.8);
-            let descender = fontir_metrics.descender.unwrap_or(upm * -0.2);
-            let x_height = fontir_metrics.x_height.unwrap_or(upm * 0.5);
-            let cap_height = fontir_metrics.cap_height.unwrap_or(upm * 0.7);
+            let upm = font_metrics.units_per_em;
+            let ascender = font_metrics.ascender.unwrap_or(upm * 0.8);
+            let descender = font_metrics.descender.unwrap_or(upm * -0.2);
+            let x_height = font_metrics.x_height.unwrap_or(upm * 0.5);
+            let cap_height = font_metrics.cap_height.unwrap_or(upm * 0.7);
 
             // Baseline (most important)
             let baseline_entity = spawn_metrics_line(
@@ -964,7 +981,7 @@ pub fn manage_preview_metrics(
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut preview_entities: ResMut<PreviewMetricsEntities>,
     preview_state: Res<PreviewMetricsState>,
-    fontir_app_state: Option<Res<crate::core::state::FontIRAppState>>,
+    app_state: Option<Res<crate::core::state::AppState>>,
     camera_scale: Res<CameraResponsiveScale>,
 ) {
     // Clean up existing preview entities
@@ -979,16 +996,23 @@ pub fn manage_preview_metrics(
         }
     }
 
-    // Only create new preview if active and we have fontir state
+    // Only create new preview if active and we have app state
     if !preview_state.active || preview_state.glyph_name.is_empty() {
         return;
     }
 
-    let Some(fontir_state) = fontir_app_state.as_ref() else {
+    let Some(app_state_res) = app_state.as_ref() else {
         return;
     };
 
-    let font_metrics = fontir_state.get_font_metrics();
+    let info = &app_state_res.workspace.info;
+    let font_metrics = SimpleFontMetrics {
+        units_per_em: info.units_per_em as f32,
+        ascender: info.ascender.map(|v| v as f32),
+        descender: info.descender.map(|v| v as f32),
+        x_height: info.x_height.map(|v| v as f32),
+        cap_height: info.cap_height.map(|v| v as f32),
+    };
     let upm = font_metrics.units_per_em;
     let ascender = font_metrics.ascender.unwrap_or(upm * 0.8);
     let descender = font_metrics.descender.unwrap_or(upm * -0.2);
@@ -1149,7 +1173,9 @@ pub fn manage_preview_metrics(
     preview_entities.entities.push(left_entity);
 
     // Add glyph outline preview
-    if let Some(glyph_paths) = fontir_state.get_glyph_paths_with_edits(&preview_state.glyph_name) {
+    if let Some(glyph) = app_state_res.workspace.font.get_glyph(&preview_state.glyph_name) {
+        if let Some(outline) = &glyph.outline {
+            let glyph_paths = outline.to_bezpaths();
         for path in &glyph_paths {
             let outline_entities = create_preview_glyph_outline(
                 &mut commands,
@@ -1161,6 +1187,7 @@ pub fn manage_preview_metrics(
                 &camera_scale,
             );
             preview_entities.entities.extend(outline_entities);
+        }
         }
     }
 }

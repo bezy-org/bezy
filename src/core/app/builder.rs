@@ -6,16 +6,14 @@ use super::plugins::{CorePluginGroup, EditorPluginGroup, RenderingPluginGroup};
 use crate::core::config::{BezySettings, CliArgs, DEFAULT_WINDOW_SIZE, WINDOW_TITLE};
 use crate::core::state::{AppState, GlyphNavigation};
 use crate::systems::{
-    center_camera_on_startup_layout, create_startup_layout, exit_on_esc, load_fontir_font,
-    deferred_fontir_font_loading,
+    center_camera_on_startup_layout, create_startup_layout, exit_on_esc, initialize_font_loading,
+    load_font_deferred,
     plugins::{configure_default_plugins, configure_default_plugins_for_tui},
 };
 #[cfg(feature = "tui")]
 use crate::tui::communication::{AppMessage, TuiMessage};
 use crate::ui::theme::CurrentTheme;
 use crate::utils::embedded_assets::EmbeddedAssetsPlugin;
-#[cfg(debug_assertions)]
-use crate::ui::theme_system::RuntimeThemePlugin;
 use anyhow::Result;
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
@@ -39,7 +37,7 @@ pub fn create_app(cli_args: CliArgs) -> Result<App> {
     add_startup_and_exit_systems(&mut app);
 
     // Add deferred font loading system to load fonts after window is shown
-    app.add_systems(Update, deferred_fontir_font_loading);
+    app.add_systems(Update, load_font_deferred);
 
     Ok(app)
 }
@@ -140,16 +138,12 @@ fn add_plugin_groups(app: &mut App) {
 
     app.add_plugins((RenderingPluginGroup, EditorPluginGroup, CorePluginGroup));
 
-    // Add runtime theme reload plugin for development
-    #[cfg(debug_assertions)]
-    app.add_plugins(RuntimeThemePlugin);
-
     debug!("All plugin groups added successfully");
 }
 
 /// Add startup and exit systems
 fn add_startup_and_exit_systems(app: &mut App) {
-    app.add_systems(Startup, (load_fontir_font, create_startup_layout).chain())
+    app.add_systems(Startup, (initialize_font_loading, create_startup_layout).chain())
         .add_systems(Update, (exit_on_esc, center_camera_on_startup_layout));
 }
 
@@ -195,7 +189,7 @@ pub fn create_app_with_tui(
     app.add_systems(Update, send_initial_font_data_to_tui);
 
     // Add deferred font loading system to load fonts after window is shown
-    app.add_systems(Update, deferred_fontir_font_loading);
+    app.add_systems(Update, load_font_deferred);
 
     Ok(app)
 }
@@ -206,7 +200,6 @@ pub fn create_app_with_tui(
 fn handle_tui_messages(
     mut tui_comm: ResMut<crate::core::tui_communication::TuiCommunication>,
     mut glyph_nav: ResMut<GlyphNavigation>,
-    mut fontir_state: Option<ResMut<crate::core::state::FontIRAppState>>,
     mut text_editor_state: Option<ResMut<crate::core::state::TextEditorState>>,
     mut respawn_queue: ResMut<crate::systems::sorts::sort_entities::BufferSortRespawnQueue>,
     current_tool: Option<Res<crate::ui::edit_mode_toolbar::CurrentTool>>,
@@ -220,7 +213,6 @@ fn handle_tui_messages(
                 match crate::tui::message_handler::handle_glyph_selection(
                     unicode_codepoint,
                     &mut glyph_nav,
-                    &mut fontir_state,
                     &mut text_editor_state,
                     &mut respawn_queue,
                     &current_tool,
@@ -249,22 +241,12 @@ fn handle_tui_messages(
                 }
             }
             TuiMessage::RequestGlyphList => {
-                info!("TUI requested glyph list");
-                if let Some(ref fontir_state) = fontir_state {
-                    send_glyph_list_to_tui(&mut tui_comm, fontir_state, app_state.as_deref());
-                } else {
-                    tui_comm
-                        .send_log("No font loaded - please use --edit to load a font".to_string());
-                }
+                info!("TUI requested glyph list - feature temporarily disabled during FontIR removal");
+                tui_comm.send_log("Glyph list feature temporarily disabled".to_string());
             }
             TuiMessage::RequestFontInfo => {
-                info!("TUI requested font info");
-                if let Some(ref fontir_state) = fontir_state {
-                    send_font_info_to_tui(&mut tui_comm, fontir_state);
-                } else {
-                    tui_comm
-                        .send_log("No font loaded - please use --edit to load a font".to_string());
-                }
+                info!("TUI requested font info - feature temporarily disabled during FontIR removal");
+                tui_comm.send_log("Font info feature temporarily disabled".to_string());
             }
             TuiMessage::ChangeZoom(zoom) => {
                 info!("TUI requested zoom change: {}", zoom);
@@ -308,44 +290,8 @@ fn handle_tui_messages(
 #[cfg(feature = "tui")]
 /// System to send initial font data to TUI on startup
 fn send_initial_font_data_to_tui(
-    mut tui_comm: ResMut<crate::core::tui_communication::TuiCommunication>,
-    fontir_state: Option<Res<crate::core::state::FontIRAppState>>,
-    app_state: Option<Res<AppState>>,
+    _tui_comm: ResMut<crate::core::tui_communication::TuiCommunication>,
+    _app_state: Option<Res<AppState>>,
 ) {
-    if let Some(fontir_state) = fontir_state {
-        if fontir_state.is_changed() {
-            send_font_info_to_tui(&mut tui_comm, &fontir_state);
-            send_glyph_list_to_tui(&mut tui_comm, &fontir_state, app_state.as_deref());
-        }
-    }
-}
-
-#[cfg(feature = "tui")]
-fn send_glyph_list_to_tui(
-    tui_comm: &mut crate::core::tui_communication::TuiCommunication,
-    fontir_state: &crate::core::state::FontIRAppState,
-    app_state: Option<&AppState>,
-) {
-    // Use the proper function that extracts Unicode values from FontIR
-    let glyphs = crate::tui::communication::generate_glyph_list(fontir_state, app_state);
-    tui_comm.send_glyph_list(glyphs);
-}
-
-#[cfg(feature = "tui")]
-fn send_font_info_to_tui(
-    tui_comm: &mut crate::core::tui_communication::TuiCommunication,
-    _fontir_state: &crate::core::state::FontIRAppState,
-) {
-    let font_info = crate::tui::communication::FontInfo {
-        family_name: Some("Unknown".to_string()), // TODO: Get from fontir_state
-        style_name: Some("Regular".to_string()),  // TODO: Get from fontir_state
-        version: None,
-        ascender: None,
-        descender: None,
-        cap_height: None,
-        x_height: None,
-        units_per_em: Some(1000.0),              // TODO: Get from fontir_state
-    };
-
-    tui_comm.send_font_info(font_info);
+    // Temporarily disabled during FontIR removal
 }

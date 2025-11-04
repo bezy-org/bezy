@@ -16,6 +16,7 @@ pub struct App {
     pub font_info: Option<FontInfo>,
     pub glyphs: Vec<GlyphInfo>,
     pub current_glyph: Option<String>,
+    pub current_file_path: Option<String>,
     pub logs: Vec<String>,
     pub should_quit: bool,
 }
@@ -41,6 +42,7 @@ impl App {
             font_info: None,
             glyphs: Vec::new(),
             current_glyph: None,
+            current_file_path: None,
             logs: Vec::new(),
             should_quit: false,
         }
@@ -186,9 +188,32 @@ impl App {
             }
             AppMessage::FontLoaded(path) => {
                 self.logs.push(format!("Font loaded: {}", path));
+                self.current_file_path = Some(path.clone());
+
+                use chrono::Local;
+                let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+                let file_action = crate::tui::communication::FileAction {
+                    action: "File Loaded".to_string(),
+                    timestamp,
+                    path: Some(path.clone()),
+                };
+
+                for tab in &mut self.tabs {
+                    if let TabState::File(ref mut state) = tab.state {
+                        state.set_file_path(Some(path.clone()));
+                        state.add_file_action(file_action.clone());
+                    }
+                }
             }
             AppMessage::Error(error) => {
                 self.logs.push(format!("Error: {}", error));
+            }
+            AppMessage::FileAction(action) => {
+                for tab in &mut self.tabs {
+                    if let TabState::File(ref mut state) = tab.state {
+                        state.add_file_action(action.clone());
+                    }
+                }
             }
         }
         Ok(())
