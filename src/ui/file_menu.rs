@@ -38,6 +38,68 @@ pub struct SaveFileEvent;
 #[derive(Event)]
 pub struct ExportTTFEvent;
 
+/// Event fired when a file action completes (for screen flash feedback)
+#[derive(Event, Clone)]
+pub struct FileActionCompleteEvent {
+    pub action_type: FileActionType,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FileActionType {
+    Save,
+    Export,
+    Load,
+}
+
+/// Represents a single file action entry in the log
+#[derive(Clone, Debug)]
+pub struct FileActionEntry {
+    pub action: String,
+    pub timestamp: String,
+    pub path: Option<String>,
+}
+
+/// Resource to track file actions for display in TUI
+#[derive(Resource, Default)]
+pub struct FileActionLog {
+    pub entries: Vec<FileActionEntry>,
+    max_entries: usize,
+}
+
+impl FileActionLog {
+    pub fn new() -> Self {
+        Self {
+            entries: Vec::new(),
+            max_entries: 20, // Keep last 20 actions
+        }
+    }
+
+    pub fn add_entry(&mut self, action: String, path: Option<String>) {
+        use chrono::Local;
+        let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+
+        self.entries.push(FileActionEntry {
+            action,
+            timestamp,
+            path,
+        });
+
+        // Keep only the most recent entries
+        if self.entries.len() > self.max_entries {
+            self.entries.remove(0);
+        }
+    }
+
+    pub fn get_recent_entries(&self, count: usize) -> Vec<&FileActionEntry> {
+        let start = if self.entries.len() > count {
+            self.entries.len() - count
+        } else {
+            0
+        };
+        self.entries[start..].iter().rev().collect()
+    }
+}
+
 /// Resource to track the file menu state
 #[derive(Resource)]
 pub struct FileMenuState {
@@ -64,6 +126,7 @@ impl Plugin for FileMenuPlugin {
                     handle_save_file_events,
                     handle_export_ttf_events,
                     update_save_state,
+                    trigger_screen_flash_on_file_action,
                 ),
             );
     }
@@ -136,11 +199,24 @@ fn handle_save_file_events(
     mut save_events: EventReader<SaveFileEvent>,
     enhanced_attributes: Res<crate::editing::selection::entity_management::EnhancedPointAttributes>,
     mut file_info: ResMut<FileInfo>,
+    #[cfg(feature = "tui")] tui_comm: Option<Res<crate::core::tui_communication::TuiCommunication>>,
 ) {
     for _event in save_events.read() {
         // TODO: Re-enable after FontIR removal - save font files
         // FontIR removed - save logic needs to be reimplemented
         warn!("Font saving disabled during FontIR removal migration");
+
+        #[cfg(feature = "tui")]
+        if let Some(tui) = &tui_comm {
+            let path = if !file_info.designspace_path.is_empty() {
+                Some(file_info.designspace_path.clone())
+            } else {
+                None
+            };
+            tui.send_file_action("File Saved".to_string(), path);
+        }
+
+        info!("💾 Save action triggered");
     }
 }
 
@@ -629,6 +705,7 @@ fn rotate_points_to_start(
 fn handle_export_ttf_events(
     mut export_events: EventReader<ExportTTFEvent>,
     mut file_info: ResMut<FileInfo>,
+    #[cfg(feature = "tui")] tui_comm: Option<Res<crate::core::tui_communication::TuiCommunication>>,
 ) {
     for _ in export_events.read() {
         debug!("🚀🚀🚀 EXPORT EVENT RECEIVED! 🚀🚀🚀");
@@ -811,11 +888,31 @@ fn handle_export_ttf_events(
 
             // Update the last exported time
             file_info.last_exported = Some(std::time::SystemTime::now());
+
+            #[cfg(feature = "tui")]
+            if let Some(tui) = &tui_comm {
+                let message = if exported_files.len() == 1 {
+                    format!("Exported {} font", exported_files.len())
+                } else {
+                    format!("Exported {} fonts", exported_files.len())
+                };
+                tui.send_file_action(message, Some(output_dir.display().to_string()));
+            }
         } else {
             warn!("⚠️ No font files were exported");
         }
 
         // Clean up build directory
         let _ = std::fs::remove_dir_all(&build_dir);
+    }
+}
+
+fn trigger_screen_flash_on_file_action(
+    mut save_events: EventReader<SaveFileEvent>,
+    mut export_events: EventReader<ExportTTFEvent>,
+    mut screen_flash: ResMut<crate::ui::screen_flash::ScreenFlash>,
+) {
+    if save_events.read().next().is_some() || export_events.read().next().is_some() {
+        screen_flash.trigger();
     }
 }

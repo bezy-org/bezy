@@ -43,4 +43,16 @@ impl TuiCommunication {
     pub fn send_log(&self, message: String) {
         let _ = self.send(AppMessage::LogLine(message));
     }
+
+    pub fn send_file_action(&self, action: String, path: Option<String>) {
+        use chrono::Local;
+        let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+
+        let file_action = crate::tui::communication::FileAction {
+            action,
+            timestamp,
+            path,
+        };
+        let _ = self.send(AppMessage::FileAction(file_action));
+    }
 }

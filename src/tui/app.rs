@@ -190,6 +190,13 @@ impl App {
             AppMessage::Error(error) => {
                 self.logs.push(format!("Error: {}", error));
             }
+            AppMessage::FileAction(action) => {
+                for tab in &mut self.tabs {
+                    if let TabState::File(ref mut state) = tab.state {
+                        state.add_file_action(action.clone());
+                    }
+                }
+            }
         }
         Ok(())
     }

@@ -67,6 +67,13 @@ pub enum TuiMessage {
 }
 
 #[derive(Debug, Clone)]
+pub struct FileAction {
+    pub action: String,
+    pub timestamp: String,
+    pub path: Option<String>,
+}
+
+#[derive(Debug, Clone)]
 pub enum AppMessage {
     CurrentGlyph(String),
     GlyphList(Vec<GlyphInfo>),
@@ -74,4 +81,5 @@ pub enum AppMessage {
     FontLoaded(String),
     LogLine(String),
     Error(String),
+    FileAction(FileAction),
 }
