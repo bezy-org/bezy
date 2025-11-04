@@ -39,19 +39,59 @@ pub fn manage_sort_labels(
         (Entity, &Sort, &Transform),
         (Changed<Sort>, Or<(With<ActiveSort>, With<InactiveSort>)>),
     >,
+    all_sorts_with_data_query: Query<
+        (Entity, &Sort, &Transform),
+        Or<(With<ActiveSort>, With<InactiveSort>)>,
+    >,
     existing_name_text_query: Query<(Entity, &SortGlyphNameText)>,
     existing_unicode_text_query: Query<(Entity, &SortUnicodeText)>,
     all_sorts_query: Query<Entity, With<Sort>>,
     active_sorts_query: Query<(Entity, &Sort), With<ActiveSort>>,
+    presentation_mode: Option<Res<crate::ui::edit_mode_toolbar::PresentationMode>>,
 ) {
     // Early return if AppState not available
     let Some(app_state) = app_state else {
         return;
     };
 
+    // Check presentation mode state
+    let presentation_active = presentation_mode.as_ref().is_some_and(|pm| pm.active);
+    let presentation_changed = presentation_mode.as_ref().is_some_and(|pm| pm.is_changed());
+
+    // Hide labels in presentation mode
+    if presentation_active {
+        // Despawn all label entities
+        for (text_entity, _) in existing_name_text_query.iter() {
+            if let Ok(mut entity_commands) = commands.get_entity(text_entity) {
+                entity_commands.despawn();
+            }
+        }
+        for (text_entity, _) in existing_unicode_text_query.iter() {
+            if let Ok(mut entity_commands) = commands.get_entity(text_entity) {
+                entity_commands.despawn();
+            }
+        }
+        return;
+    }
+
     let changed_count = sorts_query.iter().count();
-    if changed_count > 0 {
-        info!("🏷️ manage_sort_labels running: {} changed sorts", changed_count);
+
+    // Use all sorts if presentation mode changed, otherwise use only changed sorts
+    let should_process_all = presentation_changed;
+    let all_count = if should_process_all {
+        all_sorts_with_data_query.iter().count()
+    } else {
+        0
+    };
+
+    if changed_count > 0 || all_count > 0 {
+        info!("🏷️ manage_sort_labels running: {} changed sorts, {} all sorts (presentation changed: {})",
+              changed_count, all_count, presentation_changed);
+    }
+
+    // Early return if no changes and presentation mode hasn't changed
+    if changed_count == 0 && !presentation_changed {
+        return;
     }
 
     // Remove text for sorts that no longer exist
@@ -75,8 +115,15 @@ pub fn manage_sort_labels(
         }
     }
 
-    // Create or update text labels for changed sorts
-    for (sort_entity, sort, transform) in sorts_query.iter() {
+    // Create or update text labels
+    // Use all sorts if presentation mode changed, otherwise only changed sorts
+    let sorts_to_process: Vec<(Entity, &Sort, &Transform)> = if should_process_all {
+        all_sorts_with_data_query.iter().collect()
+    } else {
+        sorts_query.iter().collect()
+    };
+
+    for (sort_entity, sort, transform) in sorts_to_process {
         // Determine text color based on sort state
         let text_color = if active_sorts_query
             .iter()
@@ -90,7 +137,8 @@ pub fn manage_sort_labels(
         let position = transform.translation.truncate();
 
         // Calculate position for glyph name text
-        let name_transform = calculate_sort_info_transform(position, &app_state, &sort.glyph_name);
+        let mut name_transform = calculate_sort_info_transform(position, &app_state, &sort.glyph_name);
+        name_transform.scale = Vec3::splat(0.5);
 
         // Check if name text already exists
         let mut _name_text_exists = false;
@@ -111,7 +159,7 @@ pub fn manage_sort_labels(
             TextFont {
                 font: asset_server
                     .load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
-                font_size: 48.0,
+                font_size: 96.0,
                 ..default()
             },
             TextColor(text_color),
@@ -138,7 +186,8 @@ pub fn manage_sort_labels(
 
             // Calculate position for unicode text (below glyph name)
             let mut unicode_transform = name_transform;
-            unicode_transform.translation.y -= 60.0;
+            unicode_transform.translation.y -= 48.0;
+            unicode_transform.scale = Vec3::splat(0.5);
 
             // Create unicode text
             commands.spawn((
@@ -146,7 +195,7 @@ pub fn manage_sort_labels(
                 TextFont {
                     font: asset_server
                         .load_font_with_fallback(theme.theme().mono_font_path(), &embedded_fonts),
-                    font_size: 48.0,
+                    font_size: 96.0,
                     ..default()
                 },
                 TextColor(text_color.with_alpha(0.7)),
@@ -190,6 +239,7 @@ pub fn update_sort_label_positions(
                 text_transform.translation.x = position.x + left_margin;
                 text_transform.translation.y = label_top_y;
                 text_transform.translation.z = 10.0; // Above glyph
+                text_transform.scale = Vec3::splat(0.5);
             }
         }
 
@@ -200,7 +250,8 @@ pub fn update_sort_label_positions(
                 for (name_transform, sort_name_text) in name_text_query.iter() {
                     if sort_name_text.sort_entity == sort_entity {
                         text_transform.translation =
-                            name_transform.translation + Vec3::new(0.0, -60.0, 0.0);
+                            name_transform.translation + Vec3::new(0.0, -48.0, 0.0);
+                        text_transform.scale = Vec3::splat(0.5);
                         break;
                     }
                 }
