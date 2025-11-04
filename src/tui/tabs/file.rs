@@ -150,7 +150,19 @@ pub fn draw(f: &mut Frame, state: &mut FileState, area: Rect) {
 
     let file_menu = vec![
         Line::from(""),
-        Line::from("  Ctrl+S         - Save current font"),
+        Line::from(vec![
+            Span::styled(
+                "  ctrl+s",
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(" - ", Style::default().fg(Color::White)),
+            Span::styled(
+                "Save current font",
+                Style::default().fg(Color::Yellow),
+            ),
+        ]),
         Line::from(""),
     ];
 
