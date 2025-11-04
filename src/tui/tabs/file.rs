@@ -86,16 +86,7 @@ pub fn draw(f: &mut Frame, state: &mut FileState, area: Rect) {
         .constraints([Constraint::Min(10), Constraint::Min(0)])
         .split(area);
 
-    let mut action_lines = vec![
-        Line::from(""),
-        Line::from(vec![Span::styled(
-            "  Recent File Actions",
-            Style::default()
-                .fg(Color::Green)
-                .add_modifier(Modifier::BOLD),
-        )]),
-        Line::from(""),
-    ];
+    let mut action_lines = vec![Line::from("")];
 
     if state.file_actions.is_empty() {
         action_lines.push(Line::from(vec![Span::styled(
@@ -104,7 +95,7 @@ pub fn draw(f: &mut Frame, state: &mut FileState, area: Rect) {
         )]));
         action_lines.push(Line::from(""));
         action_lines.push(Line::from(vec![Span::styled(
-            "  (Save, load, or export to see actions here)",
+            "  (Save to see actions here)",
             Style::default().fg(Color::DarkGray),
         )]));
     } else {
@@ -132,33 +123,31 @@ pub fn draw(f: &mut Frame, state: &mut FileState, area: Rect) {
         }
     }
 
-    let action_log = Paragraph::new(action_lines)
-        .block(Block::default().borders(Borders::ALL).title("File Actions"));
+    let action_log = Paragraph::new(action_lines).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(Span::styled(
+                "File Actions",
+                Style::default().fg(Color::Green),
+            )),
+    );
 
     f.render_widget(action_log, chunks[0]);
 
     let file_menu = vec![
         Line::from(""),
-        Line::from(vec![Span::styled(
-            "  File Operations",
-            Style::default().add_modifier(Modifier::BOLD),
-        )]),
-        Line::from(""),
         Line::from("  Ctrl+S         - Save current font"),
-        Line::from("  Ctrl+Shift+S   - Save As..."),
-        Line::from("  Ctrl+O         - Open font file"),
-        Line::from("  Ctrl+E         - Export as TTF"),
         Line::from(""),
-        Line::from(vec![Span::styled(
-            "  Recent Files",
-            Style::default().add_modifier(Modifier::BOLD),
-        )]),
-        Line::from(""),
-        Line::from("  No recent files"),
     ];
 
-    let paragraph =
-        Paragraph::new(file_menu).block(Block::default().borders(Borders::ALL).title("File"));
+    let paragraph = Paragraph::new(file_menu).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(Span::styled(
+                "File Operations",
+                Style::default().fg(Color::Green),
+            )),
+    );
 
     f.render_widget(paragraph, chunks[1]);
 }
