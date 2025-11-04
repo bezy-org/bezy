@@ -47,6 +47,8 @@ pub fn initialize_font_loading(mut commands: Commands, cli_args: Res<CliArgs>) {
 pub fn load_font_deferred(
     mut commands: Commands,
     mut deferred_loading: ResMut<DeferredFontLoading>,
+    #[cfg(feature = "tui")] tui_comm: Option<Res<crate::core::tui_communication::TuiCommunication>>,
+    mut file_info: ResMut<crate::ui::panes::file_pane::FileInfo>,
 ) {
     if deferred_loading.loaded || deferred_loading.loading {
         return;
@@ -67,6 +69,15 @@ pub fn load_font_deferred(
                 commands.insert_resource(app_state);
                 deferred_loading.loaded = true;
                 deferred_loading.loading = false;
+
+                let path_string = path.display().to_string();
+                file_info.designspace_path = path_string.clone();
+
+                #[cfg(feature = "tui")]
+                if let Some(tui) = &tui_comm {
+                    use crate::tui::communication::AppMessage;
+                    let _ = tui.send(AppMessage::FontLoaded(path_string));
+                }
 
                 info!("Font loading completed!");
             }

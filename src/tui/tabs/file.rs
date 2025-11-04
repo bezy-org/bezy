@@ -15,6 +15,7 @@ use crate::tui::communication::TuiMessage;
 pub struct FileState {
     pub selected_index: usize,
     pub file_actions: Vec<crate::tui::communication::FileAction>,
+    pub current_file_path: Option<String>,
 }
 
 impl Default for FileState {
@@ -28,6 +29,7 @@ impl FileState {
         Self {
             selected_index: 0,
             file_actions: Vec::new(),
+            current_file_path: None,
         }
     }
 
@@ -36,6 +38,10 @@ impl FileState {
         if self.file_actions.len() > 10 {
             self.file_actions.remove(0);
         }
+    }
+
+    pub fn set_file_path(&mut self, path: Option<String>) {
+        self.current_file_path = path;
     }
 }
 
@@ -83,7 +89,11 @@ pub async fn handle_key_event(
 pub fn draw(f: &mut Frame, state: &mut FileState, area: Rect) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Min(10), Constraint::Min(0)])
+        .constraints([
+            Constraint::Min(10),
+            Constraint::Length(5),
+            Constraint::Length(5),
+        ])
         .split(area);
 
     let mut action_lines = vec![Line::from("")];
@@ -113,9 +123,13 @@ pub fn draw(f: &mut Frame, state: &mut FileState, area: Rect) {
             )]));
 
             if let Some(path) = &action.path {
+                let filename = std::path::Path::new(path)
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or(path);
                 action_lines.push(Line::from(vec![Span::styled(
-                    format!("    {}", path),
-                    Style::default().fg(Color::Gray),
+                    format!("    {}", filename),
+                    Style::default().fg(Color::Yellow),
                 )]));
             }
 
@@ -150,4 +164,36 @@ pub fn draw(f: &mut Frame, state: &mut FileState, area: Rect) {
     );
 
     f.render_widget(paragraph, chunks[1]);
+
+    let file_location_lines = vec![
+        Line::from(""),
+        if let Some(path) = &state.current_file_path {
+            let display_path = if let Ok(stripped) = std::path::Path::new(path).strip_prefix(std::env::var("HOME").unwrap_or_default()) {
+                format!("~/{}", stripped.display())
+            } else {
+                path.clone()
+            };
+            Line::from(vec![Span::styled(
+                format!("  {}", display_path),
+                Style::default().fg(Color::White),
+            )])
+        } else {
+            Line::from(vec![Span::styled(
+                "  No file loaded",
+                Style::default().fg(Color::DarkGray),
+            )])
+        },
+        Line::from(""),
+    ];
+
+    let file_location = Paragraph::new(file_location_lines).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(Span::styled(
+                "File Location",
+                Style::default().fg(Color::Green),
+            )),
+    );
+
+    f.render_widget(file_location, chunks[2]);
 }
