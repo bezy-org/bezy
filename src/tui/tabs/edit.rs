@@ -2,7 +2,7 @@ use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{
     layout::Rect,
-    style::{Modifier, Style},
+    style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph},
     Frame,
@@ -101,8 +101,11 @@ pub fn draw(f: &mut Frame, _state: &mut EditState, area: Rect) {
         Line::from("  Ctrl+M         - Mirror/Flip"),
     ];
 
-    let paragraph =
-        Paragraph::new(edit_menu).block(Block::default().borders(Borders::ALL).title("Edit"));
+    let paragraph = Paragraph::new(edit_menu).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(Span::styled("Edit", Style::default().fg(Color::Green))),
+    );
 
     f.render_widget(paragraph, area);
 }
