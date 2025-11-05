@@ -34,6 +34,11 @@ pub(crate) fn render_cursor_at_position(
     descender: f32,
     camera_scale: &crate::rendering::zoom_aware_scaling::CameraResponsiveScale,
 ) {
+    warn!(
+        "🎨 RENDERING CURSOR at world_pos=({:.1}, {:.1})",
+        cursor_world_pos.x, cursor_world_pos.y
+    );
+
     // Calculate cursor bounds based on font metrics
     let cursor_top = cursor_world_pos.y + upm; // UPM top
     let cursor_bottom = cursor_world_pos.y + descender; // Descender bottom

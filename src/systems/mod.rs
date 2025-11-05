@@ -24,7 +24,7 @@ pub use fontir_lifecycle::{initialize_font_loading, load_font_deferred, Deferred
 pub use input_consumer::InputConsumerPlugin;
 pub use lifecycle::{exit_on_esc, load_ufo_font};
 pub use plugins::{configure_default_plugins, BezySystems};
-pub use startup_layout::{center_camera_on_startup_layout, create_startup_layout};
+pub use startup_layout::{center_camera_on_startup_layout, create_startup_layout, migrate_sort_advance_widths};
 pub use text_buffer_manager::TextBufferManagerPlugin;
 pub use text_shaping::TextShapingPlugin;
 pub use ui_interaction::UiInteractionPlugin;

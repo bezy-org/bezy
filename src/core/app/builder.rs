@@ -7,7 +7,7 @@ use crate::core::config::{BezySettings, CliArgs, DEFAULT_WINDOW_SIZE, WINDOW_TIT
 use crate::core::state::{AppState, GlyphNavigation};
 use crate::systems::{
     center_camera_on_startup_layout, create_startup_layout, exit_on_esc, initialize_font_loading,
-    load_font_deferred,
+    load_font_deferred, migrate_sort_advance_widths,
     plugins::{configure_default_plugins, configure_default_plugins_for_tui},
 };
 #[cfg(feature = "tui")]
@@ -144,7 +144,7 @@ fn add_plugin_groups(app: &mut App) {
 /// Add startup and exit systems
 fn add_startup_and_exit_systems(app: &mut App) {
     app.add_systems(Startup, (initialize_font_loading, create_startup_layout).chain())
-        .add_systems(Update, (exit_on_esc, center_camera_on_startup_layout));
+        .add_systems(Update, (exit_on_esc, center_camera_on_startup_layout, migrate_sort_advance_widths));
 }
 
 #[cfg(feature = "tui")]

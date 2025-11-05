@@ -10,6 +10,7 @@ pub mod point_entities;
 pub mod rtl_shaping;
 pub mod sort_entities;
 pub mod sort_placement;
+pub mod text_flow_positioning;
 pub mod unicode_input;
 
 // Re-export all sort system functionality
@@ -23,4 +24,5 @@ pub use point_entities::*;
 pub use rtl_shaping::*;
 pub use sort_entities::*;
 pub use sort_placement::*;
+pub use text_flow_positioning::*;
 pub use unicode_input::*;

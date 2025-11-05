@@ -22,6 +22,7 @@ pub fn handle_sort_placement_input(
     mut text_editor_state: ResMut<crate::core::state::TextEditorState>,
     ui_hover_state: Res<crate::systems::ui_interaction::UiHoverState>,
     theme: Res<CurrentTheme>,
+    app_state: Option<Res<crate::core::state::AppState>>,
 ) {
     use crate::ui::edit_mode_toolbar::text::TextPlacementMode;
 
@@ -129,6 +130,7 @@ pub fn handle_sort_placement_input(
         &mut text_editor_state,
         snapped_position,
         current_placement_mode.to_sort_layout_mode(),
+        &app_state,
     );
 
     // CRITICAL: Update the ActiveTextBuffer resource to point to the new buffer entity
@@ -182,6 +184,7 @@ fn create_independent_sort_with_fontir(
     text_editor_state: &mut crate::core::state::TextEditorState,
     world_position: bevy::math::Vec2,
     layout_mode: crate::core::state::text_editor::SortLayoutMode,
+    app_state: &Option<Res<crate::core::state::AppState>>,
 ) -> bevy::prelude::Entity {
     use crate::core::state::text_editor::buffer::BufferId;
     use crate::core::state::text_editor::{SortData, SortKind, SortLayoutMode};
@@ -193,9 +196,24 @@ fn create_independent_sort_with_fontir(
     let (placeholder_glyph, placeholder_codepoint) =
         crate::core::state::text_editor::editor::get_default_glyph_for_direction(&layout_mode);
 
-    // Use default advance width (FontIR removed)
-    let advance_width = 500.0;
-    let _ = placeholder_glyph; // Suppress unused warning
+    // Get actual advance width from font data
+    let advance_width = if let Some(app_state) = app_state.as_ref() {
+        app_state
+            .workspace
+            .font
+            .glyphs
+            .get(&placeholder_glyph)
+            .map(|g| g.advance_width as f32)
+            .unwrap_or_else(|| {
+                warn!("Glyph '{}' not found in font data, using fallback width 500.0", placeholder_glyph);
+                500.0
+            })
+    } else {
+        warn!("AppState not available in sort_placement, using fallback advance width 500.0");
+        500.0
+    };
+    warn!("🎯 SORT PLACEMENT: Using advance_width={:.1} for glyph '{}'", advance_width, placeholder_glyph);
+    let _ = placeholder_glyph; // Suppress unused warning after using it
 
     // BUFFER SEPARATION POLICY:
     // Each click with the text tool creates a NEW independent text flow
@@ -247,8 +265,18 @@ fn create_independent_sort_with_fontir(
         buffer_id: Some(buffer_id),   // For compatibility, though deprecated
     };
 
+    warn!(
+        "🔍 SORT PLACEMENT: Buffer has {} sorts BEFORE inserting initial character",
+        text_editor_state.buffer.len()
+    );
+
     // Insert the initial sort into the text editor buffer at index 0
     text_editor_state.buffer.insert(0, initial_sort);
+
+    warn!(
+        "🔍 SORT PLACEMENT: Inserted initial '{}' at index 0 (buffer_id: {:?}) - buffer now has {} sorts",
+        placeholder_glyph, buffer_id.0, text_editor_state.buffer.len()
+    );
 
     debug!(
         "📍 SORT PLACEMENT: Created buffer entity {:?} with layout_mode: {:?}, added initial '{}' character at index 0", 
