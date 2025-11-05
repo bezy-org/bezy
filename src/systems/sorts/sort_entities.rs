@@ -132,7 +132,9 @@ pub fn manage_sort_activation(
 }
 
 /// Modern ECS-based positioning for text sorts using buffer entities
-/// This replaces the legacy get_text_sort_flow_position function to prevent buffer cross-contamination
+///
+/// This uses the SHARED text flow positioning system to ensure perfect alignment
+/// between sort visuals and cursor position.
 fn calculate_buffer_local_position(
     global_buffer_index: usize,
     text_editor_state: &TextEditorState,
@@ -158,7 +160,7 @@ fn calculate_buffer_local_position(
         .find(|(entity, _)| entity == buffer_entity)?;
 
     let root_position = text_buffer.root_position;
-    let _layout_mode = &text_buffer.layout_mode;
+    let layout_mode = &text_buffer.layout_mode;
 
     // Find all sorts that belong to this specific buffer, in order
     let mut buffer_sorts = Vec::new();
@@ -178,55 +180,33 @@ fn calculate_buffer_local_position(
         global_buffer_index, buffer_local_index, buffer_id.0, buffer_sorts.len()
     );
 
-    // Calculate position based on preceding sorts in THIS buffer only
-    let mut x_offset = 0.0;
-    let mut y_offset = 0.0;
-
-    // Use font metrics to calculate line height (match legacy system)
+    // Use font metrics to calculate line height
     let upm = font_metrics.units_per_em as f32;
     let descender = font_metrics.descender.unwrap_or(-256.0) as f32;
-    let line_height = upm - descender; // Legacy formula: upm - descender (descender is negative)
+    let line_height = upm - descender;
 
-    // Calculate position by iterating through preceding sorts in this buffer
-    // Direction depends on layout mode
-    let layout_mode = &text_buffer.layout_mode;
+    // Convert buffer_sorts to just references to SortData for the shared function
+    let sort_refs: Vec<&crate::core::state::text_editor::SortData> =
+        buffer_sorts.iter().map(|(_, sort)| *sort).collect();
 
-    for i in 0..buffer_local_index {
-        if let Some((_, sort)) = buffer_sorts.get(i) {
-            match &sort.kind {
-                crate::core::state::text_editor::SortKind::Glyph { advance_width, .. } => {
-                    match layout_mode {
-                        crate::core::state::SortLayoutMode::LTRText => {
-                            // LTR: advance to the right
-                            x_offset += advance_width;
-                        }
-                        crate::core::state::SortLayoutMode::RTLText => {
-                            // RTL: advance to the left
-                            x_offset -= advance_width;
-                        }
-                        crate::core::state::SortLayoutMode::Freeform => {
-                            // Freeform: treat as LTR
-                            x_offset += advance_width;
-                        }
-                    }
-                }
-                crate::core::state::text_editor::SortKind::LineBreak => {
-                    x_offset = 0.0;
-                    y_offset -= line_height;
-                }
-            }
-        }
-    }
+    // Use the SHARED positioning function - single source of truth
+    let offset = crate::systems::sorts::text_flow_positioning::calculate_text_flow_offset(
+        &sort_refs,
+        buffer_local_index,
+        line_height,
+        layout_mode,
+    );
 
-    let final_position = Vec2::new(root_position.x + x_offset, root_position.y + y_offset);
+    let final_position = root_position + offset;
 
     debug!(
-        "🎯 ECS POSITIONING: buffer-local[{}] '{}' at ({:.1}, {:.1}) (x_offset={:.1})",
+        "🎯 ECS POSITIONING: buffer-local[{}] '{}' at ({:.1}, {:.1}) (offset={:.1},{:.1})",
         buffer_local_index,
         sort_entry.kind.glyph_name(),
         final_position.x,
         final_position.y,
-        x_offset
+        offset.x,
+        offset.y
     );
 
     Some(final_position)
@@ -248,19 +228,19 @@ pub fn spawn_missing_sort_entities(
 ) {
     // Debug: Log buffer state (only when buffer has content to reduce spam)
     if !text_editor_state.buffer.is_empty() {
-        debug!(
-            "📋 spawn_missing_sort_entities: Processing {} buffer entries",
+        warn!(
+            "🔍 SPAWN ENTITIES: spawn_missing_sort_entities called - buffer has {} sorts",
             text_editor_state.buffer.len()
         );
         for i in 0..text_editor_state.buffer.len() {
             if let Some(sort) = text_editor_state.buffer.get(i) {
-                debug!(
-                    "  📋 Buffer[{}]: glyph='{}', is_active={}, layout_mode={:?}, pos=({:.1},{:.1})",
+                warn!(
+                    "  📋 Buffer[{}]: glyph='{}', buffer_id={:?}, is_active={}, layout_mode={:?}",
                     i,
                     sort.kind.glyph_name(),
+                    sort.buffer_id.map(|id| id.0),
                     sort.is_active,
-                    sort.layout_mode,
-                    sort.root_position.x, sort.root_position.y
+                    sort.layout_mode
                 );
             }
         }

@@ -815,15 +815,9 @@ fn insert_character_at_buffer_cursor(
     // Create the new sort entry
     use crate::core::state::text_editor::buffer::{SortData, SortKind};
 
-    // Calculate the world position for the new character based on text flow
-    let new_position = calculate_character_position(
-        text_editor_state,
-        buffer_id,
-        cursor_position,
-        text_buffer.root_position,
-        &layout_mode,
-    );
-
+    // Use the buffer's root position, not a calculated one
+    // The actual world position will be calculated by calculate_buffer_local_position
+    // based on the buffer's root position + accumulated advances
     let new_sort = SortData {
         kind: SortKind::Glyph {
             codepoint: Some(character),
@@ -832,7 +826,7 @@ fn insert_character_at_buffer_cursor(
         },
         is_active: false, // Don't make new sorts active by default
         layout_mode: layout_mode.clone(),
-        root_position: new_position, // Calculated position based on text flow
+        root_position: text_buffer.root_position, // Use buffer's root position for consistency
         buffer_cursor_position: None,
         buffer_id: Some(buffer_id), // Inherit buffer ID from buffer entity
     };
@@ -909,65 +903,6 @@ fn insert_character_at_buffer_cursor(
 
     // Return true to indicate successful insertion
     true
-}
-
-/// Calculate the world position for a new character based on text flow
-fn calculate_character_position(
-    text_editor_state: &crate::core::state::TextEditorState,
-    buffer_id: crate::core::state::text_editor::buffer::BufferId,
-    cursor_position: usize,
-    buffer_root_position: bevy::math::Vec2,
-    layout_mode: &crate::core::state::text_editor::buffer::SortLayoutMode,
-) -> bevy::math::Vec2 {
-    use crate::core::state::text_editor::buffer::{SortKind, SortLayoutMode};
-
-    // Find all sorts that belong to this buffer in order
-    let mut buffer_sorts = Vec::new();
-    for sort in text_editor_state.buffer.iter() {
-        if sort.buffer_id == Some(buffer_id) {
-            buffer_sorts.push(sort);
-        }
-    }
-
-    // UNIFIED APPROACH: Calculate cumulative advance width up to cursor position
-    // This works for ALL cursor positions including 0 (no special cases needed)
-    let mut x_offset = 0.0;
-    let mut y_offset = 0.0; // For future line break support
-
-    for (i, sort) in buffer_sorts.iter().enumerate() {
-        if i >= cursor_position {
-            break; // Don't include sorts after cursor position
-        }
-
-        match &sort.kind {
-            SortKind::Glyph { advance_width, .. } => {
-                match layout_mode {
-                    SortLayoutMode::LTRText => {
-                        // LTR: accumulate advances to the right
-                        x_offset += advance_width;
-                    }
-                    SortLayoutMode::RTLText => {
-                        // RTL: accumulate advances to the left
-                        x_offset -= advance_width;
-                    }
-                    SortLayoutMode::Freeform => {
-                        // Freeform sorts shouldn't use this function, but handle gracefully
-                        x_offset += advance_width;
-                    }
-                }
-            }
-            SortKind::LineBreak => {
-                // Future: handle line breaks
-                x_offset = 0.0;
-                y_offset -= 1000.0; // Simple line height for now
-            }
-        }
-    }
-
-    bevy::math::Vec2::new(
-        buffer_root_position.x + x_offset,
-        buffer_root_position.y + y_offset,
-    )
 }
 
 /// Handle left arrow key press - move cursor left in the active buffer

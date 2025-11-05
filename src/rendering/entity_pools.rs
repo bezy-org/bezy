@@ -83,8 +83,7 @@ impl EntityPools {
     ) -> Entity {
         // Try to reuse an available entity
         if let Some(entity) = self.cursor_pool.available.pop() {
-            // Only log at trace level to reduce debug noise in hot paths
-            trace!("Reusing cursor entity: {:?}", entity);
+            warn!("♻️  CURSOR POOL: Reusing cursor entity: {:?}", entity);
             self.cursor_pool.in_use.push(entity);
             entity
         } else {
@@ -101,7 +100,7 @@ impl EntityPools {
                 ))
                 .id();
 
-            debug!("Created new cursor entity: {:?}", entity);
+            warn!("✨ CURSOR POOL: Created NEW cursor entity: {:?}", entity);
             self.cursor_pool.in_use.push(entity);
             entity
         }
@@ -188,13 +187,15 @@ impl EntityPools {
 
     /// Return cursor entities to the available pool (called at start of frame)
     pub fn return_cursor_entities(&mut self, commands: &mut Commands) {
-        debug!(
-            "Returning {} cursor entities to pool",
-            self.cursor_pool.in_use.len()
+        warn!(
+            "🔄 CURSOR POOL: Returning {} cursor entities to pool, currently available: {}",
+            self.cursor_pool.in_use.len(),
+            self.cursor_pool.available.len()
         );
 
         // Hide all cursor entities when returning them to pool
         for entity in &self.cursor_pool.in_use {
+            warn!("  → Hiding cursor entity {:?}", entity);
             if let Ok(mut entity_commands) = commands.get_entity(*entity) {
                 entity_commands.insert(Visibility::Hidden);
             }
@@ -411,6 +412,10 @@ pub fn update_cursor_entity(
 ) {
     // Check if entity exists before trying to update it
     if let Ok(mut entity_commands) = commands.get_entity(entity) {
+        warn!(
+            "👁️  CURSOR UPDATE: Entity {:?} at position ({:.1}, {:.1}, {:.1}) - VISIBLE",
+            entity, transform.translation.x, transform.translation.y, transform.translation.z
+        );
         entity_commands.insert((
             Mesh2d(mesh),
             MeshMaterial2d(material),
@@ -419,8 +424,8 @@ pub fn update_cursor_entity(
             Visibility::Visible,
         ));
     } else {
-        debug!(
-            "Skipping update for non-existent cursor entity {:?}",
+        warn!(
+            "⚠️  CURSOR UPDATE: Skipping update for non-existent cursor entity {:?}",
             entity
         );
     }
