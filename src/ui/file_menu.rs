@@ -165,6 +165,8 @@ fn handle_keyboard_shortcuts(
     mut export_events: EventWriter<ExportTTFEvent>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
     file_menu_state: Res<FileMenuState>,
+    current_tool: Option<Res<crate::ui::edit_mode_toolbar::CurrentTool>>,
+    current_placement_mode: Option<Res<crate::ui::edit_mode_toolbar::text::TextPlacementMode>>,
 ) {
     if !file_menu_state.initialized {
         return;
@@ -181,6 +183,18 @@ fn handle_keyboard_shortcuts(
         if cmd_or_ctrl {
             debug!("💾 Save shortcut triggered (Cmd+S/Ctrl+S)");
             save_events.write(SaveFileEvent);
+            return;
+        }
+
+        // If S pressed without modifier and we're in text Insert mode, skip (user is typing)
+        if let Some(tool) = current_tool {
+            if tool.get_current() == Some("text") {
+                if let Some(mode) = current_placement_mode {
+                    if matches!(*mode, crate::ui::edit_mode_toolbar::text::TextPlacementMode::Insert) {
+                        return;
+                    }
+                }
+            }
         }
     }
 

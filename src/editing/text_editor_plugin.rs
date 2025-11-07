@@ -64,7 +64,15 @@ impl Plugin for TextEditorPlugin {
                     .chain()
                     .in_set(super::FontEditorSets::EntitySync),
             )
-            // Entity spawning/despawning - must run AFTER sort entity management
+            // Cleanup deleted sorts BEFORE rendering
+            .add_systems(
+                Update,
+                despawn_missing_buffer_sort_entities
+                    .in_set(super::FontEditorSets::EntitySync)
+                    .after(manage_sort_activation)
+                    .before(detect_sort_glyph_changes),
+            )
+            // Entity spawning/despawning - must run AFTER sort entity management and cleanup
             .add_systems(
                 Update,
                 (
@@ -75,18 +83,14 @@ impl Plugin for TextEditorPlugin {
                 )
                     .chain()
                     .in_set(super::FontEditorSets::EntitySync)
-                    .after(manage_sort_activation), // Ensure points spawn after sort activation
+                    .after(manage_sort_activation)
+                    .after(despawn_missing_buffer_sort_entities), // Ensure cleanup happens first
             )
             // Rendering systems
             .add_systems(
                 Update,
                 (crate::systems::sorts::cursor::render_text_editor_cursor,)
                     .in_set(super::FontEditorSets::Rendering),
-            )
-            // Cleanup systems (the old cleanup system is now replaced by component-relationship cleanup)
-            .add_systems(
-                Update,
-                despawn_missing_buffer_sort_entities.in_set(super::FontEditorSets::Cleanup),
             );
     }
 }
