@@ -11,11 +11,13 @@ use communication::{AppMessage, TuiMessage};
 use std::sync::Arc;
 use std::thread;
 use tokio::sync::mpsc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 pub async fn run_tui(
     _cli_args: Arc<CliArgs>,
     app_tx: mpsc::UnboundedSender<TuiMessage>,
     mut app_rx: mpsc::UnboundedReceiver<AppMessage>,
+    tui_ready: Arc<AtomicBool>,
 ) -> Result<()> {
     use crossterm::{
         event::{DisableMouseCapture, EnableMouseCapture},
@@ -31,9 +33,7 @@ pub async fn run_tui(
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    // NOTE: We cannot redirect stdout/stderr when TUI is active
-    // The TUI needs stdout for terminal control
-    // Bevy logging must be configured to write directly to files (not via stdout)
+    tui_ready.store(true, Ordering::Release);
 
     let mut app = app::App::new(app_tx.clone());
     let result = app.run(&mut terminal, &mut app_rx).await;
@@ -51,34 +51,49 @@ pub async fn run_tui(
 
 /// Run the application with TUI enabled (both GUI and TUI simultaneously)
 pub fn run_app_with_tui(cli_args: CliArgs) -> Result<()> {
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    #[cfg(target_os = "macos")]
+    {
+        std::env::set_var("OS_ACTIVITY_MODE", "disable");
+    }
+
     if let Err(e) = crate::logging::setup_file_logging_for_tui() {
         eprintln!("Warning: Failed to set up file logging: {}", e);
     }
 
-    // Create communication channels
     let (tui_tx, tui_rx) = mpsc::unbounded_channel();
     let (app_tx, app_rx) = mpsc::unbounded_channel();
 
     let cli_args_arc = Arc::new(cli_args);
 
-    // Clone for the TUI thread
     let cli_args_tui = cli_args_arc.clone();
+    let tui_ready = Arc::new(AtomicBool::new(false));
+    let tui_ready_clone = tui_ready.clone();
 
-    // Spawn TUI in a separate thread - it can handle terminal I/O from background
     let tui_handle = thread::spawn(move || {
         let rt = tokio::runtime::Runtime::new().unwrap_or_else(|e| {
-            eprintln!("Fatal error: Failed to create tokio runtime for TUI: {}", e);
+            use tracing::error;
+            error!("Fatal error: Failed to create tokio runtime for TUI: {}", e);
             std::process::exit(1);
         });
         rt.block_on(async {
-            if let Err(e) = run_tui(cli_args_tui, tui_tx, app_rx).await {
-                eprintln!("TUI error: {}", e);
+            if let Err(e) = run_tui(cli_args_tui, tui_tx, app_rx, tui_ready_clone).await {
+                use tracing::error;
+                error!("TUI error: {}", e);
             }
         });
     });
 
-    // Run Bevy app in the main thread (needed for proper window initialization on Linux)
-    // The TUI-specific configuration will disable console logging to prevent terminal corruption
+    while !tui_ready.load(Ordering::Acquire) {
+        thread::sleep(std::time::Duration::from_millis(10));
+    }
+
+    if let Err(e) = crate::logging::redirect_stderr_to_log() {
+        use tracing::warn;
+        warn!("Failed to redirect stderr to log file: {}", e);
+    }
+
     let app_result = match crate::core::app::create_app_with_tui((*cli_args_arc).clone(), tui_rx, app_tx) {
         Ok(mut app) => {
             app.run();
@@ -87,10 +102,8 @@ pub fn run_app_with_tui(cli_args: CliArgs) -> Result<()> {
         Err(e) => Err(e),
     };
 
-    // Wait for TUI thread to finish cleanup before any error output
     let _ = tui_handle.join();
 
-    // Now safe to output errors after TUI has cleaned up
     if let Err(e) = app_result {
         eprintln!("Failed to create Bevy app: {}", e);
         return Err(e);

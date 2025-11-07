@@ -163,11 +163,26 @@ pub fn render_mesh_sort_handles(
     )>,
     existing_handles: Query<Entity, With<SortHandle>>,
     selected_query: Query<Entity, With<Selected>>,
+    selected_added: Query<Entity, (With<crate::editing::sort::Sort>, Added<Selected>)>,
+    mut removed_selected: RemovedComponents<Selected>,
+    transforms_changed: Query<Entity, (With<crate::editing::sort::Sort>, Changed<Transform>)>,
+    active_added: Query<Entity, (With<crate::editing::sort::Sort>, Added<crate::editing::sort::ActiveSort>)>,
+    inactive_added: Query<Entity, (With<crate::editing::sort::Sort>, Added<crate::editing::sort::InactiveSort>)>,
     app_state: Option<Res<crate::core::state::AppState>>,
     camera_scale: Res<CameraResponsiveScale>,
     presentation_mode: Option<Res<crate::ui::edit_mode_toolbar::PresentationMode>>,
     theme: Res<CurrentTheme>,
 ) {
+    // Check if we need to rebuild handles
+    let selection_added = !selected_added.is_empty();
+    let selection_removed = removed_selected.read().next().is_some();
+    let camera_changed = camera_scale.is_changed();
+    let sorts_moved = !transforms_changed.is_empty();
+    let active_state_changed = !active_added.is_empty() || !inactive_added.is_empty();
+
+    if !selection_added && !selection_removed && !camera_changed && !sorts_moved && !active_state_changed {
+        return;
+    }
     // Clear existing handles with entity existence checks
     for entity in existing_handles.iter() {
         if let Ok(mut entity_commands) = commands.get_entity(entity) {
@@ -198,6 +213,10 @@ pub fn render_mesh_sort_handles(
 
             // Check if this sort is selected
             let is_selected = selected_query.iter().any(|e| e == sort_entity);
+
+            if is_selected {
+                info!("RENDER: Sort {:?} is selected, will draw yellow circle indicator", sort_entity);
+            }
 
             // Determine the base color based on active/inactive state
             let base_color = if active.is_some() {
@@ -285,6 +304,7 @@ pub fn handle_sort_selection_and_drag_start(
         &crate::systems::sorts::sort_entities::BufferSortIndex,
     )>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut selection_state: ResMut<crate::editing::selection::components::SelectionState>,
 ) {
     // Don't process clicks when hovering over UI
     if ui_hover_state.is_hovering_ui {
@@ -349,6 +369,7 @@ pub fn handle_sort_selection_and_drag_start(
                     if selected_entity != sort_entity {
                         if let Ok(mut entity_commands) = commands.get_entity(selected_entity) {
                             entity_commands.remove::<Selected>();
+                            selection_state.selected.remove(&selected_entity);
                         } else {
                             debug!(
                                 "Skipping selection removal for non-existent entity {:?}",
@@ -365,6 +386,7 @@ pub fn handle_sort_selection_and_drag_start(
                 // In multi-select mode, clicking a selected item deselects it
                 if let Ok(mut entity_commands) = commands.get_entity(sort_entity) {
                     entity_commands.remove::<Selected>();
+                    selection_state.selected.remove(&sort_entity);
                     debug!(
                         "Deselected sort {:?} via handle click (multi-select)",
                         sort_entity
@@ -381,9 +403,10 @@ pub fn handle_sort_selection_and_drag_start(
                 // Select the clicked sort
                 if let Ok(mut entity_commands) = commands.get_entity(sort_entity) {
                     entity_commands.insert(Selected);
-                    debug!("Selected sort {:?} via handle click", sort_entity);
+                    selection_state.selected.insert(sort_entity);
+                    info!("CLICK: Selected sort {:?} via handle click", sort_entity);
                 } else {
-                    debug!(
+                    info!(
                         "Skipping selection for non-existent entity {:?}",
                         sort_entity
                     );
@@ -610,12 +633,13 @@ impl Plugin for SortHandleRenderingPlugin {
             .add_systems(
                 Update,
                 (
-                    render_mesh_sort_handles,
                     // Handle selection should run before auto_activate_selected_sorts
                     handle_sort_selection_and_drag_start
                         .before(crate::systems::sorts::sort_entities::auto_activate_selected_sorts),
                     handle_sort_drag_update,
                     handle_sort_drag_release,
+                    render_mesh_sort_handles
+                        .after(handle_sort_selection_and_drag_start),
                 ),
             );
     }

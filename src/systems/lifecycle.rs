@@ -4,11 +4,38 @@
 //! from startup initialization to shutdown procedures.
 
 use bevy::prelude::*;
+use bevy::window::WindowCloseRequested;
 
 /// System to exit the application when the Escape key is pressed
 pub fn exit_on_esc(keyboard: Res<ButtonInput<KeyCode>>, mut app_exit_events: EventWriter<AppExit>) {
     if keyboard.just_pressed(KeyCode::Escape) {
         app_exit_events.write(AppExit::Success);
+    }
+}
+
+/// System to handle window close button clicks
+pub fn handle_window_close(
+    mut close_events: EventReader<WindowCloseRequested>,
+    mut app_exit_events: EventWriter<AppExit>,
+) {
+    for _ in close_events.read() {
+        info!("Window close requested, exiting application");
+        app_exit_events.write(AppExit::Success);
+    }
+}
+
+#[cfg(feature = "tui")]
+/// System to notify TUI when app is exiting
+pub fn notify_tui_on_exit(
+    mut exit_events: EventReader<AppExit>,
+    tui_comm: Option<Res<crate::core::tui_communication::TuiCommunication>>,
+) {
+    for _ in exit_events.read() {
+        if let Some(tui) = &tui_comm {
+            use crate::tui::communication::AppMessage;
+            let _ = tui.send(AppMessage::Shutdown);
+            info!("Sent shutdown message to TUI");
+        }
     }
 }
 

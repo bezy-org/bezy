@@ -82,4 +82,5 @@ pub enum AppMessage {
     LogLine(String),
     Error(String),
     FileAction(FileAction),
+    Shutdown,
 }

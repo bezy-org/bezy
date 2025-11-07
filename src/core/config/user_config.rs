@@ -24,16 +24,14 @@ pub struct ConfigFile {
 impl ConfigFile {
     /// Get the path to the user config file
     pub fn config_path() -> PathBuf {
-        let config_dir = dirs::config_dir()
-            .unwrap_or_else(|| dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")));
-        config_dir.join("bezy").join("settings.json")
+        let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+        home.join(".config").join("bezy").join("settings.json")
     }
 
     /// Get the path to the bezy config directory
     pub fn config_dir() -> PathBuf {
-        let config_dir = dirs::config_dir()
-            .unwrap_or_else(|| dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")));
-        config_dir.join("bezy")
+        let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+        home.join(".config").join("bezy")
     }
 
     /// Load configuration from the user config file
@@ -86,9 +84,8 @@ impl ConfigFile {
     /// 3. A themes/ directory with copies of all embedded themes
     /// 4. A logs/ directory for application logs
     pub fn initialize_config_directory() -> anyhow::Result<()> {
-        let config_dir = dirs::config_dir()
-            .unwrap_or_else(|| dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")))
-            .join("bezy");
+        let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+        let config_dir = home.join(".config").join("bezy");
 
         // Create the main config directory
         fs::create_dir_all(&config_dir)?;

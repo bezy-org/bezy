@@ -22,7 +22,10 @@ pub mod ui_interaction;
 pub use commands::CommandsPlugin;
 pub use fontir_lifecycle::{initialize_font_loading, load_font_deferred, DeferredFontLoading};
 pub use input_consumer::InputConsumerPlugin;
-pub use lifecycle::{exit_on_esc, load_ufo_font};
+#[cfg(feature = "tui")]
+pub use lifecycle::{exit_on_esc, handle_window_close, load_ufo_font, notify_tui_on_exit};
+#[cfg(not(feature = "tui"))]
+pub use lifecycle::{exit_on_esc, handle_window_close, load_ufo_font};
 pub use plugins::{configure_default_plugins, BezySystems};
 pub use startup_layout::{center_camera_on_startup_layout, create_startup_layout, migrate_sort_advance_widths};
 pub use text_buffer_manager::TextBufferManagerPlugin;
