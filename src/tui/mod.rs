@@ -85,10 +85,13 @@ pub fn run_app_with_tui(cli_args: CliArgs) -> Result<()> {
         });
     });
 
+    // Wait for TUI to enter alternate screen mode before redirecting stderr
+    // This prevents system library output from corrupting the TUI display
     while !tui_ready.load(Ordering::Acquire) {
         thread::sleep(std::time::Duration::from_millis(10));
     }
 
+    // Now safe to redirect stderr - TUI is using alternate screen buffer
     if let Err(e) = crate::logging::redirect_stderr_to_log() {
         use tracing::warn;
         warn!("Failed to redirect stderr to log file: {}", e);

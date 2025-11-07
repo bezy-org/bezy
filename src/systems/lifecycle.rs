@@ -26,6 +26,12 @@ pub fn handle_window_close(
 
 #[cfg(feature = "tui")]
 /// System to notify TUI when app is exiting
+///
+/// Critical for preventing deadlock on window close: The TUI thread runs in a separate
+/// thread with tokio::select! waiting for messages. When Bevy exits (via ESC or window
+/// close button), this system sends AppMessage::Shutdown to break the TUI event loop.
+/// Without this, the main thread would hang at tui_handle.join() waiting for a thread
+/// that never exits, causing the macOS beachball.
 pub fn notify_tui_on_exit(
     mut exit_events: EventReader<AppExit>,
     tui_comm: Option<Res<crate::core::tui_communication::TuiCommunication>>,

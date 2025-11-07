@@ -170,21 +170,31 @@ fn handle_keyboard_shortcuts(
         return;
     }
 
-    // Handle Cmd+S (macOS) or Ctrl+S (Windows/Linux)
-    let cmd_or_ctrl = keyboard_input.pressed(KeyCode::SuperLeft)
-        || keyboard_input.pressed(KeyCode::SuperRight)
-        || keyboard_input.pressed(KeyCode::ControlLeft)
-        || keyboard_input.pressed(KeyCode::ControlRight);
+    // ONLY save if S is pressed AND a modifier is held
+    if keyboard_input.just_pressed(KeyCode::KeyS) {
+        // Handle Cmd+S (macOS) or Ctrl+S (Windows/Linux)
+        let cmd_or_ctrl = keyboard_input.pressed(KeyCode::SuperLeft)
+            || keyboard_input.pressed(KeyCode::SuperRight)
+            || keyboard_input.pressed(KeyCode::ControlLeft)
+            || keyboard_input.pressed(KeyCode::ControlRight);
 
-    if cmd_or_ctrl && keyboard_input.just_pressed(KeyCode::KeyS) {
-        debug!("💾 Save shortcut triggered (Cmd+S/Ctrl+S)");
-        save_events.write(SaveFileEvent);
+        if cmd_or_ctrl {
+            debug!("💾 Save shortcut triggered (Cmd+S/Ctrl+S)");
+            save_events.write(SaveFileEvent);
+        }
     }
 
     // Handle Cmd+E (macOS) or Ctrl+E (Windows/Linux) for export
-    if cmd_or_ctrl && keyboard_input.just_pressed(KeyCode::KeyE) {
-        debug!("📦 Export TTF shortcut triggered (Cmd+E/Ctrl+E)");
-        export_events.write(ExportTTFEvent);
+    if keyboard_input.just_pressed(KeyCode::KeyE) {
+        let cmd_or_ctrl = keyboard_input.pressed(KeyCode::SuperLeft)
+            || keyboard_input.pressed(KeyCode::SuperRight)
+            || keyboard_input.pressed(KeyCode::ControlLeft)
+            || keyboard_input.pressed(KeyCode::ControlRight);
+
+        if cmd_or_ctrl {
+            debug!("📦 Export TTF shortcut triggered (Cmd+E/Ctrl+E)");
+            export_events.write(ExportTTFEvent);
+        }
     }
 
     // TEMPORARY: Also trigger export with F5 key for testing

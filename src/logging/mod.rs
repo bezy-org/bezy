@@ -70,6 +70,11 @@ pub fn setup_log_redirection() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Redirect stderr to log file to prevent TUI corruption
+///
+/// Called after TUI enters alternate screen mode. System libraries (like macOS IMK framework)
+/// write directly to stderr, which would corrupt the TUI display. This redirects stderr at
+/// the OS level using dup2() to capture all output to the log file.
 pub fn redirect_stderr_to_log() -> anyhow::Result<()> {
     initialize_logs_directory()?;
 

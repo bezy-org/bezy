@@ -82,5 +82,6 @@ pub enum AppMessage {
     LogLine(String),
     Error(String),
     FileAction(FileAction),
+    /// Signals TUI to exit event loop - prevents deadlock when Bevy exits
     Shutdown,
 }
