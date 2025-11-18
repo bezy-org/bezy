@@ -157,12 +157,19 @@ pub fn sync_selected_components(
     selected_entities: Query<Entity, With<Selected>>,
     entities: Query<Entity>,
 ) {
-    // Only log when there are changes to synchronize to avoid spam
+    // Log all synchronization activity for debugging
     if !selection_state.selected.is_empty() || selected_entities.iter().count() > 0 {
         debug!(
-            "Synchronizing Selected components with SelectionState (current: {})",
-            selection_state.selected.len()
+            "SYNC: SelectionState has {} entities, Selected components on {} entities",
+            selection_state.selected.len(),
+            selected_entities.iter().count()
         );
+        for entity in &selection_state.selected {
+            debug!("SYNC: Entity {:?} in SelectionState", entity);
+        }
+        for entity in &selected_entities {
+            debug!("SYNC: Entity {:?} has Selected component", entity);
+        }
     }
 
     // First, ensure all entities in the selection_state have the Selected component

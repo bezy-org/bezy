@@ -165,26 +165,50 @@ fn handle_keyboard_shortcuts(
     mut export_events: EventWriter<ExportTTFEvent>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
     file_menu_state: Res<FileMenuState>,
+    current_tool: Option<Res<crate::ui::edit_mode_toolbar::CurrentTool>>,
+    current_placement_mode: Option<Res<crate::ui::edit_mode_toolbar::text::TextPlacementMode>>,
 ) {
     if !file_menu_state.initialized {
         return;
     }
 
-    // Handle Cmd+S (macOS) or Ctrl+S (Windows/Linux)
-    let cmd_or_ctrl = keyboard_input.pressed(KeyCode::SuperLeft)
-        || keyboard_input.pressed(KeyCode::SuperRight)
-        || keyboard_input.pressed(KeyCode::ControlLeft)
-        || keyboard_input.pressed(KeyCode::ControlRight);
+    // ONLY save if S is pressed AND a modifier is held
+    if keyboard_input.just_pressed(KeyCode::KeyS) {
+        // Handle Cmd+S (macOS) or Ctrl+S (Windows/Linux)
+        let cmd_or_ctrl = keyboard_input.pressed(KeyCode::SuperLeft)
+            || keyboard_input.pressed(KeyCode::SuperRight)
+            || keyboard_input.pressed(KeyCode::ControlLeft)
+            || keyboard_input.pressed(KeyCode::ControlRight);
 
-    if cmd_or_ctrl && keyboard_input.just_pressed(KeyCode::KeyS) {
-        debug!("💾 Save shortcut triggered (Cmd+S/Ctrl+S)");
-        save_events.write(SaveFileEvent);
+        if cmd_or_ctrl {
+            debug!("💾 Save shortcut triggered (Cmd+S/Ctrl+S)");
+            save_events.write(SaveFileEvent);
+            return;
+        }
+
+        // If S pressed without modifier and we're in text Insert mode, skip (user is typing)
+        if let Some(tool) = current_tool {
+            if tool.get_current() == Some("text") {
+                if let Some(mode) = current_placement_mode {
+                    if matches!(*mode, crate::ui::edit_mode_toolbar::text::TextPlacementMode::Insert) {
+                        return;
+                    }
+                }
+            }
+        }
     }
 
     // Handle Cmd+E (macOS) or Ctrl+E (Windows/Linux) for export
-    if cmd_or_ctrl && keyboard_input.just_pressed(KeyCode::KeyE) {
-        debug!("📦 Export TTF shortcut triggered (Cmd+E/Ctrl+E)");
-        export_events.write(ExportTTFEvent);
+    if keyboard_input.just_pressed(KeyCode::KeyE) {
+        let cmd_or_ctrl = keyboard_input.pressed(KeyCode::SuperLeft)
+            || keyboard_input.pressed(KeyCode::SuperRight)
+            || keyboard_input.pressed(KeyCode::ControlLeft)
+            || keyboard_input.pressed(KeyCode::ControlRight);
+
+        if cmd_or_ctrl {
+            debug!("📦 Export TTF shortcut triggered (Cmd+E/Ctrl+E)");
+            export_events.write(ExportTTFEvent);
+        }
     }
 
     // TEMPORARY: Also trigger export with F5 key for testing

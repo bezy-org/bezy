@@ -192,6 +192,8 @@ pub(crate) fn render_text_editor_cursor(
 
     if !should_show_cursor {
         text_cursor::clear_cursor_entities(&mut commands, &mut entity_pools);
+        cursor_state.last_tool = None;
+        cursor_state.last_placement_mode = None;
         return;
     }
 
@@ -230,19 +232,23 @@ pub(crate) fn render_text_editor_cursor(
     let cursor_position_changed = cursor_state.last_cursor_position != current_cursor_position;
     let camera_scale_changed = cursor_state.last_camera_scale != Some(current_camera_scale);
 
+    let was_not_showing_cursor = cursor_state.last_tool.is_none()
+        || cursor_state.last_placement_mode.is_none();
+
     if !tool_changed
         && !placement_mode_changed
         && !buffer_cursor_changed
         && !cursor_position_changed
         && !camera_scale_changed
+        && !was_not_showing_cursor
     {
         warn!("🔒 CURSOR RENDERING: No changes detected, skipping render");
-        return; // No changes, skip rendering
+        return;
     }
 
     warn!(
-        "🔄 CURSOR RENDERING: Changes detected - tool:{} placement:{} buffer_cursor:{} cursor_pos:{} camera:{}",
-        tool_changed, placement_mode_changed, buffer_cursor_changed, cursor_position_changed, camera_scale_changed
+        "🔄 CURSOR RENDERING: Changes detected - tool:{} placement:{} buffer_cursor:{} cursor_pos:{} camera:{} was_hidden:{}",
+        tool_changed, placement_mode_changed, buffer_cursor_changed, cursor_position_changed, camera_scale_changed, was_not_showing_cursor
     );
     warn!(
         "   Last cursor pos: {:?}, Current cursor pos: {:?}",

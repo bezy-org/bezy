@@ -215,6 +215,9 @@ impl App {
                     }
                 }
             }
+            AppMessage::Shutdown => {
+                self.should_quit = true;
+            }
         }
         Ok(())
     }

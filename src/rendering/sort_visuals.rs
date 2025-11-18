@@ -41,6 +41,12 @@ pub struct SortHandleEntities {
     pub handles: HashMap<Entity, Vec<Entity>>, // sort_entity -> handle entities
 }
 
+/// Resource to track selection indicator entities separately
+#[derive(Resource, Default)]
+pub struct SelectionIndicatorEntities {
+    pub indicators: HashMap<Entity, Entity>, // sort_entity -> indicator entity
+}
+
 /// Resource to track dragging state for sort handles
 #[derive(Resource, Default)]
 pub struct SortHandleDragState {
@@ -162,12 +168,32 @@ pub fn render_mesh_sort_handles(
         Option<&crate::editing::sort::InactiveSort>,
     )>,
     existing_handles: Query<Entity, With<SortHandle>>,
-    selected_query: Query<Entity, With<Selected>>,
+    transforms_changed: Query<Entity, (With<crate::editing::sort::Sort>, Changed<Transform>)>,
+    new_sorts: Query<Entity, Added<crate::editing::sort::Sort>>,
     app_state: Option<Res<crate::core::state::AppState>>,
     camera_scale: Res<CameraResponsiveScale>,
     presentation_mode: Option<Res<crate::ui::edit_mode_toolbar::PresentationMode>>,
     theme: Res<CurrentTheme>,
 ) {
+    // Check if we need to rebuild handles
+    // Only rebuild on camera zoom, sort movement, or new sorts - NOT on active/inactive state changes
+    let camera_changed = camera_scale.is_changed();
+    let sorts_moved = !transforms_changed.is_empty();
+    let sorts_added = !new_sorts.is_empty();
+
+    if !camera_changed && !sorts_moved && !sorts_added {
+        return;
+    }
+
+    if camera_changed {
+        debug!("Rebuilding handles: camera changed");
+    }
+    if sorts_moved {
+        debug!("Rebuilding handles: sorts moved");
+    }
+    if sorts_added {
+        debug!("Rebuilding handles: new sorts added ({})", new_sorts.iter().count());
+    }
     // Clear existing handles with entity existence checks
     for entity in existing_handles.iter() {
         if let Ok(mut entity_commands) = commands.get_entity(entity) {
@@ -196,21 +222,11 @@ pub fn render_mesh_sort_handles(
             let handle_position =
                 position + Vec2::new(handle_size / 2.0, descender + handle_size / 2.0);
 
-            // Check if this sort is selected
-            let is_selected = selected_query.iter().any(|e| e == sort_entity);
-
-            // Determine the base color based on active/inactive state
-            let base_color = if active.is_some() {
+            // Determine the color based on active/inactive state
+            let handle_color = if active.is_some() {
                 theme.theme().sort_active_metrics_color()
             } else {
                 theme.theme().sort_inactive_metrics_color()
-            };
-
-            // Override color to yellow if selected
-            let handle_color = if is_selected {
-                Color::srgb(1.0, 1.0, 0.0) // Yellow for selected
-            } else {
-                base_color // Use metrics color when not selected
             };
 
             // Camera-responsive line width
@@ -228,29 +244,6 @@ pub fn render_mesh_sort_handles(
                 sort_entity,
             );
 
-            // Add filled center circle for selected handles
-            if is_selected {
-                let center_radius = handle_size * 0.25; // Small circle in center
-                let center_circle = commands
-                    .spawn((
-                        SortHandle {
-                            sort_entity,
-                            handle_type: SortHandleType::Square,
-                        },
-                        Mesh2d(meshes.add(Circle::new(center_radius))),
-                        MeshMaterial2d(
-                            materials.add(ColorMaterial::from_color(Color::srgb(1.0, 1.0, 0.0))),
-                        ), // Yellow
-                        Transform::from_xyz(handle_position.x, handle_position.y, 16.0), // Above the outline
-                        GlobalTransform::default(),
-                        Visibility::Visible,
-                        InheritedVisibility::default(),
-                        ViewVisibility::default(),
-                        crate::editing::selection::components::Selectable,
-                    ))
-                    .id();
-                handle_entities_list.push(center_circle);
-            }
 
             handle_entities
                 .handles
@@ -285,6 +278,7 @@ pub fn handle_sort_selection_and_drag_start(
         &crate::systems::sorts::sort_entities::BufferSortIndex,
     )>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut selection_state: ResMut<crate::editing::selection::components::SelectionState>,
 ) {
     // Don't process clicks when hovering over UI
     if ui_hover_state.is_hovering_ui {
@@ -349,6 +343,7 @@ pub fn handle_sort_selection_and_drag_start(
                     if selected_entity != sort_entity {
                         if let Ok(mut entity_commands) = commands.get_entity(selected_entity) {
                             entity_commands.remove::<Selected>();
+                            selection_state.selected.remove(&selected_entity);
                         } else {
                             debug!(
                                 "Skipping selection removal for non-existent entity {:?}",
@@ -365,6 +360,7 @@ pub fn handle_sort_selection_and_drag_start(
                 // In multi-select mode, clicking a selected item deselects it
                 if let Ok(mut entity_commands) = commands.get_entity(sort_entity) {
                     entity_commands.remove::<Selected>();
+                    selection_state.selected.remove(&sort_entity);
                     debug!(
                         "Deselected sort {:?} via handle click (multi-select)",
                         sort_entity
@@ -381,9 +377,10 @@ pub fn handle_sort_selection_and_drag_start(
                 // Select the clicked sort
                 if let Ok(mut entity_commands) = commands.get_entity(sort_entity) {
                     entity_commands.insert(Selected);
-                    debug!("Selected sort {:?} via handle click", sort_entity);
+                    selection_state.selected.insert(sort_entity);
+                    info!("CLICK: Selected sort {:?} via handle click", sort_entity);
                 } else {
-                    debug!(
+                    info!(
                         "Skipping selection for non-existent entity {:?}",
                         sort_entity
                     );
@@ -606,17 +603,78 @@ pub struct SortHandleRenderingPlugin;
 impl Plugin for SortHandleRenderingPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<SortHandleEntities>()
+            .init_resource::<SelectionIndicatorEntities>()
             .init_resource::<SortHandleDragState>()
             .add_systems(
                 Update,
                 (
-                    render_mesh_sort_handles,
                     // Handle selection should run before auto_activate_selected_sorts
                     handle_sort_selection_and_drag_start
                         .before(crate::systems::sorts::sort_entities::auto_activate_selected_sorts),
                     handle_sort_drag_update,
                     handle_sort_drag_release,
+                    render_mesh_sort_handles
+                        .after(handle_sort_selection_and_drag_start),
+                    manage_selection_indicators
+                        .after(render_mesh_sort_handles),
                 ),
             );
+    }
+}
+
+/// System to manage selection indicators separately from handles
+/// This prevents flashing by only updating indicators when selection changes
+pub fn manage_selection_indicators(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut indicator_entities: ResMut<SelectionIndicatorEntities>,
+    handle_entities: Res<SortHandleEntities>,
+    selected_added: Query<Entity, (With<crate::editing::sort::Sort>, Added<Selected>)>,
+    mut removed_selected: RemovedComponents<Selected>,
+) {
+    // Remove indicators for deselected sorts
+    for deselected_entity in removed_selected.read() {
+        if let Some(indicator_entity) = indicator_entities.indicators.remove(&deselected_entity) {
+            if let Ok(mut entity_commands) = commands.get_entity(indicator_entity) {
+                entity_commands.despawn();
+            }
+        }
+    }
+
+    // Add indicators for newly selected sorts
+    for selected_entity in selected_added.iter() {
+        // Check if this sort has handles rendered
+        if handle_entities.handles.contains_key(&selected_entity) {
+            // Get handle position from the first handle entity
+            if let Some(handle_list) = handle_entities.handles.get(&selected_entity) {
+                if let Some(&first_handle_entity) = handle_list.first() {
+                    // Create indicator as child of first handle (which is centered on handle box)
+                    let handle_size = 32.0;
+                    let center_radius = handle_size * 0.4;
+
+                    let indicator = commands
+                        .spawn((
+                            SortHandle {
+                                sort_entity: selected_entity,
+                                handle_type: SortHandleType::SelectionIndicator,
+                            },
+                            Mesh2d(meshes.add(Circle::new(center_radius))),
+                            MeshMaterial2d(
+                                materials.add(ColorMaterial::from_color(Color::srgb(1.0, 1.0, 0.0))),
+                            ),
+                            Transform::from_xyz(0.0, 0.0, 2.0),
+                            GlobalTransform::default(),
+                            Visibility::Visible,
+                            InheritedVisibility::default(),
+                            ViewVisibility::default(),
+                        ))
+                        .set_parent(first_handle_entity)
+                        .id();
+
+                    indicator_entities.indicators.insert(selected_entity, indicator);
+                }
+            }
+        }
     }
 }

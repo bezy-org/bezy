@@ -9,9 +9,8 @@ use std::path::PathBuf;
 
 /// Get the path to the bezy config directory
 fn config_dir() -> PathBuf {
-    let config_dir = dirs::config_dir()
-        .unwrap_or_else(|| dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")));
-    config_dir.join("bezy")
+    let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+    home.join(".config").join("bezy")
 }
 
 /// Get the path to the logs directory
@@ -71,17 +70,40 @@ pub fn setup_log_redirection() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Redirect stderr to log file to prevent TUI corruption
+///
+/// Called after TUI enters alternate screen mode. System libraries (like macOS IMK framework)
+/// write directly to stderr, which would corrupt the TUI display. This redirects stderr at
+/// the OS level using dup2() to capture all output to the log file.
+pub fn redirect_stderr_to_log() -> anyhow::Result<()> {
+    initialize_logs_directory()?;
+
+    let log_file_path = current_log_file();
+    let log_file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&log_file_path)?;
+
+    unsafe {
+        libc::dup2(log_file.as_raw_fd(), libc::STDERR_FILENO);
+    }
+
+    Ok(())
+}
+
 pub fn setup_file_logging_for_tui() -> anyhow::Result<()> {
-    use tracing_appender::rolling;
     use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
     initialize_logs_directory()?;
 
-    let logs_dir = logs_dir();
-    let file_appender = rolling::daily(logs_dir, "bezy.log");
+    let log_file_path = current_log_file();
+    let log_file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&log_file_path)?;
 
     let file_layer = fmt::layer()
-        .with_writer(file_appender)
+        .with_writer(log_file)
         .with_ansi(false)
         .with_target(true)
         .with_thread_ids(false)

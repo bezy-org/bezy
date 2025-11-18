@@ -6,8 +6,8 @@ use super::plugins::{CorePluginGroup, EditorPluginGroup, RenderingPluginGroup};
 use crate::core::config::{BezySettings, CliArgs, DEFAULT_WINDOW_SIZE, WINDOW_TITLE};
 use crate::core::state::{AppState, GlyphNavigation};
 use crate::systems::{
-    center_camera_on_startup_layout, create_startup_layout, exit_on_esc, initialize_font_loading,
-    load_font_deferred, migrate_sort_advance_widths,
+    center_camera_on_startup_layout, create_startup_layout, exit_on_esc, handle_window_close,
+    initialize_font_loading, load_font_deferred, migrate_sort_advance_widths,
     plugins::{configure_default_plugins, configure_default_plugins_for_tui},
 };
 #[cfg(feature = "tui")]
@@ -144,7 +144,7 @@ fn add_plugin_groups(app: &mut App) {
 /// Add startup and exit systems
 fn add_startup_and_exit_systems(app: &mut App) {
     app.add_systems(Startup, (initialize_font_loading, create_startup_layout).chain())
-        .add_systems(Update, (exit_on_esc, center_camera_on_startup_layout, migrate_sort_advance_widths));
+        .add_systems(Update, (exit_on_esc, handle_window_close, center_camera_on_startup_layout, migrate_sort_advance_widths));
 }
 
 #[cfg(feature = "tui")]
@@ -187,6 +187,7 @@ pub fn create_app_with_tui(
         handle_tui_messages.in_set(crate::editing::FontEditorSets::Input)
     );
     app.add_systems(Update, send_initial_font_data_to_tui);
+    app.add_systems(Update, crate::systems::notify_tui_on_exit);
 
     // Add deferred font loading system to load fonts after window is shown
     app.add_systems(Update, load_font_deferred);

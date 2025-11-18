@@ -341,17 +341,32 @@ pub fn handle_codepoint_cycling(
 pub fn handle_save_shortcuts(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut save_event: EventWriter<SaveFileEvent>,
+    current_tool: Res<crate::ui::edit_mode_toolbar::CurrentTool>,
+    current_placement_mode: Option<Res<crate::ui::edit_mode_toolbar::text::TextPlacementMode>>,
 ) {
-    // Check for Command (macOS) or Control (Windows/Linux)
-    let modifier_pressed = keyboard.pressed(KeyCode::SuperLeft)
-        || keyboard.pressed(KeyCode::SuperRight)
-        || keyboard.pressed(KeyCode::ControlLeft)
-        || keyboard.pressed(KeyCode::ControlRight);
+    // ONLY save if S is pressed AND a modifier is held
+    if keyboard.just_pressed(KeyCode::KeyS) {
+        // Check for Command (macOS) or Control (Windows/Linux)
+        let modifier_pressed = keyboard.pressed(KeyCode::SuperLeft)
+            || keyboard.pressed(KeyCode::SuperRight)
+            || keyboard.pressed(KeyCode::ControlLeft)
+            || keyboard.pressed(KeyCode::ControlRight);
 
-    // If modifier is pressed and S is just pressed, trigger save
-    if modifier_pressed && keyboard.just_pressed(KeyCode::KeyS) {
-        debug!("Detected Command+S / Ctrl+S key combination, saving font");
-        save_event.write(SaveFileEvent);
+        // Only trigger save if a modifier is actually pressed
+        if modifier_pressed {
+            debug!("Detected Command+S / Ctrl+S key combination, saving font");
+            save_event.write(SaveFileEvent);
+            return;
+        }
+
+        // If S pressed without modifier and we're in text Insert mode, skip (user is typing)
+        if current_tool.get_current() == Some("text") {
+            if let Some(mode) = current_placement_mode {
+                if matches!(*mode, crate::ui::edit_mode_toolbar::text::TextPlacementMode::Insert) {
+                    return;
+                }
+            }
+        }
     }
 }
 
